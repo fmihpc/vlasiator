@@ -590,7 +590,7 @@ namespace spatial_cell {
    vmesh::LocalID SpatialCell::adjust_velocity_blocks_caller(const uint popID) {
       const uint cpuThreadID = gpu_getThread();
       const gpuStream_t stream = gpu_getStream();
-      host_returnRealf[cpuThreadID][0] = 0; // host_rhoLossAdjust
+      (GET_SUBPOINTER(gpuMemoryManager, Realf, host_returnRealf, cpuThreadID))[0] = 0; // host_rhoLossAdjust
       // populations[popID].vmesh->print();
       // Grow the vmesh and block container, if necessary. Try performing this on-device, if possible.
       resize_vbc_kernel_pre<<<1, 1, 0, stream>>> (
@@ -600,17 +600,17 @@ namespace spatial_cell {
          dev_list_delete,
          dev_list_to_replace,
          dev_list_with_replace_old,
-         returnLID[cpuThreadID], // return values: nbefore, nafter, nblockstochange, resize success
-         returnRealf[cpuThreadID] // mass loss, set to zero
+         GET_SUBPOINTER(gpuMemoryManager, vmesh::LocalID, returnLID, cpuThreadID), // return values: nbefore, nafter, nblockstochange, resize success
+         GET_SUBPOINTER(gpuMemoryManager, Realf, returnRealf, cpuThreadID) // mass loss, set to zero
          );
       CHK_ERR( gpuPeekAtLastError() );
-      CHK_ERR( gpuMemcpyAsync(host_returnLID[cpuThreadID], returnLID[cpuThreadID], 4*sizeof(vmesh::LocalID), gpuMemcpyDeviceToHost, stream) );
+      CHK_ERR( gpuMemcpyAsync(GET_SUBPOINTER(gpuMemoryManager, vmesh::LocalID, host_returnLID, cpuThreadID), GET_SUBPOINTER(gpuMemoryManager, vmesh::LocalID, returnLID, cpuThreadID), 4*sizeof(vmesh::LocalID), gpuMemcpyDeviceToHost, stream) );
       CHK_ERR( gpuStreamSynchronize(stream) );
       // Grow mesh if necessary and on-device resize did not work??
-      const vmesh::LocalID nBlocksBeforeAdjust = host_returnLID[cpuThreadID][0];
-      const vmesh::LocalID nBlocksAfterAdjust = host_returnLID[cpuThreadID][1];
-      const vmesh::LocalID nBlocksToChange = host_returnLID[cpuThreadID][2];
-      const vmesh::LocalID resizeDevSuccess = host_returnLID[cpuThreadID][3];
+      const vmesh::LocalID nBlocksBeforeAdjust = (GET_SUBPOINTER(gpuMemoryManager, vmesh::LocalID, host_returnLID, cpuThreadID))[0];
+      const vmesh::LocalID nBlocksAfterAdjust = (GET_SUBPOINTER(gpuMemoryManager, vmesh::LocalID, host_returnLID, cpuThreadID))[1];
+      const vmesh::LocalID nBlocksToChange = (GET_SUBPOINTER(gpuMemoryManager, vmesh::LocalID, host_returnLID, cpuThreadID))[2];
+      const vmesh::LocalID resizeDevSuccess = (GET_SUBPOINTER(gpuMemoryManager, vmesh::LocalID, host_returnLID, cpuThreadID))[3];
       if ( (nBlocksAfterAdjust > nBlocksBeforeAdjust) && (resizeDevSuccess == 0)) {
          //GPUTODO is _FACTOR enough instead of _PADDING?
          populations[popID].vmesh->setNewCapacity(nBlocksAfterAdjust*BLOCK_ALLOCATION_PADDING);
@@ -644,10 +644,10 @@ namespace spatial_cell {
          nBlocksBeforeAdjust,
          nBlocksToChange,
          nBlocksAfterAdjust,
-         returnRealf[cpuThreadID] // mass loss
+         GET_SUBPOINTER(gpuMemoryManager, Realf, returnRealf, cpuThreadID) // mass loss
          );
       CHK_ERR( gpuPeekAtLastError() );
-      CHK_ERR( gpuMemcpyAsync(host_returnRealf[cpuThreadID], returnRealf[cpuThreadID], sizeof(Realf), gpuMemcpyDeviceToHost, stream) );
+      CHK_ERR( gpuMemcpyAsync(GET_SUBPOINTER(gpuMemoryManager, Realf, host_returnRealf, cpuThreadID), GET_SUBPOINTER(gpuMemoryManager, Realf, returnRealf, cpuThreadID), sizeof(Realf), gpuMemcpyDeviceToHost, stream) );
 
       // Shrink the vmesh and block container, if necessary
       if (nBlocksAfterAdjust < nBlocksBeforeAdjust) {
@@ -664,7 +664,7 @@ namespace spatial_cell {
       populations[popID].blockContainer->setNewCachedSize(nBlocksAfterAdjust);
 
       CHK_ERR( gpuStreamSynchronize(stream) );
-      this->populations[popID].RHOLOSSADJUST += host_returnRealf[cpuThreadID][0];
+      this->populations[popID].RHOLOSSADJUST += (GET_SUBPOINTER(gpuMemoryManager, Realf, host_returnRealf, cpuThreadID))[0];
 
       // DEBUG output after kernel
       #ifdef DEBUG_SPATIAL_CELL

@@ -379,7 +379,13 @@ namespace SBC {
       vector<std::vector<Real>> dataset(0, std::vector<Real>(nParams, 0));
 
       ifstream fi;
-      fi.open(fn);
+      fi.open(fn); 
+
+      // Check that the file opened correctly
+      if (!fi.is_open()) {
+         cerr << "Could not open input file " << fn << "!" << endl;
+         MPI_Abort(MPI_COMM_WORLD, 1);
+      }
 
       uint nlines = 0;
       string line;

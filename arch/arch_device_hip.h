@@ -82,6 +82,7 @@
 #define gpuMemcpyDeviceToHost            hipMemcpyDeviceToHost
 #define gpuMemcpyHostToDevice            hipMemcpyHostToDevice
 #define gpuMemcpyDeviceToDevice          hipMemcpyDeviceToDevice
+#define gpuMemcpyHostToHost              hipMemcpyHostToHost
 #define gpuMemcpyToSymbol                hipMemcpyToSymbol
 
 #define gpuKernelBallot(mask, input)     __ballot(input)

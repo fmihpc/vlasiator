@@ -103,29 +103,4 @@ namespace spatial_cell {
 
 } // namespaces
 
-// Host-device buffers, allocated in arch/gpu_base.cpp
-extern vmesh::VelocityMesh** host_vmeshes, **dev_vmeshes;
-extern vmesh::VelocityBlockContainer** host_VBCs, **dev_VBCs;
-extern Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>** host_allMaps, **dev_allMaps;
-extern split::SplitVector<vmesh::GlobalID> ** host_vbwcl_vec, **dev_vbwcl_vec;
-extern split::SplitVector<vmesh::GlobalID> ** host_lists_with_replace_new, **dev_lists_with_replace_new;
-extern split::SplitVector<Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>> **host_lists_delete, **dev_lists_delete;
-extern split::SplitVector<Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>> **host_lists_to_replace, **dev_lists_to_replace;
-extern split::SplitVector<Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>> **host_lists_with_replace_old, **dev_lists_with_replace_old;
-extern split::SplitVector<vmesh::GlobalID> ** host_vbwcl_neigh, **dev_vbwcl_neigh;
-extern vmesh::LocalID* host_nWithContent, *dev_nWithContent;
-extern vmesh::LocalID* host_nBefore, *dev_nBefore;
-extern vmesh::LocalID* host_nAfter, *dev_nAfter;
-extern vmesh::LocalID* host_nBlocksToChange, *dev_nBlocksToChange;
-extern vmesh::LocalID* host_resizeSuccess, *dev_resizeSuccess;
-extern vmesh::LocalID* host_overflownElements, *dev_overflownElements;
-extern Real* host_minValues, *dev_minValues;
-extern Real* host_massLoss, *dev_massLoss;
-extern Real* host_mass, *dev_mass;
-
-// Only used for acceleration
-extern vmesh::LocalID* host_nColumns, *dev_nColumns;
-extern vmesh::LocalID* host_nColumnSets, *dev_nColumnSets;
-extern Realf* host_intersections, *dev_intersections;
-
 #endif

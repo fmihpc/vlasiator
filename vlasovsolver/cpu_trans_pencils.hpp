@@ -51,18 +51,16 @@ struct setOfPencils {
 
    //GPUTODO: move gpu buffers and their upload to separate gpu_trans_pencils .hpp and .cpp files
 #ifdef USE_GPU
-   uint gpu_allocated_N = 0;
-   uint gpu_allocated_sumOfLengths = 0;
    // Pointers to GPU copies of vectors
-   uint *gpu_lengthOfPencils;
-   uint *gpu_idsStart;
-   Realf *gpu_sourceDZ;
-   Realf *gpu_targetRatios;
-   std::string dev_pencilsInBin = "null";
-   std::string host_binStart = "null";
-   std::string host_binSize = "null";
-   std::string dev_binStart = "null";
-   std::string dev_binSize = "null";
+   size_t gpu_lengthOfPencils = 0;
+   size_t gpu_idsStart = 0;
+   size_t gpu_sourceDZ = 0;
+   size_t gpu_targetRatios = 0;
+   size_t dev_pencilsInBin = 0;
+   size_t host_binStart = 0;
+   size_t host_binSize = 0;
+   size_t dev_binStart = 0;
+   size_t dev_binSize = 0;
 
 #endif
 
@@ -196,11 +194,11 @@ struct setOfPencils {
 
    #ifdef USE_GPU
    void gpuBins(){
-      gpuMemoryManager.createPointer("dev_pencilsInBin", dev_pencilsInBin);
-      gpuMemoryManager.createPointer("host_binStart", host_binStart);
-      gpuMemoryManager.createPointer("host_binSize", host_binSize);
-      gpuMemoryManager.createPointer("dev_binStart", dev_binStart);
-      gpuMemoryManager.createPointer("dev_binSize", dev_binSize);
+      gpuMemoryManager.createPointer(dev_pencilsInBin);
+      gpuMemoryManager.createPointer(host_binStart);
+      gpuMemoryManager.createPointer(host_binSize);
+      gpuMemoryManager.createPointer(dev_binStart);
+      gpuMemoryManager.createPointer(dev_binSize);
       
       gpuMemoryManager.allocate(dev_pencilsInBin, sumOfLengths*sizeof(uint));
       gpuMemoryManager.hostAllocate(host_binStart, activeBins.size()*sizeof(uint));

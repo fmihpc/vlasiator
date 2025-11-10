@@ -723,6 +723,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    // deallocates first if necessary
    phiprof::Timer gpuAllocationsTimer("GPU LB set buffer allocations");
    gpu_vlasov_allocate(gpuMaxBlockCount);
+   gpu_calculateProbeAllocation(gpuMaxBlockCount);
    gpu_acc_allocate(gpuMaxBlockCount);
    gpuAllocationsTimer.stop();
 #endif // end USE_GPU

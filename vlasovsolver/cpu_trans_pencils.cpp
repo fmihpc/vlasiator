@@ -1519,32 +1519,25 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
    // Update GPU allocations
    const uint thisN = DimensionPencils[dimension].N;
    const uint thisSum  = DimensionPencils[dimension].sumOfLengths;
-   if (thisN > DimensionPencils[dimension].gpu_allocated_N) {
-      if (DimensionPencils[dimension].gpu_allocated_N > 0) {
-         CHK_ERR( gpuFree(DimensionPencils[dimension].gpu_lengthOfPencils) );
-         CHK_ERR( gpuFree(DimensionPencils[dimension].gpu_idsStart) );
-      }
-      CHK_ERR( gpuMalloc((void**)&(DimensionPencils[dimension].gpu_lengthOfPencils), thisN*sizeof(uint)) );
-      CHK_ERR( gpuMalloc((void**)&(DimensionPencils[dimension].gpu_idsStart), thisN*sizeof(uint)) );
-      DimensionPencils[dimension].gpu_allocated_N = thisN;
-   }
-   if (thisSum > DimensionPencils[dimension].gpu_allocated_sumOfLengths) {
-      if (DimensionPencils[dimension].gpu_allocated_sumOfLengths > 0) {
-         CHK_ERR( gpuFree(DimensionPencils[dimension].gpu_sourceDZ) );
-         CHK_ERR( gpuFree(DimensionPencils[dimension].gpu_targetRatios) );
-      }
-      CHK_ERR( gpuMalloc((void**)&(DimensionPencils[dimension].gpu_sourceDZ), thisSum*sizeof(Realf)) );
-      CHK_ERR( gpuMalloc((void**)&(DimensionPencils[dimension].gpu_targetRatios), thisSum*sizeof(Realf)) );
-      DimensionPencils[dimension].gpu_allocated_sumOfLengths = thisSum;
-   }
+
+   gpuMemoryManager.createPointer(DimensionPencils[dimension].gpu_lengthOfPencils);
+   gpuMemoryManager.createPointer(DimensionPencils[dimension].gpu_idsStart);
+   gpuMemoryManager.createPointer(DimensionPencils[dimension].gpu_sourceDZ);
+   gpuMemoryManager.createPointer(DimensionPencils[dimension].gpu_targetRatios);
+
+   gpuMemoryManager.allocate(DimensionPencils[dimension].gpu_lengthOfPencils, thisN*sizeof(uint));
+   gpuMemoryManager.allocate(DimensionPencils[dimension].gpu_idsStart, thisN*sizeof(uint));
+   gpuMemoryManager.allocate(DimensionPencils[dimension].gpu_sourceDZ, thisSum*sizeof(Realf));
+   gpuMemoryManager.allocate(DimensionPencils[dimension].gpu_targetRatios, thisSum*sizeof(Realf));
+
    // Copy data over
-   CHK_ERR( gpuMemcpy(DimensionPencils[dimension].gpu_lengthOfPencils,
+   CHK_ERR( gpuMemcpy(gpuMemoryManager.getPointer<uint>(DimensionPencils[dimension].gpu_lengthOfPencils),
                       DimensionPencils[dimension].lengthOfPencils.data(), thisN*sizeof(uint), gpuMemcpyHostToDevice) );
-   CHK_ERR( gpuMemcpy(DimensionPencils[dimension].gpu_idsStart,
+   CHK_ERR( gpuMemcpy(gpuMemoryManager.getPointer<uint>(DimensionPencils[dimension].gpu_idsStart),
                       DimensionPencils[dimension].idsStart.data(), thisN*sizeof(uint), gpuMemcpyHostToDevice) );
-   CHK_ERR( gpuMemcpy(DimensionPencils[dimension].gpu_sourceDZ,
+   CHK_ERR( gpuMemcpy(gpuMemoryManager.getPointer<Realf>(DimensionPencils[dimension].gpu_sourceDZ),
                       DimensionPencils[dimension].sourceDZ.data(), thisSum*sizeof(Realf), gpuMemcpyHostToDevice) );
-   CHK_ERR( gpuMemcpy(DimensionPencils[dimension].gpu_targetRatios,
+   CHK_ERR( gpuMemcpy(gpuMemoryManager.getPointer<Realf>(DimensionPencils[dimension].gpu_targetRatios),
                       DimensionPencils[dimension].targetRatios.data(), thisSum*sizeof(Realf), gpuMemcpyHostToDevice) );
    #endif
 
