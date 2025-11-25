@@ -176,6 +176,14 @@ rm -rf build
 mkdir build
 cd build
 
+
+prev="$(pwd)"
+cd "$WORKSPACE/submodules/eigen"
+mkdir -p build
+cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$WORKSPACE/libraries${PLATFORM}"
+cd "$prev"
+
 echo "------------------------------"
 ls "$WORKSPACE/submodules/"
 echo "-----"
@@ -188,7 +196,7 @@ echo "------------------------------"
 cmake .. \
     -DTOCTREE_L2ERROR=true \
     -DCMAKE_BUILD_TYPE=Release \
-    -DEigen3_DIR="$WORKSPACE/submodules/eigen/cmake/" \
+    -DEigen3_DIR="$WORKSPACE/submodules/eigen/build/" \
     -Dzfp_DIR="$ZFP" \
     -DCMAKE_INSTALL_PREFIX=$WORKSPACE/libraries${PLATFORM}
 make install
