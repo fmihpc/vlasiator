@@ -178,7 +178,7 @@ cd build
 cmake .. \
     -DTOCTREE_L2ERROR=true \
     -DCMAKE_BUILD_TYPE=Release \
-    -DEigen3_DIR="$WORKSPACE/submodules/eigen/" \
+    -DEigen3_DIR="$WORKSPACE/submodules/eigen/cmake/" \
     -Dzfp_DIR="$ZFP" \
     -DCMAKE_INSTALL_PREFIX=$WORKSPACE/libraries${PLATFORM}
 make install
