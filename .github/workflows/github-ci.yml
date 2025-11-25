@@ -23,6 +23,8 @@ jobs:
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
+        with:
+          submodules: true
       - name: Run library build script
         run: ./fetch_and_build_libraries.sh
       - name: Build libraries tar
