@@ -18,7 +18,7 @@ jobs:
     # Build libraries for the current version of the docker image
     # (to be used in any subsequent compilation and run jobs on said image)
     runs-on: ubuntu-latest
-    container: ursg/vlasiator_ci:20250909_1
+    container: ursg/vlasiator_ci:20251125_1
 
     steps:
       - name: Checkout source
@@ -98,7 +98,7 @@ jobs:
   build_prod:
     # Build Vlasiator with production flags
     runs-on: ubuntu-latest
-    container: ursg/vlasiator_ci:20250909_1
+    container: ursg/vlasiator_ci:20251125_1
     needs: build_libraries
 
     steps:
@@ -127,7 +127,7 @@ jobs:
   build_prod_ord1_time:
     # Build Vlasiator with production flags
     runs-on: ubuntu-latest
-    container: ursg/vlasiator_ci:20250909_1
+    container: ursg/vlasiator_ci:20251125_1
     needs: build_libraries
 
     steps:
@@ -156,7 +156,7 @@ jobs:
   build_prod_ord1_space:
     # Build Vlasiator with production flags
     runs-on: ubuntu-latest
-    container: ursg/vlasiator_ci:20250909_1
+    container: ursg/vlasiator_ci:20251125_1
     needs: build_libraries
 
     steps:
@@ -185,7 +185,7 @@ jobs:
   build_prod_debug:
     # Build Vlasiator with production flags and all the debug flags enabled to check the debug code is still ok
     runs-on: ubuntu-latest
-    container: ursg/vlasiator_ci:20250909_1
+    container: ursg/vlasiator_ci:20251125_1
     needs: build_libraries
 
     steps:
@@ -916,7 +916,7 @@ jobs:
   build_ionosphereTests:
     # Build IonosphereSolverTests miniApp
     runs-on: ubuntu-latest
-    container: ursg/vlasiator_ci:20250909_1
+    container: ursg/vlasiator_ci:20251125_1
     needs: build_libraries
     steps:
     - name: Checkout source
@@ -952,7 +952,7 @@ jobs:
 
   run_ionosphere_LFMtest:
     runs-on: ubuntu-latest
-    container: ursg/vlasiator_ci:20250909_1
+    container: ursg/vlasiator_ci:20251125_1
     needs: build_ionosphereTests
     steps:
     - name: Checkout source
@@ -1008,7 +1008,7 @@ jobs:
 
   check_cfg_files:
     runs-on: ubuntu-latest
-    container: ursg/vlasiator_ci:20250909_1
+    container: ursg/vlasiator_ci:20251125_1
     needs: [build_libraries, build_prod]
     steps:
     - name: Checkout source
