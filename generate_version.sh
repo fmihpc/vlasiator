@@ -1,5 +1,5 @@
 #!/bin/bash
-#
+
 # This file is part of Vlasiator.
 # Copyright 2010-2016 Finnish Meteorological Institute
 #
