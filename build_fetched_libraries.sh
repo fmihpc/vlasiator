@@ -177,21 +177,13 @@ mkdir build
 cd build
 
 
+# Generate cmake for eigen so that Octree can be built
 prev="$(pwd)"
 cd "$WORKSPACE/submodules/eigen"
 mkdir -p build
 cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$WORKSPACE/libraries${PLATFORM}"
 cd "$prev"
-
-echo "------------------------------"
-ls "$WORKSPACE/submodules/"
-echo "-----"
-ls "$WORKSPACE/submodules/eigen/"
-echo "-----"
-ls "$WORKSPACE/submodules/eigen/cmake/"
-echo "-----"
-echo "------------------------------"
 
 cmake .. \
     -DTOCTREE_L2ERROR=true \
