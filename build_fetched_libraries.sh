@@ -175,6 +175,16 @@ sed -i s/"ColMajor"/"RowMajor"/g toctree.cpp
 rm -rf build
 mkdir build
 cd build
+
+echo "------------------------------"
+ls "$WORKSPACE/submodules/"
+echo "-----"
+ls "$WORKSPACE/submodules/eigen/"
+echo "-----"
+ls "$WORKSPACE/submodules/eigen/cmake/"
+echo "-----"
+echo "------------------------------"
+
 cmake .. \
     -DTOCTREE_L2ERROR=true \
     -DCMAKE_BUILD_TYPE=Release \
