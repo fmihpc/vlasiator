@@ -30,11 +30,15 @@
 #include "common.h"
 #include "parameters.h"
 #ifdef PAPI_MEM
-#include "papi.h" 
-#endif 
+#include "papi.h"
+#endif
 
 extern Logger logFile, diagnostic;
 using namespace std;
+
+#ifdef USE_MIMALLOC
+#include <mimalloc-new-delete.h>
+#endif
 
 #ifdef USE_JEMALLOC
 #define STRINGIFY_HELPER(x) #x

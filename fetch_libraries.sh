@@ -32,10 +32,15 @@ if [[ $PLATFORM != "-arriesgado" && $PLATFORM != "-appleM1" && $PLATFORM != "-uk
 fi
 
 # jemalloc (not for GPU versions, on Mahti use system module)
+# and mimalloc (as a jemalloc alternative)
 if [[ $PLATFORM != "-leonardo_booster" && $PLATFORM != "-karolina_cuda" && $PLATFORM != "-ukkogpu" && $PLATFORM != "-hile_gpu" && $PLATFORM != "-lumi_hipcc" && $PLATFORM != "-mahti_cuda" && $PLATFORM != "-mahti_gcc_build" ]]; then
     curl -O -L https://github.com/jemalloc/jemalloc/releases/download/5.3.0/jemalloc-5.3.0.tar.bz2
     tar xjf jemalloc-5.3.0.tar.bz2
+
+    git clone https://github.com/microsoft/mimalloc
 fi
+
+
 
 # Zoltan
 git clone https://github.com/sandialabs/Zoltan.git
