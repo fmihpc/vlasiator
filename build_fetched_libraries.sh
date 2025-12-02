@@ -95,7 +95,6 @@ if [[ $PLATFORM != "-pioneer" && $PLATFORM != "-appleM1" && $PLATFORM != "-ukkog
 fi
 
 # Build jemalloc (not for GPU versions or Mahti)
-# And mimalloc (as a jemalloc alternative)
 if [[ $PLATFORM != "-leonardo_booster" && $PLATFORM != "-karolina_cuda" && $PLATFORM != "-ukkogpu" && $PLATFORM != "-hile_gpu" && $PLATFORM != "-lumi_hipcc" && $PLATFORM != "-mahti_cuda" && $PLATFORM != "-mahti_gcc_build" ]]; then
     # curl -O -L https://github.com/jemalloc/jemalloc/releases/download/5.3.0/jemalloc-5.3.0.tar.bz2
     # tar xjf jemalloc-5.3.0.tar.bz2
@@ -113,14 +112,6 @@ if [[ $PLATFORM != "-leonardo_booster" && $PLATFORM != "-karolina_cuda" && $PLAT
     make -j $PARALLEL
     make install
     cd ..
-
-    cd mimalloc
-    mkdir build
-    cd build
-    cmake -DCMAKE_INSTALL_PREFIX:PATH=$WORKSPACE/libraries ..
-    make -j $PARALLEL
-    make install
-    cd ../..
 fi
 
 # Build Zoltan

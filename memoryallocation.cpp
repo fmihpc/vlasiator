@@ -37,7 +37,7 @@ extern Logger logFile, diagnostic;
 using namespace std;
 
 #ifdef USE_MIMALLOC
-#include <mimalloc-new-delete.h>
+#include "submodules/mimalloc/src/static.c"
 #endif
 
 #ifdef USE_JEMALLOC

@@ -62,8 +62,8 @@ LIB_BOOST = -lboost_program_options
 
 #INC_JEMALLOC = -I $(LIBRARY_PREFIX)/include
 #LIB_JEMALLOC = $(LIBRARY_PREFIX)/lib/libjemalloc.a
-INC_JEMALLOC = -I $(LIBRARY_PREFIX)/include/mimalloc-2.2
-LIB_JEMALLOC = $(LIBRARY_PREFIX)/lib/libmimalloc.so.2
+INC_JEMALLOC = -I submodules/mimalloc/include
+LIB_JEMALLOC =
 
 INC_MKL = -I $(LIBRARY_PREFIX)/include
 
