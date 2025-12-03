@@ -225,7 +225,7 @@ jobs:
         rm -f *.xml
         MORO
         )
-        srun --constraint="carrington|ukko" bash -c "$RUN_STRING"
+        srun -p short --constraint="carrington|ukko" bash -c "$RUN_STRING"
     - name: Checkout source
       uses: actions/checkout@v4
       with:
@@ -236,7 +236,7 @@ jobs:
     - name: Compile vlasiator (Testpackage build)
       run: |
         export VLASIATOR_ARCH=carrington_gcc_openmpi
-        srun --constraint="carrington|ukko" --job-name CI_tp_compile --interactive --nodes=1 -n 1 -c 16 --mem=40G -p short -t 0:10:0 bash -c 'module purge; module load GCC/13.2.0; module load OpenMPI/4.1.6-GCC-13.2.0 ; module load PMIx/4.2.6-GCCcore-13.2.0; module load PAPI/7.1.0-GCCcore-13.2.0; export VLASIATOR_ARCH=carrington_gcc_openmpi; make -j 16 testpackage; sleep 10s'
+        srun -p short --constraint="carrington|ukko" --job-name CI_tp_compile --interactive --nodes=1 -n 1 -c 16 --mem=40G -p short -t 0:10:0 bash -c 'module purge; module load GCC/13.2.0; module load OpenMPI/4.1.6-GCC-13.2.0 ; module load PMIx/4.2.6-GCCcore-13.2.0; module load PAPI/7.1.0-GCCcore-13.2.0; export VLASIATOR_ARCH=carrington_gcc_openmpi; make -j 16 testpackage; sleep 10s'
     - name: Make sure the output binary is visible in lustre
       uses: nick-fields/retry@v3
       with:
@@ -270,7 +270,7 @@ jobs:
           rm -f *.xml
           MORO
           )
-          srun --constraint="ukko" bash -c "$RUN_STRING"
+          srun -p short --constraint="ukko" bash -c "$RUN_STRING"
       - name: Checkout source
         uses: actions/checkout@v4
         with:
@@ -281,7 +281,7 @@ jobs:
       - name: Compile vlasiator (Testpackage build w/ CUDA)
         run: |
           export VLASIATOR_ARCH=ukko_dgx
-          srun -Mukko -pgpu-oversub --job-name CI_tp_compile --interactive --nodes=1 -n 1 -c 8 --mem-per-cpu=2G -t 0:20:0 bash -c 'module purge; ml OpenMPI/4.1.6.withucx-GCC-13.2.0 PAPI/7.1.0-GCCcore-13.2.0 CUDA/12.6.0; export VLASIATOR_ARCH=ukko_dgx; make -j 9 testpackage; sleep 10s'
+          srun --constraint="ukko" -pgpu --job-name CI_tp_compile --interactive --nodes=1 -n 1 -c 8 --mem-per-cpu=2G -t 0:20:0 bash -c 'module purge; ml OpenMPI/4.1.6.withucx-GCC-13.2.0 PAPI/7.1.0-GCCcore-13.2.0 CUDA/12.6.0; export VLASIATOR_ARCH=ukko_dgx; make -j 9 testpackage; sleep 10s'
       - name: Make sure the output binary is visible in lustre
         uses: nick-fields/retry@v3
         with:
@@ -470,7 +470,7 @@ jobs:
           rm -f *.xml
           MORO
           )
-          srun --constraint="ukko" bash -c "$RUN_STRING"
+          srun -p short --constraint="ukko" bash -c "$RUN_STRING"
       - name: Checkout source
         uses: actions/checkout@v4
         with:
@@ -481,7 +481,7 @@ jobs:
       - name: Compile vlasiator (Testpackage build w/ CUDA, debug)
         run: |
           export VLASIATOR_ARCH=ukko_dgx
-          srun -Mukko -pgpu-oversub --job-name CI_dbg_compile --interactive --nodes=1 -n 1 -c 8 --mem-per-cpu=2G -t 0:20:0 bash -c 'module purge; ml OpenMPI/4.1.6.withucx-GCC-13.2.0 PAPI/7.1.0-GCCcore-13.2.0 CUDA/12.6.0; export VLASIATOR_ARCH=ukko_dgx; COMPFLAGS="-DDEBUG_VLASIATOR -DDEBUG_SOLVERS -DDEBUG_IONOSPHERE -DHASHINATOR_DEBUG -DDEBUG_SPATIAL_CELL -DDEBUG_VMESH -DDEBUG_VBC -DDEBUG_ACC " make -j 9 testpackage ; sleep 10s'
+          srun --constraint="ukko" -pgpu --job-name CI_dbg_compile --interactive --nodes=1 -n 1 -c 8 --mem-per-cpu=2G -t 0:20:0 bash -c 'module purge; ml OpenMPI/4.1.6.withucx-GCC-13.2.0 PAPI/7.1.0-GCCcore-13.2.0 CUDA/12.6.0; export VLASIATOR_ARCH=ukko_dgx; COMPFLAGS="-DDEBUG_VLASIATOR -DDEBUG_SOLVERS -DDEBUG_IONOSPHERE -DHASHINATOR_DEBUG -DDEBUG_SPATIAL_CELL -DDEBUG_VMESH -DDEBUG_VBC -DDEBUG_ACC " make -j 9 testpackage ; sleep 10s'
       - name: Make sure the output binary is visible in lustre
         uses: nick-fields/retry@v3
         with:
@@ -510,7 +510,7 @@ jobs:
           rm -f *.xml
           MORO
           )
-          srun --constraint="ukko" bash -c "$RUN_STRING"
+          srun -p short --constraint="ukko" bash -c "$RUN_STRING"
       - name: Checkout source
         uses: actions/checkout@v4
         with:
@@ -521,7 +521,7 @@ jobs:
       - name: Compile vlasiator (Production build w/ CUDA, debug, WA)
         run: |
           export VLASIATOR_ARCH=ukko_dgx
-          srun -Mukko -pgpu-oversub --job-name CI_tp_compile --interactive --nodes=1 -n 1 -c 8 --mem-per-cpu=2G -t 0:20:0 bash -c 'module purge; ml OpenMPI/4.1.6.withucx-GCC-13.2.0 PAPI/7.1.0-GCCcore-13.2.0 CUDA/12.6.0; export VLASIATOR_ARCH=ukko_dgx; COMPFLAGS="-DDEBUG_VLASIATOR -DDEBUG_SOLVERS -DDEBUG_IONOSPHERE -DHASHINATOR_DEBUG -DDEBUG_SPATIAL_CELL -DDEBUG_VMESH -DDEBUG_VBC -DDEBUG_ACC -DUSE_WARPACCESSORS " make -j 9 ; sleep 10s'
+          srun --constraint="ukko" -pgpu --job-name CI_tp_compile --interactive --nodes=1 -n 1 -c 8 --mem-per-cpu=2G -t 0:20:0 bash -c 'module purge; ml OpenMPI/4.1.6.withucx-GCC-13.2.0 PAPI/7.1.0-GCCcore-13.2.0 CUDA/12.6.0; export VLASIATOR_ARCH=ukko_dgx; COMPFLAGS="-DDEBUG_VLASIATOR -DDEBUG_SOLVERS -DDEBUG_IONOSPHERE -DHASHINATOR_DEBUG -DDEBUG_SPATIAL_CELL -DDEBUG_VMESH -DDEBUG_VBC -DDEBUG_ACC -DUSE_WARPACCESSORS " make -j 9 ; sleep 10s'
       - name: Make sure the output binary is visible in lustre
         uses: nick-fields/retry@v3
         with:
@@ -619,7 +619,7 @@ jobs:
         rm -f *.xml
         MORO
         )
-        srun --constraint="carrington|ukko" bash -c "$RUN_STRING"
+        srun -p short --constraint="carrington|ukko" bash -c "$RUN_STRING"
     - name: Checkout source
       uses: actions/checkout@v4
       with:
@@ -654,7 +654,7 @@ jobs:
         rm -f *.xml
         MORO
         )
-        srun --constraint="carrington|ukko" bash -c "$RUN_STRING"
+        srun -p short --constraint="carrington|ukko" bash -c "$RUN_STRING"
     - name: Checkout source
       uses: actions/checkout@v4
       with:
@@ -665,7 +665,7 @@ jobs:
     - name: Compile tools
       run: |
           export VLASIATOR_ARCH=ukko_dgx
-          srun -Mukko -pgpu-oversub --job-name CI_tools_compile --interactive --nodes=1 -n 1 -c 1 --mem-per-cpu=2G -t 0:10:0 bash -c 'module purge; ml OpenMPI/4.1.6.withucx-GCC-13.2.0 PAPI/7.1.0-GCCcore-13.2.0 CUDA/12.6.0; export VLASIATOR_ARCH=ukko_dgx; make vlsvextract vlsvdiff; sleep 10s'
+          srun --constraint="ukko" -pgpu --job-name CI_tools_compile --interactive --nodes=1 -n 1 -c 1 --mem-per-cpu=2G -t 0:10:0 bash -c 'module purge; ml OpenMPI/4.1.6.withucx-GCC-13.2.0 PAPI/7.1.0-GCCcore-13.2.0 CUDA/12.6.0; export VLASIATOR_ARCH=ukko_dgx; make vlsvextract vlsvdiff; sleep 10s'
     - name: Upload tools binaries
       uses: actions/upload-artifact@v4
       with:
@@ -747,7 +747,7 @@ jobs:
         tar -czf testpackage-output.tar.gz testpackage_check_description.txt testpackage_output_variables.txt
         MORO
         )
-        srun --job-name CI_package_results --constraint="carrington|ukko" -N 1 -c 1 --mem=1G bash -c "$PARSE_OUTPUT_CMD"
+        srun --job-name CI_package_results -p short --constraint="carrington|ukko" -N 1 -c 1 --mem=1G bash -c "$PARSE_OUTPUT_CMD"
         if [ -f $GITHUB_WORKSPACE/testpackage_failed ]; then
           # Fail this step if any test failed.
           exit 1
@@ -775,8 +775,8 @@ jobs:
     - name: Run fluxfunction test
       run: |
         chmod +x $GITHUB_WORKSPACE/fluxfunction
-        srun --job-name fluxtest --constraint="carrington|ukko" -N 1 -c 1 --mem=1G bash -c "module purge; module load GCC/13.2.0; module load OpenMPI/4.1.6-GCC-13.2.0 ; module load PMIx/4.2.6-GCCcore-13.2.0; module load PAPI/7.1.0-GCCcore-13.2.0; $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_small/bulk.0000001.vlsv equatorial.bin"
-        srun --job-name fluxtest --constraint="carrington|ukko" -N 1 -c 1 --mem=1G bash -c "module purge; module load GCC/13.2.0; module load OpenMPI/4.1.6-GCC-13.2.0 ; module load PMIx/4.2.6-GCCcore-13.2.0; module load PAPI/7.1.0-GCCcore-13.2.0; $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_polar_small/bulk.0000001.vlsv polar.bin"
+        srun --job-name fluxtest -p short --constraint="carrington|ukko" -N 1 -c 1 --mem=1G bash -c "module purge; module load GCC/13.2.0; module load OpenMPI/4.1.6-GCC-13.2.0 ; module load PMIx/4.2.6-GCCcore-13.2.0; module load PAPI/7.1.0-GCCcore-13.2.0; $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_small/bulk.0000001.vlsv equatorial.bin"
+        srun --job-name fluxtest -p short --constraint="carrington|ukko" -N 1 -c 1 --mem=1G bash -c "module purge; module load GCC/13.2.0; module load OpenMPI/4.1.6-GCC-13.2.0 ; module load PMIx/4.2.6-GCCcore-13.2.0; module load PAPI/7.1.0-GCCcore-13.2.0; $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_polar_small/bulk.0000001.vlsv polar.bin"
         diff -q equatorial.bin /proj/group/spacephysics/vlasiator_testpackage/CI_reference/equatorial.bin
         diff -q polar.bin /proj/group/spacephysics/vlasiator_testpackage/CI_reference/polar.bin
 
