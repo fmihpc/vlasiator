@@ -2,7 +2,7 @@
 #SBATCH -t 01:30:00        # Run time (hh:mm:ss)
 #SBATCH --job-name=ctestpackage
 ##SBATCH -A spacephysics 
-#SBATCH -M carrington
+#SBATCH --constraint="carrington|ukko"
 # test short medium 20min1d 3d
 #SBATCH -p short
 #SBATCH --exclusive

@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH -t 01:30:00        # Run time (hh:mm:ss)
 #SBATCH --job-name=CI_testpackage
-#SBATCH -M carrington
+#SBATCH --constraint="carrington|ukko"
 #SBATCH -p short
 #SBATCH --exclusive
 #SBATCH --nodes=1

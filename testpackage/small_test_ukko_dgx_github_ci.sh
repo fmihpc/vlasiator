@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH -t 02:00:00        # Run time (hh:mm:ss)
 #SBATCH --job-name=CI_ukko_dgx
-#SBATCH -M ukko
+#SBATCH --constraint=ukko
 #SBATCH -p gpu
 #SBATCH --constraint=v100
 #SBATCH -G 1
