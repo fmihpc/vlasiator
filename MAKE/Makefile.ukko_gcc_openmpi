@@ -89,7 +89,7 @@ MPT_BRAND = OpenMPI
 MPT_VERSION = 4.1.1
 
 JEMALLOC_VERSION = 5.2.1
-LIBRARY_PREFIX = /proj/group/spacephysics/libraries
+LIBRARY_PREFIX = /wrk-vakka/group/spacephysics/proj/libraries/
 
 #compiled libraries mostly in modules
 LIB_PROFILE = -L$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/ukko/phiprof/lib -lphiprof -Wl,-rpath=$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/ukko/phiprof/lib
