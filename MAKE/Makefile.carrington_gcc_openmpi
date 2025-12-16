@@ -77,9 +77,9 @@ testpackage: CXXFLAGS += -DPAPI_MEM
 #======== Allocator =========
 #Use jemalloc instead of system malloc to reduce memory fragmentation? https://github.com/jemalloc/jemalloc
 #Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
-CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
-testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
-
+#CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+#testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+CXXFLAGS += -DUSE_MIMALLOC
 
 # BOOST_VERSION = current trilinos version
 # ZOLTAN_VERSION = current trilinos verson
@@ -98,8 +98,10 @@ INC_PROFILE = -I $(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/
 LIB_VLSV = -L$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/vlsv -lvlsv -Wl,-rpath=$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/vlsv
 INC_VLSV = -I$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/vlsv
 
-LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/jemalloc/lib -ljemalloc -Wl,-rpath=$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/jemalloc/lib
-INC_JEMALLOC = -isystem $(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/jemalloc/include
+#LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/jemalloc/lib -ljemalloc -Wl,-rpath=$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/jemalloc/lib
+#INC_JEMALLOC = -isystem $(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/jemalloc/include
+INC_JEMALLOC = -I submodules/mimalloc/include
+LIB_JEMALLOC =
 
 LIB_BOOST = -L$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/boost/lib -lboost_program_options -Wl,-rpath=$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/boost/lib
 INC_BOOST = -isystem $(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/boost/include

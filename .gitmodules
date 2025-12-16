@@ -23,3 +23,6 @@
 [submodule "submodules/hashinator"]
 	path = submodules/hashinator
 	url = https://github.com/fmihpc/hashinator.git
+[submodule "submodules/mimalloc"]
+	path = submodules/mimalloc
+	url = https://github.com/microsoft/mimalloc
