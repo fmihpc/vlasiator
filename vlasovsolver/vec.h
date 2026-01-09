@@ -85,7 +85,57 @@ typedef VecSimple<float> Vec;
 
 #endif
 
+// SVE Definitions
+#if (defined(VEC4F_SVE) || defined(VEC4D_SVE))
+#define VECL 4
+#define VEC_SVE
+#endif
 
+#if (defined(VEC8F_SVE) || defined(VEC8D_SVE))
+#define VECL 8
+#define VEC_SVE
+#endif
+
+#if (defined(VEC16F_SVE) || defined(VEC16D_SVE))
+#define VECL 16
+#define VEC_SVE
+#endif
+
+#if (defined(VEC32F_SVE) || defined(VEC32D_SVE))
+#define VECL 32
+#define VEC_SVE
+#endif
+
+#if (defined(VEC64F_SVE) || defined(VEC64D_SVE))
+#define VECL 64
+#define VEC_SVE
+#endif
+
+#if defined(VEC_SVE)
+
+#include "vectorclass_sve.hpp"
+
+#define VPREC 8
+#ifndef VEC_PER_PLANE
+const int VEC_PER_PLANE = (WID*WID/VECL);
+#endif
+#ifndef VEC_PER_BLOCK
+const int VEC_PER_BLOCK = (WID*VEC_PER_PLANE);
+#endif
+
+#if defined(DPF)
+using Vec  = VecSVE<double, VECL>;
+using Veci = VecSVE<int64_t, VECL>;
+using Vecb = VecSVEMask<double, VECL>;
+#define to_realf(v) to_double(v)
+#else
+using Vec  = VecSVE<float, VECL>;
+using Veci = VecSVE<int32_t, VECL>;
+using Vecb = VecSVEMask<float, VECL>;
+#define to_realf(v) to_float(v)
+#endif
+
+#endif // END VEC_SVE
 
 #ifdef VEC4D_AGNER
 //user Agner's AVX2 optimized datatypes, double precision accuracy

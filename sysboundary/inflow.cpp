@@ -155,10 +155,15 @@ namespace SBC {
       for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID) {
          setCellsFromTemplate(mpiGrid, popID);
       }
-      setBFromTemplate(mpiGrid, perBGrid, BgBGrid);
+      if (P::isRestart) {
+         setBFromTemplate(mpiGrid, technicalGrid, perBGrid, BgBGrid, false);
+      } else {
+         setBFromTemplate(mpiGrid, technicalGrid, perBGrid, BgBGrid, true);
+      }
    }
 
    void Inflow::updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+                            FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
                             FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
                             FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
                             creal t) {
@@ -176,7 +181,7 @@ namespace SBC {
          setCellsFromTemplate(mpiGrid, popID);
       }
 
-      setBFromTemplate(mpiGrid, perBGrid, BgBGrid);
+      setBFromTemplate(mpiGrid, technicalGrid, perBGrid, BgBGrid, false);
 
       // Ensure up-to-date velocity block counts for all neighbours
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
@@ -273,8 +278,10 @@ namespace SBC {
    }
 
    void Inflow::setBFromTemplate(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+                                 FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
                                  FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
-                                 FsGrid<array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid) {
+                                 FsGrid<array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+                                 const bool resetSolved) {
       std::array<bool, 6> isThisCellOnAFace;
 
       const std::array<FsGridTools::FsIndex_t, 3> gridDims(perBGrid.getLocalSize());
@@ -304,11 +311,20 @@ namespace SBC {
                determineFace(isThisCellOnAFace.data(), cellCenterCoords[0], cellCenterCoords[1], cellCenterCoords[2], dx,
                              dy, dz);
 
+               cuint bitfield = technicalGrid.get(i,j,k)->SOLVE;
+
                for (uint iface = 0; iface < 6; iface++) {
                   if (facesToProcess[iface] && isThisCellOnAFace[iface]) {
-                     perBGrid.get(i, j, k)->at(fsgrids::bfield::PERBX) = templateB[iface][0] + BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBXVDCORR);
-                     perBGrid.get(i, j, k)->at(fsgrids::bfield::PERBY) = templateB[iface][1] + BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBYVDCORR);
-                     perBGrid.get(i, j, k)->at(fsgrids::bfield::PERBZ) = templateB[iface][2] + BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBZVDCORR);
+                     // Reset all PerB components if requested, otherwise only unsolved components
+                     if (resetSolved || (bitfield & compute::BX) != compute::BX) {
+                        perBGrid.get(i, j, k)->at(fsgrids::bfield::PERBX) = templateB[iface][0] + BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBXVDCORR);
+                     }
+                     if (resetSolved || (bitfield & compute::BY) != compute::BY) {
+                        perBGrid.get(i, j, k)->at(fsgrids::bfield::PERBY) = templateB[iface][1] + BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBYVDCORR);
+                     }
+                     if (resetSolved || (bitfield & compute::BY) != compute::BY) {
+                        perBGrid.get(i, j, k)->at(fsgrids::bfield::PERBZ) = templateB[iface][2] + BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBZVDCORR);
+                     }
                      break;
                   }
                }

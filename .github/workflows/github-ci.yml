@@ -37,36 +37,27 @@ jobs:
           retention-days: 5
           if-no-files-found: error
 
-  build_libraries_appleM1:
+  build_libraries_arm64:
     # Build libraries on macos with M1 hardware, to test both macOS and aarch64 compatibility
-    runs-on: macos-14
+    runs-on: ubuntu-24.04-arm
 
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
-      - name: Setup MPI
-        uses: mpi4py/setup-mpi@v1
-        with:
-          mpi: 'openmpi'
-      - name: Setup openmp-capable llvm
+      - name: Install build dependencies
         run: |
-          brew install llvm libomp
-          echo "CXX=/opt/homebrew/opt/llvm/bin/clang++" >> "$GITHUB_ENV"
-          echo "OMPI_CXX=/opt/homebrew/opt/llvm/bin/clang++" >> "$GITHUB_ENV"
-          echo "MPI_CXX=mpic++" >> "$GITHUB_ENV"
-          echo "CC=/opt/homebrew/opt/llvm/bin/clang" >> "$GITHUB_ENV"
-          echo "OMPI_CC=/opt/homebrew/opt/llvm/bin/clang" >> "$GITHUB_ENV"
-          echo "MPI_CC=mpicc" >> "$GITHUB_ENV"
+          sudo apt-get update
+          sudo apt-get install -y g++ build-essential cmake make libopenmpi-dev openmpi-bin libboost-program-options-dev zstd
       - name: Run library build script
         run: |
-          . ./fetch_and_build_libraries.sh appleM1
+          . ./fetch_and_build_libraries.sh arm64
       - name: Build libraries tar
-        run: tar --zstd -cvf libraries-appleM1.tar.zstd libraries-appleM1
+        run: tar --zstd -cvf libraries-arm64.tar.zstd libraries-arm64
       - name: Upload libraries as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: libraries-appleM1
-          path: libraries-appleM1.tar.zstd
+          name: libraries-arm64
+          path: libraries-arm64.tar.zstd
           retention-days: 5
           if-no-files-found: error
 
@@ -85,7 +76,7 @@ jobs:
           rm -rf libraries library-build libraries-pioneer.tar.gz
       - name: Submit library job
         run: |
-          srun --interactive -p pioneer -J vlasiator-libs -n 1 -c 64 -t 01:00:00 bash -lc 'module load openmpi; ./fetch_and_build_libraries.sh pioneer'
+          srun --interactive -p pioneer -J vlasiator-libs -n 1 -c 64 -t 01:00:00 bash -lc 'module load llvm openmpi; ./fetch_and_build_libraries.sh pioneer'
           #ssh synth-hca 'source /etc/profile.d/lmod.sh; export PATH=$PATH:$HOME/bin; module load llvm/cross/EPI-0.7-development; cd '$GITHUB_WORKSPACE'; ./fetch_and_build_libraries.sh pioneer'
       - name: Build libraries tar
         run: tar -czvf libraries-pioneer.tar.gz libraries-pioneer/
@@ -562,7 +553,7 @@ jobs:
       run: VLASIATOR_ARCH=pioneer make clean
     - name: Compile vlasiator (RISC-V)
       run: |
-        srun --interactive -p pioneer -J vlasiator_build -n 1 -c 64 --pty -t 01:00:00 bash -lc 'module load boost papi openmpi; export VLASIATOR_ARCH=pioneer; make -j64'
+        srun --interactive -p pioneer -J vlasiator_build -n 1 -c 64 --pty -t 01:00:00 bash -lc 'module load boost papi llvm openmpi; export VLASIATOR_ARCH=pioneer; make -j64'
         #ssh synth-hca 'source /etc/profile.d/lmod.sh; export PATH=$PATH:$HOME/bin; module load llvm/cross/EPI-0.7-development; export VLASIATOR_ARCH=pioneer; cd '$GITHUB_WORKSPACE'; make -j 12'
     - name: Upload riscv binary
       uses: actions/upload-artifact@v4
@@ -571,42 +562,30 @@ jobs:
         path: vlasiator
         if-no-files-found: error
 
-  build_appleM1:
-    runs-on: macos-14
-    needs: build_libraries_appleM1
+  build_arm64:
+    runs-on: ubuntu-24.04-arm
+    needs: build_libraries_arm64
 
     steps:
     - name: Checkout source
       uses: actions/checkout@v4
       with:
         submodules: true
-    - name: Setup MPI
-      uses: mpi4py/setup-mpi@v1
-      with:
-        mpi: 'openmpi'
-    - name: Setup openmp-capable llvm
-      run: |
-        brew install llvm libomp
-        echo "CXX=/opt/homebrew/opt/llvm/bin/clang++" >> "$GITHUB_ENV"
-        echo "OMPI_CXX=/opt/homebrew/opt/llvm/bin/clang++" >> "$GITHUB_ENV"
-        echo "CC=/opt/homebrew/opt/llvm/bin/clang" >> "$GITHUB_ENV"
-        echo "OMPI_CC=/opt/homebrew/opt/llvm/bin/clang" >> "$GITHUB_ENV"
     - name: Install boost
       run: |
-        brew install boost
-        ln -s /opt/homebrew/Cellar/boost/* /opt/homebrew/Cellar/boost/latest
+       sudo apt-get update
+       sudo apt-get install -y g++ build-essential cmake make libopenmpi-dev openmpi-bin libboost-program-options-dev zstd
     - name: Download libraries
       uses: actions/download-artifact@v5
       with:
-        name: libraries-appleM1
+        name: libraries-arm64
     - name: Unpack libraries
-      run: tar --zstd -xvf libraries-appleM1.tar.zstd
+      run: tar --zstd -xvf libraries-arm64.tar.zstd
     - name: Make clean
-      run: VLASIATOR_ARCH=appleM1 make clean
+      run: VLASIATOR_ARCH=github_actions_arm64 make clean
     - name: Compile vlasiator (Release build)
       run: |
-        VLASIATOR_ARCH=appleM1 make clean
-        VLASIATOR_ARCH=appleM1 make -j 3
+        VLASIATOR_ARCH=github_actions_arm64 make -j 4
 
   build_tools:
     # Build vlsvdiff, vlsvextract, and fluxfunction for testpackage use

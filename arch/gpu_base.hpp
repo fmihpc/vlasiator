@@ -240,8 +240,7 @@ struct ColumnOffsets {
 Usage options:
 (a):
 1. Create your pointer using one of the macros for creating pointers. Pass the "name" of your
-pointer to that macro. A corresponding variable in the memory manager will be automatically generated
-by running the updateGpuMemoryPointerList.sh script.
+pointer to that macro. A corresponding variable in the memory manager will be automatically generated.
 2. Allocate memory to that pointer by passing the "name" to one of the allocation macros
 3. Get the pointer by passing the "name" to one of the get pointer methods macros
 (b):
@@ -336,10 +335,10 @@ struct GPUMemoryManager {
          pointerDevice.push_back(NO_POINTER_DEVICE);
       }
 
-      maxPointerIndex++;
-      firstPointerIndex = maxPointerIndex;
+      firstPointerIndex = maxPointerIndex + 1;
 
       for (size_t i = 0; i < numberOfPointers; i++) {
+         maxPointerIndex++;
          gpuMemoryPointers.push_back(nullptr);
          allocationSizes.push_back((size_t)(0));
          pointerDevice.push_back(NO_POINTER_DEVICE);
@@ -512,7 +511,7 @@ struct GPUMemoryManager {
       size_t pointerIndex = firstPointerIndex + index;
 
       if (firstPointerIndex == 0 || pointerIndex > maxPointerIndex) {
-         std::cerr << "Error: Pointer not found in 'gpuMemoryManager.subPointerAllocate'.\n";
+         std::cerr << "Error: Pointer not found in 'gpuMemoryManager.subPointerAllocate': firstPointerIndex = " << firstPointerIndex << ", pointerIndex = " << pointerIndex << ", maxPointerIndex = " << maxPointerIndex << "\n";
          return false;
       }
 
@@ -525,7 +524,7 @@ struct GPUMemoryManager {
       size_t pointerIndex = firstPointerIndex + index;
 
       if (firstPointerIndex == 0 || pointerIndex > maxPointerIndex) {
-         std::cerr << "Error: Pointer not found in 'gpuMemoryManager.subPointerAllocate'.\n";
+         std::cerr << "Error: Pointer not found in 'gpuMemoryManager.subPointerAllocateWithBuffer'.\n";
          return false;
       }
 
@@ -539,7 +538,7 @@ struct GPUMemoryManager {
       size_t pointerIndex = firstPointerIndex + index;
 
       if (firstPointerIndex == 0 || pointerIndex > maxPointerIndex) {
-         std::cerr << "Error: Pointer not found in 'gpuMemoryManager.subPointerAllocate'.\n";
+         std::cerr << "Error: Pointer not found in 'gpuMemoryManager.subPointerHostAllocate'.\n";
          return false;
       }
 
@@ -550,7 +549,7 @@ struct GPUMemoryManager {
    template<typename T>
    size_t alignOffset(void* base, size_t offset) {
       uintptr_t fullAddress = reinterpret_cast<uintptr_t>(base) + offset;
-      size_t alignment = alignof(T);
+      size_t alignment = std::max(alignof(T),size_t(256)); // Align to at least 256 bits
       size_t alignedAddress = (fullAddress + alignment - 1) & ~(alignment - 1);
       return alignedAddress - reinterpret_cast<uintptr_t>(base);
    }

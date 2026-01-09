@@ -336,6 +336,12 @@ void initializeGrids(
    phiprof::Timer setBTimer {"project.setProjectBField"};
    project.setProjectBField(perBGrid, BgBGrid, technicalGrid);
    setBTimer.stop();
+   if (P::isRestart) {
+      // There are projects that have non-uniform and non-zero perturbed B, e.g. Magnetosphere with dipole type 4.
+      // If restarting with reapplyUponRestart active, we need to set PerB again 
+      // in boundary cells after setProjectBField has populated the BGBXVDCORR etc. terms
+      sysBoundaries.applyInitialState(mpiGrid, technicalGrid, perBGrid, BgBGrid, project);
+   }
    phiprof::Timer fsGridGhostTimer {"fsgrid-ghost-updates"};
    perBGrid.updateGhostCells();
    BgBGrid.updateGhostCells();

@@ -165,7 +165,7 @@ cog.outl("#endif")
    if(dimension == 0) {
       for (vmesh::LocalID block_k=0; block_k<n_blocks; ++block_k) {
          Realf* __restrict__ data = blockContainer->getData(vmesh->getLocalID(blocks[block_k]));
-   #if (defined(VEC4D_AGNER) || defined(VEC4F_AGNER) || defined(VEC_FALLBACK_GENERIC)) && VECL == 4
+   #if (defined(VEC4D_AGNER) || defined(VEC4F_AGNER) || defined(VEC_FALLBACK_GENERIC) || defined(VEC4F_SVE) || defined(VEC4D_SVE)) && VECL == 4
    // WID 4, vecl 4
          values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = Vec({data[0], data[16], data[32], data[48]});
          values[i_pcolumnv_b(1, 0, block_k, n_blocks)] = Vec({data[4], data[20], data[36], data[52]});
@@ -183,7 +183,7 @@ cog.outl("#endif")
          values[i_pcolumnv_b(1, 3, block_k, n_blocks)] = Vec({data[7], data[23], data[39], data[55]});
          values[i_pcolumnv_b(2, 3, block_k, n_blocks)] = Vec({data[11], data[27], data[43], data[59]});
          values[i_pcolumnv_b(3, 3, block_k, n_blocks)] = Vec({data[15], data[31], data[47], data[63]});
-   #elif (defined(VEC8D_AGNER) || defined(VEC8F_AGNER) || defined(VEC_FALLBACK_GENERIC)) && VECL == 8
+   #elif (defined(VEC8D_AGNER) || defined(VEC8F_AGNER) || defined(VEC_FALLBACK_GENERIC) || defined(VEC8F_SVE) || defined(VEC8D_SVE)) && VECL == 8
    // WID 4, vecl 8
          values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = Vec({data[0], data[16], data[32], data[48], data[4], data[20], data[36], data[52]});
          values[i_pcolumnv_b(1, 0, block_k, n_blocks)] = Vec({data[8], data[24], data[40], data[56], data[12], data[28], data[44], data[60]});
@@ -193,7 +193,7 @@ cog.outl("#endif")
          values[i_pcolumnv_b(1, 2, block_k, n_blocks)] = Vec({data[10], data[26], data[42], data[58], data[14], data[30], data[46], data[62]});
          values[i_pcolumnv_b(0, 3, block_k, n_blocks)] = Vec({data[3], data[19], data[35], data[51], data[7], data[23], data[39], data[55]});
          values[i_pcolumnv_b(1, 3, block_k, n_blocks)] = Vec({data[11], data[27], data[43], data[59], data[15], data[31], data[47], data[63]});
-   #elif (defined(VEC16F_AGNER) || defined(VEC_FALLBACK_GENERIC)) && VECL == 16
+   #elif (defined(VEC16F_AGNER) || defined(VEC_FALLBACK_GENERIC) || defined(VEC16F_SVE) || defined(VEC16D_SVE)) && VECL == 16
    // WID 4, vecl 16
          values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = Vec({data[0], data[16], data[32], data[48], data[4], data[20], data[36], data[52], data[8], data[24], data[40], data[56], data[12], data[28], data[44], data[60]});
          values[i_pcolumnv_b(0, 1, block_k, n_blocks)] = Vec({data[1], data[17], data[33], data[49], data[5], data[21], data[37], data[53], data[9], data[25], data[41], data[57], data[13], data[29], data[45], data[61]});
@@ -212,7 +212,7 @@ cog.outl("#endif")
    if(dimension == 1) {
       for (vmesh::LocalID block_k=0; block_k<n_blocks; ++block_k) {
          Realf* __restrict__ data = blockContainer->getData(vmesh->getLocalID(blocks[block_k]));
-   #if (defined(VEC4D_AGNER) || defined(VEC4F_AGNER) || defined(VEC_FALLBACK_GENERIC)) && VECL == 4
+   #if (defined(VEC4D_AGNER) || defined(VEC4F_AGNER) || defined(VEC_FALLBACK_GENERIC) || defined(VEC4F_SVE) || defined(VEC4D_SVE)) && VECL == 4
    // WID 4, vecl 4
          values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = Vec({data[0], data[1], data[2], data[3]});
          values[i_pcolumnv_b(1, 0, block_k, n_blocks)] = Vec({data[16], data[17], data[18], data[19]});
@@ -230,7 +230,7 @@ cog.outl("#endif")
          values[i_pcolumnv_b(1, 3, block_k, n_blocks)] = Vec({data[28], data[29], data[30], data[31]});
          values[i_pcolumnv_b(2, 3, block_k, n_blocks)] = Vec({data[44], data[45], data[46], data[47]});
          values[i_pcolumnv_b(3, 3, block_k, n_blocks)] = Vec({data[60], data[61], data[62], data[63]});
-   #elif (defined(VEC8D_AGNER) || defined(VEC8F_AGNER) || defined(VEC_FALLBACK_GENERIC)) && VECL == 8
+   #elif (defined(VEC8D_AGNER) || defined(VEC8F_AGNER) || defined(VEC_FALLBACK_GENERIC) || defined(VEC8F_SVE) || defined(VEC8D_SVE)) && VECL == 8
    // WID 4, vecl 8
          values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = Vec({data[0], data[1], data[2], data[3], data[16], data[17], data[18], data[19]});
          values[i_pcolumnv_b(1, 0, block_k, n_blocks)] = Vec({data[32], data[33], data[34], data[35], data[48], data[49], data[50], data[51]});
@@ -240,7 +240,7 @@ cog.outl("#endif")
          values[i_pcolumnv_b(1, 2, block_k, n_blocks)] = Vec({data[40], data[41], data[42], data[43], data[56], data[57], data[58], data[59]});
          values[i_pcolumnv_b(0, 3, block_k, n_blocks)] = Vec({data[12], data[13], data[14], data[15], data[28], data[29], data[30], data[31]});
          values[i_pcolumnv_b(1, 3, block_k, n_blocks)] = Vec({data[44], data[45], data[46], data[47], data[60], data[61], data[62], data[63]});
-   #elif (defined(VEC16F_AGNER) || defined(VEC_FALLBACK_GENERIC)) && VECL == 16
+   #elif (defined(VEC16F_AGNER) || defined(VEC_FALLBACK_GENERIC) || defined(VEC16F_SVE) || defined(VEC16D_SVE)) && VECL == 16
    // WID 4, vecl 16
          values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = Vec({data[0], data[1], data[2], data[3], data[16], data[17], data[18], data[19], data[32], data[33], data[34], data[35], data[48], data[49], data[50], data[51]});
          values[i_pcolumnv_b(0, 1, block_k, n_blocks)] = Vec({data[4], data[5], data[6], data[7], data[20], data[21], data[22], data[23], data[36], data[37], data[38], data[39], data[52], data[53], data[54], data[55]});
@@ -260,7 +260,7 @@ cog.outl("#endif")
    if(dimension == 0) {
       for (vmesh::LocalID block_k=0; block_k<n_blocks; ++block_k) {
          Realf* __restrict__ data = blockContainer->getData(vmesh->getLocalID(blocks[block_k]));
-   #if (defined(VEC8D_AGNER) || defined(VEC8F_AGNER) || defined(VEC_FALLBACK_GENERIC)) && VECL == 8
+   #if (defined(VEC8D_AGNER) || defined(VEC8F_AGNER) || defined(VEC_FALLBACK_GENERIC) || defined(VEC8F_SVE) || defined(VEC8D_SVE)) && VECL == 8
    // WID 8, vecl 8
          values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = Vec({data[0], data[64], data[128], data[192], data[256], data[320], data[384], data[448]});
          values[i_pcolumnv_b(1, 0, block_k, n_blocks)] = Vec({data[8], data[72], data[136], data[200], data[264], data[328], data[392], data[456]});
@@ -326,7 +326,7 @@ cog.outl("#endif")
          values[i_pcolumnv_b(5, 7, block_k, n_blocks)] = Vec({data[47], data[111], data[175], data[239], data[303], data[367], data[431], data[495]});
          values[i_pcolumnv_b(6, 7, block_k, n_blocks)] = Vec({data[55], data[119], data[183], data[247], data[311], data[375], data[439], data[503]});
          values[i_pcolumnv_b(7, 7, block_k, n_blocks)] = Vec({data[63], data[127], data[191], data[255], data[319], data[383], data[447], data[511]});
-   #elif (defined(VEC16F_AGNER) || defined(VEC_FALLBACK_GENERIC)) && VECL == 16
+   #elif (defined(VEC16F_AGNER) || defined(VEC_FALLBACK_GENERIC) || defined(VEC16F_SVE) || defined(VEC16D_SVE)) && VECL == 16
    // WID 8, vecl 16
          values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = Vec({data[0], data[64], data[128], data[192], data[256], data[320], data[384], data[448], data[8], data[72], data[136], data[200], data[264], data[328], data[392], data[456]});
          values[i_pcolumnv_b(1, 0, block_k, n_blocks)] = Vec({data[16], data[80], data[144], data[208], data[272], data[336], data[400], data[464], data[24], data[88], data[152], data[216], data[280], data[344], data[408], data[472]});
@@ -360,7 +360,7 @@ cog.outl("#endif")
          values[i_pcolumnv_b(1, 7, block_k, n_blocks)] = Vec({data[23], data[87], data[151], data[215], data[279], data[343], data[407], data[471], data[31], data[95], data[159], data[223], data[287], data[351], data[415], data[479]});
          values[i_pcolumnv_b(2, 7, block_k, n_blocks)] = Vec({data[39], data[103], data[167], data[231], data[295], data[359], data[423], data[487], data[47], data[111], data[175], data[239], data[303], data[367], data[431], data[495]});
          values[i_pcolumnv_b(3, 7, block_k, n_blocks)] = Vec({data[55], data[119], data[183], data[247], data[311], data[375], data[439], data[503], data[63], data[127], data[191], data[255], data[319], data[383], data[447], data[511]});
-   #elif defined(VEC_FALLBACK_GENERIC) && VECL == 32
+   #elif (defined(VEC_FALLBACK_GENERIC) || defined(VEC32F_SVE) || defined(VEC32D_SVE)) && VECL == 32
    // WID 8, vecl 32
          values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = Vec({data[0], data[64], data[128], data[192], data[256], data[320], data[384], data[448], data[8], data[72], data[136], data[200], data[264], data[328], data[392], data[456], data[16], data[80], data[144], data[208], data[272], data[336], data[400], data[464], data[24], data[88], data[152], data[216], data[280], data[344], data[408], data[472]});
          values[i_pcolumnv_b(1, 0, block_k, n_blocks)] = Vec({data[32], data[96], data[160], data[224], data[288], data[352], data[416], data[480], data[40], data[104], data[168], data[232], data[296], data[360], data[424], data[488], data[48], data[112], data[176], data[240], data[304], data[368], data[432], data[496], data[56], data[120], data[184], data[248], data[312], data[376], data[440], data[504]});
@@ -378,7 +378,7 @@ cog.outl("#endif")
          values[i_pcolumnv_b(1, 6, block_k, n_blocks)] = Vec({data[38], data[102], data[166], data[230], data[294], data[358], data[422], data[486], data[46], data[110], data[174], data[238], data[302], data[366], data[430], data[494], data[54], data[118], data[182], data[246], data[310], data[374], data[438], data[502], data[62], data[126], data[190], data[254], data[318], data[382], data[446], data[510]});
          values[i_pcolumnv_b(0, 7, block_k, n_blocks)] = Vec({data[7], data[71], data[135], data[199], data[263], data[327], data[391], data[455], data[15], data[79], data[143], data[207], data[271], data[335], data[399], data[463], data[23], data[87], data[151], data[215], data[279], data[343], data[407], data[471], data[31], data[95], data[159], data[223], data[287], data[351], data[415], data[479]});
          values[i_pcolumnv_b(1, 7, block_k, n_blocks)] = Vec({data[39], data[103], data[167], data[231], data[295], data[359], data[423], data[487], data[47], data[111], data[175], data[239], data[303], data[367], data[431], data[495], data[55], data[119], data[183], data[247], data[311], data[375], data[439], data[503], data[63], data[127], data[191], data[255], data[319], data[383], data[447], data[511]});
-   #elif defined(VEC_FALLBACK_GENERIC) && VECL == 64
+   #elif (defined(VEC_FALLBACK_GENERIC) || defined(VEC64F_SVE) || defined(VEC64D_SVE)) && VECL == 64
    // WID 8, vecl 64
          values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = Vec({data[0], data[64], data[128], data[192], data[256], data[320], data[384], data[448], data[8], data[72], data[136], data[200], data[264], data[328], data[392], data[456], data[16], data[80], data[144], data[208], data[272], data[336], data[400], data[464], data[24], data[88], data[152], data[216], data[280], data[344], data[408], data[472], data[32], data[96], data[160], data[224], data[288], data[352], data[416], data[480], data[40], data[104], data[168], data[232], data[296], data[360], data[424], data[488], data[48], data[112], data[176], data[240], data[304], data[368], data[432], data[496], data[56], data[120], data[184], data[248], data[312], data[376], data[440], data[504]});
          values[i_pcolumnv_b(0, 1, block_k, n_blocks)] = Vec({data[1], data[65], data[129], data[193], data[257], data[321], data[385], data[449], data[9], data[73], data[137], data[201], data[265], data[329], data[393], data[457], data[17], data[81], data[145], data[209], data[273], data[337], data[401], data[465], data[25], data[89], data[153], data[217], data[281], data[345], data[409], data[473], data[33], data[97], data[161], data[225], data[289], data[353], data[417], data[481], data[41], data[105], data[169], data[233], data[297], data[361], data[425], data[489], data[49], data[113], data[177], data[241], data[305], data[369], data[433], data[497], data[57], data[121], data[185], data[249], data[313], data[377], data[441], data[505]});
@@ -401,7 +401,7 @@ cog.outl("#endif")
    if(dimension == 1) {
       for (vmesh::LocalID block_k=0; block_k<n_blocks; ++block_k) {
          Realf* __restrict__ data = blockContainer->getData(vmesh->getLocalID(blocks[block_k]));
-   #if (defined(VEC8D_AGNER) || defined(VEC8F_AGNER) || defined(VEC_FALLBACK_GENERIC)) && VECL == 8
+   #if (defined(VEC8D_AGNER) || defined(VEC8F_AGNER) || defined(VEC_FALLBACK_GENERIC) || defined(VEC8F_SVE) || defined(VEC8D_SVE)) && VECL == 8
    // WID 8, vecl 8
          values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = Vec({data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7]});
          values[i_pcolumnv_b(1, 0, block_k, n_blocks)] = Vec({data[64], data[65], data[66], data[67], data[68], data[69], data[70], data[71]});
@@ -467,7 +467,7 @@ cog.outl("#endif")
          values[i_pcolumnv_b(5, 7, block_k, n_blocks)] = Vec({data[376], data[377], data[378], data[379], data[380], data[381], data[382], data[383]});
          values[i_pcolumnv_b(6, 7, block_k, n_blocks)] = Vec({data[440], data[441], data[442], data[443], data[444], data[445], data[446], data[447]});
          values[i_pcolumnv_b(7, 7, block_k, n_blocks)] = Vec({data[504], data[505], data[506], data[507], data[508], data[509], data[510], data[511]});
-   #elif (defined(VEC16F_AGNER) || defined(VEC_FALLBACK_GENERIC)) && VECL == 16
+   #elif (defined(VEC16F_AGNER) || defined(VEC_FALLBACK_GENERIC) || defined(VEC16F_SVE) || defined(VEC16D_SVE)) && VECL == 16
    // WID 8, vecl 16
          values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = Vec({data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[64], data[65], data[66], data[67], data[68], data[69], data[70], data[71]});
          values[i_pcolumnv_b(1, 0, block_k, n_blocks)] = Vec({data[128], data[129], data[130], data[131], data[132], data[133], data[134], data[135], data[192], data[193], data[194], data[195], data[196], data[197], data[198], data[199]});
@@ -501,7 +501,7 @@ cog.outl("#endif")
          values[i_pcolumnv_b(1, 7, block_k, n_blocks)] = Vec({data[184], data[185], data[186], data[187], data[188], data[189], data[190], data[191], data[248], data[249], data[250], data[251], data[252], data[253], data[254], data[255]});
          values[i_pcolumnv_b(2, 7, block_k, n_blocks)] = Vec({data[312], data[313], data[314], data[315], data[316], data[317], data[318], data[319], data[376], data[377], data[378], data[379], data[380], data[381], data[382], data[383]});
          values[i_pcolumnv_b(3, 7, block_k, n_blocks)] = Vec({data[440], data[441], data[442], data[443], data[444], data[445], data[446], data[447], data[504], data[505], data[506], data[507], data[508], data[509], data[510], data[511]});
-   #elif defined(VEC_FALLBACK_GENERIC) && VECL == 32
+   #elif (defined(VEC_FALLBACK_GENERIC) || defined(VEC32F_SVE) || defined(VEC32D_SVE)) && VECL == 32
    // WID 8, vecl 32
          values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = Vec({data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[64], data[65], data[66], data[67], data[68], data[69], data[70], data[71], data[128], data[129], data[130], data[131], data[132], data[133], data[134], data[135], data[192], data[193], data[194], data[195], data[196], data[197], data[198], data[199]});
          values[i_pcolumnv_b(1, 0, block_k, n_blocks)] = Vec({data[256], data[257], data[258], data[259], data[260], data[261], data[262], data[263], data[320], data[321], data[322], data[323], data[324], data[325], data[326], data[327], data[384], data[385], data[386], data[387], data[388], data[389], data[390], data[391], data[448], data[449], data[450], data[451], data[452], data[453], data[454], data[455]});
@@ -519,7 +519,7 @@ cog.outl("#endif")
          values[i_pcolumnv_b(1, 6, block_k, n_blocks)] = Vec({data[304], data[305], data[306], data[307], data[308], data[309], data[310], data[311], data[368], data[369], data[370], data[371], data[372], data[373], data[374], data[375], data[432], data[433], data[434], data[435], data[436], data[437], data[438], data[439], data[496], data[497], data[498], data[499], data[500], data[501], data[502], data[503]});
          values[i_pcolumnv_b(0, 7, block_k, n_blocks)] = Vec({data[56], data[57], data[58], data[59], data[60], data[61], data[62], data[63], data[120], data[121], data[122], data[123], data[124], data[125], data[126], data[127], data[184], data[185], data[186], data[187], data[188], data[189], data[190], data[191], data[248], data[249], data[250], data[251], data[252], data[253], data[254], data[255]});
          values[i_pcolumnv_b(1, 7, block_k, n_blocks)] = Vec({data[312], data[313], data[314], data[315], data[316], data[317], data[318], data[319], data[376], data[377], data[378], data[379], data[380], data[381], data[382], data[383], data[440], data[441], data[442], data[443], data[444], data[445], data[446], data[447], data[504], data[505], data[506], data[507], data[508], data[509], data[510], data[511]});
-   #elif defined(VEC_FALLBACK_GENERIC) && VECL == 64
+   #elif (defined(VEC_FALLBACK_GENERIC) || defined(VEC64F_SVE) || defined(VEC64D_SVE)) && VECL == 64
    // WID 8, vecl 64
          values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = Vec({data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[64], data[65], data[66], data[67], data[68], data[69], data[70], data[71], data[128], data[129], data[130], data[131], data[132], data[133], data[134], data[135], data[192], data[193], data[194], data[195], data[196], data[197], data[198], data[199], data[256], data[257], data[258], data[259], data[260], data[261], data[262], data[263], data[320], data[321], data[322], data[323], data[324], data[325], data[326], data[327], data[384], data[385], data[386], data[387], data[388], data[389], data[390], data[391], data[448], data[449], data[450], data[451], data[452], data[453], data[454], data[455]});
          values[i_pcolumnv_b(0, 1, block_k, n_blocks)] = Vec({data[8], data[9], data[10], data[11], data[12], data[13], data[14], data[15], data[72], data[73], data[74], data[75], data[76], data[77], data[78], data[79], data[136], data[137], data[138], data[139], data[140], data[141], data[142], data[143], data[200], data[201], data[202], data[203], data[204], data[205], data[206], data[207], data[264], data[265], data[266], data[267], data[268], data[269], data[270], data[271], data[328], data[329], data[330], data[331], data[332], data[333], data[334], data[335], data[392], data[393], data[394], data[395], data[396], data[397], data[398], data[399], data[456], data[457], data[458], data[459], data[460], data[461], data[462], data[463]});

@@ -134,6 +134,7 @@ uint P::maxFieldSolverSubcycles = 0.0;
 int P::maxSlAccelerationSubcycles = 0.0;
 Real P::resistivity = NAN;
 bool P::fieldSolverDiffusiveEterms = true;
+bool P::fieldSolverFiniteDifferencingAtBoundaries = false;
 uint P::ohmHallTerm = 0;
 uint P::ohmGradPeTerm = 0;
 Real P::electronTemperature = 0.0;
@@ -374,6 +375,7 @@ bool P::addParameters() {
    RP::add("fieldsolver.maxSubcycles", "Maximum allowed field solver subcycles", 1);
    RP::add("fieldsolver.resistivity", "Resistivity for the eta*J term in Ohm's law.", 0.0);
    RP::add("fieldsolver.diffusiveEterms", "Enable diffusive terms in the computation of E", true);
+   RP::add("fieldsolver.finiteDifferencingAtBoundaries", "Enable finite differencing at sysboundaries", false);
    RP::add(
        "fieldsolver.ohmHallTerm",
        "Enable/choose spatial order of the Hall term in Ohm's law. 0: off, 1: 1st spatial order, 2: 2nd spatial order",
@@ -1110,6 +1112,7 @@ void Parameters::getParameters() {
    RP::get("fieldsolver.maxSubcycles", P::maxFieldSolverSubcycles);
    RP::get("fieldsolver.resistivity", P::resistivity);
    RP::get("fieldsolver.diffusiveEterms", P::fieldSolverDiffusiveEterms);
+   RP::get("fieldsolver.finiteDifferencingAtBoundaries",P::fieldSolverFiniteDifferencingAtBoundaries);
    RP::get("fieldsolver.ohmHallTerm", P::ohmHallTerm);
    RP::get("fieldsolver.ohmGradPeTerm", P::ohmGradPeTerm); // Which order solver to use for fieldsolver eGradPe term (supported: 0 for off, 1 for first-order)
    RP::get("fieldsolver.electronTemperature", P::electronTemperature); // Electron temperature associated with anchor point, e.g. incoming solar wind

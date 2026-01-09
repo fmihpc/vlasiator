@@ -41,7 +41,7 @@ definitions=$(for key in "${!seen[@]}"; do echo "$key"; done | sort)
 target="./arch/gpu_base.hpp"
 
 if [[ ! -f "$target" ]]; then
-   echo "❌ Error: $target not found."
+   echo "[ERROR] $target not found."
    exit 1
 fi
 
@@ -78,7 +78,7 @@ awk -v defs="$definitions" '
 # Only overwrite if the content actually changed
 if ! cmp -s "$tmpfile" "$target"; then
    mv "$tmpfile" "$target"
-   echo "Updated $target"
+   echo "[SCAN] Updated $target"
 else
    rm "$tmpfile"
 fi
