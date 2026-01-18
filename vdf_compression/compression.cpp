@@ -214,10 +214,10 @@ float compress_vdfs_fourier_mlp(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geome
       const std::size_t num_threads = omp_get_max_threads();
       const auto partitionScheme = partition(local_cells.size(), P::max_vdfs_per_nn, num_threads);
 
-      printf("Compression on %zu threads\n",num_threads);
-      for (std::size_t ii=0;ii<partitionScheme.size();++ii){
-         printf("\tChunk(%zu): [%zu,%zu) ->len=(%zu)\n",ii, partitionScheme[ii].first,partitionScheme[ii].second,partitionScheme[ii].second-partitionScheme[ii].first  );
-      }
+      // printf("Compression on %zu threads\n",num_threads);
+      // for (std::size_t ii=0;ii<partitionScheme.size();++ii){
+      //    printf("\tChunk(%zu): [%zu,%zu) ->len=(%zu)\n",ii, partitionScheme[ii].first,partitionScheme[ii].second,partitionScheme[ii].second-partitionScheme[ii].first  );
+      // }
       const std::size_t threads_needed = partitionScheme.size();
       total_samples += partitionScheme.size();
       omp_set_num_threads(threads_needed);
