@@ -270,7 +270,6 @@ comparison_vlsv[${index}]="bulk.0000001.vlsv"
 comparison_phiprof[${index}]="phiprof_0.txt"
 variable_names[${index}]="proton/vg_v proton/vg_v proton/vg_v fg_b fg_b fg_b"
 variable_components[${index}]="0 1 2 0 1 2"
-single_cell[${index}]=1
 (
 
 # choose tests to run (default: all tests)
