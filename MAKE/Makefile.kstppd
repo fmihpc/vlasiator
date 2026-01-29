@@ -1,7 +1,7 @@
 #Kostis Laptop
 #Compiler & Linker
-CMP = mpic++ -ggdb -g3
-LNK = mpic++ -ggdb -g3
+CMP = mpic++
+LNK = mpic++
 
 
 #======== Vectorization ==========
@@ -10,7 +10,7 @@ LNK = mpic++ -ggdb -g3
 #Options;
 # AVX:	    VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
 # AVX512:   VEC8D_AGNER, VEC16F_AGNER
-# Fallback: VEC_FALLBACK_GENERIC
+# Fallback: VEC4D_FALLBACK, VEC4F_FALLBACK, VEC8F_FALLBACK
 
 ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
 #Single-precision
@@ -25,12 +25,16 @@ endif
 #======== Flags =========
 
 FLAGS =
-CXXFLAGS = -O3 -DASTERIX_ZFP -DASTERIX_OCTREE -DASTERIX_MLP -funroll-loops -std=c++20 -fopenmp -W -Wall -Wno-unused -Wno-unused-parameter -Wno-missing-braces -fabi-version=0 -mavx
-testpackage: CXXFLAGS = -g -ggdb -O2 -fopenmp -funroll-loops -std=c++20 -fabi-version=0  -mno-avx -mno-fma -fno-unsafe-math-optimizations
+CXXFLAGS = -O3   -funroll-loops -std=c++17 -fopenmp -W -Wall -Wno-unused -Wno-unused-parameter -Wno-missing-braces -fabi-version=0 -mavx
+testpackage: CXXFLAGS = -g -ggdb -O2 -fopenmp -funroll-loops -std=c++17 -fabi-version=0  -mno-avx -mno-fma -fno-unsafe-math-optimizations
 CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE -DPAPI_MEM
 MATHFLAGS = -ffast-math -fno-finite-math-only
 testpackage: MATHFLAGS = -fno-unsafe-math-optimizations
-LIB_MPI = -lgomp -lpapi
+LDFLAGS = -L $(HOME)/lib
+LIB_MPI = -lgomp -lpapi 
+
+
+
 
 #================PAPI==================
 #Add PAPI_MEM define to use papi to report memory consumption?
@@ -44,14 +48,22 @@ testpackage: CXXFLAGS +=  -DPAPI_MEM
 CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 
+#======== Allocator =========
+#Use TBB malloc
+
+
+PAPI_FLAG =
+
+
 #======== Libraries ===========
-LIBRARY_PREFIX = /home/kstppd/software/vlasiator_libs
+
+LIBRARY_PREFIX = $(HOME)/libs
 
 INC_BOOST = -I/usr/include/boost/
 LIB_BOOST = -L/usr/lib/x86_64-linux-gnu/ -lboost_program_options
 
-INC_ZOLTAN = -I$(LIBRARY_PREFIX)/include
-LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/lib -lzoltan
+INC_ZOLTAN = -I$(LIBRARY_PREFIX)/zoltan/include
+LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/zoltan/lib -lzoltan
 
 INC_VLSV = -I$(LIBRARY_PREFIX)/vlsv
 LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv -lvlsv
@@ -60,25 +72,17 @@ INC_SILO = -I$(LIBRARY_PREFIX)/include
 LIB_SILO = -L$(LIBRARY_PREFIX)/lib -lsilo
 
 INC_DCCRG = -I./submodules/dccrg
+
 INC_FSGRID = -I./submodules/fsgrid
 
-INC_PAPI = -I$(LIBRARY_PREFIX)/include
-LIB_PAPI = -L$(LIBRARY_PREFIX)/lib/ -lpapi
+INC_PAPI = -I$(LIBRARY_PREFIX)/papi/src
+LIB_PAPI = -L$(LIBRARY_PREFIX)/papi/src -lpapi
 
-INC_JEMALLOC = -I$(LIBRARY_PREFIX)/jemalloc/include
-LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/jemalloc/lib -ljemalloc
+INC_JEMALLOC = -I$(LIBRARY_PREFIX)/libraries/jemalloc
+LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/libraries/jemalloc/lib -ljemalloc
 
 LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/lib -lphiprof
-INC_PROFILE = -I$(LIBRARY_PREFIX)/include
+INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/include
 
 INC_VECTORCLASS = -isystem ./submodules/vectorclass/ -isystem ./submodules/vectorclass-addon/vector3d/
 INC_EIGEN = -isystem ./submodules/eigen/
-
-INC_ZFP = -I/home/kstppd/software/zfp/include/
-LIB_ZFP = -L/home/kstppd/software/zfp/build/lib -lzfp
-
-INC_OCTREE_COMPRESSOR = -I./vdf_compression/include
-LIB_OCTREE_COMPRESSOR = -L./vdf_compression/lib -ltoctree_compressor
-
-INC_NN_COMPRESSOR = -I./vdf_compression/lib/usr/local/include/tinyAI
-LIB_NN_COMPRESSOR= -L/home/kstppd/dev/asterix/build -L/home/kstppd/software/spdlog/build/ -lvlasiator_vdf_compressor_nn -lcudart_static  -lcublas -lspdlog -lnvToolsExt 
