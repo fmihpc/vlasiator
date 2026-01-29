@@ -584,19 +584,34 @@ bool writeVspaceDataCompressionMLP(const uint popID,Writer& vlsvWriter,
    
    
    //Write the compression method used in this file
+   const string popName      = getObjectWrapper().particleSpecies[popID].name;
+   const string spatMeshName = "SpatialGrid";
    const int cmp=P::vdf_compression_method;   
    if (!vlsvWriter.writeParameter("COMPRESSION",&cmp)){
       logFile<<"ERROR: Failed to write COMPRESSION parameter in vlsv file"<<std::endl<<write;
       return false;
    }
+   const int fourier_order=P::mlp_fourier_order;   
+   if (!vlsvWriter.writeParameter("FOURIER_ORDER",&fourier_order)){
+      logFile<<"ERROR: Failed to write FOURIER_ORDER parameter in vlsv file"<<std::endl<<write;
+      return false;
+   }
+   map<string,string> attribs;
+   attribs.clear();
+   attribs["mesh"] = spatMeshName;
+   attribs["name"] = popName;
+   auto array_size= P::mlp_arch.size();
+   if (!vlsvWriter.writeArrayMaster("MLP_ARCH",attribs,"int",array_size,1,sizeof(size_t),(const char*)P::mlp_arch.data())){
+      logFile<<"ERROR: Failed to write MLP_ARCH in vlsv file"<<std::endl<<write;
+      return false;
+   }
+
+
    std::size_t totalElements=0;
    for (const auto& b: mlp_bytes){
       totalElements+=b.size();
    }
    bool success=true;
-   const string popName      = getObjectWrapper().particleSpecies[popID].name;
-   const string spatMeshName = "SpatialGrid";
-   map<string,string> attribs;
    attribs.clear();
    attribs["mesh"] = spatMeshName;
    attribs["name"] = popName;
