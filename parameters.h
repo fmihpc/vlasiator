@@ -247,16 +247,10 @@ struct Parameters {
 
    //Asterix  VDF Compression
    enum ASTERIX_COMPRESSION_METHODS{
-       #ifdef ASTERIX_MLP
            MLP,
            MLP_MULTI,
-       #endif
-       #ifdef ASTERIX_ZFP
            ZFP,
-       #endif
-       #ifdef ASTERIX_OCTREE
            OCTREE,
-       #endif
            NONE
    };
    static std::string mlpLayer;
