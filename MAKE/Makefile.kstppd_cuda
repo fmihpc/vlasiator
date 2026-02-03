@@ -1,0 +1,57 @@
+#======== Vectorization ==========
+#GPU Vlasov solvers no longer use any vectorclass.
+#Options:
+# AVX:	    VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
+# AVX512:   VEC8D_AGNER, VEC16F_AGNER
+# Fallback: VECTORCLASS = VEC_FALLBACK_GENERIC
+VECTORCLASS = VEC_FALLBACK_GENERIC
+
+# VMesh Block size: (historical value 4, also 8 supported)
+#WID=8
+WID=4
+USE_CUDA=1
+
+CMP = OMPI_CXX='nvcc' OMPI_CXXFLAGS='' mpic++
+LNK = OMPI_CXX='nvcc' OMPI_CXXFLAGS='-arch=sm_60' OMPI_LIBS='-L/usr/lib/x86_64-linux-gnu/openmpi/lib' OMPI_LDFLAGS='-lmpi_cxx -lmpi' mpic++
+CXXFLAGS = -g -O3 -x cu   -std=c++20 -Xcompiler -std=c++20 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_60,code=sm_60 -Xcompiler -fopenmp --generate-line-info -line-info -Xcompiler="-fpermissive"  --extra-device-vectorization
+testpackage: CXXFLAGS = -g -O2 -x cu -std=c++20 -Xcompiler -std=c++20 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_60,code=sm_60 -Xcompiler -fopenmp --generate-line-info -line-info -Xcompiler="-fpermissive"
+
+MATHFLAGS = --use_fast_math
+testpackage: MATHFLAGS = --prec-sqrt=true --prec-div=true --ftz=false --fmad=false
+
+LDFLAGS = -O2 -g -lnvToolsExt
+LIB_MPI = -lgomp
+LIB_CUDA = -L/usr/local/cuda/lib64
+INC_CUDA = -isystem /usr/local/cuda/include
+
+#======== PAPI ==========
+#Add PAPI_MEM define to use papi to report memory consumption?
+#CXXFLAGS += -DPAPI_MEM
+#testpackage: CXXFLAGS += -DPAPI_MEM
+
+#======== Libraries ===========
+LIBRARY_PREFIX = /home/kstppd/software/vlasiator_libs
+
+INC_BOOST = -isystem /usr/include/boost
+LIB_BOOST = -L/usr/include/boost -lboost_program_options
+
+INC_ZOLTAN = -I$(LIBRARY_PREFIX)/include
+LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/lib -lzoltan
+
+# INC_PAPI = -I$(LIBRARY_PREFIX)/papi/include
+# LIB_PAPI = -I$(LIBRARY_PREFIX)/papi/lib -Wl,-rpath=$(LIBRARY_PREFIX)/papi/lib
+
+INC_VLSV = -I$(LIBRARY_PREFIX)/include
+LIB_VLSV = -L$(LIBRARY_PREFIX)/lib -lvlsv -Xlinker=-rpath=$(LIBRARY_PREFIX)/vlsv/lib
+
+LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof_cuda/lib -lphiprof -Xlinker=-rpath=$(LIBRARY_PREFIX)/phiprof_nvcc/lib
+INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof_cuda/include
+
+INC_ZFP = -I/home/kstppd/software/zfp/include/
+LIB_ZFP = -L/home/kstppd/software/zfp/build/lib -lzfp
+
+INC_OCTREE_COMPRESSOR = -I./vdf_compression/include
+LIB_OCTREE_COMPRESSOR = -L./vdf_compression/lib -ltoctree_compressor
+
+INC_NN_COMPRESSOR = -I./vdf_compression/lib/usr/local/include/tinyAI
+LIB_NN_COMPRESSOR= -L/home/kstppd/dev/asterix/build -L/home/kstppd/software/spdlog/build/ -lvlasiator_vdf_compressor_nn -lcudart_static  -lcublas -lspdlog -lnvToolsExt 

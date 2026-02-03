@@ -100,7 +100,8 @@ uint64_t get_node_free_memory(){
             }
          } else {
             // Skip to neww line
-            fscanf(in_file, "%*[^\n]\n");
+            auto _id=fscanf(in_file, "%*[^\n]\n");
+            (void)_id;
          }
       }
       fclose(in_file);
