@@ -628,6 +628,7 @@ __global__ static void resize_and_empty_kernel (
 
       // Following functions adjust velocity blocks stored on the cell //
       void adjustSingleCellVelocityBlocks(const uint popID, bool doDeleteEmpty=false);
+      bool add_velocity_block(const vmesh::GlobalID& block,const uint popID);
       void adjust_velocity_blocks(const uint popID,
                                   bool doDeleteEmptyBlocks=true);
       vmesh::LocalID adjust_velocity_blocks_caller(const uint popID);
