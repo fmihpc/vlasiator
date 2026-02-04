@@ -55,6 +55,9 @@
 #endif
 
 #ifdef ASTERIX_MLP
+#ifdef __cplusplus
+extern "C" {
+#endif
 void decompress_phasespace6D_f64(GENERIC_TS_POOL::MemPool* p, std::size_t fin, std::size_t fout, double* vcoords_ptr,
                                  double* vspace_ptr, std::size_t size, std::size_t fourier_order,
                                  size_t* hidden_layers_ptr, size_t n_hidden_layers, double* weights_ptr,
@@ -64,6 +67,9 @@ void decompress_phasespace6D_f32(GENERIC_TS_POOL::MemPool* p, std::size_t fin, s
                                  float* vspace_ptr, std::size_t size, std::size_t fourier_order,
                                  size_t* hidden_layers_ptr, size_t n_hidden_layers, float* weights_ptr,
                                  std::size_t weight_size, bool use_input_weights);
+#ifdef __cplusplus
+}
+#endif
 #endif //ASTERIX_MLP
 
 #define MLP_KEY 42

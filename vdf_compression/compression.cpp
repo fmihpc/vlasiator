@@ -45,6 +45,9 @@ using namespace ASTERIX;
 using namespace spatial_cell;
 
 #ifdef ASTERIX_MLP
+#ifdef __cplusplus
+extern "C" {
+#endif
 size_t compress_phasespace6D_f64(GENERIC_TS_POOL::MemPool* p, std::size_t fin,std::size_t fout, double* coords_ptr, double* f_ptr,
                                  std::size_t size, std::size_t max_epochs, std::size_t fourier_order,
                                  size_t* hidden_layers_ptr, size_t n_hidden_layers, double sparsity, double tol,
@@ -58,7 +61,9 @@ size_t compress_phasespace6D_f32(GENERIC_TS_POOL::MemPool* p, std::size_t fin,st
                                  uint32_t downsampling_factor, float& error, uint32_t& epochs, int& status, int rankID);
 
 
-
+#ifdef __cplusplus
+}
+#endif
 auto compress_vdfs_fourier_mlp(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                size_t number_of_spatial_cells, bool update_weights, std::vector<std::vector<char>>&bytes ,uint32_t downsampling_factor)
     -> float;
