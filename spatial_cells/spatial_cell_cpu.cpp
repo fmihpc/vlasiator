@@ -730,6 +730,7 @@ namespace spatial_cell {
    void SpatialCell::set_max_r_dt(const uint popID,const Real& value) {
       debug_population_check(popID);
       populations[popID].max_dt[species::MAXRDT] = value;
+      this->parameters[CellParams::MAXRDT] = min(parameters[CellParams::MAXRDT], value);
    }
 
    /** Set maximum acceleration timestep for a particle species.
@@ -739,6 +740,7 @@ namespace spatial_cell {
    void SpatialCell::set_max_v_dt(const uint popID,const Real& value) {
       debug_population_check(popID);
       populations[popID].max_dt[species::MAXVDT] = value;
+      this->parameters[CellParams::MAXVDT] = min(parameters[CellParams::MAXVDT], value);
    }
 
    /**  Purges extra capacity from block vectors. It sets size to
