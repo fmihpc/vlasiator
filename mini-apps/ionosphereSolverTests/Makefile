@@ -13,6 +13,12 @@ INC_FSGRID=-I../../submodules/fsgrid/
 INC_DCCRG=-I../../submodules/dccrg/
 INC_EIGEN = -isystem ../../submodules/eigen/
 
+CXXFLAGS := $(filter-out -DASTERIX_MLP,$(CXXFLAGS))
+CXXFLAGS := $(filter-out -DASTERIX_OCTREE,$(CXXFLAGS))
+CXXFLAGS := $(filter-out -DASTERIX_ZFP,$(CXXFLAGS))
+LIBS := $(filter-out LIB_NN_COMPRESSOR,$(LIBS))
+LIBS := $(filter-out LIB_ZFP,$(LIBS))
+LIBS := $(filter-out LIB_OCTREE_COMPRESSOR,$(LIBS))
 # Default makefile target: only build the test binaries, don't run anything
 # (in particular, nothing that would require python)
 default: main differentialFlux sigmaProfiles
@@ -60,6 +66,12 @@ arch_moments.o: ../../vlasovsolver/arch_moments.cpp
 iowrite.o:  ../../parameters.h ../../iowrite.cpp ../../iowrite.h  
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c ../../iowrite.cpp ${INC_MPI} ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VLSV} ${INC_JEMALLOC}
 
+compression_tools.o:  ../../vdf_compression/compression_tools.cpp   
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c ../../vdf_compression/compression_tools.cpp  ${INC_MPI} ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VLSV} ${INC_JEMALLOC}
+	
+compression.o:  ../../vdf_compression/compression.cpp   
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c ../../vdf_compression/compression.cpp  ${INC_MPI} ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VLSV} ${INC_JEMALLOC}
+
 ioread.o:  ../../parameters.h ../../ioread.cpp ../../ioread.h  
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c ../../ioread.cpp ${INC_MPI} ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VLSV} ${INC_JEMALLOC}
 
@@ -87,7 +99,7 @@ fieldtracing.o: ../../fieldtracing/fieldtracing.cpp
 main.o: main.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c ./main.cpp  ${INC_VLSV} ${INC_BOOST} ${INC_PROFILE} ${INC_JEMALLOC} ${INC_DCCRG} ${INC_ZOLTAN} ${INC_FSGRID}
 
-main: main.o ionosphere.o sysboundarycondition.o parameters.o readparameters.o object_wrapper.o particle_species.o spatial_cell.o arch_moments.o iowrite.o logger.o datareducer.o datareductionoperator.o common.o ioread.o fs_common.o version.o fieldtracing.o velocity_mesh_parameters.o
+main: main.o ionosphere.o sysboundarycondition.o parameters.o readparameters.o object_wrapper.o particle_species.o spatial_cell.o arch_moments.o iowrite.o compression_tools.o compression.o logger.o datareducer.o datareductionoperator.o common.o ioread.o fs_common.o version.o fieldtracing.o velocity_mesh_parameters.o
 	${LNK} ${LDFLAGS} -o main $^ $(LIBS) -lgomp
 
 differentialFlux: differentialFlux.cpp

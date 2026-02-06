@@ -22,7 +22,10 @@
 
 #include "compression.h"
 #include "compression_tools.h"
+#ifdef ASTERIX_ZFP
 #include "zfp/array1.hpp"
+#include <zfp.h>
+#endif
 #include <atomic>
 #include <concepts>
 #include <cstdint>
@@ -35,7 +38,6 @@
 #include <type_traits>
 #include <unordered_map>
 #include <vector>
-#include <zfp.h>
 #include <omp.h>
 
 extern Logger logFile;
