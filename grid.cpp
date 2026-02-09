@@ -1415,7 +1415,7 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       }
    }
 
-   if (P::maxTimeclass > 0) {
+   if (P::currentMaxTimeclass > 0) {
       // stencils for timeghost haloes
       // first one using timeclassexacthaloextent
       neighborhood.clear();

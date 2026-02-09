@@ -67,7 +67,7 @@ Real P::t_max = LARGE_REAL;
 Real P::dt_ceil = -1.0; 
 Real P::dt = NAN;
 Real P::dt0 = NAN;
-int P::maxTimeclass = 0;
+int P::initialMaxTimeclass = 0;
 int P::timeclassBuffer = 0;
 int P::currentMaxTimeclass = 0;
 bool P::tcRankwise = false;
@@ -1048,21 +1048,21 @@ void Parameters::getParameters() {
    RP::get("gridbuilder.dt", P::dt);
    RP::get("gridbuilder.dt", P::dt0);
 
-   RP::get("gridbuilder.timeclass_max", P::maxTimeclass);
+   RP::get("gridbuilder.initial_timeclass_max", P::initialMaxTimeclass);
    RP::get("gridbuilder.timeclass_buffer", P::timeclassBuffer);
    RP::get("gridbuilder.tcRankwise", P::tcRankwise);
    RP::get("gridbuilder.forcedConvection", P::forcedConvection);
 
    RP::get("gridbuilder.tcDebugBox", P::tcDebugBox);
    RP::get("gridbuilder.tcOverrideTimeclass", P::tcOverrideTimeclass);
-   if (P::tcOverrideTimeclass > -1 && P::maxTimeclass < P::tcOverrideTimeclass) {
-      std::cout << "Adjusting P::maxTimeclass ("<< P::maxTimeclass << ") to include tcOverrideTimeclass (" << P::tcOverrideTimeclass << ")" << std::endl;
-      P::maxTimeclass = P::tcOverrideTimeclass;
+   if (P::tcOverrideTimeclass > -1 && P::initialMaxTimeclass < P::tcOverrideTimeclass) {
+      std::cout << "Adjusting P::InitialMaxTimeclass ("<< P::initialMaxTimeclass << ") to include tcOverrideTimeclass (" << P::tcOverrideTimeclass << ")" << std::endl;
+      P::initialMaxTimeclass = P::tcOverrideTimeclass;
    }
 
    if (P::timeclassBuffer > 0) {
-      std::cout << "adding buffer to maxTimeclass: " << P::maxTimeclass << " + " << P::timeclassBuffer << std::endl;
-      P::maxTimeclass += P::timeclassBuffer; // Add buffer to maxTimeclass
+      std::cout << "adding buffer to initialMaxTimeclass: " << P::initialMaxTimeclass << " + " << P::timeclassBuffer << std::endl;
+      P::initialMaxTimeclass += P::timeclassBuffer; // Add buffer to initialMaxTimeclass
    }
 
    RP::get("gridbuilder.tcBoxHalfWidthX", P::tcBoxHalfWidthX);
@@ -1078,8 +1078,8 @@ void Parameters::getParameters() {
    RP::get("gridbuilder.timeclassOuterHaloExtent", P::timeclassOuterHaloExtent);
 
 
-   P::timeclassDt = std::vector<Real>(P::maxTimeclass+1);
-   P::timeclassTime = std::vector<Real>(P::maxTimeclass+1);
+   P::timeclassDt = std::vector<Real>(P::initialMaxTimeclass+1);
+   P::timeclassTime = std::vector<Real>(P::initialMaxTimeclass+1);
 
    RP::get("gridbuilder.t_max", P::t_max);
    RP::get("gridbuilder.timestep_max", P::tstep_max);

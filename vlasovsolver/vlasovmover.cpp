@@ -319,8 +319,8 @@ void calculateSpatialTranslation(
    }
 
    // TC propagation lists, TODO move out of here somewhere sensible and less often called
-   if (P::maxTimeclass > 0) {
-      for (int tc = 0; tc <= P::maxTimeclass; tc++)
+   if (P::currentMaxTimeclass > 0) {
+      for (int tc = 0; tc <= P::currentMaxTimeclass; tc++)
       {
          tc_propagated_cell_sets.push_back(set<CellID>());
          for (auto c : localCells){
@@ -381,8 +381,8 @@ void calculateSpatialTranslation(
 
 
    // TC propagation lists, TODO move out of here somewhere sensible and less often called
-   if (P::maxTimeclass > 0) {
-      for (int tc = 0; tc <= P::maxTimeclass; tc++)
+   if (P::currentMaxTimeclass > 0) {
+      for (int tc = 0; tc <= P::currentMaxTimeclass; tc++)
       {
          // std::cout << "initing up tc " << tc << " vectors \n";
          tc_propagated_cells[tc] = vector<CellID>(tc_propagated_cell_sets[tc].begin(),tc_propagated_cell_sets[tc].end());
@@ -409,7 +409,7 @@ void calculateSpatialTranslation(
    }
    computeTimer.stop();
 
-   if (P::maxTimeclass <= 0) {
+   if (P::currentMaxTimeclass <= 0) {
       // If we are not using timeclasses, we can just use the local_propagated_cells vector
       // for all the calculations.
       

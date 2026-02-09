@@ -147,22 +147,16 @@ std::vector<CellID> checkCellTimeclasses(dccrg::Dccrg<SpatialCell,dccrg::Cartesi
 
 }
 
-// gets the minimum fsdt, acc dt and trans dt from all cells. This is then used as the fsdt and dt of maximum timeclass
-double getGlobalMinimumDt(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
-
-
-
-}
-
 // should be a member function of SC class
 // sets cell parameters
 void assignCellTimeclass(SpatialCell* cell, const double cellDt, const double baseTcDt) {
 
-   for (int tc=P::currentMaxTimeclass; tc>=0; tc--) {
+   // going from largest tc timestep to smallest, so the first largest tcdt is chosen.
+   for (int tc=0; tc<=P::currentMaxTimeclass; tc++) {
 
       double TCDT = pow(2.0, (P::currentMaxTimeclass - tc)) * baseTcDt;
 
-      if (cellDt <= TCDT * 2.0) {
+      if (cellDt <= TCDT) { // 
 
          cell->parameters[CellParams::TIMECLASS] = tc;
          cell->parameters[CellParams::TIMECLASSDT] = TCDT;
@@ -247,9 +241,9 @@ void increaseTimeclass(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiG
 
 }
 
-void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-			FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid, Real &newDt, bool &isChanged,
-         std::vector<Real>& newTimeclassDts) {
+//returns vector of local minimum dt, global minimum dt and global maximum dt
+std::vector<Real> computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+			FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid, Real& isChanged) {
 
    phiprof::Timer computeTimestepTimer {"compute-timestep"};
    // Compute maximum time step. This cannot be done at the first step as the solvers compute the limits for each cell.
@@ -257,7 +251,7 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    isChanged = false;
 
    const vector<CellID>& cells = getLocalCells();
-   newTimeclassDts = std::vector<Real>(P::maxTimeclass+1);
+   // newTimeclassDts = std::vector<Real>(P::maxTimeclass+1);
 
    /* Arrays for storing local (per process) and global max dt
       0th position stores ordinary space propagation dt
@@ -310,7 +304,7 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    creal meanFieldsCFL = 0.5 * (P::fieldSolverMaxCFL + P::fieldSolverMinCFL);
    Real subcycleDt;
 
-   Real localDt, baseDt;
+   Real localDt, baseDt, newDt;
 
    // localDt: max dt in the local MPI domain
    localDt = meanVlasovCFL * dtMaxLocal[0];
@@ -328,40 +322,46 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    baseDt = min(baseDt,meanFieldsCFL * dtMinMaxGlobal[2] * P::maxFieldSolverSubcycles);   
    if (myRank == MASTER_RANK) cout << "baseDt " << baseDt <<"\n";
 
-   Real fsdt; // newDt/new field solver timestep
-   if (P::dynamicTimestep) {
-      // reduce/increase dt if it is too high for any of the three propagators or too low for all propagators
-      if (isDtTooLarge(P::timeclassDt[P::currentMaxTimeclass], dtMaxGlobal[0],dtMaxGlobal[1],dtMaxGlobal[2]) ||
-          isDtTooSmall(P::timeclassDt[P::currentMaxTimeclass], dtMaxGlobal[0],dtMaxGlobal[1],dtMaxGlobal[2])) {
+   // Real fsdt; // newDt/new field solver timestep
+   // if (P::dynamicTimestep) {
+   //    // reduce/increase dt if it is too high for any of the three propagators or too low for all propagators
+   //    if (isDtTooLarge(P::timeclassDt[P::currentMaxTimeclass], dtMaxGlobal[0],dtMaxGlobal[1],dtMaxGlobal[2]) ||
+   //        isDtTooSmall(P::timeclassDt[P::currentMaxTimeclass], dtMaxGlobal[0],dtMaxGlobal[1],dtMaxGlobal[2])) {
 
-         // new dt computed
-         isChanged = true;
+   //       // new dt computed
+   //       isChanged = true;
 
-         // set new timestep to the lowest one of all interval-midpoints
-         newDt = meanVlasovCFL * dtMaxGlobal[0];
-         newDt = min(newDt, meanVlasovCFL * dtMaxGlobal[1] * P::maxSlAccelerationSubcycles);
-         newDt = min(newDt, meanFieldsCFL * dtMaxGlobal[2] * P::maxFieldSolverSubcycles);
-      }
-      fsdt = newDt;
-   }else{
-      fsdt = P::dt;
-   }
+   //       // set new timestep to the lowest one of all interval-midpoints
+   //       newDt = meanVlasovCFL * dtMaxGlobal[0];
+   //       newDt = min(newDt, meanVlasovCFL * dtMaxGlobal[1] * P::maxSlAccelerationSubcycles);
+   //       newDt = min(newDt, meanFieldsCFL * dtMaxGlobal[2] * P::maxFieldSolverSubcycles);
+   //    }
+   //    fsdt = newDt;
+   // }else{
+   //    fsdt = P::dt;
+   // }
+
+   std::vector<Real> retVec = {localDt, newDt, baseDt};
+   return retVec;
+}
+
+void initiateAllCellTimeclasses(Real fsdt, Real globalMaxDt) {
 
    //setting fsdt smaller by the buffer amount
    fsdt = fsdt / pow(2, P::timeclassBuffer);
 
    // This is the full range of timeclasses that could be used based on the physical environment
-   int timeclassRange = int(log2(baseDt/fsdt));
+   int timeclassRange = int(log2(globalMaxDt/fsdt));
    // ... and we need to clamp that with the parameter for number of MaxTimeclasses
-   P::currentMaxTimeclass = min(P::maxTimeclass, timeclassRange);
+   P::currentMaxTimeclass = min(P::initialMaxTimeclass, timeclassRange);
    if(P::tcOverrideTimeclass > -1){
       std::cerr << "Setting all tc to " << P::tcOverrideTimeclass << "\n";
-      P::currentMaxTimeclass = min(P::maxTimeclass,P::tcOverrideTimeclass);
+      P::currentMaxTimeclass = min(P::initialMaxTimeclass,P::tcOverrideTimeclass);
    }
    if(P::tcDebugBox){
       P::currentMaxTimeclass = 1;
    }
-   for(int i = 0; i <= P::maxTimeclass; ++i){
+   for(int i = 0; i <= P::initialMaxTimeclass; ++i){
       newTimeclassDts[i] = fsdt*pow(2,P::currentMaxTimeclass - min(i,P::currentMaxTimeclass));
    }
 
@@ -373,8 +373,8 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    // TODO handle changing P::currentMaxTimeclass!
 
    // We need dts and timeclasses relative to the shortest viable maxDt:
-   int dtdiff = int(log2(localDt/fsdt));
-   int localTimeClass = max(0,P::currentMaxTimeclass - max(0, dtdiff)); // this shouldn't actually matter anymore?
+   // int dtdiff = int(log2(localDt/fsdt));
+   // int localTimeClass = max(0,P::currentMaxTimeclass - max(0, dtdiff)); // this shouldn't actually matter anymore?
    
    // if(P::tcDebugBox){
    //    localTimeClass = 0;
@@ -411,9 +411,9 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       else {
          localTimeClass = 0;
       }
-      P::currentMaxTimeclass = P::maxTimeclass;
+      P::currentMaxTimeclass = P::initialMaxTimeclass;
 
-      for(int i = 0; i <= P::maxTimeclass; ++i){
+      for(int i = 0; i <= P::initialMaxTimeclass; ++i){
          newTimeclassDts[i] = fsdt*pow(2,P::currentMaxTimeclass - min(i,P::currentMaxTimeclass));
       }
       P::timeclassDt = newTimeclassDts;
@@ -421,23 +421,23 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       for (vector<CellID>::const_iterator cell_id=cells.begin(); cell_id!=cells.end(); ++cell_id) {
          SpatialCell* cell = mpiGrid[*cell_id];
 
-         cell->parameters[CellParams::TIMECLASS] = min(localTimeClass, P::maxTimeclass);
+         cell->parameters[CellParams::TIMECLASS] = min(localTimeClass, P::initialMaxTimeclass);
          cell->parameters[CellParams::TIMECLASSDT] = cell->get_tc_dt();
       }
    }
    else if(P::tc_test_type == 2 || P::tc_test_type == 3){ 
       std::cerr << "TC test 2\n";
-      if(P::maxTimeclass > 2){
+      if(P::initialMaxTimeclass > 2){
          std::cerr << "This test works best with timeclass 1 or 2\n";
          // abort();
       }
-      if(P::maxTimeclass > 0) {
-         P::currentMaxTimeclass = P::maxTimeclass;
+      if(P::initialMaxTimeclass > 0) {
+         P::currentMaxTimeclass = P::initialMaxTimeclass;
       }
       else{
          P::currentMaxTimeclass = 0;
       }
-      for(int i = 0; i <= P::maxTimeclass; ++i){
+      for(int i = 0; i <= P::initialMaxTimeclass; ++i){
          newTimeclassDts[i] = fsdt*pow(2,P::currentMaxTimeclass - min(i,P::currentMaxTimeclass));
       }
       P::timeclassDt = newTimeclassDts;
@@ -454,9 +454,9 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 
          // first block: one half timeclass0 and other timeclassmax
          // second block: three parts: timeclassmax-2, timeclassmax-1, timeclassmax
-         if (P::maxTimeclass == 1) {
-            cell->parameters[CellParams::TIMECLASS] = min(int(cell->parameters[CellParams::XCRD] > -100/*epsilon*/)*P::maxTimeclass, P::maxTimeclass);
-         } else if (P::maxTimeclass == 2) {
+         if (P::initialMaxTimeclass == 1) {
+            cell->parameters[CellParams::TIMECLASS] = min(int(cell->parameters[CellParams::XCRD] > -100/*epsilon*/)*P::initialMaxTimeclass, P::initialMaxTimeclass);
+         } else if (P::initialMaxTimeclass == 2) {
             if (cell->parameters[CellParams::XCRD] < -15*(cell->parameters[CellParams::DX])) {
                cell->parameters[CellParams::TIMECLASS] = 0;
             } else if (cell->parameters[CellParams::XCRD] > 15*(cell->parameters[CellParams::DX])) {
@@ -464,8 +464,8 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
             } else {
                cell->parameters[CellParams::TIMECLASS] = 1;
             }
-         } else if (P::maxTimeclass == 3) {
-            cell->parameters[CellParams::TIMECLASS] = min(int(cell->parameters[CellParams::XCRD] > -100/*epsilon*/)*P::maxTimeclass, P::maxTimeclass);
+         } else if (P::initialMaxTimeclass == 3) {
+            cell->parameters[CellParams::TIMECLASS] = min(int(cell->parameters[CellParams::XCRD] > -100/*epsilon*/)*P::initialMaxTimeclass, P::initialMaxTimeclass);
          }
          cell->parameters[CellParams::TIMECLASSDT] = cell->get_tc_dt();
       }
@@ -475,13 +475,13 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 
       int sidelen = P::xcells_ini;
 
-      if(P::maxTimeclass > 0) {
-         P::currentMaxTimeclass = P::maxTimeclass;
+      if(P::initialMaxTimeclass > 0) {
+         P::currentMaxTimeclass = P::initialMaxTimeclass;
       }
       else{
          P::currentMaxTimeclass = 0;
       }
-      for(int i = 0; i <= P::maxTimeclass; ++i){
+      for(int i = 0; i <= P::initialMaxTimeclass; ++i){
          newTimeclassDts[i] = fsdt*pow(2,P::currentMaxTimeclass - min(i,P::currentMaxTimeclass));
       }
       P::timeclassDt = newTimeclassDts;
@@ -511,13 +511,13 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       int sidelenX = P::xcells_ini;
       int sidelenY = P::ycells_ini;
 
-      if(P::maxTimeclass > 0) {
-         P::currentMaxTimeclass = P::maxTimeclass;
+      if(P::initialMaxTimeclass > 0) {
+         P::currentMaxTimeclass = P::initialMaxTimeclass;
       }
       else{
          P::currentMaxTimeclass = 0;
       }
-      for(int i = 0; i <= P::maxTimeclass; ++i){
+      for(int i = 0; i <= P::initialMaxTimeclass; ++i){
          newTimeclassDts[i] = fsdt*pow(2,P::currentMaxTimeclass - min(i,P::currentMaxTimeclass));
       }
       P::timeclassDt = newTimeclassDts;
@@ -574,7 +574,7 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       }
    }
    //this yoinked from within the below loop to set the timeclassDts anyway
-   for(int i = 0; i <= P::maxTimeclass; ++i){
+   for(int i = 0; i <= P::initialMaxTimeclass; ++i){
       newTimeclassDts[i] = fsdt*pow(2,P::currentMaxTimeclass - min(i,P::currentMaxTimeclass));
    }
 
@@ -589,7 +589,7 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
               << writeVerbose;
 
       std::stringstream tcdts;
-      for(int i = 0; i <= P::maxTimeclass; ++i){
+      for(int i = 0; i <= P::initialMaxTimeclass; ++i){
          tcdts << newTimeclassDts[i] << " ";
       }
       tcdts << endl;
@@ -744,14 +744,14 @@ int simulate(int argn,char* args[]) {
       exit(1);
    }
 
-   if (P::maxTimeclass > 0 && P::vlasovSolverGhostTranslate == false) {
+   if (P::initialMaxTimeclass > 0 && P::vlasovSolverGhostTranslate == false) {
       // if we are using timeclasses, we need to use ghost translation
       cerr << "(MAIN) Warning: Using timeclasses requires ghost translation, please turn GT on. exiting..." << endl;
       logFile << "(MAIN) Warning: Using timeclasses requires ghost translation, please turn GT on. exiting..." << endl;
       exit(1);
    }
 
-   if (P::maxTimeclass > 0 && P::amrMaxSpatialRefLevel == 0) {
+   if (P::initialMaxTimeclass > 0 && P::amrMaxSpatialRefLevel == 0) {
       // if we are using timeclasses, we need to use AMR
       cerr << "(MAIN) Warning: Using timeclasses requires AMR, please turn AMR on. exiting..." << endl;
       logFile << "(MAIN) Warning: Using timeclasses requires AMR, please turn AMR on. exiting..." << endl;
@@ -1192,7 +1192,7 @@ int simulate(int argn,char* args[]) {
       }
       if(myRank == MASTER_RANK){
          std::cout << "timeclass dts = ";
-         for(int i = 0; i <= P::maxTimeclass; ++i){
+         for(int i = 0; i <= P::initialMaxTimeclass; ++i){
             std::cout << i <<": "<<P::timeclassDt[i] << "s, ";
          }
          std::cout << endl;
@@ -1687,9 +1687,9 @@ int simulate(int argn,char* args[]) {
 
       }
 
-      std::vector<Real> newTimeclassDts = std::vector<Real>(P::maxTimeclass+1);
+      std::vector<Real> newTimeclassDts = std::vector<Real>(P::initialMaxTimeclass+1);
 
-      if (P::maxTimeclass >= 4 && P::fractionalTimestep == 0 && P::tstep != 0 && P::dynamicTimestep) {
+      if (P::initialMaxTimeclass >= 4 && P::fractionalTimestep == 0 && P::tstep != 0 && P::dynamicTimestep) {
          logFile << "(DT): Checking dynamic timestep on fractimestep0, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
          logFile << "fractimestep is 0, recomputing timeclasses and dts" << endl << writeVerbose;
          computeNewTimeStep(mpiGrid, technicalGrid, newDt, dtIsChanged, newTimeclassDts);
