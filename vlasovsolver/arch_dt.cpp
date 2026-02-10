@@ -33,8 +33,8 @@ using namespace spatial_cell;
 
 void reduce_vlasov_dt(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                       const vector<CellID>& cells,
-                      Real (&dtMaxLocal)[3],
-                      Real (&dtMinMaxLocal)[3]) {
+                      std::vector<Real>& dtMaxLocal,
+                      std::vector<Real>& dtMinMaxLocal) {
 
    phiprof::Timer computeTimestepTimer {"compute-vlasov-timestep"};
    const Real HALF = 0.5;
