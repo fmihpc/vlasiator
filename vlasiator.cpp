@@ -660,7 +660,6 @@ int simulate(int argn,char* args[]) {
    typedef Parameters P;
    Real newDt;
    bool dtIsChanged {false};
-   Real subcycleDt;
    bool additionalTimeclassCreated {false};
 
    /* Arrays for storing local (per process) and global max dt
@@ -1205,20 +1204,58 @@ int simulate(int argn,char* args[]) {
       //compute new dt
       phiprof::Timer computeDtimer {"compute-dt"};
 
-      // calculates timesteps for simulation
-      // timestepvector[0] is local minimum, timestepvector[1] is global minimun (field solver timestep), timestepvector[2] is global maximum
       auto timeStepVector = computeNewTimeStep(mpiGrid, technicalGrid, dtMaxLocal, dtMaxGlobal, dtMinMaxLocal, dtMinMaxGlobal);
-      //gets global minimum dt
+
+      std::cout << __FILE__ << " " << __LINE__ << std::endl;
+      std::cout << "dt, timeclassDts, currentmaxtimeclass" << std::endl;
+      std::cout << P::dt << std::endl;
+      for (auto i: P::timeclassDt) {
+         std::cout << i << " ";
+      }
+      std::cout << endl;
+      std::cout << P::currentMaxTimeclass << std::endl;
+
+      calculateGlobalTcVariables(timeStepVector.at(1), timeStepVector.at(2));
+
+      std::cout << __FILE__ << " " << __LINE__ << std::endl;
+      std::cout << "dt, timeclassDts, currentmaxtimeclass" << std::endl;
+      std::cout << P::dt << std::endl;
+      for (auto i: P::timeclassDt) {
+         std::cout << i << " ";
+      }
+      std::cout << endl;
+      std::cout << P::currentMaxTimeclass << std::endl;
+
+      updateTimeclassDts(timeStepVector.at(1));
+
+      std::cout << __FILE__ << " " << __LINE__ << std::endl;
+      std::cout << "dt, timeclassDts, currentmaxtimeclass" << std::endl;
+      std::cout << P::dt << std::endl;
+      for (auto i: P::timeclassDt) {
+         std::cout << i << " ";
+      }
+      std::cout << endl;
+      std::cout << P::currentMaxTimeclass << std::endl;
 
       handleChangingofDt(dtMaxGlobal, dtIsChanged, newDt);
       // checks if dt is good
 
-      calculateGlobalTcVariables(timeStepVector.at(1), timeStepVector.at(2));
+      std::cout << __FILE__ << " " << __LINE__ << std::endl;
+      std::cout << "dt, timeclassDts, currentmaxtimeclass" << std::endl;
+      std::cout << P::dt << std::endl;
+      for (auto i: P::timeclassDt) {
+         std::cout << i << " ";
+      }
+      std::cout << endl;
+      std::cout << P::currentMaxTimeclass << std::endl;
 
       if (P::dynamicTimestep == true && dtIsChanged) {
          // Only actually update the timestep if dynamicTimestep is on
          P::dt=newDt;
          updateTimeclassDts(newDt);
+      } else if (P::dynamicTimestep == true && !dtIsChanged) {
+         P::dt=timeStepVector.at(1);
+         updateTimeclassDts(timeStepVector.at(1));
       } else {
          dtIsChanged = false;
          updateTimeclassDts(P::dt);
@@ -1234,6 +1271,15 @@ int simulate(int argn,char* args[]) {
 
       initiateAllCellTimeclasses(mpiGrid);
 
+      std::cout << __FILE__ << " " << __LINE__ << std::endl;
+      std::cout << "dt, timeclassDts, currentmaxtimeclass" << std::endl;
+      std::cout << P::dt << std::endl;
+      for (auto i: P::timeclassDt) {
+         std::cout << i << " ";
+      }
+      std::cout << endl;
+      std::cout << P::currentMaxTimeclass << std::endl;
+
       if(myRank == MASTER_RANK){
          std::cout << "timeclass dts = ";
          for(int i = 0; i <= P::currentMaxTimeclass; ++i){
@@ -1242,6 +1288,11 @@ int simulate(int argn,char* args[]) {
          std::cout << endl;
       }
 
+      for (vector<CellID>::const_iterator cell_id=cells.begin(); cell_id!=cells.end(); ++cell_id) {
+
+         SpatialCell* cell = mpiGrid[*cell_id];
+         std::cerr << "timeclass and tcdt of cell " << cell->get_cellid() << ": " << cell->parameters[CellParams::TIMECLASS] << ", " << cell->parameters[CellParams::TIMECLASSDT] << std::endl;
+      }
       std::cerr << __FILE__ << " " << __LINE__ << std::endl;
 
       balanceLoad(mpiGrid, sysBoundaryContainer, technicalGrid);
