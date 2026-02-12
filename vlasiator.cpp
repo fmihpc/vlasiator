@@ -160,7 +160,9 @@ void assignCellTimeclass(SpatialCell* cell, const double cellDt) {
       return;
    }
 
-   if (cell->sysBoundaryFlag == sysboundarytype::COPYSPHERE || cell->sysBoundaryFlag == sysboundarytype::IONOSPHERE) { // Copysphere and ionosphere cells always use the maximum timeclass
+   if (cell->sysBoundaryFlag == sysboundarytype::COPYSPHERE || 
+      cell->sysBoundaryFlag == sysboundarytype::IONOSPHERE ||
+      cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) { // Copysphere and ionosphere cells always use the maximum timeclass
       cell->parameters[CellParams::TIMECLASS] = P::currentMaxTimeclass;
       cell->parameters[CellParams::TIMECLASSDT] = cell->get_tc_dt();
       return;
@@ -1294,59 +1296,9 @@ int simulate(int argn,char* args[]) {
          std::cerr << "timeclass and tcdt of cell " << cell->get_cellid() << ": " << cell->parameters[CellParams::TIMECLASS] << ", " << cell->parameters[CellParams::TIMECLASSDT] << std::endl;
       }
       std::cerr << __FILE__ << " " << __LINE__ << std::endl;
-
-      balanceLoad(mpiGrid, sysBoundaryContainer, technicalGrid);
-
       computeDtimer.stop();
-      
-      std::cerr << __FILE__ << " " << __LINE__ << std::endl;
-
-      //go forward by dt/2 in V, initializes leapfrog split. In restarts the
-      //the distribution function is already propagated forward in time by dt/2
-      phiprof::Timer propagateHalfTimer {"propagate-velocity-space-dt/2"};
-      if (P::propagateVlasovAcceleration) {
-         calculateAcceleration(mpiGrid, 0.5);
-      } else {
-         //zero step to set up moments _v
-         calculateAcceleration(mpiGrid, 0.0);
-      }
-      P::tc_leapfrog_init = true;
-
-      std::cerr << __FILE__ << " " << __LINE__ << std::endl;
-
-      propagateHalfTimer.stop();
-
-      updatePreviousVMoments(mpiGrid, true);
-
-      // Apply boundary conditions
-      if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration ) {
-         phiprof::Timer updateBoundariesTimer {("update system boundaries (Vlasov post-acceleration)")};
-         sysBoundaryContainer.applySysBoundaryVlasovConditions(mpiGrid, 0.5*P::dt, true);
-         updateBoundariesTimer.stop();
-         addTimedBarrier("barrier-boundary-conditions");
-      }
-      // Also update all moments. They won't be transmitted to FSgrid until the field solver is called, though.
-      phiprof::Timer computeMomentsTimer {"Compute interp moments"};
-      std::cout << "for initial interpolated moments\n";
-      calculateInterpolatedVelocityMoments(
-         mpiGrid,
-         CellParams::RHOM,
-         CellParams::VX,
-         CellParams::VY,
-         CellParams::VZ,
-         CellParams::RHOQ,
-         CellParams::P_11,
-         CellParams::P_22,
-         CellParams::P_33,
-         CellParams::P_23,
-         CellParams::P_13,
-         CellParams::P_12
-      );
-      
-      updateParticlePopulations(mpiGrid);
-
-      computeMomentsTimer.stop();
    }
+
 
    // Save restart data
    if (P::writeInitialState) {
@@ -1401,6 +1353,56 @@ int simulate(int argn,char* args[]) {
       P::systemWriteDistributionWriteZlineStride.pop_back();
       P::systemWritePath.pop_back();
       P::systemWriteFsGrid.pop_back();
+
+      balanceLoad(mpiGrid, sysBoundaryContainer, technicalGrid);
+      
+      std::cerr << __FILE__ << " " << __LINE__ << std::endl;
+
+      //go forward by dt/2 in V, initializes leapfrog split. In restarts the
+      //the distribution function is already propagated forward in time by dt/2
+      phiprof::Timer propagateHalfTimer {"propagate-velocity-space-dt/2"};
+      if (P::propagateVlasovAcceleration) {
+         calculateAcceleration(mpiGrid, 0.5);
+      } else {
+         //zero step to set up moments _v
+         calculateAcceleration(mpiGrid, 0.0);
+      }
+      P::tc_leapfrog_init = true;
+
+      std::cerr << __FILE__ << " " << __LINE__ << std::endl;
+
+      propagateHalfTimer.stop();
+
+      updatePreviousVMoments(mpiGrid, true);
+
+      // Apply boundary conditions
+      if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration ) {
+         phiprof::Timer updateBoundariesTimer {("update system boundaries (Vlasov post-acceleration)")};
+         sysBoundaryContainer.applySysBoundaryVlasovConditions(mpiGrid, 0.5*P::dt, true);
+         updateBoundariesTimer.stop();
+         addTimedBarrier("barrier-boundary-conditions");
+      }
+      // Also update all moments. They won't be transmitted to FSgrid until the field solver is called, though.
+      phiprof::Timer computeMomentsTimer {"Compute interp moments"};
+      std::cout << "for initial interpolated moments\n";
+      calculateInterpolatedVelocityMoments(
+         mpiGrid,
+         CellParams::RHOM,
+         CellParams::VX,
+         CellParams::VY,
+         CellParams::VZ,
+         CellParams::RHOQ,
+         CellParams::P_11,
+         CellParams::P_22,
+         CellParams::P_33,
+         CellParams::P_23,
+         CellParams::P_13,
+         CellParams::P_12
+      );
+      
+      updateParticlePopulations(mpiGrid);
+
+      computeMomentsTimer.stop();
    }
 
    initTimer.stop();

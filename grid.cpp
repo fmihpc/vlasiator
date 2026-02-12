@@ -21,6 +21,7 @@
  */
 
 #include "common.h"
+#include <cstddef>
 #include <cstdlib>
 #include <iostream>
 #include <iomanip> // for setprecision()
@@ -816,10 +817,14 @@ void getGhostNeighborsforTC(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
          tc_cells.push_back(c);
       }
    }
+   std::cout << "CHECKING " << tc_cells.size() << " CELLS" << std::endl;
    set<CellID> exactHaloCells = {};
    for (const CellID cell : tc_cells) {
-      auto neighbors = mpiGrid.get_neighbors_of(cell, VLASOV_SOLVER_TIMEGHOST_EXACT_HALO_NEIGHBORHOOD_ID);
-      auto& neighborsRef = *neighbors;
+      const std::vector<std::pair<uint64_t,std::array<int, 3>>>* neighbors = mpiGrid.get_neighbors_of(cell, VLASOV_SOLVER_TIMEGHOST_EXACT_HALO_NEIGHBORHOOD_ID);
+      if (neighbors==NULL) {
+         std::cerr << "NULL POINTER FOUND" << std::endl;
+      }
+      auto neighborsRef = *neighbors;
       auto neighborsRemote = mpiGrid.get_remote_neighbors_of(cell, VLASOV_SOLVER_TIMEGHOST_EXACT_HALO_NEIGHBORHOOD_ID);
 
       // get_neighbours_of returns a pointer to a vector of pairs, and each pairs' first element is the CellID
@@ -827,7 +832,7 @@ void getGhostNeighborsforTC(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
       std::cerr << __FILE__ << " " << __LINE__ << std::endl;
 
       for (size_t i=0; i<neighborsRef.size(); ++i) {
-         std::cerr << __FILE__ << " " << __LINE__ << std::endl;
+      std::cerr << __FILE__ << " " << __LINE__ << std::endl;
          if (mpiGrid[(neighborsRef)[i].first]->parameters[CellParams::TIMECLASS] != timeclass) {
             mpiGrid[(neighborsRef)[i].first]->requested_timeclass_ghosts.insert(timeclass);
             exactHaloCells.insert((neighborsRef)[i].first);

@@ -375,25 +375,25 @@ namespace spatial_cell {
       return P::timeclassDt[this->parameters[CellParams::TIMECLASS]];
    }
 
-   const int SpatialCell::get_tc() const {      
+   int SpatialCell::get_tc() const {      
       return (int)this->parameters[CellParams::TIMECLASS];
    }
 
-   const bool SpatialCell::get_timeclass_turn_v() const {
+   bool SpatialCell::get_timeclass_turn_v() const {
       // If on max timeclass, we propagate on each loop.
       int mod = 1 << (P::currentMaxTimeclass - (int)this->parameters[CellParams::TIMECLASS]);
       bool ret = ((P::fractionalTimestep % mod) == 0);
       return ret;
    }
 
-   const bool SpatialCell::get_timeclass_turn_v(int tc) const {
+   bool SpatialCell::get_timeclass_turn_v(int tc) const {
       // If on max timeclass, we propagate on each loop.
       int mod = 1 << (P::currentMaxTimeclass - (int)tc);
       bool ret = ((P::fractionalTimestep % mod) == 0);
       return ret;
    }
 
-   const bool SpatialCell::get_timeclass_turn_r() const {
+   bool SpatialCell::get_timeclass_turn_r() const {
       return this->get_timeclass_turn_v();
       /* // Obsolete tries for fancy and incorrect stepping
       if (this->parameters[CellParams::TIMECLASS] == P::currentMaxTimeclass) {
@@ -411,7 +411,7 @@ namespace spatial_cell {
       */
    }
 
-   const bool SpatialCell::has_timeclass(int timeclass) const{
+   bool SpatialCell::has_timeclass(int timeclass) const{
       if (timeclass < 0 || 
          (int)this->parameters[CellParams::TIMECLASS] == timeclass ||
                this->requested_timeclass_ghosts.count(timeclass) > 0
