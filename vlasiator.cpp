@@ -1300,6 +1300,19 @@ int simulate(int argn,char* args[]) {
       
       std::cerr << __FILE__ << " " << __LINE__ << std::endl;
 
+      auto lCells = getLocalCells();
+      std::cerr << "checking cell ghost distributions:\n";
+      for (size_t c=0; c<lCells.size(); ++c) {
+         const CellID cell = lCells[c];
+         SpatialCell* spatialCell = mpiGrid[cell];
+         std::cerr << "cell " << cell << " has timeclass " << spatialCell->parameters[CellParams::TIMECLASS] << " and ghost distribution: ";
+         for (auto& ghost : spatialCell->requested_timeclass_ghosts) {
+            std::cerr << ghost << " ";
+         }
+         std::cerr << "\n";
+
+      }
+
       //go forward by dt/2 in V, initializes leapfrog split. In restarts the
       //the distribution function is already propagated forward in time by dt/2
       phiprof::Timer propagateHalfTimer {"propagate-velocity-space-dt/2"};
