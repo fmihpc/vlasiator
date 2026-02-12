@@ -686,13 +686,11 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    phiprof::Timer updateBoundariesTimer {"update sysboundaries"};
    sysBoundaries.updateSysBoundariesAfterLoadBalance( mpiGrid );
    updateBoundariesTimer.stop();
-   std::cerr << __FILE__ << " " << __LINE__ << std::endl;
 
    // Prepare ghost translation cell lists and build pencils for translation.
    if (doTranslationLists) {
       prepareAMRLists(mpiGrid);
    }
-   std::cerr << __FILE__ << " " << __LINE__ << std::endl;
 
    // Record ranks of face neighbors for translation remote neighbor contribution
    if (!P::vlasovSolverGhostTranslate) {
@@ -767,19 +765,14 @@ void prepareAMRLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
 
       ghostTimer.stop();
    }
-   std::cerr << __FILE__ << " " << __LINE__ << std::endl;
 
    if (P::currentMaxTimeclass >= 0) {
       const vector<CellID>& localCells = getLocalCells();
-   std::cerr << __FILE__ << " " << __LINE__ << std::endl;
-
       for(int i = 0; i <= P::currentMaxTimeclass; ++i){
          std::cout << "prepareAMRLists called for timeclass " << i << "\n";
          set<CellID> tc_active_cells_set;
          std::vector<CellID> tc_act_cells;
          if (P::currentMaxTimeclass > 0) {
-         std::cerr << __FILE__ << " " << __LINE__ << std::endl;
-
             getGhostNeighborsforTC(mpiGrid, localCells, tc_active_cells_set, i);
             tc_act_cells = std::vector<CellID>(tc_active_cells_set.begin(),tc_active_cells_set.end());
          } else {
@@ -787,12 +780,10 @@ void prepareAMRLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
          }
          timeghost_source[i].clear();
          timeghost_active[i].clear();
-   std::cerr << __FILE__ << " " << __LINE__ << std::endl;
 
          prepareGhostTranslationCellLists(mpiGrid, tc_act_cells, timeghost_source[i], timeghost_active[i], i);
       }
    }
-   std::cerr << __FILE__ << " " << __LINE__ << std::endl;
 
 
    // Prepare cellIDs and pencils for AMR translation
@@ -817,22 +808,17 @@ void getGhostNeighborsforTC(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
          tc_cells.push_back(c);
       }
    }
-   std::cout << "CHECKING " << tc_cells.size() << " CELLS" << std::endl;
    set<CellID> exactHaloCells = {};
    for (const CellID cell : tc_cells) {
       const std::vector<std::pair<uint64_t,std::array<int, 3>>>* neighbors = mpiGrid.get_neighbors_of(cell, VLASOV_SOLVER_TIMEGHOST_EXACT_HALO_NEIGHBORHOOD_ID);
-      if (neighbors==NULL) {
-         std::cerr << "NULL POINTER FOUND" << std::endl;
-      }
+      // TODO remove this unecessary dereference
       auto neighborsRef = *neighbors;
       auto neighborsRemote = mpiGrid.get_remote_neighbors_of(cell, VLASOV_SOLVER_TIMEGHOST_EXACT_HALO_NEIGHBORHOOD_ID);
 
       // get_neighbours_of returns a pointer to a vector of pairs, and each pairs' first element is the CellID
       // get_remote_neighbors_of returns a vector of CellIDs
-      std::cerr << __FILE__ << " " << __LINE__ << std::endl;
 
       for (size_t i=0; i<neighborsRef.size(); ++i) {
-      std::cerr << __FILE__ << " " << __LINE__ << std::endl;
          if (mpiGrid[(neighborsRef)[i].first]->parameters[CellParams::TIMECLASS] != timeclass) {
             mpiGrid[(neighborsRef)[i].first]->requested_timeclass_ghosts.insert(timeclass);
             exactHaloCells.insert((neighborsRef)[i].first);
@@ -845,7 +831,6 @@ void getGhostNeighborsforTC(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
          }
       }
    }
-   std::cerr << __FILE__ << " " << __LINE__ << std::endl;
 
    active_cells = set(tc_cells.begin(),tc_cells.end());
    active_cells.insert(exactHaloCells.begin(),exactHaloCells.end());
@@ -876,7 +861,6 @@ void getGhostNeighborsforTC(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
          }
       }
    }
-   std::cerr << __FILE__ << " " << __LINE__ << std::endl;
 
    if (timeclass == P::currentMaxTimeclass){
       for(auto c : getLocalCells()){
@@ -1434,7 +1418,7 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       }
    }
 
-   if (P::currentMaxTimeclass > 0) {
+   if (P::initialMaxTimeclass > 0) {
       // stencils for timeghost haloes
       // first one using timeclassexacthaloextent
       neighborhood.clear();
@@ -1494,8 +1478,6 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
          abort();
       }
    }
-
-
 
    neighborhood.clear();
    for (int d = -1; d <= 1; d++) {

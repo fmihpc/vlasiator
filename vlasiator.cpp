@@ -475,7 +475,8 @@ void initiateAllCellTimeclasses(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
       //    localTimeClass = P::tcOverrideTimeclass;
       // }
       // else {
-      //    localTimeClass = 0;
+      //    localTimeClass = 0;   // For the MPI-rank based timeclasses. Implement to CellParams if cell-based.
+   // Move to params.
       // }
       // P::currentMaxTimeclass = P::initialMaxTimeclass;
 
@@ -1141,63 +1142,60 @@ int simulate(int argn,char* args[]) {
 
    dttimer.stop();
 
-   // // Save restart data
-   // if (P::writeInitialState) {
-   //    // Calculate these so refinement parameters can be tuned based on the vlsv
-   //    calculateScaledDeltasSimple(mpiGrid);
+   // Save restart data
+   if (P::writeInitialState) {
+      // Calculate these so refinement parameters can be tuned based on the vlsv
+      calculateScaledDeltasSimple(mpiGrid);
 
-   //    FieldTracing::reduceData(technicalGrid, perBGrid, dPerBGrid, mpiGrid, SBC::ionosphereGrid.nodes); /*!< Call the reductions (e.g. field tracing) */
+      FieldTracing::reduceData(technicalGrid, perBGrid, dPerBGrid, mpiGrid, SBC::ionosphereGrid.nodes); /*!< Call the reductions (e.g. field tracing) */
       
-   //    phiprof::Timer timer {"write-initial-state"};
+      phiprof::Timer timer {"write-initial-state"};
       
-   //    if (myRank == MASTER_RANK)
-   //       logFile << "(IO): Writing initial state to disk, tstep = "  << endl << writeVerbose;
-   //    P::systemWriteDistributionWriteStride.push_back(1);
-   //    P::systemWriteName.push_back("initial-grid");
-   //    P::systemWriteDistributionWriteXlineStride.push_back(0);
-   //    P::systemWriteDistributionWriteYlineStride.push_back(0);
-   //    P::systemWriteDistributionWriteZlineStride.push_back(0);
-   //    P::systemWritePath.push_back("./");
-   //    P::systemWriteFsGrid.push_back(true);
+      if (myRank == MASTER_RANK)
+         logFile << "(IO): Writing initial state to disk, tstep = "  << endl << writeVerbose;
+      P::systemWriteDistributionWriteStride.push_back(1);
+      P::systemWriteName.push_back("initial-grid");
+      P::systemWriteDistributionWriteXlineStride.push_back(0);
+      P::systemWriteDistributionWriteYlineStride.push_back(0);
+      P::systemWriteDistributionWriteZlineStride.push_back(0);
+      P::systemWritePath.push_back("./");
+      P::systemWriteFsGrid.push_back(true);
 
-   //    for(uint si=0; si<P::systemWriteName.size(); si++) {
-   //       P::systemWrites.push_back(0);
-   //    }
+      for(uint si=0; si<P::systemWriteName.size(); si++) {
+         P::systemWrites.push_back(0);
+      }
 
-   //    const bool writeGhosts = true;
-   //    if( writeGrid(mpiGrid,
-   //          perBGrid, // TODO: Merge all the fsgrids passed here into one meta-object
-   //          EGrid,
-   //          EHallGrid,
-   //          EGradPeGrid,
-   //          momentsGrid,
-   //          dPerBGrid,
-   //          dMomentsGrid,
-   //          BgBGrid,
-   //          volGrid,
-   //          technicalGrid,
-   //          version,
-   //          config,
-   //          &outputReducer,
-   //          P::systemWriteName.size()-1,
-   //          P::restartStripeFactor,
-   //          writeGhosts
-   //       ) == false
-   //    ) {
-   //       cerr << "FAILED TO WRITE GRID AT " << __FILE__ << " " << __LINE__ << endl;
-   //    }
+      const bool writeGhosts = true;
+      if( writeGrid(mpiGrid,
+            perBGrid, // TODO: Merge all the fsgrids passed here into one meta-object
+            EGrid,
+            EHallGrid,
+            EGradPeGrid,
+            momentsGrid,
+            dPerBGrid,
+            dMomentsGrid,
+            BgBGrid,
+            volGrid,
+            technicalGrid,
+            version,
+            config,
+            &outputReducer,
+            P::systemWriteName.size()-1,
+            P::restartStripeFactor,
+            writeGhosts
+         ) == false
+      ) {
+         cerr << "FAILED TO WRITE GRID AT " << __FILE__ << " " << __LINE__ << endl;
+      }
 
-   //    P::systemWriteDistributionWriteStride.pop_back();
-   //    P::systemWriteName.pop_back();
-   //    P::systemWriteDistributionWriteXlineStride.pop_back();
-   //    P::systemWriteDistributionWriteYlineStride.pop_back();
-   //    P::systemWriteDistributionWriteZlineStride.pop_back();
-   //    P::systemWritePath.pop_back();
-   //    P::systemWriteFsGrid.pop_back();
-   // }
-
-   // For the MPI-rank based timeclasses. Implement to CellParams if cell-based.
-   // Move to params.
+      P::systemWriteDistributionWriteStride.pop_back();
+      P::systemWriteName.pop_back();
+      P::systemWriteDistributionWriteXlineStride.pop_back();
+      P::systemWriteDistributionWriteYlineStride.pop_back();
+      P::systemWriteDistributionWriteZlineStride.pop_back();
+      P::systemWritePath.pop_back();
+      P::systemWriteFsGrid.pop_back();
+   }
 
    std::cerr << "calculating timesteps" << std::endl;
 
@@ -1297,62 +1295,6 @@ int simulate(int argn,char* args[]) {
       }
       std::cerr << __FILE__ << " " << __LINE__ << std::endl;
       computeDtimer.stop();
-   }
-
-
-   // Save restart data
-   if (P::writeInitialState) {
-      // Calculate these so refinement parameters can be tuned based on the vlsv
-      calculateScaledDeltasSimple(mpiGrid);
-
-      FieldTracing::reduceData(technicalGrid, perBGrid, dPerBGrid, mpiGrid, SBC::ionosphereGrid.nodes); /*!< Call the reductions (e.g. field tracing) */
-      
-      phiprof::Timer timer {"write-initial-state"};
-      
-      if (myRank == MASTER_RANK)
-         logFile << "(IO): Writing initial state to disk, tstep = "  << endl << writeVerbose;
-      P::systemWriteDistributionWriteStride.push_back(1);
-      P::systemWriteName.push_back("initial-grid");
-      P::systemWriteDistributionWriteXlineStride.push_back(0);
-      P::systemWriteDistributionWriteYlineStride.push_back(0);
-      P::systemWriteDistributionWriteZlineStride.push_back(0);
-      P::systemWritePath.push_back("./");
-      P::systemWriteFsGrid.push_back(true);
-
-      for(uint si=0; si<P::systemWriteName.size(); si++) {
-         P::systemWrites.push_back(0);
-      }
-
-      const bool writeGhosts = true;
-      if( writeGrid(mpiGrid,
-            perBGrid, // TODO: Merge all the fsgrids passed here into one meta-object
-            EGrid,
-            EHallGrid,
-            EGradPeGrid,
-            momentsGrid,
-            dPerBGrid,
-            dMomentsGrid,
-            BgBGrid,
-            volGrid,
-            technicalGrid,
-            version,
-            config,
-            &outputReducer,
-            P::systemWriteName.size()-1,
-            P::restartStripeFactor,
-            writeGhosts
-         ) == false
-      ) {
-         cerr << "FAILED TO WRITE GRID AT " << __FILE__ << " " << __LINE__ << endl;
-      }
-
-      P::systemWriteDistributionWriteStride.pop_back();
-      P::systemWriteName.pop_back();
-      P::systemWriteDistributionWriteXlineStride.pop_back();
-      P::systemWriteDistributionWriteYlineStride.pop_back();
-      P::systemWriteDistributionWriteZlineStride.pop_back();
-      P::systemWritePath.pop_back();
-      P::systemWriteFsGrid.pop_back();
 
       balanceLoad(mpiGrid, sysBoundaryContainer, technicalGrid);
       
