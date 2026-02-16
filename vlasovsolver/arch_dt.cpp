@@ -94,7 +94,7 @@ void reduce_vlasov_dt(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
            (P::vlasovAccelerateMaxwellianBoundaries && cell->sysBoundaryFlag == sysboundarytype::MAXWELLIAN))) {
          // acceleration only done on non-boundary cells
          dtMaxLocal[1] = min(dtMaxLocal[1], cell->parameters[CellParams::MAXVDT]);
-         dtMinMaxLocal[1] = max(dtMinMaxLocal[1], cell->parameters[CellParams::MAXRDT]);
+         dtMinMaxLocal[1] = max(dtMinMaxLocal[1], cell->parameters[CellParams::MAXVDT]);
       }
    }
 }

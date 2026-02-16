@@ -1375,7 +1375,7 @@ void interpolateMomentsForTimeclasses(
                SC->parameters[cp_vz] = linearInterpolation(0.0, true_vz_0, 0.5, true_vz_1, normModul);
             } else {
 
-            Eigen::Transform<Real,3,Eigen::Affine> vUpdateMatrix = compute_acceleration_transformation(SC, 0, SC->parameters[CellParams::TIMECLASSDT]*(1.0/RTCpow));
+            Eigen::Transform<Real,3,Eigen::Affine> vUpdateMatrix = compute_acceleration_transformation(SC, 0, (P::timeclassDt[SC->parameters[CellParams::TIMECLASS]])*(1.0/RTCpow));
             const Eigen::Matrix<Real,3,1> V(SC->parameters[cp_vx], SC->parameters[cp_vy], SC->parameters[cp_vz]);
             Eigen::Matrix<Real,3,1> V_updated = vUpdateMatrix * V;
 

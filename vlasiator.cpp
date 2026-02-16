@@ -150,18 +150,55 @@ bool cellTimeclassIsCorrect(SpatialCell* cell) {
    } else {
       cellDt = cell->parameters[CellParams::MAXRDT];
    }
-   return (cellDt > P::timeclassDt[cell->parameters[CellParams::TIMECLASS]]);
+
+   std::cerr << "comparing celldt " << cellDt << " and timeclassdt " << P::timeclassDt[cell->parameters[CellParams::TIMECLASS]] << " for cell " << cell->get_cellid() << std::endl;
+   if (cellDt > P::timeclassDt[cell->parameters[CellParams::TIMECLASS]]) {
+      std::cerr << "cell timeclass is correct" << std::endl;
+      return true;
+   } else {
+      std::cerr << "bad cell found!" << std::endl;
+      std::cerr << "cells sysboundaryflag and sysboundarylayer: " << cell->sysBoundaryFlag << ", " << cell->sysBoundaryLayer << std::endl;
+      return false;
+   }
+}
+
+// checks if cells' boundarytype is such that it should be taken into consideration for 
+// timestep limiting and such
+// checks taken from reduce_vlasov_dt
+
+// should be changed into a member function
+bool cellIsTimeclassRelevant(SpatialCell* cell) {
+
+   // relevancy for acceleration
+   if (!(cell->parameters[CellParams::MAXVDT] != 0 &&
+      (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
+      (P::vlasovAccelerateMaxwellianBoundaries && cell->sysBoundaryFlag == sysboundarytype::MAXWELLIAN)))) {
+         return false;
+      }
+
+   // relevancy for translation
+   if (!(cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
+      (cell->sysBoundaryLayer == 1 && cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY))) {
+         return false;
+      }
+
+   return true;
 }
 
 // returns empty vector if all timeclasses are fine (= their timestep fits their timeclass)
 // if not, returns those cells which need a bigger timeclass
 // recalculates all cellwise tc limits
+
+// skips over cells that are copysphere or do_not_compute, as those should not affect timestep length
 std::vector<CellID> checkCellTimeclasses(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
 
    std::vector<CellID> retVec = {};
    const vector<CellID>& cells = getLocalCells();
+
    for (vector<CellID>::const_iterator cell_id=cells.begin(); cell_id!=cells.end(); ++cell_id) {
-      if (!cellTimeclassIsCorrect(mpiGrid[*cell_id])) {
+   
+
+      if (!(cellTimeclassIsCorrect(mpiGrid[*cell_id])) && (cellIsTimeclassRelevant(mpiGrid[*cell_id]))) {
          retVec.push_back(*cell_id);
       }
    }
@@ -189,7 +226,7 @@ void assignCellTimeclass(SpatialCell* cell, const double cellDt) {
       return;
    }
 
-   double dtdiff = int(log2(cellDt/baseTcDt));
+   double dtdiff = int(log2((cellDt * P::timeclassDtModifier)/baseTcDt));
    int cellTimeClass = max(0.0,P::currentMaxTimeclass - max(0.0, dtdiff));
 
    std::cout << "assigning tc " << cellTimeClass << " for cell " << cell->get_cellid() << " with tcdt " << P::timeclassDt[cellTimeClass] << std::endl;
@@ -205,7 +242,7 @@ void updateCellDtLimits() {
 }
 
 // goes through all cells, and sets their timeclasses according to some baseDt. also sets all timeclass--related cell parameters
-void assingCellTimeclasses(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, const Real dtModifier = 1.0) {
+void assingCellTimeclasses(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
 
    const vector<CellID>& cells = getLocalCells();
    
@@ -226,9 +263,12 @@ void assingCellTimeclasses(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 void updateTimeclassDts(const Real fsdt) {
 
    std::vector<Real> newTimeclassDts(P::currentMaxTimeclass+1);
+   logFile << "timeclassDts set to " << std::endl;
    for(int i = 0; i <= P::currentMaxTimeclass; ++i){
-      newTimeclassDts[i] = fsdt*pow(2,P::currentMaxTimeclass - i);
+      newTimeclassDts[i] = fsdt*pow(2,P::currentMaxTimeclass - i)*P::timeclassDtModifier;
+      logFile << newTimeclassDts[i] << "s, ";
    }
+   logFile << std::endl;
    P::timeclassDt = newTimeclassDts;
 
 }
@@ -632,8 +672,8 @@ void initiateAllCellTimeclasses(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
    } else if (P::tc_test_type == 8) {
 
       // normal operation except cells are assigned with a modifier to cellwise dt limit
-
-      assingCellTimeclasses(mpiGrid, 0.8);         
+      std::cout << "dt modifier: " << P::timeclassDtModifier << std::endl;
+      assingCellTimeclasses(mpiGrid);         
 
    } else {
 
@@ -1856,7 +1896,23 @@ int simulate(int argn,char* args[]) {
 
       // }
 
+      /*
+      steps:
+      1. Check if any cell is on the wrong timeclass, i.e. compare its cell--wise dt with its timeclass timestep
+      2. If any cells are on any timeclass, do one of two things
+         2.a. if fractionaltimestep == 0, recalculate and assign all cells freshly
+         2.b. if not, increase the timeclass of all bad cells by one
+            2.b.I. if individual cell timeclasses are increased, we must then on the next fractimestep freshly assign all cells
+                   !! it might be worth considering doing this fresh reassignemt to all cells in production runs.
+      */
+
+
       if (P::dynamicTimestep) {
+
+         std::cout << "doing dynamic timestep checks" << std::endl;
+         auto timestepvector = computeNewTimeStep(mpiGrid, technicalGrid, dtMaxLocal, dtMaxGlobal, dtMinMaxLocal, dtMinMaxGlobal);
+         std::cout << "global minimun timestep is " << timestepvector.at(1) << std::endl;
+         std::cout << "ratio of global minimum and smallest tcdt: " << timestepvector.at(1) / P::timeclassDt[P::currentMaxTimeclass] << std::endl;
 
          std::vector<Real> placeholder1(3), placeholder2(3);
 
@@ -1898,15 +1954,6 @@ int simulate(int argn,char* args[]) {
             std::cout << "all cells pass check" << std::endl;
          }
       }
-
-         /*
-         steps:
-         1. Check if any cell is on the wrong timeclass, i.e. compare its cell--wise dt with its timeclass timestep
-         2. If any cells are on any timeclass, do one of two things
-            2.a. if fractionaltimestep == 0, recalculate and assign all cells freshly
-            2.b. if not, increase the timeclass of all bad cells by one
-         */
-
 
 
       //    phiprof::Timer dyndt_check {"check-and-update-dynamic-dt"};
