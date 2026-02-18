@@ -71,7 +71,7 @@ testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 
 
 #======== Libraries ===========
-LIBRARY_PREFIX = /wrk-kappa/group/spacephysics/vlasiator/libraries/libraries-hile_cpu
+LIBRARY_PREFIX = /turso/group/spacephysics/vlasiator/libraries/libraries-hile_cpu
 
 # System boost
 LIB_BOOST = -lboost_program_options -L/usr/lib64 -Wl,-rpath=/usr/lib64

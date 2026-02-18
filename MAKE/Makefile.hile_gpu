@@ -64,10 +64,11 @@ testpackage: CXXFLAGS +=  -DPAPI_MEM
 
 #======== Libraries ===========
 # Select the base directory based on which project you are using:
-LIBRARY_PREFIX = /wrk-kappa/group/spacephysics/vlasiator/libraries/libraries-hile_gpu
+LIBRARY_PREFIX = /turso/group/spacephysics/vlasiator/libraries/libraries-hile_gpu
 
 # System boost
-LIB_BOOST = -lboost_program_options -L/usr/lib64 -Wl,-rpath=/usr/lib64
+LIB_BOOST = -L$(VLASIATOR_LIBRARY_PATH)/lib  -lboost_program_options
+INC_BOOST = -isystem $(VLASIATOR_LIBRARY_PATH)/include
 
 # Compiled libraries
 INC_ZOLTAN = -isystem $(LIBRARY_PREFIX)/include
