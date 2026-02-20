@@ -269,8 +269,8 @@ void updateTimeclassDts(Real fsdt) {
    fsdt /= pow(2.0, P::timeclassBuffer);
 
    std::vector<Real> newTimeclassDts(P::currentMaxTimeclass+1);
-   logFile << "(TC) timeclassDts set to " << std::endl;
    logFile << std::endl;
+   logFile << "(TC) timeclassDts set to " << std::endl;
    for(int i = 0; i <= P::currentMaxTimeclass; ++i){
       newTimeclassDts[i] = fsdt*pow(2,P::currentMaxTimeclass - i)*P::timeclassDtModifier;
       logFile << newTimeclassDts[i] << "s, ";
@@ -423,6 +423,12 @@ void handleChangingofDt(const std::vector<Real>& dtMaxGlobal, bool& isChanged, R
       // reduce/increase dt if it is too high for any of the three propagators or too low for all propagators
    if (isDtTooLarge(P::timeclassDt[P::currentMaxTimeclass - P::timeclassBuffer], dtMaxGlobal[0],dtMaxGlobal[1],dtMaxGlobal[2]) ||
           isDtTooSmall(P::timeclassDt[P::currentMaxTimeclass - P::timeclassBuffer], dtMaxGlobal[0],dtMaxGlobal[1],dtMaxGlobal[2])) {
+
+      if (P::staticTimeclasses) {
+         std::cerr << "aborting since timestep wants to change with static timeclasses" << std::endl;
+         std::cerr << "if this happens at the beginning of the run, then try to tweak P::timeclassDtModifier" << std::endl;
+         abort();
+      }
 
       // new dt computed
       isChanged = true;
@@ -1279,23 +1285,18 @@ int simulate(int argn,char* args[]) {
 
       calculateGlobalTcVariables(timeStepVector.at(1), timeStepVector.at(2));
 
-
+      // this is called, because the next function checks against the smallest tcdt
       updateTimeclassDts(timeStepVector.at(1));
 
-
+      // checks if smallest tcdt is good
       handleChangingofDt(dtMaxGlobal, dtIsChanged, newDt);
-      // checks if dt is good
 
       if (P::dynamicTimestep == true && dtIsChanged) {
          // Only actually update the timestep if dynamicTimestep is on
-         if (P::staticTimeclasses) {
-            std::cout << "aborting due to timestep changing with static timeclasses" << std::endl;
-            abort();
-         }
-         P::dt=newDt;
          updateTimeclassDts(newDt);
+         P::dt=P::timeclassDt[P::currentMaxTimeclass];
       } else if (P::dynamicTimestep == true && !dtIsChanged) {
-         updateTimeclassDts(timeStepVector.at(1));
+         //updateTimeclassDts(timeStepVector.at(1));
          P::dt=P::timeclassDt[P::currentMaxTimeclass];
       } else {
          dtIsChanged = false;
@@ -1874,16 +1875,9 @@ int simulate(int argn,char* args[]) {
       if (P::dynamicTimestep) {
 
          dtIsChanged = false;
-         // this calls tooLarge and tooSmall both for the smallest tc timestep, if these return a problem then currently abort.
+         // this calls tooLarge and tooSmall both for the smallest tc timestep
          handleChangingofDt(dtMaxGlobal, dtIsChanged, newDt);
          // checks if dt is good
-
-         if (dtIsChanged) {
-            if (P::staticTimeclasses) {
-               std::cout << "aborting due to timestep changing with static timeclasses" << std::endl;
-               abort();
-            }
-         }
 
          std::cout << "doing dynamic timestep checks" << std::endl;
          auto timestepvector = computeNewTimeStep(mpiGrid, technicalGrid, dtMaxLocal, dtMaxGlobal, dtMinMaxLocal, dtMinMaxGlobal);
@@ -1915,7 +1909,7 @@ int simulate(int argn,char* args[]) {
             }
 
             if (P::staticTimeclasses) {
-               std::cout << "aborting due to timestep changing with static timeclasses" << std::endl;
+               std::cout << "aborting due to timeclass changing with static timeclasses" << std::endl;
                abort();
             }
 
