@@ -65,6 +65,7 @@ struct Parameters {
    static int currentMaxTimeclass;
    static int initialMaxTimeclass;
    static int timeclassBuffer;
+   static bool staticTimeclasses;
    static Real timeclassDtModifier;
    static int timeclassLBmantissa;
    static bool tc_leapfrog_init;

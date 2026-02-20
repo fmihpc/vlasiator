@@ -212,7 +212,7 @@ std::vector<CellID> checkCellTimeclasses(dccrg::Dccrg<SpatialCell,dccrg::Cartesi
 // sets cell parameters
 void assignCellTimeclass(SpatialCell* cell, const double cellDt) {
 
-   double baseTcDt = P::timeclassDt[P::currentMaxTimeclass];
+   double baseTcDt = P::timeclassDt[P::currentMaxTimeclass - P::timeclassBuffer];
 
    if (P::tcOverrideTimeclass > -1) {
       cell->parameters[CellParams::TIMECLASS] = P::tcOverrideTimeclass;
@@ -223,13 +223,13 @@ void assignCellTimeclass(SpatialCell* cell, const double cellDt) {
    if (cell->sysBoundaryFlag == sysboundarytype::COPYSPHERE || 
       cell->sysBoundaryFlag == sysboundarytype::IONOSPHERE ||
       cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) { // Copysphere and ionosphere cells always use the maximum timeclass
-      cell->parameters[CellParams::TIMECLASS] = P::currentMaxTimeclass;
+      cell->parameters[CellParams::TIMECLASS] = P::currentMaxTimeclass - P::timeclassBuffer;
       cell->parameters[CellParams::TIMECLASSDT] = cell->get_tc_dt();
       return;
    }
 
    double dtdiff = int(log2((cellDt * P::timeclassDtModifier)/baseTcDt));
-   int cellTimeClass = max(0.0,P::currentMaxTimeclass - max(0.0, dtdiff));
+   int cellTimeClass = max(0.0,(P::currentMaxTimeclass - P::timeclassBuffer) - max(0.0, dtdiff));
 
    std::cout << "assigning tc " << cellTimeClass << " for cell " << cell->get_cellid() << " with tcdt " << P::timeclassDt[cellTimeClass] << std::endl;
 
@@ -262,7 +262,11 @@ void assingCellTimeclasses(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
    }
 }
 
-void updateTimeclassDts(const Real fsdt) {
+void updateTimeclassDts(Real fsdt) {
+
+   // reduce fsdt by buffer amount
+
+   fsdt /= pow(2.0, P::timeclassBuffer);
 
    std::vector<Real> newTimeclassDts(P::currentMaxTimeclass+1);
    logFile << "(TC) timeclassDts set to " << std::endl;
@@ -417,8 +421,8 @@ void handleChangingofDt(const std::vector<Real>& dtMaxGlobal, bool& isChanged, R
    Real subcycleDt;
 
       // reduce/increase dt if it is too high for any of the three propagators or too low for all propagators
-   if (isDtTooLarge(P::timeclassDt[P::currentMaxTimeclass], dtMaxGlobal[0],dtMaxGlobal[1],dtMaxGlobal[2]) ||
-          isDtTooSmall(P::timeclassDt[P::currentMaxTimeclass], dtMaxGlobal[0],dtMaxGlobal[1],dtMaxGlobal[2])) {
+   if (isDtTooLarge(P::timeclassDt[P::currentMaxTimeclass - P::timeclassBuffer], dtMaxGlobal[0],dtMaxGlobal[1],dtMaxGlobal[2]) ||
+          isDtTooSmall(P::timeclassDt[P::currentMaxTimeclass - P::timeclassBuffer], dtMaxGlobal[0],dtMaxGlobal[1],dtMaxGlobal[2])) {
 
       // new dt computed
       isChanged = true;
@@ -483,6 +487,7 @@ void calculateGlobalTcVariables(Real fsdt, Real globalMaxDt) {
 
    // ... and we need to clamp that with the parameter for number of MaxTimeclasses
    P::currentMaxTimeclass = min(P::initialMaxTimeclass, timeclassRange);
+
    if(P::tcOverrideTimeclass > -1){
       std::cerr << "Setting all tc to " << P::tcOverrideTimeclass << "\n";
       P::currentMaxTimeclass = min(P::initialMaxTimeclass,P::tcOverrideTimeclass);
@@ -1283,10 +1288,12 @@ int simulate(int argn,char* args[]) {
 
       if (P::dynamicTimestep == true && dtIsChanged) {
          // Only actually update the timestep if dynamicTimestep is on
+         if (P::staticTimeclasses) {
+            std::cout << "aborting due to timestep changing with static timeclasses" << std::endl;
+            abort();
+         }
          P::dt=newDt;
          updateTimeclassDts(newDt);
-         std::cerr << "do some parameter tuning, aborting..." << std::endl;
-         abort();
       } else if (P::dynamicTimestep == true && !dtIsChanged) {
          updateTimeclassDts(timeStepVector.at(1));
          P::dt=P::timeclassDt[P::currentMaxTimeclass];
@@ -1814,7 +1821,7 @@ int simulate(int argn,char* args[]) {
             std::cout << req << " " << std::endl;
             std::cout << "vspace size of that requested: " << mpiGrid[c]->get_velocity_mesh(0, req)->size() << std::endl;
          }
-         
+
          std::cout << "its requested timeclass copy ghosts: " << std::endl;
          for (int req: mpiGrid[c]->requested_timeclass_copy_ghosts) {
             std::cout << req << " " << std::endl;
@@ -1872,14 +1879,16 @@ int simulate(int argn,char* args[]) {
          // checks if dt is good
 
          if (dtIsChanged) {
-            std::cerr << "handlechangingofdt changed dt !!!!" << std::endl;
-            abort();
+            if (P::staticTimeclasses) {
+               std::cout << "aborting due to timestep changing with static timeclasses" << std::endl;
+               abort();
+            }
          }
 
          std::cout << "doing dynamic timestep checks" << std::endl;
          auto timestepvector = computeNewTimeStep(mpiGrid, technicalGrid, dtMaxLocal, dtMaxGlobal, dtMinMaxLocal, dtMinMaxGlobal);
          std::cout << "global minimun timestep is " << timestepvector.at(1) << std::endl;
-         std::cout << "ratio of global minimum and smallest tcdt: " << timestepvector.at(1) / P::timeclassDt[P::currentMaxTimeclass] << std::endl;
+         std::cout << "ratio of global minimum and smallest tcdt: " << timestepvector.at(1) / P::timeclassDt[P::currentMaxTimeclass - P::timeclassBuffer] << std::endl;
 
          std::vector<Real> placeholder1(3), placeholder2(3);
 
@@ -1905,8 +1914,10 @@ int simulate(int argn,char* args[]) {
                std::cout << mpiGrid[c]->get_cellid() << std::endl;
             }
 
-            std::cout << "bad cells found, aborting..." << std::endl;
-            abort();
+            if (P::staticTimeclasses) {
+               std::cout << "aborting due to timestep changing with static timeclasses" << std::endl;
+               abort();
+            }
 
             if (P::fractionalTimestep == 0) {
 
