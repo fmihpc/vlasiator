@@ -130,7 +130,7 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,
    // std::cout << spatial_cell->parameters[CellParams::CELLID] << "c Accelerate, initial refs" << " vmesh " << &vmesh << " blockContainer " << &blockContainer << "\n";
 
    vmeshPtr = spatial_cell->get_velocity_mesh(popID,timeclass);
-   std::cout << "Accelerating a vmesh with meshID " << vmeshPtr->getMesh() << " at "<< spatial_cell->get_cellid() << "\n";
+   //std::cout << "Accelerating a vmesh with meshID " << vmeshPtr->getMesh() << " at "<< spatial_cell->get_cellid() << "\n";
    blockContainerPtr = spatial_cell->get_velocity_blocks(popID,timeclass);
     
    vmesh::VelocityMesh& vmesh = *vmeshPtr;

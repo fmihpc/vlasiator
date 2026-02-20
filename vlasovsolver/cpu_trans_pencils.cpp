@@ -328,7 +328,7 @@ void prepareGhostTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cart
    phiprof::Timer ghostXTimer {"prepare ghost translation X lists"};
    dimension = 0;
    for (CellID c : sourcey) {
-      std::cout << c << " checked for tc" << tc << "\n";
+      // std::cout << c << " checked for tc" << tc << "\n";
       SpatialCell *ccell = mpiGrid[c];
       if (!ccell) {
          continue;
@@ -987,7 +987,7 @@ void buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_
       for (int tmpPath = 0; tmpPath < 4; ++tmpPath) {
          nextNeighbor = selectPositiveNeighbor(grid,id,dimension,tmpPath,timeclass);
          if(nextNeighbor != INVALID_CELLID) {
-            std::cout << "building from " << id << " to " << nextNeighbor << " ntc: " << grid[nextNeighbor]->parameters[CellParams::TIMECLASS] << ", querytc " << timeclass << " ghosthits: "<< (grid[nextNeighbor]->requested_timeclass_ghosts.count(timeclass)) <<"\n";
+            // std::cout << "building from " << id << " to " << nextNeighbor << " ntc: " << grid[nextNeighbor]->parameters[CellParams::TIMECLASS] << ", querytc " << timeclass << " ghosthits: "<< (grid[nextNeighbor]->requested_timeclass_ghosts.count(timeclass)) <<"\n";
                if(!(
                   grid[nextNeighbor]->parameters[CellParams::TIMECLASS] == timeclass || 
                   grid[nextNeighbor]->requested_timeclass_ghosts.count(timeclass) > 0)
@@ -1148,7 +1148,7 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
 // #pragma omp parallel for
    for (uint i=0; i<propagatedCells.size(); i++) {
       const CellID celli = propagatedCells[i];
-      std:cout << "Checking for seed: " << celli << "\n";
+      // std:cout << "Checking for seed: " << celli << "\n";
       bool addToSeedIds = P::amrTransShortPencils;
       if (addToSeedIds) {
 #pragma omp critical
@@ -1182,9 +1182,9 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
             // If a neighbor is non-local (or not ghost-translated), across a periodic boundary,
             // or in non-periodic boundary layer >1 (non-translated cell)
             // then we use the current cell as a seed for pencils
-            std::cout << myIndices[dimension] << " < " << nbrIndices[dimension] <<"\n";
-            std::cout << "is_local_n" << mpiGrid.is_local(neighbor) << "; do_tranlate " << do_translate_cell(mpiGrid[neighbor]) <<"\n";
-            std::cout << "active " << check_is_active(mpiGrid, neighbor, dimension, timeghost_active[timeclass], getLocalCells())<<"\n";
+            // std::cout << myIndices[dimension] << " < " << nbrIndices[dimension] <<"\n";
+            //std::cout << "is_local_n" << mpiGrid.is_local(neighbor) << "; do_tranlate " << do_translate_cell(mpiGrid[neighbor]) <<"\n";
+            //std::cout << "active " << check_is_active(mpiGrid, neighbor, dimension, timeghost_active[timeclass], getLocalCells())<<"\n";
             if ( (myIndices[dimension] < nbrIndices[dimension]) ||
                !mpiGrid.is_local(neighbor) ||
                !do_translate_cell(mpiGrid[neighbor]) ||

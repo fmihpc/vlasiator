@@ -667,7 +667,7 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
    // }
    // std::cout << "\n";
    // for (size_t c=0; c<propagatedCells.size(); ++c) {
-      std::cout << "Accelerating payload at fract " << P::fractionalTimestep << ", cells(timeclass,dt,): \n\t";
+   //   std::cout << "Accelerating payload at fract " << P::fractionalTimestep << ", cells(timeclass,dt,): \n\t";
    for(auto& payload:acceleratedCells){
       
       std::cout << payload.cellptr->get_cellid() <<"("<< payload.timeclass << ", " << payload.dt <<") ";
@@ -760,14 +760,14 @@ vector<AccelerationPayload>& setAccelerationTimeGhosts(vector<AccelerationPayloa
    //    outvec.push_back(payload);
    // }
 
-   std::cout << "setAccelerationTimeGhosts: cell " << spatial_cell->get_cellid() << " at timeclass " << spatial_cell->get_tc() << " with dt " << dt << "\n";
+   // std::cout << "setAccelerationTimeGhosts: cell " << spatial_cell->get_cellid() << " at timeclass " << spatial_cell->get_tc() << " with dt " << dt << "\n";
 
    if(spatial_cell->get_timeclass_turn_v()){
       AccelerationPayload payload = {spatial_cell->get_tc(),spatial_cell,dt,0};
       outvec.push_back(payload);
    }
 
-   std::cout << "outvec size: " << outvec.size() << "\n";
+   // std::cout << "outvec size: " << outvec.size() << "\n";
 
    bool addPayload = false;
    for(auto i : spatial_cell->get_all_ghosts()) {

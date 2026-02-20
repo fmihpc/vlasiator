@@ -413,11 +413,11 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
                   const vmesh::LocalID blockLID = velmesh->getLocalID(blockGID);
                   // Store block data pointer for both loading of data and writing back to the cell
                      if (blocki == 0){
-                        std::cout << "Loading cell " << (int)srcCell->parameters[CellParams::CELLID]<<"\n";
-                        std::cout << "velmesh size = " << velmesh->size() <<"\n"; 
-                        std::cout << "velmesh is of timeclass " << timeclass << " and cell has timeclass " << srcCell->get_tc() << "\n";
-                        std::cout << "cell tc " << srcCell->get_tc() << ", pencil tc " <<  DimensionPencils[dimension].timeclasses[pencili] << ", tc req count " << srcCell->get_all_ghosts().count(timeclass)<<"\n";
-                        std::cout << "cellBlockData " << cellBlockData.size() << "\n";
+                        // std::cout << "Loading cell " << (int)srcCell->parameters[CellParams::CELLID]<<"\n";
+                        // std::cout << "velmesh size = " << velmesh->size() <<"\n"; 
+                        // std::cout << "velmesh is of timeclass " << timeclass << " and cell has timeclass " << srcCell->get_tc() << "\n";
+                        // std::cout << "cell tc " << srcCell->get_tc() << ", pencil tc " <<  DimensionPencils[dimension].timeclasses[pencili] << ", tc req count " << srcCell->get_all_ghosts().count(timeclass)<<"\n";
+                        // std::cout << "cellBlockData " << cellBlockData.size() << "\n";
                         if (velmesh->size() == 0) {
                            std::cout << "!! Empty velmesh in cell " << (int)srcCell->parameters[CellParams::CELLID] << "\n";
                         }
