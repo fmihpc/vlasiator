@@ -98,7 +98,7 @@ void copyMomentsToOutflow(fsgrid::FsData<std::array<Real, fsgrids::moments::N_MO
       for (int e = 0; e < fsgrids::moments::N_MOMENTS; ++e) {
          moments[stencil.ooo()][e] = copyMomentFromClosestSimCell(moments, technical, stencil, e);
       }
-   }
+   });
 }
 
 /*
