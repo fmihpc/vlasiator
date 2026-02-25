@@ -393,9 +393,21 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    phiprof::Timer allocateTimer {"trans-amr-allocs"};
    // Ensure GPU data has sufficient allocations/sizes
    const uint sumOfLengths = DimensionPencils[dimension].sumOfLengths;
-   gpu_vlasov_allocate(sumOfLengths,nAllCells);
+   gpu_vlasov_allocate(sumOfLengths);
    // Ensure allocation for allPencilsMeshes, allPencilsContainers
-   gpu_trans_allocate(nAllCells,sumOfLengths,0,0,0,0);
+   gpuMemoryManager.startSession(0,0);
+
+   SESSION_HOST_ALLOCATE(gpuMemoryManager, vmesh::VelocityMesh*, host_allPencilsMeshes, sumOfLengths*sizeof(vmesh::VelocityMesh*));
+   SESSION_HOST_ALLOCATE(gpuMemoryManager, vmesh::VelocityBlockContainer*, host_allPencilsContainers, sumOfLengths*sizeof(vmesh::VelocityBlockContainer*));
+   SESSION_ALLOCATE(gpuMemoryManager, vmesh::VelocityMesh*, dev_allPencilsMeshes, sumOfLengths*sizeof(vmesh::VelocityMesh*));
+   SESSION_ALLOCATE(gpuMemoryManager, vmesh::VelocityBlockContainer*, dev_allPencilsContainers, sumOfLengths*sizeof(vmesh::VelocityBlockContainer*));
+
+   vmesh::VelocityMesh **host_allPencilsMeshes = GET_SESSION_HOST_POINTER(gpuMemoryManager, vmesh::VelocityMesh*, host_allPencilsMeshes);
+   vmesh::VelocityBlockContainer **host_allPencilsContainers = GET_SESSION_HOST_POINTER(gpuMemoryManager, vmesh::VelocityBlockContainer*, host_allPencilsContainers);
+   vmesh::VelocityMesh **dev_allPencilsMeshes = GET_SESSION_POINTER(gpuMemoryManager, vmesh::VelocityMesh*, dev_allPencilsMeshes);
+   vmesh::VelocityBlockContainer **dev_allPencilsContainers = GET_SESSION_POINTER(gpuMemoryManager, vmesh::VelocityBlockContainer*, dev_allPencilsContainers);
+
+   gpu_trans_allocate(nAllCells,0,0);
    allocateTimer.stop();
 
    // Find maximum mesh size.
@@ -407,7 +419,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
       uint thread_largestFoundMeshSize = 0;
       #pragma omp for
       for(uint celli = 0; celli < nAllCells; celli++){
-         host_vmeshes[celli] = mpiGrid[allCells[celli]]->dev_get_velocity_mesh(popID); // GPU-side vmesh
+         (GET_POINTER(gpuMemoryManager, vmesh::VelocityMesh*, host_vmeshes))[celli] = mpiGrid[allCells[celli]]->dev_get_velocity_mesh(popID); // GPU-side vmesh
          const uint thisMeshSize = mpiGrid[allCells[celli]]->get_velocity_mesh(popID)->size(); // get cached size from CPU side
          thread_largestFoundMeshSize = thisMeshSize > thread_largestFoundMeshSize ? thisMeshSize : thread_largestFoundMeshSize;
          #ifdef DEBUG_VLASIATOR
@@ -431,9 +443,9 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
 
    allocateTimer.start();
    // Copy vmesh pointers to GPU
-   CHK_ERR( gpuMemcpy(dev_vmeshes, host_vmeshes, nAllCells*sizeof(vmesh::VelocityMesh*), gpuMemcpyHostToDevice) );
+   CHK_ERR( gpuMemcpy(GET_POINTER(gpuMemoryManager, vmesh::VelocityMesh*, dev_vmeshes), GET_POINTER(gpuMemoryManager, vmesh::VelocityMesh*, host_vmeshes), nAllCells*sizeof(vmesh::VelocityMesh*), gpuMemcpyHostToDevice) );
    // Reserve size for unionOfBlocksSet
-   gpu_trans_allocate(0,0,largestFoundMeshSize,0,0,0);
+   gpu_trans_allocate(0,largestFoundMeshSize,0);
    allocateTimer.stop();
 
    // Gather cell weights for load balancing
@@ -463,7 +475,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    gather_union_of_blocks_kernel<<<gatherdims_blocks, gatherdims_threads, 0, bgStream>>> (
 #endif
       dev_unionOfBlocksSet,
-      dev_vmeshes,
+      GET_POINTER(gpuMemoryManager, vmesh::VelocityMesh*, dev_vmeshes),
       nAllCells
       );
    CHK_ERR( gpuPeekAtLastError() );
@@ -491,10 +503,10 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    CHK_ERR( gpuMemcpy(dev_allPencilsContainers, host_allPencilsContainers, sumOfLengths*sizeof(vmesh::VelocityBlockContainer*), gpuMemcpyHostToDevice) );
 
    // Extract pointers to data in unified memory
-   uint* pencilLengths = DimensionPencils[dimension].gpu_lengthOfPencils;
-   uint* pencilStarts = DimensionPencils[dimension].gpu_idsStart;
-   Realf* pencilDZ = DimensionPencils[dimension].gpu_sourceDZ;
-   Realf* pencilRatios = DimensionPencils[dimension].gpu_targetRatios;
+   uint* pencilLengths = gpuMemoryManager.getPointer<uint>(DimensionPencils[dimension].gpu_lengthOfPencils);
+   uint* pencilStarts = gpuMemoryManager.getPointer<uint>(DimensionPencils[dimension].gpu_idsStart);
+   Realf* pencilDZ = gpuMemoryManager.getPointer<Realf>(DimensionPencils[dimension].gpu_sourceDZ);
+   Realf* pencilRatios = gpuMemoryManager.getPointer<Realf>(DimensionPencils[dimension].gpu_targetRatios);
    gatherPointerTimer.stop();
 
    // Now we ensure the union of blocks gathering is complete and find the size of it. Use it to ensure allocations.
@@ -504,7 +516,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    unionOfBlocksSet->copyMetadata(&mapInfo, bgStream);
    CHK_ERR( gpuStreamSynchronize(bgStream) );
    const vmesh::LocalID unionOfBlocksSetSize = mapInfo.fill;
-   gpu_trans_allocate(0,0,0,unionOfBlocksSetSize,0,0);
+   gpu_trans_allocate(0,0,unionOfBlocksSetSize);
    allocateTimer.stop();
 
    phiprof::Timer buildTimer2 {"trans-amr-buildBlockList-2"};
@@ -541,7 +553,13 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    // Two temporary buffers, used in-kernel for both reading and writing
    // (dev_pencilBlockData and dev_pencilBlocksCount)
    allocateTimer.start();
-   gpu_trans_allocate(0,sumOfLengths,0,0,nGpuBlocks,nPencils);
+
+   SESSION_ALLOCATE(gpuMemoryManager, Realf*, dev_pencilBlockData, sumOfLengths*nGpuBlocks*numAllocations * sizeof(Realf*));
+   SESSION_ALLOCATE(gpuMemoryManager, uint, dev_pencilBlocksCount, sumOfLengths*nGpuBlocks*numAllocations * sizeof(uint));
+
+   Realf **dev_pencilBlockData = GET_SESSION_POINTER(gpuMemoryManager, Realf*, dev_pencilBlockData); // Array of pointers into actual block data
+   uint *dev_pencilBlocksCount = GET_SESSION_POINTER(gpuMemoryManager, uint, dev_pencilBlocksCount);
+
    allocateTimer.stop();
    bufferTimer.stop();
 
@@ -568,7 +586,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
       dev_allPencilsMeshes, // Pointers to velocity meshes
       dev_allPencilsContainers, // pointers to BlockContainers
       dev_pencilBlockData, // pointers into cell block data, both written and read
-      dev_blockDataOrdered, // buffer of pointers to ordered buffer data
+      GET_POINTER(gpuMemoryManager, Realf*, dev_blockDataOrdered), // buffer of pointers to ordered buffer data
       pencilDZ,
       pencilRatios, // buffer tor holding target ratios
       dev_pencilBlocksCount, // store how many non-empty blocks each pencil has for this GID
@@ -579,6 +597,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
       );
    CHK_ERR( gpuPeekAtLastError() );
    CHK_ERR( gpuStreamSynchronize(bgStream) );
+   gpuMemoryManager.endSession();
    mappingTimer.stop();
 
    return true;

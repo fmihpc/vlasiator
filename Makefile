@@ -1,3 +1,8 @@
+# Print a friendly banner
+$(shell echo "=[Thank you for]=================================" 1>&2)
+$(shell echo "4pSP4pSTIOKVuyDilbvilbvilbsgIOKVuuKUs+KUk+KVu+KUj+KUk+KVu+KUj+KUgeKVuCAgIOKVuyDilbvilbsgIOKUj+KUgeKUk+KUj+KUgeKUk+KVu+KUj+KUgeKUk+KVuuKUs+KVuOKUj+KUgeKUk+KUj+KUgeKUk+KVuwrilKPilLvilJPilIMg4pSD4pSD4pSDICAg4pSD4pSD4pSD4pSD4pSX4pSr4pSD4pW64pSTICAg4pSD4pSP4pSb4pSDICDilKPilIHilKvilJfilIHilJPilIPilKPilIHilKsg4pSDIOKUgyDilIPilKPilLPilJvilbkK4pSX4pSB4pSb4pSX4pSB4pSb4pW54pSX4pSB4pW44pW64pS74pSb4pW54pW5IOKVueKUl+KUgeKUmyAgIOKUl+KUmyDilJfilIHilbjilbkg4pW54pSX4pSB4pSb4pW54pW5IOKVuSDilbkg4pSX4pSB4pSb4pW54pSX4pW44pW5Cg==" | base64 -d 1>&2)
+$(shell echo "============[recommended by 9 out of 10 doctors]=\n" 1>&2)
+
 #set default architecture, can be overridden from the compile line
 ARCH = ${VLASIATOR_ARCH}
 
@@ -122,6 +127,11 @@ ifeq ($(USE_HIP),1)
 	COMPFLAGS += -DUSE_GPU ${INC_HASHINATOR} ${INC_HIP} -D__HIP_PLATFORM_HCC___ -D__HIP_PLATFORM_AMD__
 	LDFLAGS += -D__HIP_PLATFORM_AMD__ -D__HIP_PLATFORM_HCC__
 	INC_VECTORCLASS =
+endif
+
+#Update GPU memeory pointer list
+ifeq ($(USE_GPU),1)
+$(shell ./updateGpuMemoryPointerList.sh 1>&2)
 endif
 
 #GPU specs

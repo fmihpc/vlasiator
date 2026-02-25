@@ -298,7 +298,9 @@ for run in ${run_tests[*]}; do
 
        # Check if dt is nonzero
        timeDiff=$(grep "delta t" <<< $C |gawk '{print $8}'  )
-       if (( $(awk 'BEGIN{print ('$timeDiff'!= 0.0)?1:0}') )); then
+       if [ -z $timeDiff ]; then
+           echo "VLSV timesteps not tested."
+       elif (( $(awk 'BEGIN{print ('$timeDiff'!= 0.0)?1:0}') )); then
            if (( $( echo "${timeDiff#-} $MAXDT" | awk '{ if($1 > $2) print 1; else print 0 }' ) )); then
                MAXDT=$timeDiff
            fi

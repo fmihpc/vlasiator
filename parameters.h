@@ -148,6 +148,7 @@ struct Parameters {
                                    isothermal, 1.667 is adiabatic electrons */
 
    static bool fieldSolverDiffusiveEterms; /*!< Enable resistive terms in the computation of E*/
+   static bool fieldSolverFiniteDifferencingAtBoundaries; /*!< Enable finite differencing at sysboundaries*/
 
    static Real maxSlAccelerationRotation; /*!< Maximum rotation in acceleration for semilagrangian solver*/
    static int maxSlAccelerationSubcycles; /*!< Maximum number of subcycles in acceleration*/

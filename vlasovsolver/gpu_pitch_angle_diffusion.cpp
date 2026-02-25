@@ -115,7 +115,6 @@ __global__ void __launch_bounds__(WID3) computeNewCellValues_kernel(
    const int j = threadIdx.y;
    const int k = threadIdx.z;
    size_t cellIdx = dev_cellIdxArray[totalBlockIndex];
-   size_t remappedCellIdx = dev_remappedCellIdxArray[cellIdx];
    size_t velocityIdx = dev_velocityIdxArray[totalBlockIndex];
 
    const Real* __restrict__ blockParameters = dev_velocityBlockContainer[cellIdx]->getParameters(velocityIdx);
@@ -252,7 +251,7 @@ __global__ void computeDerivativesCFLDdt_kernel(
 
       // Reduction in shared memory
       __syncthreads();
-      for (unsigned int s = blockDim.x / 2; s > GPUTHREADS/2; s >>= 1) {
+      for (int s = blockDim.x / 2; s > GPUTHREADS/2; s >>= 1) {
          if (threadIndex < s) {
             localDdtValues[threadIndex] = min(localDdtValues[threadIndex], localDdtValues[threadIndex + s]);
          }
@@ -353,9 +352,9 @@ __global__ void __launch_bounds__(Hashinator::defaults::MAX_BLOCKSIZE/2) getCell
    int maxCellIndex
    ){
    
-   int totalBlockIndex = blockIdx.x*blockDim.x + threadIdx.x;
+   size_t totalBlockIndex = blockIdx.x*blockDim.x + threadIdx.x;
    
-   if(totalBlockIndex >= numberOfComputedVelocityBlocks){return;}
+   if(totalBlockIndex >= (size_t)numberOfComputedVelocityBlocks){return;}
    
    // Binary search
    int left = 0;
@@ -368,7 +367,7 @@ __global__ void __launch_bounds__(Hashinator::defaults::MAX_BLOCKSIZE/2) getCell
 
    while (left <= right) {
       int mid = (left + right) >> 1;
-      if (dev_cellIdxStartCutoff[mid] <= totalBlockIndex) {
+      if (dev_cellIdxStartCutoff[mid] <= (size_t)totalBlockIndex) {
          cellIndex = mid;
          left = mid + 1;
       } else {
@@ -397,13 +396,13 @@ __global__ void __launch_bounds__(WID3) calculateDensity_kernel(
 
    const uint numberOfVelocityCells = dev_velocityBlockContainer[cellIdx]->size();
    
-   for(int velocityIdx = 0; velocityIdx < numberOfVelocityCells; velocityIdx++){
+   for(uint velocityIdx = 0; velocityIdx < numberOfVelocityCells; velocityIdx++){
       localDensity[threadIndex] += dev_velocityBlockContainer[cellIdx]->getData()[velocityIdx*WID3+k*WID2+j*WID+i];
    }
 
    // Reduction in shared memory
    __syncthreads();
-   for (unsigned int s = blockSize / 2; s > 0; s >>= 1) {
+   for (int s = blockSize / 2; s > 0; s >>= 1) {
       if (threadIndex < s) {
          localDensity[threadIndex] += localDensity[threadIndex + s];
       }
@@ -433,7 +432,7 @@ __global__ void __launch_bounds__(WID3) conserveMass_kernel(
 
    const uint numberOfVelocityCells = dev_velocityBlockContainer[cellIdx]->size();
    
-   for(int velocityIdx = 0; velocityIdx < numberOfVelocityCells; velocityIdx++){
+   for(uint velocityIdx = 0; velocityIdx < numberOfVelocityCells; velocityIdx++){
       dev_velocityBlockContainer[cellIdx]->getData()[velocityIdx*WID3+k*WID2+j*WID+i] *= adjustRatio;
    }
 }
@@ -475,9 +474,74 @@ void pitchAngleDiffusion(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian
       totalNumberOfVelocityBlocks += numberOfVelocityBlocks;
    } // End spatial cell loop
 
-   // Allocate or reallocate memory if necessary
+   // Start session
+   gpuMemoryManager.startSession(0,0);
+   
+   // Allocate host memory and get pointers
+   SESSION_HOST_ALLOCATE(gpuMemoryManager, Real, host_bValues, 3*numberOfLocalCells*sizeof(Real));
+   SESSION_HOST_ALLOCATE(gpuMemoryManager, Real, host_nu0Values, numberOfLocalCells*sizeof(Real));
+   SESSION_HOST_ALLOCATE(gpuMemoryManager, Realf, host_sparsity, numberOfLocalCells*sizeof(Realf));
+   SESSION_HOST_ALLOCATE(gpuMemoryManager, Real, host_bulkVX, 3*numberOfLocalCells*sizeof(Real));
+   SESSION_HOST_ALLOCATE(gpuMemoryManager, Real, host_bulkVY, numberOfLocalCells*sizeof(Real));
+   SESSION_HOST_ALLOCATE(gpuMemoryManager, Real, host_bulkVZ, numberOfLocalCells*sizeof(Real));
+   SESSION_HOST_ALLOCATE(gpuMemoryManager, size_t, host_cellIdxStartCutoff, numberOfLocalCells*sizeof(size_t));
+   SESSION_HOST_ALLOCATE(gpuMemoryManager, size_t, host_smallCellIdxArray, numberOfLocalCells*sizeof(size_t));
+   SESSION_HOST_ALLOCATE(gpuMemoryManager, size_t, host_remappedCellIdxArray, numberOfLocalCells*sizeof(size_t)); // remappedCellIdxArray tells the position of the cell index in the sequence instead of the actual index
+   SESSION_HOST_ALLOCATE(gpuMemoryManager, Real, host_Ddt, numberOfLocalCells*sizeof(Real));
+
+   Real *host_bValues = GET_SESSION_HOST_POINTER(gpuMemoryManager, Real, host_bValues);
+   Real *host_nu0Values = GET_SESSION_HOST_POINTER(gpuMemoryManager, Real, host_nu0Values);
+   Realf *host_sparsity = GET_SESSION_HOST_POINTER(gpuMemoryManager, Realf, host_sparsity);
+   Real *host_bulkVX = GET_SESSION_HOST_POINTER(gpuMemoryManager, Real, host_bulkVX);
+   Real *host_bulkVY = GET_SESSION_HOST_POINTER(gpuMemoryManager, Real, host_bulkVY);
+   Real *host_bulkVZ = GET_SESSION_HOST_POINTER(gpuMemoryManager, Real, host_bulkVZ);
+   size_t*host_cellIdxStartCutoff = GET_SESSION_HOST_POINTER(gpuMemoryManager, size_t, host_cellIdxStartCutoff);
+   size_t *host_smallCellIdxArray = GET_SESSION_HOST_POINTER(gpuMemoryManager, size_t, host_smallCellIdxArray);
+   size_t *host_remappedCellIdxArray = GET_SESSION_HOST_POINTER(gpuMemoryManager, size_t, host_remappedCellIdxArray);
+   Real *host_Ddt = GET_SESSION_HOST_POINTER(gpuMemoryManager, Real, host_Ddt);
+
+   // Allocate device memory and get pointers
+   SESSION_ALLOCATE(gpuMemoryManager, size_t, dev_cellIdxArray, totalNumberOfVelocityBlocks*sizeof(size_t));
+   SESSION_ALLOCATE(gpuMemoryManager, size_t, dev_velocityIdxArray, totalNumberOfVelocityBlocks*sizeof(size_t));
+   SESSION_ALLOCATE(gpuMemoryManager, Real, dev_bValues, 3*numberOfLocalCells*sizeof(Real));
+   SESSION_ALLOCATE(gpuMemoryManager, Real, dev_nu0Values, numberOfLocalCells*sizeof(Real));
+   SESSION_ALLOCATE(gpuMemoryManager, Realf, dev_sparsity, numberOfLocalCells*sizeof(Realf));
+   SESSION_ALLOCATE(gpuMemoryManager, Realf, dev_dfdt_mu, numberOfLocalCells*nbins_v*nbins_mu*sizeof(Realf));
+   SESSION_ALLOCATE(gpuMemoryManager, int, dev_fcount, numberOfLocalCells*nbins_v*nbins_mu*sizeof(int));
+   SESSION_ALLOCATE(gpuMemoryManager, Realf, dev_fmu, numberOfLocalCells*nbins_v*nbins_mu*sizeof(Realf));
+   SESSION_ALLOCATE(gpuMemoryManager, Real, dev_bulkVX, numberOfLocalCells*sizeof(Real));
+   SESSION_ALLOCATE(gpuMemoryManager, Real, dev_bulkVY, numberOfLocalCells*sizeof(Real));
+   SESSION_ALLOCATE(gpuMemoryManager, Real, dev_bulkVZ, numberOfLocalCells*sizeof(Real));
+   SESSION_ALLOCATE(gpuMemoryManager, Realf, dev_densityPreAdjust, numberOfLocalCells*sizeof(Realf));
+   SESSION_ALLOCATE(gpuMemoryManager, Realf, dev_densityPostAdjust, numberOfLocalCells*sizeof(Realf));
+   SESSION_ALLOCATE(gpuMemoryManager, size_t, dev_cellIdxStartCutoff, numberOfLocalCells*sizeof(size_t));
+   SESSION_ALLOCATE(gpuMemoryManager, size_t, dev_smallCellIdxArray, numberOfLocalCells*sizeof(size_t));
+   SESSION_ALLOCATE(gpuMemoryManager, size_t, dev_remappedCellIdxArray, numberOfLocalCells*sizeof(size_t));
+   SESSION_ALLOCATE(gpuMemoryManager, Real, dev_Ddt, numberOfLocalCells*sizeof(Real));
+   SESSION_ALLOCATE(gpuMemoryManager, Real, dev_potentialDdtValues, numberOfLocalCells*blocksPerSpatialCell*sizeof(Real));
+   SESSION_ALLOCATE(gpuMemoryManager, int, dev_cellIdxKeys, numberOfLocalCells*blocksPerSpatialCell*sizeof(int));
+
+   size_t *dev_cellIdxArray = GET_SESSION_POINTER(gpuMemoryManager, size_t, dev_cellIdxArray);
+   size_t *dev_velocityIdxArray = GET_SESSION_POINTER(gpuMemoryManager, size_t, dev_velocityIdxArray);
+   Real *dev_bValues = GET_SESSION_POINTER(gpuMemoryManager, Real, dev_bValues);
+   Real *dev_nu0Values = GET_SESSION_POINTER(gpuMemoryManager, Real, dev_nu0Values);
+   Realf *dev_sparsity = GET_SESSION_POINTER(gpuMemoryManager, Realf, dev_sparsity);
+   Realf *dev_dfdt_mu = GET_SESSION_POINTER(gpuMemoryManager, Realf, dev_dfdt_mu);
+   int *dev_fcount = GET_SESSION_POINTER(gpuMemoryManager, int, dev_fcount);
+   Realf *dev_fmu = GET_SESSION_POINTER(gpuMemoryManager, Realf, dev_fmu);
+   Real *dev_bulkVX = GET_SESSION_POINTER(gpuMemoryManager, Real, dev_bulkVX);
+   Real *dev_bulkVY = GET_SESSION_POINTER(gpuMemoryManager, Real, dev_bulkVY);
+   Real *dev_bulkVZ = GET_SESSION_POINTER(gpuMemoryManager, Real, dev_bulkVZ);
+   Realf *dev_densityPreAdjust = GET_SESSION_POINTER(gpuMemoryManager, Realf, dev_densityPreAdjust);
+   Realf *dev_densityPostAdjust = GET_SESSION_POINTER(gpuMemoryManager, Realf, dev_densityPostAdjust);
+   size_t*dev_cellIdxStartCutoff = GET_SESSION_POINTER(gpuMemoryManager, size_t, dev_cellIdxStartCutoff);
+   size_t *dev_smallCellIdxArray = GET_SESSION_POINTER(gpuMemoryManager, size_t, dev_smallCellIdxArray);
+   size_t *dev_remappedCellIdxArray = GET_SESSION_POINTER(gpuMemoryManager, size_t, dev_remappedCellIdxArray);
+   Real *dev_Ddt = GET_SESSION_POINTER(gpuMemoryManager, Real, dev_Ddt);
+   Real *dev_potentialDdtValues = GET_SESSION_POINTER(gpuMemoryManager, Real, dev_potentialDdtValues);
+   int *dev_cellIdxKeys = GET_SESSION_POINTER(gpuMemoryManager, int, dev_cellIdxKeys);
+
    gpu_batch_allocate(numberOfLocalCells, 0);
-   gpu_pitch_angle_diffusion_allocate(numberOfLocalCells, nbins_v, nbins_mu, blocksPerSpatialCell, totalNumberOfVelocityBlocks);
 
    std::vector<bool> spatialLoopComplete(numberOfLocalCells, false);
 
@@ -537,7 +601,7 @@ void pitchAngleDiffusion(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian
       host_bulkVY[CellIdx] = cell->parameters[CellParams::VY];
       host_bulkVZ[CellIdx] = cell->parameters[CellParams::VZ];
 
-      host_VBCs[CellIdx] = cell->dev_get_velocity_blocks(popID);
+      (GET_POINTER(gpuMemoryManager, vmesh::VelocityBlockContainer*, host_VBCs))[CellIdx] = cell->dev_get_velocity_blocks(popID);
    } // End spatial cell loop
 
    // Copy data to device
@@ -547,7 +611,7 @@ void pitchAngleDiffusion(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian
    CHK_ERR( gpuMemcpy(dev_bulkVX, host_bulkVX, numberOfLocalCells*sizeof(Real), gpuMemcpyHostToDevice) );
    CHK_ERR( gpuMemcpy(dev_bulkVY, host_bulkVY, numberOfLocalCells*sizeof(Real), gpuMemcpyHostToDevice) );
    CHK_ERR( gpuMemcpy(dev_bulkVZ, host_bulkVZ, numberOfLocalCells*sizeof(Real), gpuMemcpyHostToDevice) );
-   CHK_ERR( gpuMemcpy(dev_VBCs, host_VBCs, numberOfLocalCells*sizeof(vmesh::VelocityBlockContainer*), gpuMemcpyHostToDevice) );
+   CHK_ERR( gpuMemcpy(GET_POINTER(gpuMemoryManager, vmesh::VelocityBlockContainer*, dev_VBCs), GET_POINTER(gpuMemoryManager, vmesh::VelocityBlockContainer*, host_VBCs), numberOfLocalCells*sizeof(vmesh::VelocityBlockContainer*), gpuMemcpyHostToDevice) );
 
    if (getObjectWrapper().particleSpecies[popID].sparse_conserve_mass) {
       dim3 threadsPerBlock_massConservation(WID, WID, WID);
@@ -556,7 +620,7 @@ void pitchAngleDiffusion(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian
       // Ensure mass conservation
       calculateDensity_kernel<<<blocksPerGrid_massConservation, threadsPerBlock_massConservation>>>(
          dev_densityPreAdjust,
-         dev_VBCs
+         GET_POINTER(gpuMemoryManager, vmesh::VelocityBlockContainer*, dev_VBCs)
       );
       
       CHK_ERR( gpuPeekAtLastError() );
@@ -626,7 +690,7 @@ void pitchAngleDiffusion(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian
       build2dArrayOfFvmu_kernel<<<blocksPerGrid_build2dArrayOfFvmu, threadsPerBlock_build2dArrayOfFvmu>>>(
          dev_cellIdxArray,
          dev_velocityIdxArray,
-         dev_VBCs,
+         GET_POINTER(gpuMemoryManager, vmesh::VelocityBlockContainer*, dev_VBCs),
          dev_bulkVX,
          dev_bulkVY,
          dev_bulkVZ,
@@ -744,7 +808,7 @@ void pitchAngleDiffusion(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian
          dev_cellIdxArray,
          dev_remappedCellIdxArray,
          dev_velocityIdxArray,
-         dev_VBCs,
+         GET_POINTER(gpuMemoryManager, vmesh::VelocityBlockContainer*, dev_VBCs),
          dev_bulkVX,
          dev_bulkVY,
          dev_bulkVZ,
@@ -780,7 +844,7 @@ void pitchAngleDiffusion(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian
       // Ensure mass conservation
       calculateDensity_kernel<<<blocksPerGrid_massConservation, threadsPerBlock_massConservation>>>(
          dev_densityPostAdjust,
-         dev_VBCs
+         GET_POINTER(gpuMemoryManager, vmesh::VelocityBlockContainer*, dev_VBCs)
       );
          
       CHK_ERR( gpuPeekAtLastError() );
@@ -788,12 +852,13 @@ void pitchAngleDiffusion(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian
       conserveMass_kernel<<<blocksPerGrid_massConservation, threadsPerBlock_massConservation>>>(
          dev_densityPreAdjust,
          dev_densityPostAdjust,
-         dev_VBCs
+         GET_POINTER(gpuMemoryManager, vmesh::VelocityBlockContainer*, dev_VBCs)
       );
          
       CHK_ERR( gpuPeekAtLastError() );
       CHK_ERR( gpuDeviceSynchronize() );
    }
 
+   gpuMemoryManager.endSession();
    diffusionTimer.stop();
 } // End function

@@ -165,8 +165,8 @@ __global__ void __launch_bounds__(WID3,WID3S_PER_MP) batch_update_velocity_block
 __global__ void __launch_bounds__(Hashinator::defaults::MAX_BLOCKSIZE, FULLBLOCKS_PER_MP) batch_reset_all_to_empty(
    Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>**maps
    ) {
-   //launch parameters: dim3 grid(blocksNeeded,nMaps,1);
-   const size_t hashmapIndex = blockIdx.y;
+   //launch parameters: dim3 grid(blocksNeeded,nCells,2);
+   const size_t hashmapIndex = blockIdx.y * 2 + blockIdx.z;
    const size_t tid = threadIdx.x + blockIdx.x * blockDim.x;
    const size_t stride = gridDim.x * blockDim.x;
    Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>* thisMap = maps[hashmapIndex];
@@ -182,6 +182,25 @@ __global__ void __launch_bounds__(Hashinator::defaults::MAX_BLOCKSIZE, FULLBLOCK
    if (tid==0) {
       Hashinator::Info *info = thisMap->expose_mapinfo<false>();
       info->fill=0;
+   }
+}
+
+/*
+ * Reads sizes of hashmaps, compares with capacities of provided vectors, and sets the provided buffer
+ * to indicate if the vector needs recapacitating. Assumes the required_capacities buffer has been
+ * memset to zero before this kernel is called.
+ */
+__global__ void __launch_bounds__(Hashinator::defaults::MAX_BLOCKSIZE, FULLBLOCKS_PER_MP) check_vector_capacities(
+   const Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>* __restrict__ const *maps,
+   const split::SplitVector<vmesh::GlobalID>* __restrict__ const *vecs,
+   vmesh::LocalID *required_capacities
+   ) {
+   const size_t index = threadIdx.x + blockIdx.x * blockDim.x;
+   const Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>*  __restrict__ thisMap = maps[2*index];
+   const split::SplitVector<vmesh::GlobalID>* __restrict__ thisVec = vecs[index];
+   const size_t mapSize = thisMap->size();
+   if (mapSize > thisVec->capacity()) {
+      required_capacities[index] = mapSize;
    }
 }
 

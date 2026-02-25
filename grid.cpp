@@ -333,11 +333,17 @@ void initializeGrids(int argn, char** argc, dccrg::Dccrg<SpatialCell, dccrg::Car
    phiprof::Timer setBTimer{"project.setProjectBField"};
    project.setProjectBField(perb.view(), bgb.view(), technical.view(), fsgrid);
    setBTimer.stop();
-   phiprof::Timer fsGridGhostTimer{"fsgrid-ghost-updates"};
+   
+   if (P::isRestart) {
+      // There are projects that have non-uniform and non-zero perturbed B, e.g. Magnetosphere with dipole type 4.
+      // If restarting with reapplyUponRestart active, we need to set PerB again 
+      // in boundary cells after setProjectBField has populated the BGBXVDCORR etc. terms
+      sysBoundaries.applyInitialState(mpiGrid, technical.view(), fsgrid, perb.view(), bgb.view(), project);
+   }
+   phiprof::Timer fsGridGhostTimer {"fsgrid-ghost-updates"};
    fsgrid.updateGhostCells(perb.view());
    fsgrid.updateGhostCells(bgb.view());
    fsgrid.updateGhostCells(e.view());
-
    // This will only have the BGB set up properly at this stage but we need the BGBvol for the Vlasov boundaries below.
    fsgrid.updateGhostCells(vol.view());
    fsGridGhostTimer.stop();
@@ -583,11 +589,18 @@ void balanceLoad(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, 
          // Set active population
          SpatialCell::setCommunicatedSpecies(popID);
 
-         // Transfer velocity block list
+         // Transfer velocity block lists. On-device GPU mesh preparation tasks require
+         // device synchronization between transfer phases.
          SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_STAGE1);
          mpiGrid.continue_balance_load();
+         #ifdef USE_GPU
+         CHK_ERR( gpuDeviceSynchronize() );
+         #endif
          SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_STAGE2);
          mpiGrid.continue_balance_load();
+         #ifdef USE_GPU
+         CHK_ERR( gpuDeviceSynchronize() );
+         #endif
 
          int prepareReceives{phiprof::initializeTimer("Preparing receives")};
          int receives = 0;
@@ -708,12 +721,14 @@ void balanceLoad(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, 
          SC->dev_upload_population(popID);
       }
    }
+   CHK_ERR( gpuDeviceSynchronize() );
    gpuReservationsTimer.stop();
    // Call GPU routines for memory allocation for Vlasov solvers
    // deallocates first if necessary
    phiprof::Timer gpuAllocationsTimer("GPU LB set buffer allocations");
-   gpu_vlasov_allocate(gpuMaxBlockCount,newCellsSize);
-   gpu_acc_allocate(gpuMaxBlockCount,newCellsSize);
+   gpu_vlasov_allocate(gpuMaxBlockCount);
+   gpu_calculateProbeAllocation(gpuMaxBlockCount);
+   gpu_acc_allocate(gpuMaxBlockCount);
    gpuAllocationsTimer.stop();
 #endif // end USE_GPU
 }
@@ -760,9 +775,17 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& 
    phiprof::Timer readjustBlocksTimer{"re-adjust blocks", {"Block adjustment"}};
    SpatialCell::setCommunicatedSpecies(popID);
 
-   const vector<CellID>& cells = getLocalCells();
+   // Only adjust simulation cells
+   vector<CellID> validCells;
+   for (CellID cid: cellsToAdjust) {
+      SpatialCell *SC = mpiGrid[cid];
+      if (SC->sysBoundaryFlag != sysboundarytype::DO_NOT_COMPUTE) {
+         validCells.push_back(cid);
+      }
+   }
+
    // Batch call
-   update_velocity_block_content_lists(mpiGrid, cells, popID);
+   update_velocity_block_content_lists(mpiGrid,validCells,popID);
 
    // Get updated lists for blocks with content in spatial neighbours
    phiprof::Timer transferTimer {"Transfer with_content_list", {"MPI"}};
@@ -773,7 +796,7 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& 
    transferTimer.stop();
 
    // Batch adjusts velocity blocks in local spatial cells, doesn't adjust velocity blocks in remote cells.
-   adjust_velocity_blocks_in_cells(mpiGrid, cellsToAdjust, popID);
+   adjust_velocity_blocks_in_cells(mpiGrid, validCells, popID);
 
    // prepare to receive full block data for all cells (irrespective of list of cells to adjust)
    if (doPrepareToReceiveBlocks) {
@@ -1289,10 +1312,8 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGr
    uint64_t coarsens {mpiGrid.get_cells_to_unrefine_count()};
    ratio_refines = static_cast<double>(refines) / static_cast<double>(cells);
    double ratio_coarsens = static_cast<double>(coarsens) / static_cast<double>(cells);
-   logFile << "(AMR) Refining " << refines << " cells after induces, " << 100.0 * ratio_refines << "% of grid"
-           << std::endl;
-   logFile << "(AMR) Coarsening " << coarsens << " cells after induces, " << 100.0 * ratio_coarsens << "% of grid"
-           << std::endl;
+   logFile << "(AMR) Refining " << refines << " cells to " << refines*8 << " children after induces, " << 100.0 * ratio_refines << "% of grid" << std::endl;
+   logFile << "(AMR) Coarsening " << coarsens << " cells to " << coarsens/8 <<  " parents after induces, " << 100.0 * ratio_coarsens << "% of grid" << std::endl;
 
    double newBytes{0};
    phiprof::Timer estimateMemoryTimer{"Estimate memory usage"};
@@ -1377,6 +1398,12 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGr
       mpiGrid[id]->parameters[CellParams::AMR_ALPHA1] /= 2.0;
       mpiGrid[id]->parameters[CellParams::AMR_ALPHA2] /= 2.0;
       mpiGrid[id]->parameters[CellParams::RECENTLY_REFINED] = 1;
+      #ifdef USE_GPU
+      for (size_t popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+         mpiGrid[id]->setReservation(popID,mpiGrid[id]->get_velocity_mesh(popID)->size());
+         mpiGrid[id]->applyReservation(popID);
+      }
+      #endif
    }
    copyChildrenTimer.stop(newChildren.size(), "Spatial cells");
 

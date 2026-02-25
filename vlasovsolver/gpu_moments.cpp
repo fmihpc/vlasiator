@@ -29,15 +29,6 @@
 
 using namespace std;
 
-// Buffers for moment calculations
-vmesh::VelocityBlockContainer** dev_VBC;
-vmesh::VelocityBlockContainer** host_VBC;
-Real* dev_moments1;
-Real* dev_moments2;
-Real* host_moments1;
-Real* host_moments2;
-uint gpu_allocated_moments = 0;
-
 /**
     GPU kernel for calculating first velocity moments from provided
     velocity block containers
@@ -272,7 +263,23 @@ void gpu_calculateMoments_R(
    if (nAllCells==0) {
       return;
    }
-   gpu_moments_allocate(nAllCells);
+
+   gpuMemoryManager.startSession(0,0);
+
+   SESSION_HOST_ALLOCATE(gpuMemoryManager, vmesh::VelocityBlockContainer*, host_VBC, nAllCells*sizeof(vmesh::VelocityBlockContainer*));
+   SESSION_HOST_ALLOCATE(gpuMemoryManager, Real, host_moments1, nAllCells*nMom1*sizeof(Real));
+   SESSION_HOST_ALLOCATE(gpuMemoryManager, Real, host_moments2, nAllCells*nMom2*sizeof(Real));
+   SESSION_ALLOCATE(gpuMemoryManager, vmesh::VelocityBlockContainer*, dev_VBC, nAllCells*sizeof(vmesh::VelocityBlockContainer*));
+   SESSION_ALLOCATE(gpuMemoryManager, Real, dev_moments1, nAllCells*nMom1*sizeof(Real));
+   SESSION_ALLOCATE(gpuMemoryManager, Real, dev_moments2, nAllCells*nMom2*sizeof(Real));
+
+   vmesh::VelocityBlockContainer** host_VBC = GET_SESSION_HOST_POINTER(gpuMemoryManager, vmesh::VelocityBlockContainer*, host_VBC);
+   Real* host_moments1 = GET_SESSION_HOST_POINTER(gpuMemoryManager, Real, host_moments1);
+   Real* host_moments2 = GET_SESSION_HOST_POINTER(gpuMemoryManager, Real, host_moments2);
+   vmesh::VelocityBlockContainer** dev_VBC = GET_SESSION_POINTER(gpuMemoryManager, vmesh::VelocityBlockContainer*, dev_VBC);
+   Real* dev_moments1 = GET_SESSION_POINTER(gpuMemoryManager, Real, dev_moments1);
+   Real* dev_moments2 = GET_SESSION_POINTER(gpuMemoryManager, Real, dev_moments2);
+
    std::vector<vmesh::LocalID> maxVmeshSizes;
 
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
@@ -391,6 +398,7 @@ void gpu_calculateMoments_R(
 
    // Compute second moments only if requested.
    if (computeSecond == false) {
+      gpuMemoryManager.endSession();
       return;
    }
 
@@ -445,6 +453,7 @@ void gpu_calculateMoments_R(
       } // for-loop over spatial cells
    } // for-loop over particle species
 
+   gpuMemoryManager.endSession();
 }
 
 /** Calculate zeroth, first, and (possibly) second bulk velocity moments for the
@@ -474,7 +483,23 @@ void gpu_calculateMoments_V(
    if (nAllCells==0) {
       return;
    }
-   gpu_moments_allocate(nAllCells);
+
+   gpuMemoryManager.startSession(0,0);
+
+   SESSION_HOST_ALLOCATE(gpuMemoryManager, vmesh::VelocityBlockContainer*, host_VBC, nAllCells*sizeof(vmesh::VelocityBlockContainer*));
+   SESSION_HOST_ALLOCATE(gpuMemoryManager, Real, host_moments1, nAllCells*nMom1*sizeof(Real));
+   SESSION_HOST_ALLOCATE(gpuMemoryManager, Real, host_moments2, nAllCells*nMom2*sizeof(Real));
+   SESSION_ALLOCATE(gpuMemoryManager, vmesh::VelocityBlockContainer*, dev_VBC, nAllCells*sizeof(vmesh::VelocityBlockContainer*));
+   SESSION_ALLOCATE(gpuMemoryManager, Real, dev_moments1, nAllCells*nMom1*sizeof(Real));
+   SESSION_ALLOCATE(gpuMemoryManager, Real, dev_moments2, nAllCells*nMom2*sizeof(Real));
+
+   vmesh::VelocityBlockContainer** host_VBC = GET_SESSION_HOST_POINTER(gpuMemoryManager, vmesh::VelocityBlockContainer*, host_VBC);
+   Real* host_moments1 = GET_SESSION_HOST_POINTER(gpuMemoryManager, Real, host_moments1);
+   Real* host_moments2 = GET_SESSION_HOST_POINTER(gpuMemoryManager, Real, host_moments2);
+   vmesh::VelocityBlockContainer** dev_VBC = GET_SESSION_POINTER(gpuMemoryManager, vmesh::VelocityBlockContainer*, dev_VBC);
+   Real* dev_moments1 = GET_SESSION_POINTER(gpuMemoryManager, Real, dev_moments1);
+   Real* dev_moments2 = GET_SESSION_POINTER(gpuMemoryManager, Real, dev_moments2);
+
    std::vector<vmesh::LocalID> maxVmeshSizes;
 
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
@@ -593,6 +618,7 @@ void gpu_calculateMoments_V(
 
    // Compute second moments only if requested.
    if (computeSecond == false) {
+      gpuMemoryManager.endSession();
       return;
    }
 
@@ -646,36 +672,5 @@ void gpu_calculateMoments_V(
       } // for-loop over spatial cells
    } // for-loop over particle species
 
-}
-
-
-void gpu_moments_allocate(const uint nAllCells) {
-   if (nAllCells <= gpu_allocated_moments) {
-      return;
-   }
-   gpu_moments_deallocate();
-   gpu_allocated_moments = nAllCells * BLOCK_ALLOCATION_FACTOR;
-
-   // Host memory will be pinned
-   CHK_ERR( gpuHostAlloc((void**)&host_VBC, gpu_allocated_moments*sizeof(vmesh::VelocityBlockContainer*)) );
-   CHK_ERR( gpuHostAlloc((void**)&host_moments1, gpu_allocated_moments*nMom1*sizeof(Real)) );
-   CHK_ERR( gpuHostAlloc((void**)&host_moments2, gpu_allocated_moments*nMom2*sizeof(Real)) );
-   CHK_ERR( gpuMalloc((void**)&dev_VBC, gpu_allocated_moments*sizeof(vmesh::VelocityBlockContainer*)) );
-   CHK_ERR( gpuMalloc((void**)&dev_moments1, gpu_allocated_moments*nMom1*sizeof(Real)) );
-   CHK_ERR( gpuMalloc((void**)&dev_moments2, gpu_allocated_moments*nMom2*sizeof(Real)) );
-   CHK_ERR( gpuDeviceSynchronize());
-}
-
-/* Deallocation at end of simulation */
-void gpu_moments_deallocate() {
-   if (gpu_allocated_moments==0) {
-      return;
-   }
-   gpu_allocated_moments = 0;
-   CHK_ERR( gpuFreeHost(host_VBC) );
-   CHK_ERR( gpuFreeHost(host_moments1) );
-   CHK_ERR( gpuFreeHost(host_moments2) );
-   CHK_ERR( gpuFree(dev_VBC) );
-   CHK_ERR( gpuFree(dev_moments1) );
-   CHK_ERR( gpuFree(dev_moments2) );
+   gpuMemoryManager.endSession();
 }

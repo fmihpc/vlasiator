@@ -87,7 +87,12 @@ namespace SBC {
       for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID) {
          setCellsFromTemplate(mpiGrid, popID);
       }
-      setBFromTemplate(mpiGrid, perb, bgb, technical, fsgrid);
+
+      if (P::isRestart) {
+         setBFromTemplate(mpiGrid, perb, bgb, technical, fsgrid, false);
+      } else {
+         setBFromTemplate(mpiGrid, perb, bgb, technical, fsgrid, true);
+      }
    }
    
    void Inflow::updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
@@ -107,9 +112,9 @@ namespace SBC {
       for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID) {
          setCellsFromTemplate(mpiGrid, popID);
       }
-   
-      setBFromTemplate(mpiGrid, perb, bgb, technical, fsgrid);
-   
+      
+      setBFromTemplate(mpiGrid, perb, bgb, technical, fsgrid, false);
+      
       // Ensure up-to-date velocity block counts for all neighbours
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          updateRemoteVelocityBlockLists(mpiGrid,popID,Neighborhoods::FULL);
@@ -205,7 +210,8 @@ namespace SBC {
    void Inflow::setBFromTemplate(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                  fsgrids::perbspan perb,
                                  fsgrids::bgbspan bgb,
-                                 fsgrids::technicalspan technical, FieldSolverGrid &fsgrid) {
+                                 fsgrids::technicalspan technical, FieldSolverGrid &fsgrid
+                                 const bool resetSolved) {
       const auto facesToProcess_local = this->facesToProcess;
       std::array<bool, 3> periodic_local = this->periodic;
       const auto templateB_local = this->templateB;
@@ -221,12 +227,21 @@ namespace SBC {
          const std::array<Real, 3> gridSpacing = coordinates.physicalGridSpacing;
  
          determineFaceNoClassMembers(isThisCellOnAFace.data(), coords[0] + 0.5 * gridSpacing[0], coords[1] + 0.5 * gridSpacing[1], coords[2] + 0.5 * gridSpacing[2], dx, dy, dz, periodic_local);
-   
+         
+         cuint bitfield = technical[stencil.ooo()]->SOLVE;
+         
          for (uint iface = 0; iface < 6; iface++) {
             if (facesToProcess_local[iface] && isThisCellOnAFace[iface]) {
-               perb[stencil.ooo()][fsgrids::bfield::PERBX] = templateB_local[iface][0] + bgb[stencil.ooo()][fsgrids::bgbfield::BGBXVDCORR];
-               perb[stencil.ooo()][fsgrids::bfield::PERBY] = templateB_local[iface][1] + bgb[stencil.ooo()][fsgrids::bgbfield::BGBYVDCORR];
-               perb[stencil.ooo()][fsgrids::bfield::PERBZ] = templateB_local[iface][2] + bgb[stencil.ooo()][fsgrids::bgbfield::BGBZVDCORR];
+               // Reset all PerB components if requested, otherwise only unsolved components
+               if (resetSolved || (bitfield & compute::BX) != compute::BX) {
+                  perb[stencil.ooo()][fsgrids::bfield::PERBX] = templateB_local[iface][0] + bgb[stencil.ooo()][fsgrids::bgbfield::BGBXVDCORR];
+               }
+               if (resetSolved || (bitfield & compute::BY) != compute::BY) {
+                  perb[stencil.ooo()][fsgrids::bfield::PERBY] = templateB_local[iface][1] + bgb[stencil.ooo()][fsgrids::bgbfield::BGBYVDCORR];
+               }
+               if (resetSolved || (bitfield & compute::BZ) != compute::BZ) {
+                  perb[stencil.ooo()][fsgrids::bfield::PERBZ] = templateB_local[iface][2] + bgb[stencil.ooo()][fsgrids::bgbfield::BGBZVDCORR];
+               }
                break;
             }
          }
@@ -294,8 +309,14 @@ namespace SBC {
       vector<std::vector<Real>> dataset(0, std::vector<Real>(nParams, 0));
    
       ifstream fi;
-      fi.open(fn);
-   
+      fi.open(fn); 
+
+      // Check that the file opened correctly
+      if (!fi.is_open()) {
+         cerr << "Could not open input file " << fn << "!" << endl;
+         MPI_Abort(MPI_COMM_WORLD, 1);
+      }
+
       uint nlines = 0;
       string line;
       while (getline(fi, line)) {

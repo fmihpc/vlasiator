@@ -77,6 +77,7 @@ void computeMomentsDerivatives(fsgrids::constmomentsspan moments,
       if (cv <= 0) {
          std::cerr << __FILE__ << ":" << __LINE__ << (cv < 0 ? " Negative" : " Zero") << " density in fsgrid cell id " << stencil.indexFromOffset(0,0,0) << std::endl;
          abort();
+
       }
 
       const auto& lv = momData.moo[mom::RHOM];
@@ -106,7 +107,7 @@ void computeMomentsDerivatives(fsgrids::constmomentsspan moments,
        dmo::drhomdz, dmo::drhoqdz, dmo::dp11dz, dmo::dp22dz, dmo::dp33dz, dmo::dVxdz, dmo::dVydz, dmo::dVzdz,
    };
 
-   if (atSysBoundary) {
+   if (P::fieldSolverFiniteDifferencingAtBoundaries && atSysBoundary) {
       for (size_t i = 0; i < moms.size(); i++) {
          dMoments[dmix[i]] = computeDiff(moms[i], momData.poo, momData.moo);
          dMoments[dmiy[i]] = computeDiff(moms[i], momData.opo, momData.omo);
@@ -325,7 +326,7 @@ void calculateBVOLDerivatives(fsgrids::volspan vol,
    auto& volCenter = vol[stencil.ooo()];
    const auto poo = stencil.poo();
    const auto moo = stencil.moo();
-   if (atSysBoundary) {
+   if (P::fieldSolverFiniteDifferencingAtBoundaries && atSysBoundary) {
       volCenter[vf::dPERBXVOLdx] = computeDiff(vf::PERBXVOL, vol[poo], vol[moo]);
       volCenter[vf::dPERBYVOLdx] = computeDiff(vf::PERBYVOL, vol[poo], vol[moo]);
       volCenter[vf::dPERBZVOLdx] = computeDiff(vf::PERBZVOL, vol[poo], vol[moo]);
@@ -337,7 +338,7 @@ void calculateBVOLDerivatives(fsgrids::volspan vol,
 
    const auto opo = stencil.opo();
    const auto omo = stencil.omo();
-   if (atSysBoundary) {
+   if (P::fieldSolverFiniteDifferencingAtBoundaries && atSysBoundary) {
       volCenter[vf::dPERBXVOLdy] = computeDiff(vf::PERBXVOL, vol[opo], vol[omo]);
       volCenter[vf::dPERBYVOLdy] = computeDiff(vf::PERBYVOL, vol[opo], vol[omo]);
       volCenter[vf::dPERBZVOLdy] = computeDiff(vf::PERBZVOL, vol[opo], vol[omo]);
@@ -349,7 +350,7 @@ void calculateBVOLDerivatives(fsgrids::volspan vol,
 
    const auto oop = stencil.oop();
    const auto oom = stencil.oom();
-   if (atSysBoundary) {
+   if (P::fieldSolverFiniteDifferencingAtBoundaries && atSysBoundary) {
       volCenter[vf::dPERBXVOLdz] = computeDiff(vf::PERBXVOL, vol[oop], vol[oom]);
       volCenter[vf::dPERBYVOLdz] = computeDiff(vf::PERBYVOL, vol[oop], vol[oom]);
       volCenter[vf::dPERBZVOLdz] = computeDiff(vf::PERBZVOL, vol[oop], vol[oom]);
@@ -629,15 +630,15 @@ void calculateScaledDeltas(SpatialCell* cell, std::vector<SpatialCell*>& neighbo
    }
 
    // Vorticity
-   Real dVxdy{cell->derivativesV[vderivatives::dVxdy]};
-   Real dVxdz{cell->derivativesV[vderivatives::dVxdz]};
-   Real dVydx{cell->derivativesV[vderivatives::dVydx]};
-   Real dVydz{cell->derivativesV[vderivatives::dVydz]};
-   Real dVzdx{cell->derivativesV[vderivatives::dVzdx]};
-   Real dVzdy{cell->derivativesV[vderivatives::dVzdy]};
-   Real vorticity{std::sqrt(std::pow(dVxdy - dVydz, 2) + std::pow(dVxdz - dVzdx, 2) + std::pow(dVydx - dVxdy, 2))};
-   // Real vA {std::sqrt(Bsq / (physicalconstants::MU_0 * myRho))};
-   Real amr_vorticity{-1.0}; // Error value
+   Real dVxdy {cell->derivativesV[vderivatives::dVxdy]};
+   Real dVxdz {cell->derivativesV[vderivatives::dVxdz]};
+   Real dVydx {cell->derivativesV[vderivatives::dVydx]};
+   Real dVydz {cell->derivativesV[vderivatives::dVydz]};
+   Real dVzdx {cell->derivativesV[vderivatives::dVzdx]};
+   Real dVzdy {cell->derivativesV[vderivatives::dVzdy]};
+   Real vorticity {std::sqrt(std::pow(dVzdy - dVydz, 2) + std::pow(dVxdz - dVzdx, 2 ) + std::pow(dVydx - dVxdy, 2))};
+   //Real vA {std::sqrt(Bsq / (physicalconstants::MU_0 * myRho))};
+   Real amr_vorticity {-1.0}; // Error value
    if (maxV > EPS) {
       amr_vorticity = vorticity * cell->parameters[CellParams::DX] / maxV;
    }

@@ -1,0 +1,180 @@
+# loosely based on CodeRefinery Sphinx doc deployment workflow
+
+name: generate-pages
+on:
+   push:
+      branches : ["dev"]
+   workflow_dispatch:
+
+
+env:
+  DEFAULT_BRANCH: "dev"
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      # https://github.com/marketplace/actions/checkout
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          lfs: true
+      
+      - name: install Doxygen
+        uses: ssciwr/doxygen-install@v1
+
+      - name: install dependencies
+        run: sudo apt-get install graphviz
+
+        # Debug
+      - name: Debugging information
+        env:
+          ref: ${{github.ref}}
+          event_name: ${{github.event_name}}
+          head_ref: ${{github.head_ref}}
+          base_ref: ${{github.base_ref}}
+        run: |
+          echo "github.ref: ${ref}"
+          echo "github.event_name: ${event_name}"
+          echo "github.head_ref: ${head_ref}"
+          echo "github.base_ref: ${base_ref}"
+          set -x
+          git rev-parse --abbrev-ref HEAD
+          git branch
+          git branch -a
+          git remote -v
+
+      # Build
+      - name: Build Doxygen docs
+        run: |
+          # add the thing here, now a dummy html file
+          export BUILD_DIR=doc/_build_doxygen/
+          export VLASIATOR_COMMITLOG=${BUILD_DIR}/vlasiator/doc/html/commitlog.html
+          export VLASIATOR_DOXYGENDOCS=${BUILD_DIR}/vlasiator/doc
+          mkdir -vp $VLASIATOR_DOXYGENDOCS
+          sed s+^OUTPUT_DIRECTORY.*+"OUTPUT_DIRECTORY = ${VLASIATOR_DOXYGENDOCS}\n"+ <Doxyfile.template >Doxyfile.tmp
+          
+          git checkout dev
+          PREV_TAG=$(git describe --tags --abbrev=0)||echo Error in git-describe
+          PREV_TAG_FIRST=$(git describe --tags --abbrev=0 --first-parent)||echo Error in git-describe
+          if [[ -z "$PREV_TAG_FIRST" ]]; then
+            PREV_TAG_FIRST=unknown
+            HIST=
+          else
+            DISTANCE=$(git rev-list $PREV_TAG_FIRST..HEAD --count)||echo Error in git rev-list
+            if [[ -z "$PREV_TAG" ]]; then
+              PREV_TAG=
+            else
+              if [ "$PREV_TAG" == "$PREV_TAG_FIRST" ]; then
+                PREV_TAG=
+              else
+                PREV_TAG=", including "$PREV_TAG
+              fi
+            fi
+            if [[ -z "$DISTANCE" ]]; then
+              HIST=$PREV_TAG_FIRST
+            else
+              HIST="$PREV_TAG_FIRST + $DISTANCE commits"
+            fi
+            HIST="$HIST$PREV_TAG"
+          fi
+          if [[ -z "$HIST" ]]; then
+            export PROJECT_NUMBER="$(git rev-parse --short HEAD) on $(git branch --show-current)"
+          else
+            export PROJECT_NUMBER="$(git rev-parse --short HEAD) on $(git branch --show-current) ($HIST)"
+          fi
+          
+          
+          
+          mv Doxyfile.tmp Doxyfile
+          doxygen
+          #  git log > $VLASIATOR_COMMITLOG # unformatted git log
+
+          mkdir _gh_pages
+          rsync -a ${VLASIATOR_DOXYGENDOCS}/html/ _gh_pages/
+
+          rm Doxyfile
+          #  VLASIATOR_COMMITLOG=${BUILD_DIR}/vlasiator-dev/doc/html/commitlog.html
+          #  VLASIATOR_DOXYGENDOCS=${BUILD_DIR}/vlasiator-dev/doc
+          #  mkdir -p $VLASIATOR_DOXYGENDOCS
+          #  sed s+^OUTPUT_DIRECTORY.*+"OUTPUT_DIRECTORY = ${VLASIATOR_DOXYGENDOCS}\n"+ <Doxyfile.template >Doxyfile.tmp
+          #  git checkout dev
+           
+          #  mv Doxyfile.tmp Doxyfile # overwrite the dev Doxyfile with the new one
+          #  export PROJECT_NUMBER=$(git rev-parse --short HEAD)
+
+          # doxygen
+
+          # git log > $VLASIATOR_COMMITLOG # unformatted git log
+
+          #mkdir _gh_pages/vlasiator-dev
+          #rsync -a ${VLASIATOR_DOXYGENDOCS}/html/ _gh_pages/vlasiator-dev
+
+          
+
+      # Stage all deployed assets in _gh-pages/ for simplicity, and to
+      # prepare to do a multi-branch deployment.
+      # - name: Copy deployment data to _gh-pages/
+      #   if: ${{ github.event_name == 'push' }}
+      #   run:
+      #     rsync -a Documentation/sphinx/_build/dirhtml/ _gh-pages/
+
+      # This would be nice, didn't work for analysator somehow
+      # # Use gh-pages-multibranch to multiplex different branches into
+      # # one deployment. See
+      # # https://github.com/coderefinery/gh-pages-multibranch
+      # - name: gh-pages multibranch
+      #   uses: coderefinery/gh-pages-multibranch@main
+      #   if: ${{ github.event_name == 'push' && env.MULTIBRANCH == 'true' }}
+      #   with:
+      #     directory: _gh-pages/
+      #     default_branch: ${{ env.DEFAULT_BRANCH }}
+      #     publish_branch: gh-pages
+
+      # Add the .nojekyll file
+      - name: nojekyll
+        run: |
+          touch _gh_pages/.nojekyll
+
+      # Save artifact for the next step.
+      - uses: actions/upload-artifact@v4
+        if: ${{ github.event_name == 'push' }}
+        with:
+          name: gh-pages-build
+          path: _gh_pages/
+
+  # Deploy in a separate job so that write permissions are restricted
+  # to the minimum steps.
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    needs: build
+    # This if can't use the env context - find better way later.
+    if: ${{ github.event_name == 'push' }}
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: gh-pages-build
+          path: _gh_pages/
+
+      # As of 2023, we could publish to pages via a Deployment.  This
+      # isn't done yet to give it time to stabilize (out of beta), and
+      # also having a gh-pages branch to check out is rather
+      # convenient.
+
+      # Deploy
+      # https://github.com/peaceiris/actions-gh-pages
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          publish_branch: gh-pages
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: _gh_pages/
+          force_orphan: true

@@ -1,13 +1,13 @@
 #!/bin/bash
 #SBATCH -t 01:30:00        # Run time (hh:mm:ss)
 #SBATCH --job-name=CI_testpackage
-#SBATCH -M carrington
+#SBATCH --constraint ukko
 #SBATCH -p short
 #SBATCH --exclusive
 #SBATCH --nodes=1
 #SBATCH -c 4                 # CPU cores per task
 #SBATCH -n 16                  # number of tasks
-#SBATCH --mem-per-cpu=5G
+##SBATCH --mem-per-cpu=5G
 ##SBATCH -x carrington-[801-808]
 
 # If 1, the reference vlsv files are generated
@@ -30,6 +30,7 @@ module load GCC/13.2.0
 module load OpenMPI/4.1.6-GCC-13.2.0
 module load PMIx/4.2.6-GCCcore-13.2.0
 module load PAPI/7.1.0-GCCcore-13.2.0
+module load Boost/1.83.0-GCC-13.2.0
 #module load xthi
 export UCX_NET_DEVICES=eth0 # This is important for multi-node performance!
 
@@ -306,7 +307,9 @@ for run in ${run_tests[*]}; do
 
        # Check if dt is nonzero
        timeDiff=$(grep "delta t" <<< $C |gawk '{print $8}'  )
-       if (( $(awk 'BEGIN{print ('$timeDiff'!= 0.0)?1:0}') )); then
+       if [ -z $timeDiff ]; then
+           echo "VLSV timesteps not tested."
+       elif (( $(awk 'BEGIN{print ('$timeDiff'!= 0.0)?1:0}') )); then
            if (( $( echo "${timeDiff#-} $MAXDT" | awk '{ if($1 > $2) print 1; else print 0 }' ) )); then
                MAXDT=$timeDiff
            fi
