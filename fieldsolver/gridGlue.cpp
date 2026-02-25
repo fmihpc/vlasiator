@@ -191,7 +191,7 @@ void filterMoments(fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>>
       fsgrid.updateGhostCells(moments.view());
 
       // If outflow boundaries exist, filtered moments must be recopied there
-      copyMomentsToOutflow(moments, technical);
+      copyMomentsToOutflow(moments, technical, fsgrid);
       fsgrid.updateGhostCells(moments.view());
    }
 }
