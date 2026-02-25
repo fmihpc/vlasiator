@@ -38,7 +38,6 @@ Find closest in-domain cell and return the given moment from that cell
 */
 Real copyMomentFromClosestSimCell(fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>>& moments,
                                   fsgrids::technicalspan technical,
-                                  FieldSolverGrid &fsgrid,
                                   const fsgrid::FsStencil& stencil,
                                   cuint moment) {
    int distance = numeric_limits<int>::max();
@@ -91,7 +90,7 @@ void copyMomentsToOutflow(fsgrid::FsData<std::array<Real, fsgrids::moments::N_MO
                        [&](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
       // Copying only needs to be done for L1/L2 outflow cells
       if (technical[stencil.ooo()].sysBoundaryFlag != sysboundarytype::OUTFLOW || technical[stencil.ooo()].sysBoundaryLayer > 2) {
-         continue;
+         return;
       }
 
       // Set outflow cell to closest in-domain cell values
