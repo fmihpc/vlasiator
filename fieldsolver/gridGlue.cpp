@@ -95,7 +95,7 @@ void copyMomentsToOutflow(fsgrid::FsData<std::array<Real, fsgrids::moments::N_MO
       }
 
       // Set outflow cell to closest in-domain cell values
-      #TODO warning don't do the determination of the closest cell at every iteration! 
+      #pragma TODO warning don't do the determination of the closest cell at every iteration! 
       for (int e = 0; e < fsgrids::moments::N_MOMENTS; ++e) {
          moments[stencil.ooo()][e] = copyMomentFromClosestSimCell(moments, technical, stencil, e);
       }
