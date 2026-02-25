@@ -33,52 +33,6 @@ int getNumberOfCellsOnMaxRefLvl(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geome
 }
 
 /*
-WIP V#1099
-Find closest in-domain cell and return the given moment from that cell
-*/
-Real copyMomentFromClosestSimCell(fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>>& moments,
-                                  fsgrids::technicalspan technical,
-                                  const fsgrid::FsStencil& stencil,
-                                  cuint moment) {
-   int distance = numeric_limits<int>::max();
-   vector< array<int,3> > closestCells;
-
-   for (int kk=-2; kk<3; kk++) {
-      for (int jj=-2; jj<3; jj++) {
-         for (int ii=-2; ii<3 ; ii++) {
-            if( stencil.cellExists(ii,jj,kk) // skip invalid cells returning NULL
-               && technical[stencil.indexFromOffset(ii,jj,kk)].sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY // Copy only from sim domain
-            ) {
-               distance = min(distance, ii*ii + jj*jj + kk*kk);
-            }
-         }
-      }
-   }
-
-   for (int kk=-2; kk<3; kk++) {
-      for (int jj=-2; jj<3; jj++) {
-         for (int ii=-2; ii<3 ; ii++) {
-            if( stencil.cellExists(ii,jj,kk) // skip invalid cells returning NULL
-               && technical[stencil.indexFromOffset(ii,jj,kk)].sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY // Copy only from sim domain
-            ) {
-               int d = ii*ii + jj*jj + kk*kk;
-               if( d == distance ) {
-                  array<int, 3> cell = {ii, jj, kk};
-                  closestCells.push_back(cell);
-               }
-            }
-         }
-      }
-   }
-
-   if (closestCells.size() == 0) {
-      abort_mpi("No closest cell found!", 1);
-   }
-
-   return moments[stencil.indexFromOffset(closestCells[0][0], closestCells[0][1], closestCells[0][2])][fsgrids::moments::RHOM+moment];
-}
-
-/*
 Copy moments from simulation domain to outflow boundaries on fsgrid
 */
 void copyMomentsToOutflow(fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>>& moments,
@@ -93,10 +47,31 @@ void copyMomentsToOutflow(fsgrid::FsData<std::array<Real, fsgrids::moments::N_MO
          return;
       }
 
+      int distance = numeric_limits<int>::max();
+      array<int,3> closestCellOffset = {numeric_limits<int>::max(), numeric_limits<int>::max(), numeric_limits<int>::max()};
+
+      for (int kk=-2; kk<3; kk++) {
+         for (int jj=-2; jj<3; jj++) {
+            for (int ii=-2; ii<3 ; ii++) {
+               if( stencil.cellExists(ii,jj,kk) // skip invalid cells returning NULL
+                  && technical[stencil.indexFromOffset(ii,jj,kk)].sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY // Copy only from sim domain
+               ) {
+                  if(distance > ii*ii + jj*jj + kk*kk) {
+                     distance = ii*ii + jj*jj + kk*kk;
+                     closestCellOffset = {ii, jj, kk};
+                  }
+               }
+            }
+         }
+      }
+      
+      if (closestCellOffset[0] == numeric_limits<int>::max()) {
+         abort_mpi("No closest cell found!", 1);
+      }
+
       // Set outflow cell to closest in-domain cell values
-      #pragma TODO warning don't do the determination of the closest cell at every iteration! 
       for (int e = 0; e < fsgrids::moments::N_MOMENTS; ++e) {
-         moments[stencil.ooo()][e] = copyMomentFromClosestSimCell(moments, technical, stencil, e);
+         moments[stencil.ooo()][e] = moments[stencil.indexFromOffset(closestCellOffset[0], closestCellOffset[1], closestCellOffset[2])][fsgrids::moments::RHOM+e];
       }
    });
 }
