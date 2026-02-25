@@ -47,7 +47,7 @@ Real copyMomentFromClosestSimCell(fsgrid::FsData<std::array<Real, fsgrids::momen
    for (int kk=-2; kk<3; kk++) {
       for (int jj=-2; jj<3; jj++) {
          for (int ii=-2; ii<3 ; ii++) {
-            if( technical[stencil.indexFromOffset(ii,jj,kk)] // skip invalid cells returning NULL
+            if( stencil.cellExists(ii,jj,kk) // skip invalid cells returning NULL
                && technical[stencil.indexFromOffset(ii,jj,kk)].sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY // Copy only from sim domain
             ) {
                distance = min(distance, ii*ii + jj*jj + kk*kk);
@@ -59,7 +59,7 @@ Real copyMomentFromClosestSimCell(fsgrid::FsData<std::array<Real, fsgrids::momen
    for (int kk=-2; kk<3; kk++) {
       for (int jj=-2; jj<3; jj++) {
          for (int ii=-2; ii<3 ; ii++) {
-            if( technical[stencil.indexFromOffset(ii,jj,kk)] // skip invalid cells returning NULL
+            if( stencil.cellExists(ii,jj,kk) // skip invalid cells returning NULL
                && technical[stencil.indexFromOffset(ii,jj,kk)].sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY // Copy only from sim domain
             ) {
                int d = ii*ii + jj*jj + kk*kk;
