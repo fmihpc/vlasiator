@@ -62,11 +62,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                const auto lid = stencil.ooo();
                const auto ri = localSize[1] * localSize[0] * stencil.k + localSize[0] * stencil.j + stencil.i;
                retval[3 * ri] = 
-                  fieldSolverData.BgB[lid][fsgrids::BGBX] + fieldSolverData.perB[lid][fsgrids::PERBX];
+                  fieldSolverData.BgB[lid][fsgrids::bgbfield::BGBX] + fieldSolverData.perB[lid][fsgrids::bfield::PERBX];
                retval[3 * ri + 1] =
-                  fieldSolverData.BgB[lid][fsgrids::BGBY] + fieldSolverData.perB[lid][fsgrids::PERBY];
+                  fieldSolverData.BgB[lid][fsgrids::bgbfield::BGBY] + fieldSolverData.perB[lid][fsgrids::bfield::PERBY];
                retval[3 * ri + 2] =
-                  fieldSolverData.BgB[lid][fsgrids::BGBZ] + fieldSolverData.perB[lid][fsgrids::PERBZ];
+                  fieldSolverData.BgB[lid][fsgrids::bgbfield::BGBZ] + fieldSolverData.perB[lid][fsgrids::bfield::PERBZ];
             });
             return retval;
          }));
@@ -88,9 +88,9 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                                               [=, &retval](const fsgrid::Coordinates coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
                const auto lid = stencil.ooo();
                const auto ri = localSize[1] * localSize[0] * stencil.k + localSize[0] * stencil.j + stencil.i;
-               retval[3 * ri] = fieldSolverData.BgB[lid][fsgrids::BGBX];
-               retval[3 * ri + 1] = fieldSolverData.BgB[lid][fsgrids::BGBY];
-               retval[3 * ri + 2] = fieldSolverData.BgB[lid][fsgrids::BGBZ];
+               retval[3 * ri] = fieldSolverData.BgB[lid][fsgrids::bgbfield::BGBX];
+               retval[3 * ri + 1] = fieldSolverData.BgB[lid][fsgrids::bgbfield::BGBY];
+               retval[3 * ri + 2] = fieldSolverData.BgB[lid][fsgrids::bgbfield::BGBZ];
             });
             return retval;
          }));
@@ -112,9 +112,9 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                                                  [=, &retval](const fsgrid::Coordinates coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
                const auto lid = stencil.ooo();
                const auto ri = localSize[1] * localSize[0] * stencil.k + localSize[0] * stencil.j + stencil.i;
-               retval[3 * ri] = fieldSolverData.BgB[lid][fsgrids::BGBXVOL];
-               retval[3 * ri + 1] = fieldSolverData.BgB[lid][fsgrids::BGBYVOL];
-               retval[3 * ri + 2] = fieldSolverData.BgB[lid][fsgrids::BGBZVOL];
+               retval[3 * ri] = fieldSolverData.BgB[lid][fsgrids::bgbfield::BGBXVOL];
+               retval[3 * ri + 1] = fieldSolverData.BgB[lid][fsgrids::bgbfield::BGBYVOL];
+               retval[3 * ri + 2] = fieldSolverData.BgB[lid][fsgrids::bgbfield::BGBZVOL];
             });
             return retval;
          }));
@@ -137,9 +137,9 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                                               [=, &retval](const fsgrid::Coordinates coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
                const auto lid = stencil.ooo();
                const auto ri = localSize[1] * localSize[0] * stencil.k + localSize[0] * stencil.j + stencil.i;
-               retval[3 * ri] = fieldSolverData.perB[lid][fsgrids::PERBX];
-               retval[3 * ri + 1] = fieldSolverData.perB[lid][fsgrids::PERBY];
-               retval[3 * ri + 2] = fieldSolverData.perB[lid][fsgrids::PERBZ];
+               retval[3 * ri] = fieldSolverData.perB[lid][fsgrids::bfield::PERBX];
+               retval[3 * ri + 1] = fieldSolverData.perB[lid][fsgrids::bfield::PERBY];
+               retval[3 * ri + 2] = fieldSolverData.perB[lid][fsgrids::bfield::PERBZ];
             });
             return retval;
          }));
@@ -161,9 +161,9 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                                               [=, &retval](const fsgrid::Coordinates coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
                const auto lid = stencil.ooo();
                const auto ri = localSize[1] * localSize[0] * stencil.k + localSize[0] * stencil.j + stencil.i;
-               retval[3 * ri] = fieldSolverData.E[lid][fsgrids::EX];
-               retval[3 * ri + 1] = fieldSolverData.E[lid][fsgrids::EY];
-               retval[3 * ri + 2] = fieldSolverData.E[lid][fsgrids::EZ];
+               retval[3 * ri] = fieldSolverData.E[lid][fsgrids::efield::EX];
+               retval[3 * ri + 1] = fieldSolverData.E[lid][fsgrids::efield::EY];
+               retval[3 * ri + 2] = fieldSolverData.E[lid][fsgrids::efield::EZ];
             });
             return retval;
             }));
@@ -201,7 +201,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                                               [=, &retval](const fsgrid::Coordinates coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
                const auto lid = stencil.ooo();
                const auto ri = localSize[1] * localSize[0] * stencil.k + localSize[0] * stencil.j + stencil.i;
-               retval[ri] = fieldSolverData.moments[lid][fsgrids::RHOM];
+               retval[ri] = fieldSolverData.moments[lid][fsgrids::moments::RHOM];
             });
             return retval;
          }));
@@ -232,7 +232,7 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                                               [=, &retval](const fsgrid::Coordinates coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
                const auto lid = stencil.ooo();
                const auto ri = localSize[1] * localSize[0] * stencil.k + localSize[0] * stencil.j + stencil.i;
-               retval[ri] = fieldSolverData.moments[lid][fsgrids::RHOQ];
+               retval[ri] = fieldSolverData.moments[lid][fsgrids::moments::RHOQ];
             });
             return retval;
          }));
@@ -280,9 +280,9 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                                               [=, &retval](const fsgrid::Coordinates coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
                const auto lid = stencil.ooo();
                const auto ri = localSize[1] * localSize[0] * stencil.k + localSize[0] * stencil.j + stencil.i;
-               retval[3 * ri] = fieldSolverData.moments[lid][fsgrids::VX];
-               retval[3 * ri + 1] = fieldSolverData.moments[lid][fsgrids::VY];
-               retval[3 * ri + 2] = fieldSolverData.moments[lid][fsgrids::VZ];
+               retval[3 * ri] = fieldSolverData.moments[lid][fsgrids::moments::VX];
+               retval[3 * ri + 1] = fieldSolverData.moments[lid][fsgrids::moments::VY];
+               retval[3 * ri + 2] = fieldSolverData.moments[lid][fsgrids::moments::VZ];
             });
             return retval;
          }));
@@ -791,11 +791,11 @@ void initializeDataReducers(DataReducer* outputReducer, DataReducer* diagnosticR
                const auto lid = stencil.ooo();
                const auto ri = localSize[1] * localSize[0] * stencil.k + localSize[0] * stencil.j + stencil.i;
                retval[3 * ri] =
-                             fieldSolverData.BgB[lid][fsgrids::BGBXVOL] + fieldSolverData.vol[lid][fsgrids::PERBXVOL];
+                             fieldSolverData.BgB[lid][fsgrids::bgbfield::BGBXVOL] + fieldSolverData.vol[lid][fsgrids::volfields::PERBXVOL];
                retval[3 * ri + 1] =
-                             fieldSolverData.BgB[lid][fsgrids::BGBYVOL] + fieldSolverData.vol[lid][fsgrids::PERBYVOL];
+                             fieldSolverData.BgB[lid][fsgrids::bgbfield::BGBYVOL] + fieldSolverData.vol[lid][fsgrids::volfields::PERBYVOL];
                retval[3 * ri + 2] =
-                             fieldSolverData.BgB[lid][fsgrids::BGBZVOL] + fieldSolverData.vol[lid][fsgrids::PERBZVOL];
+                             fieldSolverData.BgB[lid][fsgrids::bgbfield::BGBZVOL] + fieldSolverData.vol[lid][fsgrids::volfields::PERBZVOL];
             });
             return retval;
          }));
