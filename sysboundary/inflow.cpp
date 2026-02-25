@@ -228,7 +228,7 @@ namespace SBC {
  
          determineFaceNoClassMembers(isThisCellOnAFace.data(), coords[0] + 0.5 * gridSpacing[0], coords[1] + 0.5 * gridSpacing[1], coords[2] + 0.5 * gridSpacing[2], dx, dy, dz, periodic_local);
          
-         cuint bitfield = technical[stencil.ooo()]->SOLVE;
+         cuint bitfield = technical[stencil.ooo()].SOLVE;
          
          for (uint iface = 0; iface < 6; iface++) {
             if (facesToProcess_local[iface] && isThisCellOnAFace[iface]) {
