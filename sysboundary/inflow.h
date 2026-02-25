@@ -125,7 +125,9 @@ protected:
    void setBFromTemplate(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                          fsgrids::perbspan perb,
                          fsgrids::bgbspan bgb,
-                         fsgrids::technicalspan technical, FieldSolverGrid &fsgrid);
+                         fsgrids::technicalspan technical,
+                         FieldSolverGrid &fsgrid,
+                         const bool resetSolved);
 };
 } // namespace SBC
 

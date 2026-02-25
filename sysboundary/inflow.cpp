@@ -210,7 +210,7 @@ namespace SBC {
    void Inflow::setBFromTemplate(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                  fsgrids::perbspan perb,
                                  fsgrids::bgbspan bgb,
-                                 fsgrids::technicalspan technical, FieldSolverGrid &fsgrid
+                                 fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
                                  const bool resetSolved) {
       const auto facesToProcess_local = this->facesToProcess;
       std::array<bool, 3> periodic_local = this->periodic;
