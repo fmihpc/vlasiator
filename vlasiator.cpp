@@ -503,8 +503,8 @@ int simulate(int argn,char* args[]) {
    // touched as we are in boundary cells for components that aren't solved. We do a straight full copy instead
    // of looping and detecting boundary types here.
    fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>> perbdt2(perb.view());
-
-   const FieldSolverData fieldSolverData(perb, perbdt2, e, edt2, ehall, egradpe, egradpedt2, moments, momentsdt2, dperb,
+   // fieldSolverData not const as we need to update the spans for moments and momentsdt2 when filtering
+   FieldSolverData fieldSolverData(perb, perbdt2, e, edt2, ehall, egradpe, egradpedt2, moments, momentsdt2, dperb,
                                          dmoments, dmomentsdt2, bgb, vol, technical, fsgrid);
    initFsTimer.stop();
 
@@ -849,6 +849,7 @@ int simulate(int argn,char* args[]) {
             phiprof::Timer writeSysTimer {"write-system"};
             logFile << "(IO): Writing spatial cell and reduced system data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
             const bool writeGhosts = true;
+
             if (writeGrid(mpiGrid, fieldSolverData, technical.view(), version, config, &outputReducer, i, P::systemStripeFactor,
                           writeGhosts) == false) {
                cerr << "FAILED TO WRITE GRID AT" << __FILE__ << " " << __LINE__ << endl;
@@ -1160,6 +1161,11 @@ int simulate(int argn,char* args[]) {
          // Copy moments over into the fsgrid.
          feedMomentsIntoFsGrid(mpiGrid, cells, moments, technical.view(), fsgrid, false);
          feedMomentsIntoFsGrid(mpiGrid, cells, momentsdt2, technical.view(), fsgrid, true);
+         // Update the spans of the filtered grids that were swapped in filtering
+         if (P::amrMaxSpatialRefLevel > 0) {
+            fieldSolverData.moments = moments.view();
+            fieldSolverData.momentsDt2 = momentsdt2.view();
+         }
          couplingInTimer.stop();
 
          propagateFields(perb.view(), perbdt2.view(), e.view(), edt2.view(), ehall.view(), egradpe.view(),
