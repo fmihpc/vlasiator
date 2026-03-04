@@ -190,7 +190,7 @@ bool cellIsTimeclassRelevant(SpatialCell* cell) {
 // if not, returns those cells which need a bigger timeclass
 // recalculates all cellwise tc limits
 
-// skips over cells that are copysphere or do_not_compute, as those should not affect timestep length
+// skips over cells that are certain boundaries as defined above, as those should not affect timestep length
 std::vector<CellID> checkCellTimeclasses(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
 
    std::vector<CellID> retVec = {};
@@ -228,6 +228,7 @@ void assignCellTimeclass(SpatialCell* cell, const double cellDt) {
       return;
    }
 
+   // should this be a ceiling instead of floor??
    double dtdiff = int(log2((cellDt * P::timeclassDtModifier)/baseTcDt));
    int cellTimeClass = max(0.0,(P::currentMaxTimeclass - P::timeclassBuffer) - max(0.0, dtdiff));
 
