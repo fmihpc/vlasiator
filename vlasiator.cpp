@@ -27,6 +27,7 @@
 #include <iostream>
 #include <cmath>
 #include <limits>
+#include <type_traits>
 #include <vector>
 #include <sstream>
 #include <ctime>
@@ -741,6 +742,7 @@ int simulate(int argn,char* args[]) {
    Real newDt;
    bool dtIsChanged {false};
    bool additionalTimeclassCreated {false};
+   bool aCellHadTimeclassChanged {false};
 
    /* Arrays for storing local (per process) and global max dt
    0th position stores ordinary space propagation dt
@@ -1918,10 +1920,43 @@ int simulate(int argn,char* args[]) {
 
                std::cout << "recomputing all timeclasses as fractimestep is 0" << std::endl;
 
+               // step back all cells in acceleration space
+               calculateAcceleration(mpiGrid, -0.5);
 
+               // recompute all timeclasses again, and step them forward in space
+               
+               calculateGlobalTcVariables(timestepvector.at(1), timestepvector.at(2));
+
+               // this is called, because the next function checks against the smallest tcdt
+               updateTimeclassDts(timestepvector.at(1));
+
+               // checks if smallest tcdt is good
+               handleChangingofDt(dtMaxGlobal, dtIsChanged, newDt);
+
+               if (dtIsChanged) {
+                  // the above might change dt
+                  updateTimeclassDts(newDt);
+                  P::dt=P::timeclassDt[P::currentMaxTimeclass];
+               } else {
+                  updateTimeclassDts(timestepvector.at(1));
+                  P::dt=P::timeclassDt[P::currentMaxTimeclass];
+               }
+
+               assingCellTimeclasses(mpiGrid);         
+
+               if(myRank == MASTER_RANK){
+                  std::cout << "timeclass dts = ";
+                  for(int i = 0; i <= P::currentMaxTimeclass; ++i){
+                     std::cout << i <<": "<<P::timeclassDt[i] << "s, ";
+                  }
+                  std::cout << endl;
+               }
+
+               // restep cells
+               calculateAcceleration(mpiGrid, 0.5);
 
             } else {
-
+               aCellHadTimeclassChanged = true;
                std::cout << "increasing timeclasses of bad cells" << std::endl;
 
             }
