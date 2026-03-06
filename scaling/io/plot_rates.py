@@ -49,7 +49,5 @@ labelLines(ax.get_lines(),xvals=10,size=6)
 ax.set_title('Vlasiator write performance "'+run_id+'"')
 
 plt.savefig(run_id+"_rates.png", dpi=300)
-
-
-
 plt.close()
+
