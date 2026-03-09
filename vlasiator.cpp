@@ -1906,6 +1906,7 @@ int simulate(int argn,char* args[]) {
          if (badTcCells.size() != 0) {
 
             std::cout << badTcCells.size() << " bad cells found:" << std::endl;
+            logFile << "\nBAD CELLS FOUND, FRACTIMESTEP = " << P::fractionalTimestep << "\n" << std::endl;
 
             for (auto c: badTcCells) {
                std::cout << mpiGrid[c]->get_cellid() << std::endl;
@@ -1919,6 +1920,7 @@ int simulate(int argn,char* args[]) {
             if (P::fractionalTimestep == 0) {
 
                std::cout << "recomputing all timeclasses as fractimestep is 0" << std::endl;
+               logFile << "\nrecomputing all timeclasses as fractimestep is 0\n" << std::endl;
 
                // step back all cells in acceleration space
                calculateAcceleration(mpiGrid, -0.5);
@@ -1958,14 +1960,72 @@ int simulate(int argn,char* args[]) {
             } else {
                aCellHadTimeclassChanged = true;
                std::cout << "increasing timeclasses of bad cells" << std::endl;
+               logFile << "\nincreasing timeclasses of bad cells\n" << std::endl;
+
+               //rolling back
+               calculateAcceleration(mpiGrid, -0.5, true, badTcCells);
+
+               increaseTimeclass(mpiGrid, badTcCells, additionalTimeclassCreated);
+
+               // rolling forward
+
+               calculateAcceleration(mpiGrid, 0.5, true, badTcCells);
 
             }
 
          } else {
             std::cout << "all cells pass check" << std::endl;
          }
+
       }
 
+      if (aCellHadTimeclassChanged == true && P::fractionalTimestep == 0) {
+
+
+         auto timestepvector = computeNewTimeStep(mpiGrid, technicalGrid, dtMaxLocal, dtMaxGlobal, dtMinMaxLocal, dtMinMaxGlobal);
+
+         //if we upgraded a cell timeclass, we do some stuff on the next 0th fractional timestep
+
+         aCellHadTimeclassChanged = false;
+         std::cout << "recomputing all timeclasses as fractimestep is 0, and we increased a cell timeclass on the previous full timestep." << std::endl;
+
+         // step back all cells in acceleration space
+         calculateAcceleration(mpiGrid, -0.5);
+
+         // recompute all timeclasses again, and step them forward in space
+         
+         calculateGlobalTcVariables(timestepvector.at(1), timestepvector.at(2));
+
+         // this is called, because the next function checks against the smallest tcdt
+         updateTimeclassDts(timestepvector.at(1));
+
+         // checks if smallest tcdt is good
+         handleChangingofDt(dtMaxGlobal, dtIsChanged, newDt);
+
+         if (dtIsChanged) {
+            // the above might change dt
+            updateTimeclassDts(newDt);
+            P::dt=P::timeclassDt[P::currentMaxTimeclass];
+         } else {
+            updateTimeclassDts(timestepvector.at(1));
+            P::dt=P::timeclassDt[P::currentMaxTimeclass];
+         }
+
+         assingCellTimeclasses(mpiGrid);         
+
+         if(myRank == MASTER_RANK){
+            std::cout << "timeclass dts = ";
+            for(int i = 0; i <= P::currentMaxTimeclass; ++i){
+               std::cout << i <<": "<<P::timeclassDt[i] << "s, ";
+            }
+            std::cout << endl;
+         }
+
+         // restep cells
+         calculateAcceleration(mpiGrid, 0.5);
+
+
+      }
 
       //    phiprof::Timer dyndt_check {"check-and-update-dynamic-dt"};
          
