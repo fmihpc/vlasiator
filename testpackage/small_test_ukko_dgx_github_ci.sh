@@ -25,6 +25,7 @@ reference_revision="CI_gpu_reference"
 
 bin="$GITHUB_WORKSPACE/vlasiator"
 diffbin="$GITHUB_WORKSPACE/vlsvdiff_DP"
+vlasiargs="--GPUallocations=128"
 
 export UCX_NET_DEVICES=eth0
 ulimit -c unlimited
@@ -82,7 +83,7 @@ diffbin=$( readlink -f $diffbin )
 test_dir=$( readlink -f $test_dir)
 
 flags=$(  $run_command $bin  --version |grep CXXFLAGS)
-solveropts=$(echo $flags|sed 's/[-+]//g' | gawk '{for(i = 1;i<=NF;i++) { if( $i=="DDP" || $i=="DFP" || index($i,"PF")|| index($i,"DVEC") || index($i,"SEMILAG") ) printf "__%s", $(i) }}')
+solveropts=$(echo $flags|sed 's/[-+]//g' | gawk '{for(i = 1;i<=NF;i++) { if( $i=="DDP" || $i=="DFP" || index($i,"PF")|| index($i,"DVEC") || index($i,"SEMILAG") || index($i,"DWID") ) printf "__%s", $(i) }}')
 revision=$( $run_command $bin --version |gawk '{if(flag==1) {print $1;flag=0}if ($3=="log") flag=1;}' )
 
 echo "----------"
@@ -125,9 +126,9 @@ for run in ${run_tests[*]}; do
 
    # Run the actual simulation
    if [[ ${single_cell[$run]} ]]; then
-      { $small_run_command $bin --run_config=${test_name[$run]}.cfg 2>&1 1>&3 3>&- | tee $GITHUB_WORKSPACE/stderr.txt; exit ${PIPESTATUS[0]}; } 3>&1 1>&2 | tee $GITHUB_WORKSPACE/stdout.txt
+      { $small_run_command $bin --run_config=${test_name[$run]}.cfg $vlasiargs 2>&1 1>&3 3>&- | tee $GITHUB_WORKSPACE/stderr.txt; exit ${PIPESTATUS[0]}; } 3>&1 1>&2 | tee $GITHUB_WORKSPACE/stdout.txt
    else
-      { $run_command $bin --run_config=${test_name[$run]}.cfg 2>&1 1>&3 3>&- | tee $GITHUB_WORKSPACE/stderr.txt; exit ${PIPESTATUS[0]}; } 3>&1 1>&2 | tee $GITHUB_WORKSPACE/stdout.txt
+      { $run_command $bin --run_config=${test_name[$run]}.cfg  $vlasiargs 2>&1 1>&3 3>&- | tee $GITHUB_WORKSPACE/stderr.txt; exit ${PIPESTATUS[0]}; } 3>&1 1>&2 | tee $GITHUB_WORKSPACE/stdout.txt
    fi
 
    # Store error return value
@@ -264,9 +265,9 @@ for run in ${run_tests[*]}; do
 
            elif [ ! "${variables[$i]}" == "proton" ]
            then # Regular vg_ variable
-               C=$( $run_command_tools $diffbin ${reference_result_dir}/${vlsv} ${vlsv_dir}/${vlsv} ${variables[$i]} ${indices[$i]} )
-               relativeValue=$(grep "The relative 0-distance between both datasets" <<< $C |gawk '{print $8}'  )
-               absoluteValue=$(grep "The absolute 0-distance between both datasets" <<< $C |gawk '{print $8}'  )
+               A=$( $run_command_tools $diffbin ${reference_result_dir}/${vlsv} ${vlsv_dir}/${vlsv} ${variables[$i]} ${indices[$i]} )
+               relativeValue=$(grep "The relative 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
+               absoluteValue=$(grep "The absolute 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
                #print the results
                echo -e " ${variables[$i]}_${indices[$i]}\t  ${absoluteValue}\t  ${relativeValue}" | expand -t $tabseq # list matches tabs above
 

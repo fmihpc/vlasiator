@@ -25,6 +25,7 @@ reference_revision="current"
 
 bin="/proj/USERNAME/BINARYNAME"
 diffbin="/proj/group/spacephysics/vlasiator_testpackage/vlsvdiff_DP_ukkogpu"
+vlasiargs="--GPUallocations=128"
 
 export UCX_NET_DEVICES=eth0
 ulimit -c unlimited

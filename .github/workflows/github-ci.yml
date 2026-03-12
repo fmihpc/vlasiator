@@ -358,6 +358,46 @@ jobs:
           path: vlasiator
           if-no-files-found: error
 
+  build_TP_WID8_ukkoGPU:
+    # Build Vlasiator with testpackage flags, on the ukko cluster using
+    # its nvidia gpus and setting the block size to WID=8
+    runs-on: carrington
+
+    steps:
+      - name: Clean workspace
+        run: |
+          RUN_STRING=$( cat << MORO
+          rm -rf libraries library-build testpackage
+          rm -f libraries.tar.zst testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
+          rm -f *.xml
+          MORO
+          )
+          srun -M ukko bash -c "$RUN_STRING"
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: Make clean
+        run: VLASIATOR_ARCH=ukko_dgx make clean
+      - uses: ursg/gcc-problem-matcher@master
+      - name: Compile vlasiator (Testpackage build w/ CUDA)
+        run: |
+          export VLASIATOR_ARCH=ukko_dgx
+          srun -Mukko -pgpu-oversub --job-name CI_tp_compile --interactive --nodes=1 -n 1 -c 8 --mem-per-cpu=2G -t 0:20:0 bash -c 'module purge; ml OpenMPI/4.1.6.withucx-GCC-13.2.0 PAPI/7.1.0-GCCcore-13.2.0 CUDA/12.6.0; export VLASIATOR_ARCH=ukko_dgx; make WID=8 -j 9 testpackage; sleep 10s'
+      - name: Make sure the output binary is visible in lustre
+        uses: nick-fields/retry@v3
+        with:
+          timeout_seconds: 15
+          max_attempts: 3
+          retry_on: error
+          command: ls vlasiator
+      - name: Upload testpackage binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: vlasiator-testpackage-WID8-ukkoGPU
+          path: vlasiator
+          if-no-files-found: error
+
   build_TP_HILE-G:
     # Build Vlasiator with testpackage flags, on the HILE cluster using
     # its AMD gpus
@@ -402,6 +442,7 @@ jobs:
           name: vlasiator-testpackage-HILE-G
           path: vlasiator
           if-no-files-found: error
+
 
   # build_prod_debug_HILE-G: # TODO: activate debug flags once that's supported on HILE, still doing regular production compilation.
   build_prod_HILE-G:
@@ -948,12 +989,76 @@ jobs:
         diff -q equatorial.bin /turso/group/spacephysics/vlasiator/testpackage/CI_reference/equatorial.bin
         diff -q polar.bin /turso/group/spacephysics/vlasiator/testpackage/CI_reference/polar.bin
 
-  # run_TP_ukkoGPU:
+  run_TP_ukkoGPU:
+    # Run the testpackage on the Ukko GPU cluster (via Carrington frontend)
+    runs-on: carrington
+    needs: [build_TP_ukkoGPU, build_tools_ukkoGPU]
+    continue-on-error: true
+
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v4
+      with:
+        submodules: false
+    - name: Download testpackage binary
+      uses: actions/download-artifact@v4
+      with:
+        name: vlasiator-testpackage-ukkoGPU
+    - name: Download tools
+      uses: actions/download-artifact@v4
+      with:
+        name: vlasiator-tools-ukkoGPU
+    - name: Run GPU testpackage
+      id: run
+      run: |
+        chmod +x $GITHUB_WORKSPACE/vlasiator
+        chmod +x $GITHUB_WORKSPACE/vlsv*_DP
+        cd testpackage
+        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/libraries/lib
+        sbatch -W -o testpackage_run_output.txt ./small_test_ukko_dgx_github_ci.sh
+        # Clean mca_base_component warning crud from output file
+        sed -i '/mca_base_component_repository_open/d' testpackage_run_output.txt
+        PARSE_OUTPUT_CMD=$( cat << MORO
+        echo "Job finished, checking output."
+        cat testpackage_run_output.txt
+        cat $GITHUB_STEP_SUMMARY > $GITHUB_WORKSPACE/testpackage_check_description.txt
+        cd $GITHUB_WORKSPACE
+        ls -halB testpackage_check_description.txt
+        tar -czf testpackage-output-ukkoGPU.tar.gz testpackage_check_description.txt testpackage_output_variables.txt
+        MORO
+        )
+        srun --job-name CI_package_results -M ukko -N 1 -c 1 --mem=1G bash -c "$PARSE_OUTPUT_CMD"
+        if [ -f $GITHUB_WORKSPACE/testpackage_failed ]; then
+          # Fail this step if any test failed.
+          exit 1
+        fi
+    - name: Scancel dangling job upon cancellation
+      if: cancelled()
+      run: |
+        # Try accessing the job id echoed by the job script.
+        scancel ${{ steps.run.outputs.SLURM_JOB_ID }}
+    - name: Make sure the output tarball is visible in lustre
+      uses: nick-fields/retry@v3
+      with:
+        timeout_seconds: 15
+        max_attempts: 3
+        retry_on: error
+        command: ls $GITHUB_WORKSPACE/testpackage-output-ukkoGPU.tar.gz
+    - name: Upload testpackage output
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: testpackage-output-ukkoGPU
+        path: testpackage-output-ukkoGPU.tar.gz
+      # Note: Testpackage output is further processed in the pr_report.yml workflow
+      # (to produce Checks against pull requests)
+
+  # run_TP_WID8_ukkoGPU:
   #   # Run the testpackage on the Ukko GPU cluster (via Carrington frontend)
   #   runs-on: carrington
   #   needs: [build_TP_ukkoGPU, build_tools_ukkoGPU, build_libraries_ukkoGPU]
   #   continue-on-error: true
-
+  #
   #   steps:
   #   - name: Checkout source
   #     uses: actions/checkout@v4
@@ -962,7 +1067,7 @@ jobs:
   #   - name: Download testpackage binary
   #     uses: actions/download-artifact@v5
   #     with:
-  #       name: vlasiator-testpackage-ukkoGPU
+  #       name: vlasiator-testpackage-WID8-ukkoGPU
   #   - name: Download tools
   #     uses: actions/download-artifact@v5
   #     with:
@@ -980,14 +1085,18 @@ jobs:
   #       chmod +x $GITHUB_WORKSPACE/vlsv*_DP
   #       cd testpackage
   #       export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/libraries/lib
+  #       # Change the run script to have reference data point to WID8 version
+  #       sed -i 's/CI_gpu_reference/CI_gpu_reference_WID8/' ./small_test_ukko_dgx_github_ci.sh
   #       sbatch -W -o testpackage_run_output.txt ./small_test_ukko_dgx_github_ci.sh
+  #       # Clean mca_base_component warning crud from output file
+  #       sed -i '/mca_base_component_repository_open/d' testpackage_run_output.txt
   #       PARSE_OUTPUT_CMD=$( cat << MORO
   #       echo "Job finished, checking output."
   #       cat testpackage_run_output.txt
   #       cat $GITHUB_STEP_SUMMARY > $GITHUB_WORKSPACE/testpackage_check_description.txt
   #       cd $GITHUB_WORKSPACE
   #       ls -halB testpackage_check_description.txt
-  #       tar -czf testpackage-output-ukkoGPU.tar.gz testpackage_check_description.txt testpackage_output_variables.txt
+  #       tar -czf testpackage-output-WID8-ukkoGPU.tar.gz testpackage_check_description.txt testpackage_output_variables.txt
   #       MORO
   #       )
   #       srun --job-name CI_package_results -M ukko -N 1 -c 1 --mem=1G bash -c "$PARSE_OUTPUT_CMD"
@@ -1006,13 +1115,13 @@ jobs:
   #       timeout_seconds: 15
   #       max_attempts: 3
   #       retry_on: error
-  #       command: ls $GITHUB_WORKSPACE/testpackage-output-ukkoGPU.tar.gz
+  #       command: ls $GITHUB_WORKSPACE/testpackage-output-WID8-ukkoGPU.tar.gz
   #   - name: Upload testpackage output
   #     uses: actions/upload-artifact@v4
   #     if: always()
   #     with:
-  #       name: testpackage-output-ukkoGPU
-  #       path: testpackage-output-ukkoGPU.tar.gz
+  #       name: testpackage-output-WID8-ukkoGPU
+  #       path: testpackage-output-WID8-ukkoGPU.tar.gz
   #     # Note: Testpackage output is further processed in the pr_report.yml workflow
   #     # (to produce Checks against pull requests)
 

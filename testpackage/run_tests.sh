@@ -28,7 +28,7 @@ if [[ ! $small_run_command ]]; then
 fi
 
 flags=$(  $run_command $bin  --version |grep CXXFLAGS)
-solveropts=$(echo $flags|sed 's/[-+]//g' | gawk '{for(i = 1;i<=NF;i++) { if( $i=="DDP" || $i=="DFP" || index($i,"PF")|| index($i,"DVEC") || index($i,"SEMILAG") ) printf "__%s", $(i) }}')
+solveropts=$(echo $flags|sed 's/[-+]//g' | gawk '{for(i = 1;i<=NF;i++) { if( $i=="DDP" || $i=="DFP" || index($i,"PF") || index($i,"DVEC") || index($i,"SEMILAG") || index($i,"DWID") ) printf "__%s", $(i) }}')
 revision=$( $run_command $bin --version |gawk '{if(flag==1) {print $1;flag=0}if ($3=="log") flag=1;}' )
 
 if [ $create_verification_files == 1 ]
@@ -84,10 +84,10 @@ do
     # Run the actual simulation
     if [[ ${single_cell[$run]} ]]; then
     	$small_run_command $bin --version  > VERSION.txt
-	$small_run_command $bin --run_config=${test_name[$run]}.cfg
+	$small_run_command $bin --run_config=${test_name[$run]}.cfg $vlasiargs
     else
 	$run_command $bin --version  > VERSION.txt
-	$run_command $bin --run_config=${test_name[$run]}.cfg
+	$run_command $bin --run_config=${test_name[$run]}.cfg $vlasiargs
     fi
 
     # Run postprocessing script, if it exists
@@ -182,9 +182,9 @@ do
                     echo -e " ${variables[$i]}_${indices[$i]}\t  ${absoluteValue}\t  ${relativeValue}" | expand -t $tabseq # list matches tabs above
                 elif [ ! "${variables[$i]}" == "proton" ]
                 then # Regular vg_ variable
-                    C=$( $run_command_tools $diffbin ${reference_result_dir}/${vlsv} ${vlsv_dir}/${vlsv} ${variables[$i]} ${indices[$i]} )
-                    relativeValue=$(grep "The relative 0-distance between both datasets" <<< $C |gawk '{print $8}'  )
-                    absoluteValue=$(grep "The absolute 0-distance between both datasets" <<< $C |gawk '{print $8}'  )
+                    A=$( $run_command_tools $diffbin ${reference_result_dir}/${vlsv} ${vlsv_dir}/${vlsv} ${variables[$i]} ${indices[$i]} )
+                    relativeValue=$(grep "The relative 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
+                    absoluteValue=$(grep "The absolute 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
                     #print the results
                     echo -e " ${variables[$i]}_${indices[$i]}\t  ${absoluteValue}\t  ${relativeValue}" | expand -t $tabseq # list matches tabs above
                 elif [ "${variables[$i]}" == "proton" ]
@@ -197,7 +197,7 @@ do
             done # loop over variables
 
             # Print also time difference, if it is not zero
-            timeDiff=$(grep "delta t" <<< $C |gawk '{print $8}'  )
+            timeDiff=$(grep "delta t" <<< $A |gawk '{print $8}'  )
             if (( $(awk 'BEGIN{print ('$timeDiff'!= 0.0)?1:0}') ))
             then
                 echo "WARNING! VLSV file timestamps differ by ${timeDiff}s."

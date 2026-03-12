@@ -1,4 +1,4 @@
-name: Generate testpackage reference data on Carrington
+name: Generate testpackage reference data on the Ukko-DGX cluster using WID=8 larger blocks
 
 on:
   # Only run when triggered manually
@@ -31,7 +31,7 @@ jobs:
     - uses: ursg/gcc-problem-matcher@master
     - name: Compile vlasiator (Testpackage build w/ CUDA) and fluxfunction
       run: |
-        srun -Mukko -pgpu-oversub --job-name CI_tp_compile --interactive --nodes=1 -n 1 -c 8 --mem-per-cpu=2G -t 0:20:0 bash -c 'module purge; ml OpenMPI/4.1.6.withucx-GCC-13.2.0 PAPI/7.1.0-GCCcore-13.2.0 CUDA/12.6.0; export VLASIATOR_ARCH=ukko_dgx; make -j 9 testpackage fluxfunction; sleep 10s'
+        srun -Mukko -pgpu-oversub --job-name CI_tp_compile --interactive --nodes=1 -n 1 -c 8 --mem-per-cpu=2G -t 0:20:0 bash -c 'module purge; ml OpenMPI/4.1.6.withucx-GCC-13.2.0 PAPI/7.1.0-GCCcore-13.2.0 CUDA/12.6.0; export VLASIATOR_ARCH=ukko_dgx; make WID=8 -j 9 testpackage fluxfunction; sleep 10s'
     - name: Make sure the output binary is visible in lustre
       uses: nick-fields/retry@v3
       with:

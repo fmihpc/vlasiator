@@ -297,6 +297,7 @@ int simulate(int argn,char* args[]) {
    vmesh::getMeshWrapper()->initVelocityMeshes(getObjectWrapper().particleSpecies.size());
    readParamsTimer.stop();
 
+   #ifndef USE_GPU
    // Check for correct application of vectorclass values:
    if ( (VECL<WID) ||
         (VECL*VEC_PER_PLANE != WID2) ||
@@ -312,6 +313,7 @@ int simulate(int argn,char* args[]) {
       }
       exit(1);
    }
+   #endif
 
    // Verify correct handling of floating point exceptions
    // see https://github.com/fmihpc/vlasiator/pull/845
