@@ -148,11 +148,11 @@ cd ..
 # Build boost (only if system module is not available)
 if [[ $PLATFORM == "-hile_gpu" || $PLATFORM == "-leonardo_booster" || $PLATFORM == "-leonardo_dcgp" || $PLATFORM == "-karolina_cuda" || $PLATFORM == "-karolina_gcc" || $PLATFORM == "-ukkogpu" ||  $PLATFORM == "-mahti_gcc_build" || $PLATFORM == "-frankenstein_hopper2_cuda" ]]; then
     # echo "### Downloading boost. ###"
-    # wget -q https://archives.boost.io/release/1.86.0/source/boost_1_86_0.tar.gz
+    # wget -q https://archives.boost.io/release/1.90.0/source/boost_1_90_0.tar.gz
     # echo "### Extracting boost. ###"
-    # tar -xzf boost_1_86_0.tar.gz
+    # tar -xzf boost_1_90_0.tar.gz
     echo "### Building boost. ###"
-    cd boost_1_86_0
+    cd boost_1_90_0
     ./bootstrap.sh --with-libraries=program_options --prefix=$WORKSPACE/libraries${PLATFORM} stage
     echo "using mpi ;" >> ./tools/build/src/user-config.jam
     ./b2
