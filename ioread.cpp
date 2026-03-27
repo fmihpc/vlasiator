@@ -1108,6 +1108,28 @@ bool readIonosphereNodeVariable(
 }
 
 /*!
+\brief read length of SpatialGrid vector variable
+\param file The ParallelReader file to use
+\param variableName Name of the variable to check
+*/
+int readVectorSize(vlsv::ParallelReader& file,
+                   const std::string& variableName){
+   uint64_t arraySize;
+   uint64_t vectorSize;
+   vlsv::datatype::type dataType;
+   uint64_t byteSize;
+   list<pair<string,string> > attribs;
+   attribs.push_back(make_pair("name",variableName));
+   attribs.push_back(make_pair("mesh","SpatialGrid"));
+
+   if (file.getArrayInfo("VARIABLE",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
+      logFile << "(RESTART)  ERROR: Failed to read " << endl << write;
+      return -1;
+   }
+   return (int)vectorSize;
+}
+
+/*!
 \brief Read in state from a vlsv file in order to restart simulations
 \param mpiGrid Vlasiator's grid
 \param name Name of the restart file e.g. "restart.00052.vlsv"

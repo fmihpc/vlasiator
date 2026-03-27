@@ -66,7 +66,6 @@ using namespace std;
 
 extern Logger logFile;
 
-void initVelocityGridGeometry(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
 void initSpatialCellCoordinates(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
 void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
 
@@ -143,11 +142,24 @@ void initializeGrids(
                     sysBoundaries.isPeriodic(2))
       .initialize(comm)
       .set_geometry(geom_params);
+   
+   mpiGrid.set_load_balance_norm(P::loadBalanceNorm);
+
+   for (const auto& [key, value] : P::loadBalanceOptions) {
+      mpiGrid.set_partitioning_option(key, value);
+   }
+
+   mpiGrid.set_partitioning_option("LB_APPROACH", "PARTITION");
+
+   // Hypergraph partitioning needs stencils initialized
+   initializeStencils(mpiGrid);
    dccrgTimer.stop();
 
    phiprof::Timer refineTimer {"Refine spatial cells"};
-   // We need this first as well
    recalculateLocalCellsCache(mpiGrid);
+
+   setPartitioningNeighborhoods(mpiGrid);
+
    if (!P::isRestart) {
       // Note call to project.refineSpatialCells below
       if (P::amrMaxSpatialRefLevel > 0 && project.refineSpatialCells(mpiGrid)) {
@@ -166,13 +178,17 @@ void initializeGrids(
       }
    }
    refineTimer.stop();
-   initializeStencils(mpiGrid);
+
+   mpiGrid.set_partitioning_option("OBJ_WEIGHTS_COMPARABLE", "1");
 
    for (const auto& [key, value] : P::loadBalanceOptions) {
       mpiGrid.set_partitioning_option(key, value);
    }
    phiprof::Timer initialLBTimer {"Initial load-balancing"};
    if (myRank == MASTER_RANK) logFile << "(INIT): Starting initial load balance." << endl << writeVerbose;
+
+   // TODO: do we really need two initial LB?
+   setPartitioningNeighborhoods(mpiGrid);
    mpiGrid.balance_load(); // Direct DCCRG call, recalculate cache afterwards
    recalculateLocalCellsCache(mpiGrid);
 
@@ -316,7 +332,7 @@ void initializeGrids(
    } else if (P::writeFullBGB) {
       // If, instead of starting a regular simulation, we are only writing out the background field, it is enough to set a dummy load balance value of 1 here.
       for (size_t i=0; i<cells.size(); ++i) {
-         mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] = 1;
+         mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] = 1.0;
       }
    }
 
@@ -404,6 +420,8 @@ void initializeGrids(
       P::dt = P::bailout_min_dt;
    }
 
+   mpiGrid.set_partitioning_option("LB_APPROACH", P::loadBalanceOptions.count("LB_APPROACH") ? P::loadBalanceOptions["LB_APPROACH"] : "REPARTITION");
+
    // With all cell data in place, make preparations for translation
    prepareAMRLists(mpiGrid);
    initialStateTimer.stop();
@@ -481,6 +499,24 @@ void setFaceNeighborRanks( dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
    }
 }
 
+void setPartitioningNeighborhoods(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
+   const vector<CellID>& cells = getLocalCells();
+   for (auto& cell : cells){
+      mpiGrid.clear_partitioning_neighborhoods(cell);
+      for (auto neighborhood : P::partitioningNeighborhoods) {
+         // TODO: for now, layer 1 cells communicate in the extended neighborhood
+         // If this is ever fixed, SYSBOUNDRIES_NEIGHBORHOOD_ID needs a case
+         if (neighborhood == Neighborhoods::SYSBOUNDARIES_EXTENDED) {
+            if (mpiGrid[cell]->sysBoundaryLayer == 1 || mpiGrid[cell]->sysBoundaryLayer == 2) {
+               mpiGrid.add_partitioning_neighborhood(cell, neighborhood);
+            }
+         } else {
+            mpiGrid.add_partitioning_neighborhood(cell, neighborhood);
+         }
+      }
+   }
+}
+
 void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, SysBoundary& sysBoundaries, FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid, bool doTranslationLists){
    // Invalidate cached cell lists
    Parameters::meshRepartitioned = true;
@@ -494,6 +530,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    deallocTimer.stop();
 
    //set weights based on each cells LB weight counter
+   setPartitioningNeighborhoods(mpiGrid);
    const vector<CellID>& cells = getLocalCells();
    for (size_t i=0; i<cells.size(); ++i){
       // Set cell weight. We could use different counters or number of blocks if different solvers are active.
