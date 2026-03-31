@@ -167,7 +167,10 @@ void initializeGrids(
       }
    }
    refineTimer.stop();
+
+   phiprof::Timer stencilTimer {"Initialize stencils"};
    initializeStencils(mpiGrid);
+   stencilTimer.stop();
 
    for (const auto& [key, value] : P::loadBalanceOptions) {
       mpiGrid.set_partitioning_option(key, value);
@@ -202,10 +205,13 @@ void initializeGrids(
    initBoundaryTimer.stop();
    std::cout << __FILE__<<":" << __LINE__ <<"\n";
 
+   phiprof::Timer initTransferTimer {"Sysboundaries update"};
+
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_DIMENSIONS);
    mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::SYSBOUNDARIES);
 std::cout << __FILE__<<":" << __LINE__ <<"\n";
    computeCoupling(mpiGrid, cells, technicalGrid);
+   initTransferTimer.stop();
 
    // We want this before restart refinement
    phiprof::Timer classifyTimer {"Classify cells (sys boundary conditions)"};
@@ -338,7 +344,10 @@ std::cout << __FILE__<<":" << __LINE__ <<"\n";
 
    std::cout << __FILE__<<":" << __LINE__ <<" about to call balanceLoad\n";
    // Balance load before we transfer all data below
+   phiprof::Timer balanceTimer {"Balance load before transfers"};
+
    balanceLoad(mpiGrid, sysBoundaries, technicalGrid, false);
+   balanceTimer.stop();
    // Function includes re-calculation of local cells cache, but
    // setting third parameter to false skips preparation of
    // translation cell lists and building of pencils.
@@ -1184,6 +1193,7 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    std::vector<neigh_t> neighborhood;
    std::set<neigh_t> all_neighborhoods;
    
+   phiprof::Timer stencil1 {"Stencils init 1"};
 
    for (int z = -1; z <= 1; z++) {
       for (int y = -1; y <= 1; y++) {
@@ -1228,7 +1238,8 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       abort();
    }
 
-
+   stencil1.stop();
+   phiprof::Timer stencil2 {"Stencils init 2"};
 
    /*stencils for semilagrangian propagators*/
    neighborhood.clear();
@@ -1318,6 +1329,9 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    for (auto it : neighborhood){
       all_neighborhoods.emplace(it);
    }
+   stencil2.stop();
+   phiprof::Timer stencil3 {"Stencils init 3"};
+
    // if (!mpiGrid.add_neighborhood(VLASOV_SOLVER_X_GHOST_NEIGHBORHOOD_ID, neighborhood)) {
    //    std::cerr << "Failed to add neighborhood VLASOV_SOLVER_X_GHOST_NEIGHBORHOOD_ID \n";
    //    abort();
@@ -1531,8 +1545,11 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
          abort();
       }
    }
+   stencil3.stop();
+
 
    if (P::maxTimeclass > 0) {
+      phiprof::Timer timeclassInner {"Stencils init, timeclass, inner"};
       // stencils for timeghost haloes
       // first one using timeclassexacthaloextent = vlasovSolverGhostTranslateExtent
       // First: full +GT stencil in Y (last direction to be translated)
@@ -1588,6 +1605,8 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 
       // second one using timeclassouterhaloextent
       // neighborhood.clear();
+      timeclassInner.stop();
+      phiprof::Timer timeclassOuter {"Stencils init, timeclass, outer"};
       std::vector<neigh_t> neighborhood_outer;
 
       for(auto n : neighborhood){
@@ -1616,6 +1635,8 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
          abort();
       }
 
+      timeclassOuter.stop();
+      phiprof::Timer timeclassDiff {"Stencils init, timeclass, diff"};
       // third one using the other two's difference
       neighborhood.clear();
       for (int dy = -(int)P::timeclassOuterHaloExtent; dy <= (int)P::timeclassOuterHaloExtent; dy++){
@@ -1642,6 +1663,7 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    }
 
 
+   phiprof::Timer stencil5 {"Stencils init 5"};
 
    neighborhood.clear();
    for (int d = -1; d <= 1; d++) {

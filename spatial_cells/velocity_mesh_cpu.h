@@ -119,6 +119,7 @@ namespace vmesh {
    // Copy constructor
    inline VelocityMesh::VelocityMesh(const VelocityMesh& other) {
       meshID = other.meshID;
+      std::cout << __FILE__ << ":" << __LINE__ << " copy constr\n";
       globalToLocalMap = OpenBucketHashtable<vmesh::GlobalID,vmesh::LocalID>(other.globalToLocalMap);
       if (other.localToGlobalMap.size() > 0) {
          localToGlobalMap = std::vector<vmesh::GlobalID>(other.localToGlobalMap);
