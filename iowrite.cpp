@@ -400,7 +400,8 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
       }
 
       // Write velocity block IDs
-      vector<vmesh::GlobalID> velocityBlockIds(totalBlocks);
+      vector<vmesh::GlobalID> velocityBlockIds_g(totalBlocks);
+      blockIndex = 0;
       try {
          // gather data for writing
          for (size_t i=0; i<cells.size(); ++i) {
@@ -411,10 +412,13 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
             const vmesh::GlobalID *GIDlist = SC->get_velocity_grid(popID);
             CHK_ERR( gpuMemcpy(&velocityBlockIds[blockIndex], GIDlist, nBlocks*sizeof(vmesh::GlobalID), gpuMemcpyDeviceToHost));
             #else
+            int blocksum = 0;
             for (vmesh::LocalID block_i=0; block_i<velblocksghost->size(); ++block_i) {
                const vmesh::GlobalID block = velmeshghost->getGlobalID(block_i);
-               velocityBlockIds.push_back(block);
+               velocityBlockIds_g[blockIndex+block_i] = block;
             }
+            blockIndex += velblocksghost->size();
+
             #endif
          }
       } catch (...) {
@@ -433,11 +437,11 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
       attribs["name"] += '_';
       attribs["name"] += std::to_string(timeclass);
 
-      if (vlsvWriter.writeArray("BLOCKIDS", attribs, totalBlocks, vectorSize, velocityBlockIds.data()) == false) success = false;
-      if (success == false) logFile << "(MAIN) writeGrid: ERROR failed to write BLOCKIDS to file!" << endl << writeVerbose;
-      {
-         vector<vmesh::GlobalID>().swap(velocityBlockIds);
-      }
+      if (vlsvWriter.writeArray("BLOCKIDS", attribs, totalBlocks, vectorSize, velocityBlockIds_g.data()) == false) success = false;
+      if (success == false)logFile << "(MAIN) writeGrid: ERROR failed to write BLOCKIDS to file!" << endl << writeVerbose;
+
+      vector<vmesh::GlobalID>().swap(velocityBlockIds_g);
+
 
       // Write the velocity space data
       // set everything that is needed for writing in data such as the array name, size, datatype, etc..
