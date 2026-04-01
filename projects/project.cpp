@@ -102,7 +102,7 @@ namespace projects {
 
    void Project::getParameters() {
       typedef Readparameters RP;
-      RP::get("Project_common.seed", this->seed);
+      //RP::get("Project_common.seed", this->seed);
    }
 
    /** Initialize the Project. Velocity mesh and particle population

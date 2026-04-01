@@ -73,12 +73,12 @@ namespace projects {
       Project::getParameters();
 
       typedef Readparameters RP;
-      RP::get("Alfven.B0", this->B0);
-      RP::get("Alfven.Bx_guiding", this->Bx_guiding);
-      RP::get("Alfven.By_guiding", this->By_guiding);
-      RP::get("Alfven.Bz_guiding", this->Bz_guiding);
-      RP::get("Alfven.Wavelength", this->WAVELENGTH);
-      RP::get("Alfven.A_mag", this->A_MAG);
+      //RP::get("Alfven.B0", this->B0);
+      //RP::get("Alfven.Bx_guiding", this->Bx_guiding);
+      //RP::get("Alfven.By_guiding", this->By_guiding);
+      //RP::get("Alfven.Bz_guiding", this->Bz_guiding);
+      //RP::get("Alfven.Wavelength", this->WAVELENGTH);
+      //RP::get("Alfven.A_mag", this->A_MAG);
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
@@ -86,9 +86,9 @@ namespace projects {
 
          AlfvenSpeciesParameters sP;
 
-         RP::get(pop + "_Alfven.rho", sP.rho);
-         RP::get(pop + "_Alfven.Temperature",sP.T);
-         RP::get(pop + "_Alfven.A_vel", sP.A_VEL);
+         //RP::get(pop + "_Alfven.rho", sP.rho);
+         //RP::get(pop + "_Alfven.Temperature",sP.T);
+         //RP::get(pop + "_Alfven.A_vel", sP.A_VEL);
 
          speciesParams.push_back(sP);
       }

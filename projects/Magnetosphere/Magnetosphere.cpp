@@ -106,16 +106,16 @@ namespace projects {
 
       Real dummy;
       typedef Readparameters RP;
-      RP::get("Magnetosphere.constBgBX", this->constBgB[0]);
-      RP::get("Magnetosphere.constBgBY", this->constBgB[1]);
-      RP::get("Magnetosphere.constBgBZ", this->constBgB[2]);
-      RP::get("Magnetosphere.noDipoleInSW", dummy);
+      //RP::get("Magnetosphere.constBgBX", this->constBgB[0]);
+      //RP::get("Magnetosphere.constBgBY", this->constBgB[1]);
+      //RP::get("Magnetosphere.constBgBZ", this->constBgB[2]);
+      //RP::get("Magnetosphere.noDipoleInSW", dummy);
       this->noDipoleInSW = dummy == 1 ? true:false;
-      RP::get("Magnetosphere.dipoleScalingFactor", this->dipoleScalingFactor);
+      //RP::get("Magnetosphere.dipoleScalingFactor", this->dipoleScalingFactor);
 
-      RP::get("Magnetosphere.dipoleMirrorLocationX", this->dipoleMirrorLocationX);
+      //RP::get("Magnetosphere.dipoleMirrorLocationX", this->dipoleMirrorLocationX);
 
-      RP::get("Magnetosphere.dipoleType", this->dipoleType);
+      //RP::get("Magnetosphere.dipoleType", this->dipoleType);
 
       /* Enforce "dipole" (incl. correction terms) in solar wind with dipole type 4. */
       if ((this->dipoleType == 4) && (this->noDipoleInSW)) {
@@ -128,17 +128,17 @@ namespace projects {
 
       /** Read inner boundary parameters from either ionospheric or copysphere sysboundary condition */
       if (sysBoundaryContainer.existSysBoundary("Copysphere")) {
-         RP::get("copysphere.radius", this->ionosphereRadius);
-         RP::get("copysphere.centerX", this->center[0]);
-         RP::get("copysphere.centerY", this->center[1]);
-         RP::get("copysphere.centerZ", this->center[2]);
-         RP::get("copysphere.geometry", this->ionosphereGeometry);
+         //RP::get("copysphere.radius", this->ionosphereRadius);
+         //RP::get("copysphere.centerX", this->center[0]);
+         //RP::get("copysphere.centerY", this->center[1]);
+         //RP::get("copysphere.centerZ", this->center[2]);
+         //RP::get("copysphere.geometry", this->ionosphereGeometry);
       } else if (sysBoundaryContainer.existSysBoundary("Ionosphere")) {
-         RP::get("ionosphere.radius", this->ionosphereRadius);
-         RP::get("ionosphere.centerX", this->center[0]);
-         RP::get("ionosphere.centerY", this->center[1]);
-         RP::get("ionosphere.centerZ", this->center[2]);
-         RP::get("ionosphere.geometry", this->ionosphereGeometry);
+         //RP::get("ionosphere.radius", this->ionosphereRadius);
+         //RP::get("ionosphere.centerX", this->center[0]);
+         //RP::get("ionosphere.centerY", this->center[1]);
+         //RP::get("ionosphere.centerZ", this->center[2]);
+         //RP::get("ionosphere.geometry", this->ionosphereGeometry);
       } else {
          if(myRank == MASTER_RANK) {
             std::cerr<<"Warning in initializing Magnetosphere: Could not find inner boundary (ionosphere or copysphere)!"<<std::endl;
@@ -149,60 +149,60 @@ namespace projects {
          ionosphereRadius *= physicalconstants::R_E;
       }
 
-      RP::get("Magnetosphere.refine_L4radius", this->refine_L4radius);
-      RP::get("Magnetosphere.refine_L4nosexmin", this->refine_L4nosexmin);
+      //RP::get("Magnetosphere.refine_L4radius", this->refine_L4radius);
+      //RP::get("Magnetosphere.refine_L4nosexmin", this->refine_L4nosexmin);
 
-      RP::get("Magnetosphere.refine_L3radius", this->refine_L3radius);
-      RP::get("Magnetosphere.refine_L3nosexmin", this->refine_L3nosexmin);
-      RP::get("Magnetosphere.refine_L3tailwidth", this->refine_L3tailwidth);
-      RP::get("Magnetosphere.refine_L3tailheight", this->refine_L3tailheight);
-      RP::get("Magnetosphere.refine_L3tailxmin", this->refine_L3tailxmin);
-      RP::get("Magnetosphere.refine_L3tailxmax", this->refine_L3tailxmax);
+      //RP::get("Magnetosphere.refine_L3radius", this->refine_L3radius);
+      //RP::get("Magnetosphere.refine_L3nosexmin", this->refine_L3nosexmin);
+      //RP::get("Magnetosphere.refine_L3tailwidth", this->refine_L3tailwidth);
+      //RP::get("Magnetosphere.refine_L3tailheight", this->refine_L3tailheight);
+      //RP::get("Magnetosphere.refine_L3tailxmin", this->refine_L3tailxmin);
+      //RP::get("Magnetosphere.refine_L3tailxmax", this->refine_L3tailxmax);
 
-      RP::get("Magnetosphere.refine_L2radius", this->refine_L2radius);
-      RP::get("Magnetosphere.refine_L2tailthick", this->refine_L2tailthick);
-      RP::get("Magnetosphere.refine_L1radius", this->refine_L1radius);
-      RP::get("Magnetosphere.refine_L1tailthick", this->refine_L1tailthick);
+      //RP::get("Magnetosphere.refine_L2radius", this->refine_L2radius);
+      //RP::get("Magnetosphere.refine_L2tailthick", this->refine_L2tailthick);
+      //RP::get("Magnetosphere.refine_L1radius", this->refine_L1radius);
+      //RP::get("Magnetosphere.refine_L1tailthick", this->refine_L1tailthick);
 
-      RP::get("Magnetosphere.dipoleTiltPhi", this->dipoleTiltPhi);
-      RP::get("Magnetosphere.dipoleTiltTheta", this->dipoleTiltTheta);
-      RP::get("Magnetosphere.dipoleXFull", this->dipoleXFull);
-      RP::get("Magnetosphere.dipoleXZero", this->dipoleXZero);
-      RP::get("Magnetosphere.dipoleInflowBX", this->dipoleInflowB[0]);
-      RP::get("Magnetosphere.dipoleInflowBY", this->dipoleInflowB[1]);
-      RP::get("Magnetosphere.dipoleInflowBZ", this->dipoleInflowB[2]);
+      //RP::get("Magnetosphere.dipoleTiltPhi", this->dipoleTiltPhi);
+      //RP::get("Magnetosphere.dipoleTiltTheta", this->dipoleTiltTheta);
+      //RP::get("Magnetosphere.dipoleXFull", this->dipoleXFull);
+      //RP::get("Magnetosphere.dipoleXZero", this->dipoleXZero);
+      //RP::get("Magnetosphere.dipoleInflowBX", this->dipoleInflowB[0]);
+      //RP::get("Magnetosphere.dipoleInflowBY", this->dipoleInflowB[1]);
+      //RP::get("Magnetosphere.dipoleInflowBZ", this->dipoleInflowB[2]);
 
-      RP::get("Magnetosphere.zeroOutDerivativesX", this->zeroOutComponents[0]);
-      RP::get("Magnetosphere.zeroOutDerivativesY", this->zeroOutComponents[1]);
-      RP::get("Magnetosphere.zeroOutDerivativesZ", this->zeroOutComponents[2]);
+      //RP::get("Magnetosphere.zeroOutDerivativesX", this->zeroOutComponents[0]);
+      //RP::get("Magnetosphere.zeroOutDerivativesY", this->zeroOutComponents[1]);
+      //RP::get("Magnetosphere.zeroOutDerivativesZ", this->zeroOutComponents[2]);
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
          MagnetosphereSpeciesParameters sP;
 
-         RP::get(pop + "_Magnetosphere.rho", sP.rho);
-         RP::get(pop + "_Magnetosphere.T", sP.T);
-         RP::get(pop + "_Magnetosphere.VX0", sP.V0[0]);
-         RP::get(pop + "_Magnetosphere.VY0", sP.V0[1]);
-         RP::get(pop + "_Magnetosphere.VZ0", sP.V0[2]);
+         //RP::get(pop + "_Magnetosphere.rho", sP.rho);
+         //RP::get(pop + "_Magnetosphere.T", sP.T);
+         //RP::get(pop + "_Magnetosphere.VX0", sP.V0[0]);
+         //RP::get(pop + "_Magnetosphere.VY0", sP.V0[1]);
+         //RP::get(pop + "_Magnetosphere.VZ0", sP.V0[2]);
 
          /** Read inner boundary parameters from either ionospheric or copysphere sysboundary condition */
          if (sysBoundaryContainer.existSysBoundary("Copysphere")) {
-            RP::get(pop + "_copysphere.rho", sP.ionosphereRho);
-            RP::get(pop + "_copysphere.T", sP.ionosphereT);
-            RP::get(pop + "_copysphere.VX0", sP.ionosphereV0[0]);
-            RP::get(pop + "_copysphere.VY0", sP.ionosphereV0[1]);
-            RP::get(pop + "_copysphere.VZ0", sP.ionosphereV0[2]);
+            //RP::get(pop + "_copysphere.rho", sP.ionosphereRho);
+            //RP::get(pop + "_copysphere.T", sP.ionosphereT);
+            //RP::get(pop + "_copysphere.VX0", sP.ionosphereV0[0]);
+            //RP::get(pop + "_copysphere.VY0", sP.ionosphereV0[1]);
+            //RP::get(pop + "_copysphere.VZ0", sP.ionosphereV0[2]);
          } else if (sysBoundaryContainer.existSysBoundary("Ionosphere")) {
-            RP::get(pop + "_ionosphere.rho", sP.ionosphereRho);
-            RP::get(pop + "_ionosphere.T", sP.ionosphereT);
-            RP::get(pop + "_ionosphere.VX0", sP.ionosphereV0[0]);
-            RP::get(pop + "_ionosphere.VY0", sP.ionosphereV0[1]);
-            RP::get(pop + "_ionosphere.VZ0", sP.ionosphereV0[2]);
+            //RP::get(pop + "_ionosphere.rho", sP.ionosphereRho);
+            //RP::get(pop + "_ionosphere.T", sP.ionosphereT);
+            //RP::get(pop + "_ionosphere.VX0", sP.ionosphereV0[0]);
+            //RP::get(pop + "_ionosphere.VY0", sP.ionosphereV0[1]);
+            //RP::get(pop + "_ionosphere.VZ0", sP.ionosphereV0[2]);
          }
-         RP::get(pop + "_Magnetosphere.taperInnerRadius", sP.taperInnerRadius);
-         RP::get(pop + "_Magnetosphere.taperOuterRadius", sP.taperOuterRadius);
+         //RP::get(pop + "_Magnetosphere.taperInnerRadius", sP.taperInnerRadius);
+         //RP::get(pop + "_Magnetosphere.taperOuterRadius", sP.taperOuterRadius);
          // Backward-compatibility: cfgs from before Sep 2021 setting pop_ionosphere.taperRadius will fail with the unknown option.
          // Some fail-safety checks
          if(sP.taperInnerRadius < 0 || sP.taperOuterRadius < 0) {

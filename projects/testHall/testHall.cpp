@@ -69,14 +69,14 @@ namespace projects {
          std::cerr << "The selected project does not support multiple particle populations! Aborting in " << __FILE__ << " line " << __LINE__ << std::endl;
          abort();
       }
-      RP::get("TestHall.BX0", this->BX0);
-      RP::get("TestHall.BY0", this->BY0);
-      RP::get("TestHall.BZ0", this->BZ0);
-      RP::get("TestHall.VX0", this->VX0);
-      RP::get("TestHall.VY0", this->VY0);
-      RP::get("TestHall.VZ0", this->VZ0);
-      RP::get("TestHall.Temperature", this->TEMPERATURE);
-      RP::get("TestHall.rho", this->DENSITY);
+      //RP::get("TestHall.BX0", this->BX0);
+      //RP::get("TestHall.BY0", this->BY0);
+      //RP::get("TestHall.BZ0", this->BZ0);
+      //RP::get("TestHall.VX0", this->VX0);
+      //RP::get("TestHall.VY0", this->VY0);
+      //RP::get("TestHall.VZ0", this->VZ0);
+      //RP::get("TestHall.Temperature", this->TEMPERATURE);
+      //RP::get("TestHall.rho", this->DENSITY);
    }
 
    Realf TestHall::fillPhaseSpace(spatial_cell::SpatialCell *cell,

@@ -85,12 +85,12 @@ namespace projects {
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
       typedef Readparameters RP;
 
-      RP::get("Flowthrough.emptyBox",emptyBox);
-      RP::get("Flowthrough.Bx", this->Bx);
-      RP::get("Flowthrough.By", this->By);
-      RP::get("Flowthrough.Bz", this->Bz);
+      //RP::get("Flowthrough.emptyBox",emptyBox);
+      //RP::get("Flowthrough.Bx", this->Bx);
+      //RP::get("Flowthrough.By", this->By);
+      //RP::get("Flowthrough.Bz", this->Bz);
       string densityModelString;
-      RP::get("Flowthrough.densityModel",densityModelString);
+      //RP::get("Flowthrough.densityModel",densityModelString);
       if (densityModelString == "Maxwellian") densityModel = Maxwellian;
       else if (densityModelString == "SheetMaxwellian") densityModel = SheetMaxwellian;
       else if (densityModelString == "Square") densityModel = Square;
@@ -100,20 +100,20 @@ namespace projects {
          if (myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: Unknown option value!" << endl;
          exit(1);
       }
-      RP::get("Flowthrough.densityWidth",this->densityWidth);
-      RP::get("Flowthrough.rescaleDensity",this->rescaleDensityFlag);
+      //RP::get("Flowthrough.densityWidth",this->densityWidth);
+      //RP::get("Flowthrough.rescaleDensity",this->rescaleDensityFlag);
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
          FlowthroughSpeciesParameters sP;
 
-         RP::get(pop + "_Flowthrough.rho", sP.rho);
-         RP::get(pop + "_Flowthrough.rhoBase", sP.rhoBase);
-         RP::get(pop + "_Flowthrough.T", sP.T);
-         RP::get(pop + "_Flowthrough.VX0", sP.V0[0]);
-         RP::get(pop + "_Flowthrough.VY0", sP.V0[1]);
-         RP::get(pop + "_Flowthrough.VZ0", sP.V0[2]);
+         //RP::get(pop + "_Flowthrough.rho", sP.rho);
+         //RP::get(pop + "_Flowthrough.rhoBase", sP.rhoBase);
+         //RP::get(pop + "_Flowthrough.T", sP.T);
+         //RP::get(pop + "_Flowthrough.VX0", sP.V0[0]);
+         //RP::get(pop + "_Flowthrough.VY0", sP.V0[1]);
+         //RP::get(pop + "_Flowthrough.VZ0", sP.V0[2]);
 
          speciesParams.push_back(sP);
       }

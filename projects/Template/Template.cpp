@@ -48,7 +48,7 @@ namespace projects {
       Parameters::getParameters();
 
       typedef Readparameters RP;
-      RP::get("Template.param", this->param);
+      //RP::get("Template.param", this->param);
    }
 
    bool Template::initialize() {

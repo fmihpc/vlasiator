@@ -71,24 +71,24 @@ namespace projects {
       Project::getParameters();
       typedef Readparameters RP;
       Project::getParameters();
-      RP::get("Fluctuations.BX0", this->BX0);
-      RP::get("Fluctuations.BY0", this->BY0);
-      RP::get("Fluctuations.BZ0", this->BZ0);
-      RP::get("Fluctuations.magXPertAbsAmp", this->magXPertAbsAmp);
-      RP::get("Fluctuations.magYPertAbsAmp", this->magYPertAbsAmp);
-      RP::get("Fluctuations.magZPertAbsAmp", this->magZPertAbsAmp);
+      //RP::get("Fluctuations.BX0", this->BX0);
+      //RP::get("Fluctuations.BY0", this->BY0);
+      //RP::get("Fluctuations.BZ0", this->BZ0);
+      //RP::get("Fluctuations.magXPertAbsAmp", this->magXPertAbsAmp);
+      //RP::get("Fluctuations.magYPertAbsAmp", this->magYPertAbsAmp);
+      //RP::get("Fluctuations.magZPertAbsAmp", this->magZPertAbsAmp);
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
          FluctuationsSpeciesParameters sP;
-         RP::get(pop + "_Fluctuations.rho", sP.DENSITY);
-         RP::get(pop + "_Fluctuations.TemperatureX", sP.TEMPERATUREX);
-         RP::get(pop + "_Fluctuations.TemperatureY", sP.TEMPERATUREY);
-         RP::get(pop + "_Fluctuations.TemperatureZ", sP.TEMPERATUREZ);
-         RP::get(pop + "_Fluctuations.densityPertRelAmp", sP.densityPertRelAmp);
-         RP::get(pop + "_Fluctuations.velocityPertAbsAmp", sP.velocityPertAbsAmp);
-         RP::get(pop + "_Fluctuations.maxwCutoff", sP.maxwCutoff);
+         //RP::get(pop + "_Fluctuations.rho", sP.DENSITY);
+         //RP::get(pop + "_Fluctuations.TemperatureX", sP.TEMPERATUREX);
+         //RP::get(pop + "_Fluctuations.TemperatureY", sP.TEMPERATUREY);
+         //RP::get(pop + "_Fluctuations.TemperatureZ", sP.TEMPERATUREZ);
+         //RP::get(pop + "_Fluctuations.densityPertRelAmp", sP.densityPertRelAmp);
+         //RP::get(pop + "_Fluctuations.velocityPertAbsAmp", sP.velocityPertAbsAmp);
+         //RP::get(pop + "_Fluctuations.maxwCutoff", sP.maxwCutoff);
 
          speciesParams.push_back(sP);
       }

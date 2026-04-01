@@ -72,25 +72,25 @@ namespace projects {
       Project::getParameters();
       typedef Readparameters RP;
       Project::getParameters();
-      RP::get("Dispersion.B0", this->B0);
-      RP::get("Dispersion.magXPertAbsAmp", this->magXPertAbsAmp);
-      RP::get("Dispersion.magYPertAbsAmp", this->magYPertAbsAmp);
-      RP::get("Dispersion.magZPertAbsAmp", this->magZPertAbsAmp);
-      RP::get("Dispersion.maxwCutoff", this->maxwCutoff);
-      RP::get("Dispersion.angleXY", this->angleXY);
-      RP::get("Dispersion.angleXZ", this->angleXZ);
+      //RP::get("Dispersion.B0", this->B0);
+      //RP::get("Dispersion.magXPertAbsAmp", this->magXPertAbsAmp);
+      //RP::get("Dispersion.magYPertAbsAmp", this->magYPertAbsAmp);
+      //RP::get("Dispersion.magZPertAbsAmp", this->magZPertAbsAmp);
+      //RP::get("Dispersion.maxwCutoff", this->maxwCutoff);
+      //RP::get("Dispersion.angleXY", this->angleXY);
+      //RP::get("Dispersion.angleXZ", this->angleXZ);
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
         DispersionSpeciesParameters sP;
-        RP::get(pop + "_Dispersion.VX0", sP.VX0);
-        RP::get(pop + "_Dispersion.VY0", sP.VY0);
-        RP::get(pop + "_Dispersion.VZ0", sP.VZ0);
-        RP::get(pop + "_Dispersion.rho", sP.DENSITY);
-        RP::get(pop + "_Dispersion.Temperature", sP.TEMPERATURE);
-        RP::get(pop + "_Dispersion.densityPertRelAmp", sP.densityPertRelAmp);
-        RP::get(pop + "_Dispersion.velocityPertAbsAmp", sP.velocityPertAbsAmp);
+        //RP::get(pop + "_Dispersion.VX0", sP.VX0);
+        //RP::get(pop + "_Dispersion.VY0", sP.VY0);
+        //RP::get(pop + "_Dispersion.VZ0", sP.VZ0);
+        //RP::get(pop + "_Dispersion.rho", sP.DENSITY);
+        //RP::get(pop + "_Dispersion.Temperature", sP.TEMPERATURE);
+        //RP::get(pop + "_Dispersion.densityPertRelAmp", sP.densityPertRelAmp);
+        //RP::get(pop + "_Dispersion.velocityPertAbsAmp", sP.velocityPertAbsAmp);
 
          speciesParams.push_back(sP);
       }

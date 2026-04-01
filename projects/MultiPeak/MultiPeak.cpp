@@ -68,14 +68,14 @@ namespace projects {
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
          RP::add(pop+"_MultiPeak.n", "Number of peaks to create", 0);
-         RP::addComposing(pop+"_MultiPeak.rho", "Number density (m^-3)");
-         RP::addComposing(pop+"_MultiPeak.Tx", "Temperature (K)");
-         RP::addComposing(pop+"_MultiPeak.Ty", "Temperature");
-         RP::addComposing(pop+"_MultiPeak.Tz", "Temperature");
-         RP::addComposing(pop+"_MultiPeak.Vx", "Bulk velocity x component (m/s)");
-         RP::addComposing(pop+"_MultiPeak.Vy", "Bulk velocity y component (m/s)");
-         RP::addComposing(pop+"_MultiPeak.Vz", "Bulk velocity z component (m/s)");
-         RP::addComposing(pop+"_MultiPeak.rhoPertAbsAmp", "Absolute amplitude of the density perturbation");
+         RP::add(pop+"_MultiPeak.rho", "Number density (m^-3)");
+         RP::add(pop+"_MultiPeak.Tx", "Temperature (K)");
+         RP::add(pop+"_MultiPeak.Ty", "Temperature");
+         RP::add(pop+"_MultiPeak.Tz", "Temperature");
+         RP::add(pop+"_MultiPeak.Vx", "Bulk velocity x component (m/s)");
+         RP::add(pop+"_MultiPeak.Vy", "Bulk velocity y component (m/s)");
+         RP::add(pop+"_MultiPeak.Vz", "Bulk velocity z component (m/s)");
+         RP::add(pop+"_MultiPeak.rhoPertAbsAmp", "Absolute amplitude of the density perturbation");
       }
    }
 
@@ -83,32 +83,32 @@ namespace projects {
 
       typedef Readparameters RP;
       Project::getParameters();
-      RP::get("MultiPeak.Bx", this->Bx);
-      RP::get("MultiPeak.By", this->By);
-      RP::get("MultiPeak.Bz", this->Bz);
-      RP::get("MultiPeak.magXPertAbsAmp", this->magXPertAbsAmp);
-      RP::get("MultiPeak.magYPertAbsAmp", this->magYPertAbsAmp);
-      RP::get("MultiPeak.magZPertAbsAmp", this->magZPertAbsAmp);
-      RP::get("MultiPeak.dBx", this->dBx);
-      RP::get("MultiPeak.dBy", this->dBy);
-      RP::get("MultiPeak.dBz", this->dBz);
-      RP::get("MultiPeak.lambda", this->lambda);
+      //RP::get("MultiPeak.Bx", this->Bx);
+      //RP::get("MultiPeak.By", this->By);
+      //RP::get("MultiPeak.Bz", this->Bz);
+      //RP::get("MultiPeak.magXPertAbsAmp", this->magXPertAbsAmp);
+      //RP::get("MultiPeak.magYPertAbsAmp", this->magYPertAbsAmp);
+      //RP::get("MultiPeak.magZPertAbsAmp", this->magZPertAbsAmp);
+      //RP::get("MultiPeak.dBx", this->dBx);
+      //RP::get("MultiPeak.dBy", this->dBy);
+      //RP::get("MultiPeak.dBz", this->dBz);
+      //RP::get("MultiPeak.lambda", this->lambda);
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
 
          MultiPeakSpeciesParameters sP;
-         RP::get(pop + "_MultiPeak.n", sP.numberOfPeaks);
-         RP::get(pop + "_MultiPeak.rho",sP.rho);
-         RP::get(pop + "_MultiPeak.Tx", sP.Tx);
-         RP::get(pop + "_MultiPeak.Ty", sP.Ty);
-         RP::get(pop + "_MultiPeak.Tz", sP.Tz);
-         RP::get(pop + "_MultiPeak.Vx", sP.Vx);
-         RP::get(pop + "_MultiPeak.Vy", sP.Vy);
-         RP::get(pop + "_MultiPeak.Vz", sP.Vz);
+         //RP::get(pop + "_MultiPeak.n", sP.numberOfPeaks);
+         //RP::get(pop + "_MultiPeak.rho",sP.rho);
+         //RP::get(pop + "_MultiPeak.Tx", sP.Tx);
+         //RP::get(pop + "_MultiPeak.Ty", sP.Ty);
+         //RP::get(pop + "_MultiPeak.Tz", sP.Tz);
+         //RP::get(pop + "_MultiPeak.Vx", sP.Vx);
+         //RP::get(pop + "_MultiPeak.Vy", sP.Vy);
+         //RP::get(pop + "_MultiPeak.Vz", sP.Vz);
 
-         RP::get(pop + "_MultiPeak.rhoPertAbsAmp", sP.rhoPertAbsAmp);
+         //RP::get(pop + "_MultiPeak.rhoPertAbsAmp", sP.rhoPertAbsAmp);
          if(!sP.isConsistent()) {
             cerr << "You should define all parameters (MultiPeak.rho, MultiPeak.Tx, MultiPeak.Ty, MultiPeak.Tz, MultiPeak.Vx, MultiPeak.Vy, MultiPeak.Vz, MultiPeak.rhoPertAbsAmp) for all " << sP.numberOfPeaks << " peaks of population " << pop << "." << endl;
             abort();
@@ -118,7 +118,7 @@ namespace projects {
       }
 
       string densModelString;
-      RP::get("MultiPeak.densityModel",densModelString);
+      //RP::get("MultiPeak.densityModel",densModelString);
 
       if (densModelString == "uniform") densityModel = Uniform;
       else if (densModelString == "testcase") densityModel = TestCase;

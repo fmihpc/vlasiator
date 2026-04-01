@@ -68,22 +68,22 @@ namespace projects {
          std::cerr << "The selected project does not support multiple particle populations! Aborting in " << __FILE__ << " line " << __LINE__ << std::endl;
          abort();
       }
-      RP::get("Riemann.rho1", this->rho[this->LEFT]);
-      RP::get("Riemann.rho2", this->rho[this->RIGHT]);
-      RP::get("Riemann.T1", this->T[this->LEFT]);
-      RP::get("Riemann.T2", this->T[this->RIGHT]);
-      RP::get("Riemann.Vx1", this->Vx[this->LEFT]);
-      RP::get("Riemann.Vx2", this->Vx[this->RIGHT]);
-      RP::get("Riemann.Vy1", this->Vy[this->LEFT]);
-      RP::get("Riemann.Vy2", this->Vy[this->RIGHT]);
-      RP::get("Riemann.Vz1", this->Vz[this->LEFT]);
-      RP::get("Riemann.Vz2", this->Vz[this->RIGHT]);
-      RP::get("Riemann.Bx1", this->Bx[this->LEFT]);
-      RP::get("Riemann.Bx2", this->Bx[this->RIGHT]);
-      RP::get("Riemann.By1", this->By[this->LEFT]);
-      RP::get("Riemann.By2", this->By[this->RIGHT]);
-      RP::get("Riemann.Bz1", this->Bz[this->LEFT]);
-      RP::get("Riemann.Bz2", this->Bz[this->RIGHT]);
+      //RP::get("Riemann.rho1", this->rho[this->LEFT]);
+      //RP::get("Riemann.rho2", this->rho[this->RIGHT]);
+      //RP::get("Riemann.T1", this->T[this->LEFT]);
+      //RP::get("Riemann.T2", this->T[this->RIGHT]);
+      //RP::get("Riemann.Vx1", this->Vx[this->LEFT]);
+      //RP::get("Riemann.Vx2", this->Vx[this->RIGHT]);
+      //RP::get("Riemann.Vy1", this->Vy[this->LEFT]);
+      //RP::get("Riemann.Vy2", this->Vy[this->RIGHT]);
+      //RP::get("Riemann.Vz1", this->Vz[this->LEFT]);
+      //RP::get("Riemann.Vz2", this->Vz[this->RIGHT]);
+      //RP::get("Riemann.Bx1", this->Bx[this->LEFT]);
+      //RP::get("Riemann.Bx2", this->Bx[this->RIGHT]);
+      //RP::get("Riemann.By1", this->By[this->LEFT]);
+      //RP::get("Riemann.By2", this->By[this->RIGHT]);
+      //RP::get("Riemann.Bz1", this->Bz[this->LEFT]);
+      //RP::get("Riemann.Bz2", this->Bz[this->RIGHT]);
    }
 
    Realf Riemann1::fillPhaseSpace(spatial_cell::SpatialCell *cell,

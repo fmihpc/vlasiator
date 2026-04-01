@@ -39,7 +39,7 @@ namespace SBC {
    Maxwellian::~Maxwellian() {}
 
    void Maxwellian::addParameters() {
-      Readparameters::addComposing(
+      Readparameters::add(
           "maxwellian.face", "List of faces on which set Maxwellian boundary conditions are to be applied ([xyz][+-]).");
       Readparameters::add("maxwellian.precedence",
                           "Precedence value of the set Maxwellian boundary condition (integer), the higher the stronger.",

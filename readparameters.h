@@ -23,7 +23,7 @@
 #ifndef READPARAMETERS_H
 #define READPARAMETERS_H
 
-#include <boost/program_options.hpp>
+#include "CLI11.hpp"
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -49,34 +49,34 @@ public:
     * @param desc Description for the parameter.
     * @param defValue Default value for variable.
     */
-   static void add(const std::string& name, const std::string& desc, const std::string& defValue) {
-      int rank;
-      MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-      if (rank == MASTER_RANK) {
-         options[name] = "";
-         isOptionParsed[name] = false;
-         descriptions->add_options()(
-             name.c_str(), boost::program_options::value<std::string>(&(options[name]))->default_value(defValue),
-             desc.c_str());
-      }
-   }
+   // static void add(const std::string& name, const std::string& desc, const std::string& defValue) {
+   //    int rank;
+   //    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+   //    if (rank == MASTER_RANK) {
+   //       options[name] = "";
+   //       isOptionParsed[name] = false;
+   //       app->add_option(
+   //           name.c_str(), boost::program_options::value<std::string>(&(options[name]))->default_value(defValue),
+   //           desc.c_str());
+   //    }
+   // }
 
    template <typename T> static void add(const std::string& name, const std::string& desc, const T& defValue) {
       int rank;
       MPI_Comm_rank(MPI_COMM_WORLD, &rank);
       if (rank == MASTER_RANK) {
-         std::stringstream ss;
-
-         static constexpr bool n = (std::is_floating_point<T>::value);
-         if (n) {
-            ss << std::setprecision(std::numeric_limits<double>::digits10 + 1) << defValue;
-         } else {
-            ss << defValue;
-         }
+         // std::stringstream ss;
+         //
+         // static constexpr bool n = (std::is_floating_point<T>::value);
+         // if (n) {
+         //    ss << std::setprecision(std::numeric_limits<double>::digits10 + 1) << defValue;
+         // } else {
+         //    ss << defValue;
+         // }
          options[name] = "";
          isOptionParsed[name] = false;
-         descriptions->add_options()(
-             name.c_str(), boost::program_options::value<std::string>(&(options[name]))->default_value(ss.str()),
+         app->add_option(
+             name.c_str(), defValue,
              desc.c_str());
       }
    }
@@ -87,84 +87,85 @@ public:
     * @param name The name of the parameter.
     * @param value A variable where the value of the parameter is written.
     */
-   static void get(const std::string& name, std::string& value) {
-      if (options.find(name) != options.end()) { // check if it exists
-         value = options[name];
-      } else {
-         int rank;
-         MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-         if (rank == MASTER_RANK) {
-            std::cerr << __FILE__ << ":" << __LINE__ << " " << name + " not declared using the add() function!" << std::endl;
-            MPI_Abort(MPI_COMM_WORLD, 1);
-         }
-      }
-   }
+   // static void get(const std::string& name, std::string& value) {
+   //    if (options.find(name) != options.end()) { // check if it exists
+   //       value = options[name];
+   //    } else {
+   //       int rank;
+   //       MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+   //       if (rank == MASTER_RANK) {
+   //          std::cerr << __FILE__ << ":" << __LINE__ << " " << name + " not declared using the add() function!" << std::endl;
+   //          MPI_Abort(MPI_COMM_WORLD, 1);
+   //       }
+   //    }
+   // }
+   //
+   //
+   // template <typename T> static void get(const std::string& name, T& value) {
+   //    auto option_value = app->get_option_no_throw(name);
+   //    if (option_value==nullptr) { // check if it exists
+   //       int rank;
+   //       MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+   //       if (rank == MASTER_RANK) {
+   //          std::cerr << __FILE__ << ":" << __LINE__ << name + " not declared using the add() function!" << std::endl;
+   //          MPI_Abort(MPI_COMM_WORLD, 1);
+   //       }
+   //    } else {
+   //       value = option_value->get_flag_value;
+   //    }
+   // }
 
-   static void get(const std::string& name, std::vector<std::string>& value) {
-      if (vectorOptions.find(name) != vectorOptions.end()) { // check if it exists
-         value = vectorOptions[name];
-      } else {
-         int rank;
-         MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-         if (rank == MASTER_RANK) {
-            std::cerr << __FILE__ << ":" << __LINE__ << name + " not declared using the add() function!" << std::endl;
-            MPI_Abort(MPI_COMM_WORLD, 1);
-         }
-      }
-   }
+   // template <typename T> static void get(const std::string& name, T& value) {
+   //    std::string sval;
+   //    get(name, sval);
+   //
+   //    try {
+   //       value = boost::lexical_cast<T>(sval);
+   //    } catch (...) {
+   //       int myRank;
+   //       MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
+   //       if (myRank == MASTER_RANK) {
+   //          std::cerr << __FILE__ << ":" << __LINE__
+   //                    << std::string(" Problems casting ") + name + " " + sval + std::string(" to ") + typeid(T).name()
+   //                    << std::endl;
+   //
+   //          MPI_Abort(MPI_COMM_WORLD, 1);
+   //       }
+   //    }
+   // }
 
-   template <typename T> static void get(const std::string& name, T& value) {
-      std::string sval;
-      get(name, sval);
-
-      try {
-         value = boost::lexical_cast<T>(sval);
-      } catch (...) {
-         int myRank;
-         MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
-         if (myRank == MASTER_RANK) {
-            std::cerr << __FILE__ << ":" << __LINE__
-                      << std::string(" Problems casting ") + name + " " + sval + std::string(" to ") + typeid(T).name()
-                      << std::endl;
-
-            MPI_Abort(MPI_COMM_WORLD, 1);
-         }
-      }
-   }
-
-   /** Get the value of the given parameter added with addComposing().
-    * This may be called after having called Parse, and it may be called by any process, in any order.
-    * Aborts on failed cast.
-    * @param name The name of the parameter.
-    * @param value A variable where the value of the parameter is written.
-    */
-   template <typename T> static void get(const std::string& name, std::vector<T>& value) {
-      std::vector<std::string> stringValue;
-      get(name, stringValue);
-
-      for (std::vector<std::string>::iterator i = stringValue.begin(); i != stringValue.end(); ++i) {
-         try {
-            value.push_back(boost::lexical_cast<T>(*i));
-         } catch (...) {
-            int myRank;
-            MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
-            if (myRank == MASTER_RANK) {
-               std::cerr << __FILE__ << ":" << __LINE__
-                         << std::string(" Problems casting ") + name + *i + std::string(" to ") + typeid(T).name()
-                         << std::endl;
-
-               MPI_Abort(MPI_COMM_WORLD, 1);
-            }
-         }
-      }
-   }
-
+   // /** Get the value of the given parameter added with addComposing().
+   //  * This may be called after having called Parse, and it may be called by any process, in any order.
+   //  * Aborts on failed cast.
+   //  * @param name The name of the parameter.
+   //  * @param value A variable where the value of the parameter is written.
+   //  */
+   // template <typename T> static void get(const std::string& name, std::vector<T>& value) {
+   //    std::vector<std::string> stringValue;
+   //    get(name, stringValue);
+   //
+   //    for (std::vector<std::string>::iterator i = stringValue.begin(); i != stringValue.end(); ++i) {
+   //       try {
+   //          value.push_back(boost::lexical_cast<T>(*i));
+   //       } catch (...) {
+   //          int myRank;
+   //          MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
+   //          if (myRank == MASTER_RANK) {
+   //             std::cerr << __FILE__ << ":" << __LINE__
+   //                       << std::string(" Problems casting ") + name + *i + std::string(" to ") + typeid(T).name()
+   //                       << std::endl;
+   //
+   //             MPI_Abort(MPI_COMM_WORLD, 1);
+   //          }
+   //       }
+   //    }
+   // }
+   //
    // Determine whether a given variable has been set.
    static bool isSet(const std::string& name) {
-      return(options.find(name) != options.end());
+      return(app->get_option_no_throw(name)!=nullptr);
    }
 
-   static void addComposing(const std::string& name, const std::string& desc);
 
    static void helpMessage();
 
@@ -177,13 +178,15 @@ public:
    static bool parse(const bool needsRunConfig = true, const bool allowUnknown = true);
 
    static bool helpRequested;
+   static bool versionRequested;
 
 private:
    static int argc;    /**< How many entries argv contains.*/
    static char** argv; /**< Pointer to char* array containing command line parameters.*/
+   static CLI::App* app; 
 
-   static boost::program_options::options_description* descriptions;
-   static boost::program_options::variables_map* variables;
+   // static boost::program_options::options_description* descriptions;
+   // static boost::program_options::variables_map* variables;
 
    static std::map<std::string, std::string> options;
    static std::map<std::string, bool> isOptionParsed;

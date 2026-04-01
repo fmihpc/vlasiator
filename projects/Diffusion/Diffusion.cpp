@@ -62,17 +62,17 @@ namespace projects {
       Project::getParameters();
 
       typedef Readparameters RP;
-      RP::get("Diffusion.B0", this->B0);
+      //RP::get("Diffusion.B0", this->B0);
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
         DiffusionSpeciesParameters sP;
 
-        RP::get(pop + "_Diffusion.rho", sP.DENSITY);
-        RP::get(pop + "_Diffusion.Temperature", sP.TEMPERATURE);
-        RP::get(pop + "_Diffusion.Scale_x", sP.SCA_X);
-        RP::get(pop + "_Diffusion.Scale_y", sP.SCA_Y);
+        //RP::get(pop + "_Diffusion.rho", sP.DENSITY);
+        //RP::get(pop + "_Diffusion.Temperature", sP.TEMPERATURE);
+        //RP::get(pop + "_Diffusion.Scale_x", sP.SCA_X);
+        //RP::get(pop + "_Diffusion.Scale_y", sP.SCA_Y);
 
         speciesParams.push_back(sP);
       }

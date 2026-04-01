@@ -74,27 +74,27 @@ namespace projects {
       Project::getParameters();
       typedef Readparameters RP;
       Project::getParameters();
-      RP::get("LossCone.BX0", this->BX0);
-      RP::get("LossCone.BY0", this->BY0);
-      RP::get("LossCone.BZ0", this->BZ0);
-      RP::get("LossCone.magXPertAbsAmp", this->magXPertAbsAmp);
-      RP::get("LossCone.magYPertAbsAmp", this->magYPertAbsAmp);
-      RP::get("LossCone.magZPertAbsAmp", this->magZPertAbsAmp);
+      //RP::get("LossCone.BX0", this->BX0);
+      //RP::get("LossCone.BY0", this->BY0);
+      //RP::get("LossCone.BZ0", this->BZ0);
+      //RP::get("LossCone.magXPertAbsAmp", this->magXPertAbsAmp);
+      //RP::get("LossCone.magYPertAbsAmp", this->magYPertAbsAmp);
+      //RP::get("LossCone.magZPertAbsAmp", this->magZPertAbsAmp);
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
          LossConeSpeciesParameters sP;
-         RP::get(pop + "_LossCone.rho", sP.DENSITY);
-         RP::get(pop + "_LossCone.VX0", sP.V0[0]);
-         RP::get(pop + "_LossCone.VY0", sP.V0[1]);
-         RP::get(pop + "_LossCone.VZ0", sP.V0[2]);
-         RP::get(pop + "_LossCone.TemperatureX", sP.TEMPERATUREX);
-         RP::get(pop + "_LossCone.TemperatureY", sP.TEMPERATUREY);
-         RP::get(pop + "_LossCone.TemperatureZ", sP.TEMPERATUREZ);
-         RP::get(pop + "_LossCone.densityPertRelAmp", sP.densityPertRelAmp);
-         RP::get(pop + "_LossCone.velocityPertAbsAmp", sP.velocityPertAbsAmp);
-         RP::get(pop + "_LossCone.muLimit", sP.muLimit);
+         //RP::get(pop + "_LossCone.rho", sP.DENSITY);
+         //RP::get(pop + "_LossCone.VX0", sP.V0[0]);
+         //RP::get(pop + "_LossCone.VY0", sP.V0[1]);
+         //RP::get(pop + "_LossCone.VZ0", sP.V0[2]);
+         //RP::get(pop + "_LossCone.TemperatureX", sP.TEMPERATUREX);
+         //RP::get(pop + "_LossCone.TemperatureY", sP.TEMPERATUREY);
+         //RP::get(pop + "_LossCone.TemperatureZ", sP.TEMPERATUREZ);
+         //RP::get(pop + "_LossCone.densityPertRelAmp", sP.densityPertRelAmp);
+         //RP::get(pop + "_LossCone.velocityPertAbsAmp", sP.velocityPertAbsAmp);
+         //RP::get(pop + "_LossCone.muLimit", sP.muLimit);
          speciesParams.push_back(sP);
       }
    }

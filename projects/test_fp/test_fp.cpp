@@ -74,13 +74,13 @@ namespace projects {
          std::cerr << "The selected project does not support multiple particle populations! Aborting in " << __FILE__ << " line " << __LINE__ << std::endl;
          abort();
       }
-      RP::get("test_fp.B0", this->B0);
-      RP::get("test_fp.V0", this->V0);
-      RP::get("test_fp.rho", this->DENSITY);
-      RP::get("test_fp.Temperature", this->TEMPERATURE);
-      RP::get("test_fp.angle", this->ALPHA);
-      RP::get("test_fp.Bdirection", this->CASE);
-      RP::get("test_fp.shear", this->shear);
+      //RP::get("test_fp.B0", this->B0);
+      //RP::get("test_fp.V0", this->V0);
+      //RP::get("test_fp.rho", this->DENSITY);
+      //RP::get("test_fp.Temperature", this->TEMPERATURE);
+      //RP::get("test_fp.angle", this->ALPHA);
+      //RP::get("test_fp.Bdirection", this->CASE);
+      //RP::get("test_fp.shear", this->shear);
    }
 
    Real test_fp::sign(creal value) const {

@@ -63,16 +63,16 @@ namespace projects {
          std::cerr << "The selected project does not support multiple particle populations! Aborting in " << __FILE__ << " line " << __LINE__ << std::endl;
          abort();
       }
-      RP::get("VerificationLarmor.BX0", this->BX0);
-      RP::get("VerificationLarmor.BY0", this->BY0);
-      RP::get("VerificationLarmor.BZ0", this->BZ0);
-      RP::get("VerificationLarmor.VX0", this->VX0);
-      RP::get("VerificationLarmor.VY0", this->VY0);
-      RP::get("VerificationLarmor.VZ0", this->VZ0);
-      RP::get("VerificationLarmor.X0", this->X0);
-      RP::get("VerificationLarmor.Y0", this->Y0);
-      RP::get("VerificationLarmor.Z0", this->Z0);
-      RP::get("VerificationLarmor.rho", this->DENSITY);
+      //RP::get("VerificationLarmor.BX0", this->BX0);
+      //RP::get("VerificationLarmor.BY0", this->BY0);
+      //RP::get("VerificationLarmor.BZ0", this->BZ0);
+      //RP::get("VerificationLarmor.VX0", this->VX0);
+      //RP::get("VerificationLarmor.VY0", this->VY0);
+      //RP::get("VerificationLarmor.VZ0", this->VZ0);
+      //RP::get("VerificationLarmor.X0", this->X0);
+      //RP::get("VerificationLarmor.Y0", this->Y0);
+      //RP::get("VerificationLarmor.Z0", this->Z0);
+      //RP::get("VerificationLarmor.rho", this->DENSITY);
    }
 
    Realf verificationLarmor::fillPhaseSpace(spatial_cell::SpatialCell *cell,

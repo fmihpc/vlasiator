@@ -59,10 +59,10 @@ namespace projects {
    void Harris::getParameters(){
       Project::getParameters();
       typedef Readparameters RP;
-      RP::get("Harris.Scale_size", this->SCA_LAMBDA);
-      RP::get("Harris.BX0", this->BX0);
-      RP::get("Harris.BY0", this->BY0);
-      RP::get("Harris.BZ0", this->BZ0);
+      //RP::get("Harris.Scale_size", this->SCA_LAMBDA);
+      //RP::get("Harris.BX0", this->BX0);
+      //RP::get("Harris.BY0", this->BY0);
+      //RP::get("Harris.BZ0", this->BZ0);
 
 
       // Per-population parameters
@@ -70,8 +70,8 @@ namespace projects {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
          HarrisSpeciesParameters sP;
 
-         RP::get(pop + "_Harris.Temperature", sP.TEMPERATURE);
-         RP::get(pop + "_Harris.rho", sP.DENSITY);
+         //RP::get(pop + "_Harris.Temperature", sP.TEMPERATURE);
+         //RP::get(pop + "_Harris.rho", sP.DENSITY);
 
          speciesParams.push_back(sP);
       }

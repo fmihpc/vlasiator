@@ -67,22 +67,22 @@ namespace projects {
          std::cerr << "The selected project does not support multiple particle populations! Aborting in " << __FILE__ << " line " << __LINE__ << std::endl;
          abort();
       }
-      RP::get("Shock.BX0", this->BX0);
-      RP::get("Shock.BY0", this->BY0);
-      RP::get("Shock.BZ0", this->BZ0);
-      RP::get("Shock.EX0", this->EX0);
-      RP::get("Shock.VX0", this->VX0);
-      RP::get("Shock.VY0", this->VY0);
-      RP::get("Shock.VZ0", this->VZ0);
-      RP::get("Shock.rho", this->DENSITY);
-      RP::get("Shock.Temperature", this->TEMPERATURE);
-      RP::get("Shock.magPertAmp", this->magPertAmp);
-      RP::get("Shock.densityPertAmp", this->densityPertAmp);
-      RP::get("Shock.velocityPertAmp", this->velocityPertAmp);
-      RP::get("Shock.maxwCutoff", this->maxwCutoff);
-      RP::get("Shock.Scale_x", this->SCA_X);
-      RP::get("Shock.Scale_y", this->SCA_Y);
-      RP::get("Shock.Sharp_Y", this->Sharp_Y);
+      //RP::get("Shock.BX0", this->BX0);
+      //RP::get("Shock.BY0", this->BY0);
+      //RP::get("Shock.BZ0", this->BZ0);
+      //RP::get("Shock.EX0", this->EX0);
+      //RP::get("Shock.VX0", this->VX0);
+      //RP::get("Shock.VY0", this->VY0);
+      //RP::get("Shock.VZ0", this->VZ0);
+      //RP::get("Shock.rho", this->DENSITY);
+      //RP::get("Shock.Temperature", this->TEMPERATURE);
+      //RP::get("Shock.magPertAmp", this->magPertAmp);
+      //RP::get("Shock.densityPertAmp", this->densityPertAmp);
+      //RP::get("Shock.velocityPertAmp", this->velocityPertAmp);
+      //RP::get("Shock.maxwCutoff", this->maxwCutoff);
+      //RP::get("Shock.Scale_x", this->SCA_X);
+      //RP::get("Shock.Scale_y", this->SCA_Y);
+      //RP::get("Shock.Sharp_Y", this->Sharp_Y);
    }
 
    Realf Shock::fillPhaseSpace(spatial_cell::SpatialCell *cell,

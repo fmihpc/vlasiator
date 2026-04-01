@@ -72,27 +72,27 @@ namespace projects {
          abort();
       }
 
-      RP::get("KHB.P", this->P);
-      RP::get("KHB.rho1", this->rho[this->TOP]);
-      RP::get("KHB.rho2", this->rho[this->BOTTOM]);
-      RP::get("KHB.Vx1", this->Vx[this->TOP]);
-      RP::get("KHB.Vx2", this->Vx[this->BOTTOM]);
-      RP::get("KHB.Vy1", this->Vy[this->TOP]);
-      RP::get("KHB.Vy2", this->Vy[this->BOTTOM]);
-      RP::get("KHB.Vz1", this->Vz[this->TOP]);
-      RP::get("KHB.Vz2", this->Vz[this->BOTTOM]);
-      RP::get("KHB.Bx1", this->Bx[this->TOP]);
-      RP::get("KHB.Bx2", this->Bx[this->BOTTOM]);
-      RP::get("KHB.By1", this->By[this->TOP]);
-      RP::get("KHB.By2", this->By[this->BOTTOM]);
-      RP::get("KHB.Bz1", this->Bz[this->TOP]);
-      RP::get("KHB.Bz2", this->Bz[this->BOTTOM]);
-      RP::get("KHB.lambda", this->lambda);
-      RP::get("KHB.amp", this->amp);
-      RP::get("KHB.offset", this->offset);
-      RP::get("KHB.transitionWidth", this->transitionWidth);
-      RP::get("KHB.harmonics", this->harmonics);
-      RP::get("KHB.randomPhase", this->randomPhase);
+      //RP::get("KHB.P", this->P);
+      //RP::get("KHB.rho1", this->rho[this->TOP]);
+      //RP::get("KHB.rho2", this->rho[this->BOTTOM]);
+      //RP::get("KHB.Vx1", this->Vx[this->TOP]);
+      //RP::get("KHB.Vx2", this->Vx[this->BOTTOM]);
+      //RP::get("KHB.Vy1", this->Vy[this->TOP]);
+      //RP::get("KHB.Vy2", this->Vy[this->BOTTOM]);
+      //RP::get("KHB.Vz1", this->Vz[this->TOP]);
+      //RP::get("KHB.Vz2", this->Vz[this->BOTTOM]);
+      //RP::get("KHB.Bx1", this->Bx[this->TOP]);
+      //RP::get("KHB.Bx2", this->Bx[this->BOTTOM]);
+      //RP::get("KHB.By1", this->By[this->TOP]);
+      //RP::get("KHB.By2", this->By[this->BOTTOM]);
+      //RP::get("KHB.Bz1", this->Bz[this->TOP]);
+      //RP::get("KHB.Bz2", this->Bz[this->BOTTOM]);
+      //RP::get("KHB.lambda", this->lambda);
+      //RP::get("KHB.amp", this->amp);
+      //RP::get("KHB.offset", this->offset);
+      //RP::get("KHB.transitionWidth", this->transitionWidth);
+      //RP::get("KHB.harmonics", this->harmonics);
+      //RP::get("KHB.randomPhase", this->randomPhase);
    }
 
 

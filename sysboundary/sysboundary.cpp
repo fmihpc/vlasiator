@@ -77,7 +77,7 @@ SysBoundary::~SysBoundary() {
  * help.
  */
 void SysBoundary::addParameters() {
-   Readparameters::addComposing(
+   Readparameters::add(
        "boundaries.boundary",
        "List of boundary condition (BC) types to be used. Each boundary condition to be used has to be on a new line "
        "boundary = YYY. Available options are: Outflow, Ionosphere, Copysphere, Maxwellian.");

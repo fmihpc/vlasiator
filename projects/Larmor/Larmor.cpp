@@ -68,17 +68,17 @@ namespace projects {
          abort();
       }
 
-      RP::get("Larmor.BX0", this->BX0);
-      RP::get("Larmor.BY0", this->BY0);
-      RP::get("Larmor.BZ0", this->BZ0);
-      RP::get("Larmor.VX0", this->VX0);
-      RP::get("Larmor.VY0", this->VY0);
-      RP::get("Larmor.VZ0", this->VZ0);
-      RP::get("Larmor.rho", this->DENSITY);
-      RP::get("Larmor.Temperature", this->TEMPERATURE);
-      RP::get("Larmor.maxwCutoff", this->maxwCutoff);
-      RP::get("Larmor.Scale_x", this->SCA_X);
-      RP::get("Larmor.Scale_y", this->SCA_Y);
+      //RP::get("Larmor.BX0", this->BX0);
+      //RP::get("Larmor.BY0", this->BY0);
+      //RP::get("Larmor.BZ0", this->BZ0);
+      //RP::get("Larmor.VX0", this->VX0);
+      //RP::get("Larmor.VY0", this->VY0);
+      //RP::get("Larmor.VZ0", this->VZ0);
+      //RP::get("Larmor.rho", this->DENSITY);
+      //RP::get("Larmor.Temperature", this->TEMPERATURE);
+      //RP::get("Larmor.maxwCutoff", this->maxwCutoff);
+      //RP::get("Larmor.Scale_x", this->SCA_X);
+      //RP::get("Larmor.Scale_y", this->SCA_Y);
     }
 
    Realf Larmor::fillPhaseSpace(spatial_cell::SpatialCell *cell,
