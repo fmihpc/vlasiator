@@ -266,6 +266,6 @@ for (( c=1; c<$index; c++ ))
 do
     run_tests+=($c)
 done
-run_tests=( 1 )
+
 # Alternatively, set tests manually, e.g.
 # run_tests=( 1 6 9 )
