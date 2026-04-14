@@ -21,7 +21,7 @@ create_verification_files=0
 reference_dir="/proj/group/spacephysics/vlasiator_testpackage/"
 cd $SLURM_SUBMIT_DIR
 
-bin="/proj/USERNAME/BINARYNAME"
+bin="/home/mjalho/proj/vlasiator/vlasiator"
 diffbin="/proj/group/spacephysics/vlasiator_testpackage/vlsvdiff_DP_carrington"
 
 #compare agains which revision
