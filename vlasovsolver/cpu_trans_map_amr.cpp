@@ -48,8 +48,7 @@ void propagatePencil(
    const unsigned int* const vcell_transpose
 ) {
    // Get velocity data from vmesh that we need later to calculate the translation
-   velocity_block_indices_t block_indices;
-   vmesh->getIndices(blockGID, block_indices[0], block_indices[1], block_indices[2]);
+   std::array<Real, 3> block_coordinates {vmesh->getBlockCoordinates(blockGID)};
    Realf dvz = vmesh->getCellDx(blockGID, dimension);
    Realf vz_min = vmesh->getMeshMinLimits()[dimension];
 
@@ -72,7 +71,7 @@ void propagatePencil(
       Realf vector[VECL];
       // Loop over planes
       for (uint k = 0; k < WID; ++k) {
-         const Realf cell_vz = (block_indices[dimension] * WID + k + 0.5) * dvz + vz_min; //cell centered velocity
+         const Realf cell_vz = block_coordinates[dimension] + (k + 0.5) * dvz; //cell centered velocity
          const Vec z_translation = cell_vz * dt / dz[i]; // how much it moved in time dt (reduced units)
 
          // Determine direction of translation
