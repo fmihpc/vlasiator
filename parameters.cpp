@@ -64,7 +64,7 @@ uint P::zcells_ini = numeric_limits<uint>::max();
 Real P::t = 0;
 Real P::t_min = 0;
 Real P::t_max = LARGE_REAL;
-Real P::dt_ceil = -1.0; 
+Real P::dt_ceil = -1.0;
 Real P::dt = NAN;
 Real P::vlasovSolverMaxCFL = NAN;
 Real P::vlasovSolverMinCFL = NAN;
@@ -549,7 +549,7 @@ bool P::addParameters() {
    RP::add("PAD.mubins","number of bins for mu",30);
    RP::add("PAD.file","Path of txt file for nu0", string("NU0BOX.DAT"));
    RP::add("PAD.fudge","Divide diffusion coefficient nu0 (read from file) by a fudge factor (see Dubart et al 2023)",4);
-   
+
    // Fieldtracing
    RP::add("fieldtracing.fieldLineTracer", "Field line tracing method to use for coupling ionosphere and magnetosphere (options are: Euler, BS)", std::string("Euler"));
    RP::add("fieldtracing.tracer_max_allowed_error", "Maximum allowed error for the adaptive field line tracers ", 1000);
@@ -1115,7 +1115,7 @@ void Parameters::getParameters() {
       P::systemWrites.push_back(0);
    }
 
-   RP::get("PAD.enable", P::artificialPADiff);   
+   RP::get("PAD.enable", P::artificialPADiff);
    RP::get("PAD.coefficient", P::PADcoefficient);
    RP::get("PAD.CFL",P::PADCFL);
    RP::get("PAD.vbins",P::PADvbins);

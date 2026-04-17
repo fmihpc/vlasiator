@@ -20,14 +20,12 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-// clang-format off
 #include "fs_common.h"
 #include "ldz_hall.hpp"
-// clang-format on
 #include <limits>
 
 #ifdef DEBUG_VLASIATOR
-#define DEBUG_FSOLVER
+   #define DEBUG_FSOLVER
 #endif
 
 using namespace std;
@@ -44,9 +42,13 @@ using namespace std;
  * \sa calculateEdgeHallTermComponents
  *
  */
-template <typename REAL>
-inline REAL JXBX_000_100(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, creal BGBY, creal BGBZ,
-                         const std::array<Real, 3>& gridSpacing) {
+template<typename REAL> inline
+REAL JXBX_000_100(
+   const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC,
+   creal BGBY,
+   creal BGBZ,
+   const std::array<Real, 3>& gridSpacing
+) {
    using namespace Rec;
    const auto dx = gridSpacing[0];
    const auto dy = gridSpacing[1];
@@ -104,9 +106,13 @@ inline REAL JXBX_000_100(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, cr
  * \sa calculateEdgeHallTermComponents
  *
  */
-template <typename REAL>
-inline REAL JXBX_010_110(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, creal BGBY, creal BGBZ,
-                         const std::array<Real, 3>& gridSpacing) {
+template<typename REAL> inline
+REAL JXBX_010_110(
+   const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC,
+   creal BGBY,
+   creal BGBZ,
+   const std::array<Real, 3>& gridSpacing
+) {
    using namespace Rec;
    const auto dx = gridSpacing[0];
    const auto dy = gridSpacing[1];
@@ -164,9 +170,13 @@ inline REAL JXBX_010_110(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, cr
  * \sa calculateEdgeHallTermComponents
  *
  */
-template <typename REAL>
-inline REAL JXBX_001_101(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, creal BGBY, creal BGBZ,
-                         const std::array<Real, 3>& gridSpacing) {
+template<typename REAL> inline
+REAL JXBX_001_101(
+   const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC,
+   creal BGBY,
+   creal BGBZ,
+   const std::array<Real, 3>& gridSpacing
+) {
    using namespace Rec;
    const auto dx = gridSpacing[0];
    const auto dy = gridSpacing[1];
@@ -224,9 +234,13 @@ inline REAL JXBX_001_101(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, cr
  * \sa calculateEdgeHallTermComponents
  *
  */
-template <typename REAL>
-inline REAL JXBX_011_111(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, creal BGBY, creal BGBZ,
-                         const std::array<Real, 3>& gridSpacing) {
+template<typename REAL> inline
+REAL JXBX_011_111(
+   const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC,
+   creal BGBY,
+   creal BGBZ,
+   const std::array<Real, 3>& gridSpacing
+) {
    using namespace Rec;
    const auto dx = gridSpacing[0];
    const auto dy = gridSpacing[1];
@@ -285,9 +299,13 @@ inline REAL JXBX_011_111(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, cr
  * \sa calculateEdgeHallTermYComponents
  *
  */
-template <typename REAL>
-inline REAL JXBY_000_010(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, creal BGBX, creal BGBZ,
-                         const std::array<Real, 3>& gridSpacing) {
+template<typename REAL> inline
+REAL JXBY_000_010(
+   const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC,
+   creal BGBX,
+   creal BGBZ,
+   const std::array<Real, 3>& gridSpacing
+) {
    using namespace Rec;
    const auto dx = gridSpacing[0];
    const auto dy = gridSpacing[1];
@@ -345,9 +363,13 @@ inline REAL JXBY_000_010(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, cr
  * \sa calculateEdgeHallTermYComponents
  *
  */
-template <typename REAL>
-inline REAL JXBY_100_110(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, creal BGBX, creal BGBZ,
-                         const std::array<Real, 3>& gridSpacing) {
+template<typename REAL> inline
+REAL JXBY_100_110(
+   const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC,
+   creal BGBX,
+   creal BGBZ,
+   const std::array<Real, 3>& gridSpacing
+) {
    using namespace Rec;
    const auto dx = gridSpacing[0];
    const auto dy = gridSpacing[1];
@@ -405,9 +427,13 @@ inline REAL JXBY_100_110(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, cr
  * \sa calculateEdgeHallTermYComponents
  *
  */
-template <typename REAL>
-inline REAL JXBY_001_011(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, creal BGBX, creal BGBZ,
-                         const std::array<Real, 3>& gridSpacing) {
+template<typename REAL> inline
+REAL JXBY_001_011(
+   const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC,
+   creal BGBX,
+   creal BGBZ,
+   const std::array<Real, 3>& gridSpacing
+) {
    using namespace Rec;
    const auto dx = gridSpacing[0];
    const auto dy = gridSpacing[1];
@@ -465,9 +491,13 @@ inline REAL JXBY_001_011(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, cr
  * \sa calculateEdgeHallTermYComponents
  *
  */
-template <typename REAL>
-inline REAL JXBY_101_111(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, creal BGBX, creal BGBZ,
-                         const std::array<Real, 3>& gridSpacing) {
+template<typename REAL> inline
+REAL JXBY_101_111(
+   const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC,
+   creal BGBX,
+   creal BGBZ,
+   const std::array<Real, 3>& gridSpacing
+) {
    using namespace Rec;
    const auto dx = gridSpacing[0];
    const auto dy = gridSpacing[1];
@@ -526,9 +556,13 @@ inline REAL JXBY_101_111(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, cr
  * \sa calculateEdgeHallTermZComponents
  *
  */
-template <typename REAL>
-inline REAL JXBZ_000_001(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, creal BGBX, creal BGBY,
-                         const std::array<Real, 3>& gridSpacing) {
+template<typename REAL> inline
+REAL JXBZ_000_001(
+   const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC,
+   creal BGBX,
+   creal BGBY,
+   const std::array<Real, 3>& gridSpacing
+) {
    using namespace Rec;
    const auto dx = gridSpacing[0];
    const auto dy = gridSpacing[1];
@@ -586,9 +620,13 @@ inline REAL JXBZ_000_001(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, cr
  * \sa calculateEdgeHallTermZComponents
  *
  */
-template <typename REAL>
-inline REAL JXBZ_100_101(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, creal BGBX, creal BGBY,
-                         const std::array<Real, 3>& gridSpacing) {
+template<typename REAL> inline
+REAL JXBZ_100_101(
+   const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC,
+   creal BGBX,
+   creal BGBY,
+   const std::array<Real, 3>& gridSpacing
+) {
    using namespace Rec;
    const auto dx = gridSpacing[0];
    const auto dy = gridSpacing[1];
@@ -646,9 +684,13 @@ inline REAL JXBZ_100_101(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, cr
  * \sa calculateEdgeHallTermZComponents
  *
  */
-template <typename REAL>
-inline REAL JXBZ_010_011(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, creal BGBX, creal BGBY,
-                         const std::array<Real, 3>& gridSpacing) {
+template<typename REAL> inline
+REAL JXBZ_010_011(
+   const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC,
+   creal BGBX,
+   creal BGBY,
+   const std::array<Real, 3>& gridSpacing
+) {
    using namespace Rec;
    const auto dx = gridSpacing[0];
    const auto dy = gridSpacing[1];
@@ -706,9 +748,13 @@ inline REAL JXBZ_010_011(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, cr
  * \sa calculateEdgeHallTermZComponents
  *
  */
-template <typename REAL>
-inline REAL JXBZ_110_111(const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC, creal BGBX, creal BGBY,
-                         const std::array<Real, 3>& gridSpacing) {
+template<typename REAL> inline
+REAL JXBZ_110_111(
+   const std::array<REAL, Rec::N_REC_COEFFICIENTS>& pC,
+   creal BGBX,
+   creal BGBY,
+   const std::array<Real, 3>& gridSpacing
+) {
    using namespace Rec;
    const auto dx = gridSpacing[0];
    const auto dy = gridSpacing[1];

@@ -27,12 +27,12 @@
 
 #include <vlsv_writer.h>
 
-#include "../definitions.h"
-#include "../grid.h"
-#include "../parameters.h"
-#include "../spatial_cells/spatial_cell_wrapper.hpp"
-#include "../sysboundary/ionosphere.h"
 #include "fsgrid.hpp"
+#include "../definitions.h"
+#include "../spatial_cells/spatial_cell_wrapper.hpp"
+#include "../parameters.h"
+#include "../grid.h"
+#include "../sysboundary/ionosphere.h"
 using namespace spatial_cell;
 
 namespace DRO {
@@ -579,7 +579,7 @@ namespace DRO {
       std::string popName;
       int nBins;
    };
-      
+
    // Precipitation directional differential number flux (along line)
    class VariablePrecipitationLineDiffFlux: public DataReductionOperatorHasParameters {
    public:

@@ -21,23 +21,22 @@
  */
 
 /*!\file copysphere.cpp
- * \brief Implementation of the class SysBoundaryCondition::Copysphere to handle cells classified as
- * sysboundarytype::COPYSPHERE.
+ * \brief Implementation of the class SysBoundaryCondition::Copysphere to handle cells classified as sysboundarytype::COPYSPHERE.
  */
 
 #include <cstdlib>
 #include <iostream>
 
-#include "../common.h"
+#include "copysphere.h"
+#include "../projects/project.h"
+#include "../projects/projects_common.h"
+#include "../vlasovsolver/vlasovmover.h"
 #include "../fieldsolver/fs_common.h"
 #include "../fieldsolver/fs_limiters.h"
 #include "../fieldsolver/ldz_magnetic_field.hpp"
 #include "../fieldtracing/fieldtracing.h"
+#include "../common.h"
 #include "../object_wrapper.h"
-#include "../projects/project.h"
-#include "../projects/projects_common.h"
-#include "../vlasovsolver/vlasovmover.h"
-#include "copysphere.h"
 
 #ifdef DEBUG_VLASIATOR
 #define DEBUG_COPYSPHERE
@@ -48,51 +47,34 @@
 
 namespace SBC {
    Copysphere::Copysphere() : SysBoundaryCondition() {}
-   
+
    Copysphere::~Copysphere() {}
-   
+
    void Copysphere::addParameters() {
       Readparameters::add("copysphere.centerX", "X coordinate of copysphere center (m)", 0.0);
       Readparameters::add("copysphere.centerY", "Y coordinate of copysphere center (m)", 0.0);
       Readparameters::add("copysphere.centerZ", "Z coordinate of copysphere center (m)", 0.0);
       Readparameters::add("copysphere.radius", "Radius of copysphere (m).", 1.0e7);
-      Readparameters::add("copysphere.geometry",
-                          "Select the geometry of the copysphere, 0: inf-norm (diamond), 1: 1-norm (square), 2: 2-norm "
-                          "(circle, DEFAULT), 3: 2-norm cylinder aligned with y-axis, use with polar plane/line dipole.",
-                          2);
-      Readparameters::add(
-          "copysphere.precedence",
-          "Precedence value of the copysphere system boundary condition (integer), the higher the stronger.", 2);
-      Readparameters::add("copysphere.reapplyUponRestart",
-                          "If 0 (default), keep going with the state existing in the restart file. If 1, calls again "
-                          "applyInitialState. Can be used to change boundary condition behaviour during a run.",
-                          0);
-      Readparameters::add("copysphere.zeroPerB",
-                          "If 0 (default), normal copysphere behaviour of magnetic field at inner boundary. If 1, keep "
-                          "magnetic field static at the inner boundary",
-                          0);
-   
+      Readparameters::add("copysphere.geometry", "Select the geometry of the copysphere, 0: inf-norm (diamond), 1: 1-norm (square), 2: 2-norm " "(circle, DEFAULT), 3: 2-norm cylinder aligned with y-axis, use with polar plane/line dipole.", 2);
+      Readparameters::add( "copysphere.precedence", "Precedence value of the copysphere system boundary condition (integer), the higher the stronger.", 2);
+      Readparameters::add("copysphere.reapplyUponRestart", "If 0 (default), keep going with the state existing in the restart file. If 1, calls again " "applyInitialState. Can be used to change boundary condition behaviour during a run.", 0);
+      Readparameters::add("copysphere.zeroPerB", "If 0 (default), normal copysphere behaviour of magnetic field at inner boundary. If 1, keep " "magnetic field static at the inner boundary", 0);
+
       // Per-population parameters
       for (uint i = 0; i < getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
-   
+
          Readparameters::add(pop + "_copysphere.rho", "Number density of the copysphere (m^-3)", 0.0);
          Readparameters::add(pop + "_copysphere.T", "Temperature of the copysphere (K)", 0.0);
-         Readparameters::add(pop + "_copysphere.VX0",
-                             "Bulk velocity of copyspheric distribution function in X direction (m/s)", 0.0);
-         Readparameters::add(pop + "_copysphere.VY0",
-                             "Bulk velocity of copyspheric distribution function in X direction (m/s)", 0.0);
-         Readparameters::add(pop + "_copysphere.VZ0",
-                             "Bulk velocity of copyspheric distribution function in X direction (m/s)", 0.0);
-         Readparameters::add(pop + "_copysphere.fluffiness",
-                             "Inertia of boundary smoothing when copying neighbour's moments and velocity distributions "
-                             "(0=completely constant boundaries, 1=neighbours are interpolated immediately).",
-                             0);
+         Readparameters::add(pop + "_copysphere.VX0", "Bulk velocity of copyspheric distribution function in X direction (m/s)", 0.0);
+         Readparameters::add(pop + "_copysphere.VY0", "Bulk velocity of copyspheric distribution function in X direction (m/s)", 0.0);
+         Readparameters::add(pop + "_copysphere.VZ0", "Bulk velocity of copyspheric distribution function in X direction (m/s)", 0.0);
+         Readparameters::add(pop + "_copysphere.fluffiness", "Inertia of boundary smoothing when copying neighbour's moments and velocity distributions " "(0=completely constant boundaries, 1=neighbours are interpolated immediately).", 0);
       }
    }
-   
+
    void Copysphere::getParameters() {
-   
+
       Readparameters::get("copysphere.centerX", this->center[0]);
       Readparameters::get("copysphere.centerY", this->center[1]);
       Readparameters::get("copysphere.centerZ", this->center[2]);
@@ -112,18 +94,18 @@ namespace SBC {
       if (noperb == 1) {
          this->zeroPerB = true;
       }
-   
+
       for (uint i = 0; i < getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
          CopysphereSpeciesParameters sP;
-   
+
          Readparameters::get(pop + "_copysphere.rho", sP.rho);
          Readparameters::get(pop + "_copysphere.VX0", sP.V0[0]);
          Readparameters::get(pop + "_copysphere.VY0", sP.V0[1]);
          Readparameters::get(pop + "_copysphere.VZ0", sP.V0[2]);
          Readparameters::get(pop + "_copysphere.fluffiness", sP.fluffiness);
          Readparameters::get(pop + "_copysphere.T", sP.T);
-   
+
          // Failsafe, if density or temperature is zero, read from Magnetosphere
          // (compare the corresponding verbose handling in projects/Magnetosphere/Magnetosphere.cpp)
          if (sP.T == 0) {
@@ -132,24 +114,24 @@ namespace SBC {
          if (sP.rho == 0) {
             Readparameters::get(pop + "_Magnetosphere.rho", sP.rho);
          }
-   
+
          speciesParams.push_back(sP);
       }
    }
-   
+
    void Copysphere::initSysBoundary(creal& t, Project& project) {
       getParameters();
       dynamic = false;
-   
+
       // iniSysBoundary is only called once, generateTemplateCell must
       // init all particle species
       generateTemplateCell(project);
    }
-   
+
    Real getR(creal x, creal y, creal z, uint geometry, Real center[3]) {
-   
+
       Real r;
-   
+
       switch (geometry) {
       case 0:
          // infinity-norm, result is a diamond/square with diagonals aligned on the axes in 2D
@@ -171,10 +153,10 @@ namespace SBC {
       default:
          abort_mpi("copysphere.geometry has to be 0, 1 or 2.", 1);
       }
-   
+
       return r;
    }
-   
+
    void Copysphere::assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                       fsgrids::technicalspan technical, FieldSolverGrid &fsgrid) {
       const vector<CellID>& cells = getLocalCells();
@@ -182,7 +164,7 @@ namespace SBC {
          if (mpiGrid[cells[i]]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
             continue;
          }
-   
+
          creal* const cellParams = &(mpiGrid[cells[i]]->parameters[0]);
          creal dx = cellParams[CellParams::DX];
          creal dy = cellParams[CellParams::DY];
@@ -190,13 +172,13 @@ namespace SBC {
          creal x = cellParams[CellParams::XCRD] + 0.5 * dx;
          creal y = cellParams[CellParams::YCRD] + 0.5 * dy;
          creal z = cellParams[CellParams::ZCRD] + 0.5 * dz;
-   
+
          if (getR(x, y, z, this->geometry, this->center) < this->radius) {
             mpiGrid[cells[i]]->sysBoundaryFlag = this->getIndex();
          }
       }
    }
-   
+
    void Copysphere::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                       fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
                                       fsgrids::perbspan perb,
@@ -229,9 +211,9 @@ namespace SBC {
 
       static creal DIAG2 = 1.0 / sqrt(2.0);
       static creal DIAG3 = 1.0 / sqrt(3.0);
-   
+
       const auto& gridSpacing = fsgrid.getGridSpacing();
-   
+
       creal dx = gridSpacing[0];
       creal dy = gridSpacing[1];
       creal dz = gridSpacing[2];
@@ -242,9 +224,9 @@ namespace SBC {
       creal xsign = divideIfNonZero(x, fabs(x));
       creal ysign = divideIfNonZero(y, fabs(y));
       creal zsign = divideIfNonZero(z, fabs(z));
-   
+
       Real length = 0.0;
-   
+
       if (Parameters::xcells_ini == 1) {
          if (Parameters::ycells_ini == 1) {
             if (Parameters::zcells_ini == 1) {
@@ -297,8 +279,7 @@ namespace SBC {
                normalDirection[2] = z / length;
                break;
             default:
-               std::cerr << __FILE__ << ":" << __LINE__ << ":"
-                         << "copysphere.geometry has to be 0, 1 or 2 with this grid shape." << std::endl;
+               std::cerr << __FILE__ << ":" << __LINE__ << ":" << "copysphere.geometry has to be 0, 1 or 2 with this grid shape." << std::endl;
                abort();
             }
             // end of X
@@ -345,8 +326,7 @@ namespace SBC {
                normalDirection[2] = z / length;
                break;
             default:
-               std::cerr << __FILE__ << ":" << __LINE__ << ":"
-                         << "copysphere.geometry has to be 0, 1, 2 or 3 with this grid shape." << std::endl;
+               std::cerr << __FILE__ << ":" << __LINE__ << ":" << "copysphere.geometry has to be 0, 1, 2 or 3 with this grid shape." << std::endl;
                abort();
             }
             // end of Y
@@ -490,7 +470,7 @@ namespace SBC {
       }
       return normalDirection;
    }
-   
+
    /*! We want here to
     *
     * -- Average perturbed face B from the nearest neighbours
@@ -505,7 +485,7 @@ namespace SBC {
                                                          const fsgrid::FsStencil& stencil, cuint component) {
       const uint32_t perbComponent = fsgrids::bfield::PERBX + component;
       const uint32_t bitfield = 1 << component;
-   
+
       // clang-format off
       static constexpr std::array permutations = {
           std::array {
@@ -518,9 +498,9 @@ namespace SBC {
               4, 5, 0, 1, 2, 3,
           },
       };
-   
+
       const std::array permutation = permutations[component];
-   
+
       const std::array<size_t, 6> inds = {
           stencil.moo(),
           stencil.poo(),
@@ -530,7 +510,7 @@ namespace SBC {
           stencil.oop(),
       };
       // clang-format on
-   
+
       auto bitFieldSet = [&bitfield](auto& tech) { return (tech.SOLVE & bitfield) == bitfield; };
       auto sbLayerIsOne = [](auto& tech) { return tech.sysBoundaryLayer == 1; };
       auto averageNeigbours = [&technical, &b, &inds, &permutation, &perbComponent,
@@ -543,7 +523,7 @@ namespace SBC {
             }
          }
       };
-   
+
       auto averageAllNeighbours = [&stencil, &technical, &b, &perbComponent](auto predicateLambda, auto& sum,
                                                                              auto& nCells) {
          for (const auto& i : stencil.indices()) {
@@ -553,7 +533,7 @@ namespace SBC {
             }
          }
       };
-   
+
       Real sum = 0.0;
       uint nCells = 0;
       if (this->zeroPerB == true) {
@@ -562,11 +542,11 @@ namespace SBC {
       } else {
          if (sbLayerIsOne(technical[stencil.ooo()])) {
             averageNeigbours(0ul, 2ul, sum, nCells);
-   
+
             if (nCells == 0) {
                averageNeigbours(2ul, 6ul, sum, nCells);
             }
-   
+
             if (nCells == 0) {
                averageAllNeighbours(bitFieldSet, sum, nCells);
             }
@@ -575,21 +555,21 @@ namespace SBC {
             averageAllNeighbours(sbLayerIsOne, sum, nCells);
          }
       }
-   
+
       if (nCells == 0) {
          cerr << __FILE__ << ":" << __LINE__ << ": ERROR: this should not have fallen through." << endl;
          sum = 0.0;
          nCells = 1;
       }
-   
+
       return sum / nCells;
    }
-   
+
    void Copysphere::fieldSolverBoundaryCondElectricField(fsgrids::efieldspan e,
                                                          const fsgrid::FsStencil& stencil, cuint component) {
       e[stencil.ooo()][fsgrids::efield::EX + component] = 0.0;
    }
-   
+
    void Copysphere::fieldSolverBoundaryCondHallElectricField(fsgrids::ehallspan ehall,
                                                              const fsgrid::FsStencil& stencil, cuint component) {
       std::array<Real, fsgrids::ehall::N_EHALL>& cp = ehall[stencil.ooo()];
@@ -613,36 +593,35 @@ namespace SBC {
          cp[fsgrids::ehall::EZHALL_110_111] = 0.0;
          break;
       default:
-         cerr << __FILE__ << ":" << __LINE__ << ":"
-              << " Invalid component" << endl;
+         cerr << __FILE__ << ":" << __LINE__ << ":" << " Invalid component" << endl;
       }
    }
-   
+
    void Copysphere::fieldSolverBoundaryCondGradPeElectricField(
        fsgrids::egradpespan EGradPe, const fsgrid::FsStencil& stencil,
        cuint component) {
       EGradPe[stencil.ooo()][fsgrids::egradpe::EXGRADPE + component] = 0.0;
    }
-   
+
    void Copysphere::fieldSolverBoundaryCondDerivatives(fsgrids::dperbspan dperb,
                                                        fsgrids::dmomentsspan dmoments,
                                                        const fsgrid::FsStencil& stencil, cuint RKCase, cuint component) {
       this->setCellDerivativesToZero(dperb, dmoments, stencil, component);
    }
-   
+
    void Copysphere::fieldSolverBoundaryCondBVOLDerivatives(fsgrids::volspan vols,
                                                            const fsgrid::FsStencil& stencil, cuint component) {
       // FIXME This should be OK as the BVOL derivatives are only used for Lorentz force JXB, which is not applied on the
       // copy sphere cells.
       this->setCellBVOLDerivativesToZero(vols, stencil, component);
    }
-   
+
    void Copysphere::vlasovBoundaryCondition(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                             const CellID& cellID, const uint popID, const bool calculate_V_moments) {
       this->vlasovBoundaryFluffyCopyFromAllCloseNbrs(mpiGrid, cellID, popID, calculate_V_moments,
                                                      this->speciesParams[popID].fluffiness);
    }
-   
+
    /**
     * NOTE: This function must initialize all particle species!
     * @param project
@@ -657,7 +636,7 @@ namespace SBC {
       templateCell.parameters[CellParams::DX] = 1;
       templateCell.parameters[CellParams::DY] = 1;
       templateCell.parameters[CellParams::DZ] = 1;
-   
+
       Real initRho, initT, initV0X, initV0Y, initV0Z;
       // Loop over particle species
       for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID) {
@@ -671,26 +650,25 @@ namespace SBC {
          initV0Z = sP.V0[2];
 
          // Find list of blocks to initialize.
-         const uint nRequested =
-             SBC::findMaxwellianBlocksToInitialize(popID, templateCell, initRho, initT, initV0X, initV0Y, initV0Z);
+         const uint nRequested = SBC::findMaxwellianBlocksToInitialize(popID, templateCell, initRho, initT, initV0X, initV0Y, initV0Z);
          // stores in vmesh->getGrid() (localToGlobalMap)
          // with count in cell.get_population(popID).N_blocks
-   
+
          // Resize and populate mesh
          templateCell.prepare_to_receive_blocks(popID);
-   
+
          // Set the reservation value (capacity is increased in add_velocity_blocks
          const Realf minValue = templateCell.getVelocityBlockMinValue(popID);
-   
+
          // fills v-space into target
 
          #ifdef USE_GPU
          vmesh::VelocityMesh *vmesh = templateCell.dev_get_velocity_mesh(popID);
          vmesh::VelocityBlockContainer* VBC = templateCell.dev_get_velocity_blocks(popID);
-   #else
+         #else
          vmesh::VelocityMesh* vmesh = templateCell.get_velocity_mesh(popID);
          vmesh::VelocityBlockContainer* VBC = templateCell.get_velocity_blocks(popID);
-   #endif
+         #endif
          // Loop over blocks
          Realf rhosum = 0;
          arch::parallel_reduce<arch::null>(
@@ -728,9 +706,9 @@ namespace SBC {
          templateCell.adjustSingleCellVelocityBlocks(popID,true);
 
       } // for-loop over particle species
-   
+
       calculateCellMoments(&templateCell, true, false, true);
-   
+
       // WARNING Time-independence assumed here. Normal moments computed in setProjectCell
       templateCell.parameters[CellParams::RHOM_R] = templateCell.parameters[CellParams::RHOM];
       templateCell.parameters[CellParams::VX_R] = templateCell.parameters[CellParams::VX];
@@ -749,22 +727,22 @@ namespace SBC {
       templateCell.parameters[CellParams::P_22_V] = templateCell.parameters[CellParams::P_22];
       templateCell.parameters[CellParams::P_33_V] = templateCell.parameters[CellParams::P_33];
    }
-   
+
    void Copysphere::setCellFromTemplate(SpatialCell* cell, const uint popID) {
       copyCellData(&templateCell, cell, false, popID, true); // copy also vdf, _V
       copyCellData(&templateCell, cell, true, popID, false); // don't copy vdf again but copy _R now
-   #ifdef USE_GPU
+      #ifdef USE_GPU
       cell->setReservation(popID, templateCell.getReservation(popID));
-   #endif
+      #endif
    }
-   
+
    std::string Copysphere::getName() const { return "Copysphere"; }
    void Copysphere::getFaces(bool* faces) {}
-   
+
    void Copysphere::updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                 fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
                                 fsgrids::perbspan perb,
                                 fsgrids::bgbspan bgb, creal t) {}
-   
+
    uint Copysphere::getIndex() const { return sysboundarytype::COPYSPHERE; }
 } // namespace SBC

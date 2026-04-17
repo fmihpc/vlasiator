@@ -57,15 +57,10 @@ private:
 public:
    Wavespeeds(Real bmag2, Real rhom, Real p11, Real p22, Real p33, const std::array<Real, 3>& gridSpacing)
        : alfvenSq(divideIfNonZero(bmag2, pc::MU_0 * rhom)), soundSq(divideIfNonZero(p11 + p22 + p33, 2.0 * rhom)),
-         whistler(Parameters::ohmHallTerm > 0
-                      ? sqrt(alfvenSq) *
-                            (1 + divideIfNonZero(2 * M_PI * M_PI * pc::MASS_PROTON * pc::MASS_PROTON,
-                                                 gridSpacing[0] * gridSpacing[0] * rhom * pc::CHARGE * pc::CHARGE *
-                                                     pc::MU_0) /
-                                     sqrt(1 + divideIfNonZero(M_PI * M_PI * pc::MASS_PROTON * pc::MASS_PROTON,
-                                                              gridSpacing[0] * gridSpacing[0] * rhom * pc::CHARGE *
-                                                                  pc::CHARGE * pc::MU_0)))
-                      : 0.0) {}
+         whistler(Parameters::ohmHallTerm > 0 ?
+                     sqrt(alfvenSq) * (1 + divideIfNonZero(2*M_PI*M_PI*pc::MASS_PROTON*pc::MASS_PROTON, gridSpacing[0]*gridSpacing[0]*rhom*pc::CHARGE*pc::CHARGE*pc::MU_0)
+                                / sqrt(1 + divideIfNonZero(  M_PI*M_PI*pc::MASS_PROTON*pc::MASS_PROTON, gridSpacing[0]*gridSpacing[0]*rhom*pc::CHARGE*pc::CHARGE*pc::MU_0)))
+                  : 0.0) {}
 
    Real minVelocity() const { return min(Parameters::maxWaveVelocity, sqrt(alfvenSq + soundSq) + whistler); }
 
@@ -99,10 +94,10 @@ struct Limits {
  *   as well as Balsara-reconstructed magnetic field components used in the determination of
  *   characteristic wave speeds, used in turn in the upwind constrained transport Londrillo &
  *   del Zanna algorithm.
- *   
+ *
  *   Balsara DS (2009) Divergence-free reconstruction of magnetic fields and WENO schemes for
  *   magnetohydrodynamics. J Comput Phys 228:5040–5056. https://doi.org/10.1016/j.jcp.2009.03.038
- *   
+ *
  *   Londrillo P, Del Zanna L (2004) On the divergence-free condition in Godunov-type schemes for
  *   ideal magnetohydrodynamics: the upwind constrained transport method. J Comput Phys 195:17–48.
  *   https://doi.org/10.1016/j.jcp.2003.09.016
@@ -215,8 +210,7 @@ Wavespeeds calculateWaveSpeedYZ(fsgrids::perbspan perB,
    const auto [A_Y, A_XY] = rec.dPerBCoeffs(fsgrids::dperb::dPERBxdy, fsgrids::bgbfield::dBGBxdy);
    const auto [A_Z, A_XZ] = rec.dPerBCoeffs(fsgrids::dperb::dPERBxdz, fsgrids::bgbfield::dBGBxdz);
 
-   const Real bx2 =
-       Reconstructions::squared(A_0 + HALF * (ydir * A_Y + zdir * A_Z), A_X + HALF * (ydir * A_XY + zdir * A_XZ));
+   const Real bx2 = Reconstructions::squared(A_0 + HALF * (ydir * A_Y + zdir * A_Z), A_X + HALF * (ydir * A_XY + zdir * A_XZ));
    const Real by2 = Reconstructions::squared(By + zdir * HALF * dBydz, dBydx);
    const Real bz2 = Reconstructions::squared(Bz + ydir * HALF * dBzdy, dBzdx);
 
@@ -228,8 +222,7 @@ Wavespeeds calculateWaveSpeedYZ(fsgrids::perbspan perB,
  * Computes the magnetosonic speed in the XZ plane. Used in upwinding the electric field Y component,
  * at the interface between cells self and nbr.
  *
- * Expects that the correct RHO and B fields are being passed, depending on the stage of the Runge-Kutta time stepping
- * method.
+ * Expects that the correct RHO and B fields are being passed, depending on the stage of the Runge-Kutta time stepping method.
  *
  * If fields are not propagated, returns 0.0 as there is no information propagating.
  *
@@ -271,8 +264,7 @@ Wavespeeds calculateWaveSpeedXZ(fsgrids::perbspan perB,
    const auto [B_X, B_XY] = rec.dPerBCoeffs(fsgrids::dperb::dPERBydx, fsgrids::bgbfield::dBGBydx);
    const auto [B_Z, B_YZ] = rec.dPerBCoeffs(fsgrids::dperb::dPERBydz, fsgrids::bgbfield::dBGBydz);
 
-   const Real by2 =
-       Reconstructions::squared(B_0 + HALF * (xdir * B_X + zdir * B_Z), B_Y + HALF * (xdir * B_XY + zdir * B_YZ));
+   const Real by2 = Reconstructions::squared(B_0 + HALF * (xdir * B_X + zdir * B_Z), B_Y + HALF * (xdir * B_XY + zdir * B_YZ));
    const Real bx2 = Reconstructions::squared(Bx + zdir * HALF * dBxdz, dBxdy);
    const Real bz2 = Reconstructions::squared(Bz + xdir * HALF * dBzdx, dBzdy);
 
@@ -284,8 +276,7 @@ Wavespeeds calculateWaveSpeedXZ(fsgrids::perbspan perB,
  * Computes the magnetosonic speed in the XY plane. Used in upwinding the electric field Z component,
  * at the interface between cells self and nbr.
  *
- * Expects that the correct RHO and B fields are being passed, depending on the stage of the Runge-Kutta time stepping
- * method.
+ * Expects that the correct RHO and B fields are being passed, depending on the stage of the Runge-Kutta time stepping method.
  *
  * If fields are not propagated, returns 0.0 as there is no information propagating.
  *
@@ -327,8 +318,7 @@ Wavespeeds calculateWaveSpeedXY(fsgrids::perbspan perB,
    const auto [C_X, C_XZ] = rec.dPerBCoeffs(fsgrids::dperb::dPERBzdx, fsgrids::bgbfield::dBGBzdx);
    const auto [C_Y, C_YZ] = rec.dPerBCoeffs(fsgrids::dperb::dPERBzdy, fsgrids::bgbfield::dBGBzdy);
 
-   const Real bz2 =
-       Reconstructions::squared(C_0 + HALF * (xdir * C_X + ydir * C_Y), C_Z + HALF * (xdir * C_XZ + ydir * C_YZ));
+   const Real bz2 = Reconstructions::squared(C_0 + HALF * (xdir * C_X + ydir * C_Y), C_Z + HALF * (xdir * C_XZ + ydir * C_YZ));
    const Real bx2 = Reconstructions::squared(Bx + ydir * HALF * dBxdy, dBxdz);
    const Real by2 = Reconstructions::squared(By + xdir * HALF * dBydx, dBydz);
 
@@ -338,8 +328,9 @@ Wavespeeds calculateWaveSpeedXY(fsgrids::perbspan perB,
 void fsdebugCheck([[maybe_unused]] const fsgrid::FsStencil& stencil, [[maybe_unused]] size_t len,
                   [[maybe_unused]] const char* file, [[maybe_unused]] uint32_t line) {
 #ifdef DEBUG_FSOLVER
-   const bool ok = stencil.ooo() < len && stencil.oom() < len && stencil.omo() < len && stencil.omm() < len &&
-                   stencil.moo() < len && stencil.mom() < len && stencil.mmo() < len;
+   const bool ok = stencil.ooo() < len &&
+	           stencil.oom() < len && stencil.omo() < len && stencil.moo() < len &&
+		   stencil.omm() < len && stencil.mom() < len && stencil.mmo() < len;
 
    if (!ok) {
       cerr << "Out-of-bounds access in " << file << ":" << line << std::endl;
@@ -437,11 +428,9 @@ struct DataArrays {
  * Computes the upwinded electric field X component along the cell's corresponding edge as the cross product of B and V
  * in the YZ plane. Also includes the calculation of the maximally allowed time step.
  *
- * Expects that the correct RHO and B fields are being passed, depending on the stage of the Runge-Kutta time stepping
- * method.
+ * Expects that the correct RHO and B fields are being passed, depending on the stage of the Runge-Kutta time stepping method.
  *
- * Note that the background B field is excluded from the diffusive term calculations because they are equivalent to a
- * current term and the background field is curl-free.
+ * Note that the background B field is excluded from the diffusive term calculations because they are equivalent to a current term and the background field is curl-free.
  *
  * \param perb fsGrid holding the perturbed B quantities
  * \param dperb fsGrid holding the derivatives of perturbed B
@@ -518,12 +507,8 @@ void calculateEdgeElectricFieldX(fsgrids::perbspan perb,
 
 #ifndef FS_1ST_ORDER_SPACE
    // 2nd order terms:
-   Ex_SW += +HALF * ((By_S - HALF * dBydz_S) *
-                         (-sw.dmoments[fsgrids::dmoments::dVzdy] - sw.dmoments[fsgrids::dmoments::dVzdz]) -
-                     dBydz_S * Vz0 + SIXTH * dBydx_S * sw.dmoments[fsgrids::dmoments::dVzdx]);
-   Ex_SW += -HALF * ((Bz_W - HALF * dBzdy_W) *
-                         (-sw.dmoments[fsgrids::dmoments::dVydy] - sw.dmoments[fsgrids::dmoments::dVydz]) -
-                     dBzdy_W * Vy0 + SIXTH * dBzdx_W * sw.dmoments[fsgrids::dmoments::dVydx]);
+   Ex_SW += +HALF * ((By_S - HALF * dBydz_S) * (-sw.dmoments[fsgrids::dmoments::dVzdy] - sw.dmoments[fsgrids::dmoments::dVzdz]) - dBydz_S * Vz0 + SIXTH * dBydx_S * sw.dmoments[fsgrids::dmoments::dVzdx]);
+   Ex_SW += -HALF * ((Bz_W - HALF * dBzdy_W) * (-sw.dmoments[fsgrids::dmoments::dVydy] - sw.dmoments[fsgrids::dmoments::dVydz]) - dBzdy_W * Vy0 + SIXTH * dBzdx_W * sw.dmoments[fsgrids::dmoments::dVydx]);
 #endif
    size_t self = stencil.ooo();
    size_t nbr = stencil.poo();
@@ -546,12 +531,8 @@ void calculateEdgeElectricFieldX(fsgrids::perbspan perb,
 
 #ifndef FS_1ST_ORDER_SPACE
    // 2nd order terms:
-   Ex_SE += +HALF * ((By_S - HALF * dBydz_S) *
-                         (+se.dmoments[fsgrids::dmoments::dVzdy] - se.dmoments[fsgrids::dmoments::dVzdz]) -
-                     dBydz_S * Vz0 + SIXTH * dBydx_S * se.dmoments[fsgrids::dmoments::dVzdx]);
-   Ex_SE += -HALF * ((Bz_E + HALF * dBzdy_E) *
-                         (+se.dmoments[fsgrids::dmoments::dVydy] - se.dmoments[fsgrids::dmoments::dVydz]) +
-                     dBzdy_E * Vy0 + SIXTH * dBzdx_E * se.dmoments[fsgrids::dmoments::dVydx]);
+   Ex_SE += +HALF * ((By_S - HALF * dBydz_S) * (+se.dmoments[fsgrids::dmoments::dVzdy] - se.dmoments[fsgrids::dmoments::dVzdz]) - dBydz_S * Vz0 + SIXTH * dBydx_S * se.dmoments[fsgrids::dmoments::dVzdx]);
+   Ex_SE += -HALF * ((Bz_E + HALF * dBzdy_E) * (+se.dmoments[fsgrids::dmoments::dVydy] - se.dmoments[fsgrids::dmoments::dVydz]) + dBzdy_E * Vy0 + SIXTH * dBzdx_E * se.dmoments[fsgrids::dmoments::dVydx]);
 #endif
 
    self = stencil.omo();
@@ -575,12 +556,8 @@ void calculateEdgeElectricFieldX(fsgrids::perbspan perb,
 
 #ifndef FS_1ST_ORDER_SPACE
    // 2nd order terms:
-   Ex_NW += +HALF * ((By_N + HALF * dBydz_N) *
-                         (-nw.dmoments[fsgrids::dmoments::dVzdy] + nw.dmoments[fsgrids::dmoments::dVzdz]) +
-                     dBydz_N * Vz0 + SIXTH * dBydx_N * nw.dmoments[fsgrids::dmoments::dVzdx]);
-   Ex_NW += -HALF * ((Bz_W - HALF * dBzdy_W) *
-                         (-nw.dmoments[fsgrids::dmoments::dVydy] + nw.dmoments[fsgrids::dmoments::dVydz]) -
-                     dBzdy_W * Vy0 + SIXTH * dBzdx_W * nw.dmoments[fsgrids::dmoments::dVydx]);
+   Ex_NW += +HALF * ((By_N + HALF * dBydz_N) * (-nw.dmoments[fsgrids::dmoments::dVzdy] + nw.dmoments[fsgrids::dmoments::dVzdz]) + dBydz_N * Vz0 + SIXTH * dBydx_N * nw.dmoments[fsgrids::dmoments::dVzdx]);
+   Ex_NW += -HALF * ((Bz_W - HALF * dBzdy_W) * (-nw.dmoments[fsgrids::dmoments::dVydy] + nw.dmoments[fsgrids::dmoments::dVydz]) - dBzdy_W * Vy0 + SIXTH * dBzdx_W * nw.dmoments[fsgrids::dmoments::dVydx]);
 #endif
 
    self = stencil.oom();
@@ -672,14 +649,11 @@ void calculateEdgeElectricFieldX(fsgrids::perbspan perb,
 
 /*! \brief Low-level electric field propagation function.
  *
- * Computes the upwinded electric field Y component along the cell's corresponding edge as the cross product of B and V
- * in the XZ plane. Also includes the calculation of the maximally allowed time step.
+ * Computes the upwinded electric field Y component along the cell's corresponding edge as the cross product of B and V in the XZ plane. Also includes the calculation of the maximally allowed time step.
  *
- * Expects that the correct RHO and B fields are being passed, depending on the stage of the Runge-Kutta time stepping
- * method.
+ * Expects that the correct RHO and B fields are being passed, depending on the stage of the Runge-Kutta time stepping method.
  *
- * Note that the background B field is excluded from the diffusive term calculations because they are equivalent to a
- * current term and the background field is curl-free.
+ * Note that the background B field is excluded from the diffusive term calculations because they are equivalent to a current term and the background field is curl-free.
  *
  * \param perb fsGrid holding the perturbed B quantities
  * \param dperb fsGrid holding the derivatives of perturbed B
@@ -756,12 +730,8 @@ void calculateEdgeElectricFieldY(fsgrids::perbspan perb,
 
 #ifndef FS_1ST_ORDER_SPACE
    // 2nd order terms
-   Ey_SW += +HALF * ((Bz_S - HALF * dBzdx_S) *
-                         (-sw.dmoments[fsgrids::dmoments::dVxdx] - sw.dmoments[fsgrids::dmoments::dVxdz]) -
-                     dBzdx_S * Vx0 + SIXTH * dBzdy_S * sw.dmoments[fsgrids::dmoments::dVxdy]);
-   Ey_SW += -HALF * ((Bx_W - HALF * dBxdz_W) *
-                         (-sw.dmoments[fsgrids::dmoments::dVzdx] - sw.dmoments[fsgrids::dmoments::dVzdz]) -
-                     dBxdz_W * Vz0 + SIXTH * dBxdy_W * sw.dmoments[fsgrids::dmoments::dVzdy]);
+   Ey_SW += +HALF * ((Bz_S - HALF * dBzdx_S) * (-sw.dmoments[fsgrids::dmoments::dVxdx] - sw.dmoments[fsgrids::dmoments::dVxdz]) - dBzdx_S * Vx0 + SIXTH * dBzdy_S * sw.dmoments[fsgrids::dmoments::dVxdy]);
+   Ey_SW += -HALF * ((Bx_W - HALF * dBxdz_W) * (-sw.dmoments[fsgrids::dmoments::dVzdx] - sw.dmoments[fsgrids::dmoments::dVzdz]) - dBxdz_W * Vz0 + SIXTH * dBxdy_W * sw.dmoments[fsgrids::dmoments::dVzdy]);
 #endif
 
    size_t self = stencil.ooo();
@@ -785,12 +755,8 @@ void calculateEdgeElectricFieldY(fsgrids::perbspan perb,
 
 #ifndef FS_1ST_ORDER_SPACE
    // 2nd order terms:
-   Ey_SE += +HALF * ((Bz_S - HALF * dBzdx_S) *
-                         (-se.dmoments[fsgrids::dmoments::dVxdx] + se.dmoments[fsgrids::dmoments::dVxdz]) -
-                     dBzdx_S * Vx0 + SIXTH * dBzdy_S * se.dmoments[fsgrids::dmoments::dVxdy]);
-   Ey_SE += -HALF * ((Bx_E + HALF * dBxdz_E) *
-                         (-se.dmoments[fsgrids::dmoments::dVzdx] + se.dmoments[fsgrids::dmoments::dVzdz]) +
-                     dBxdz_E * Vz0 + SIXTH * dBxdy_E * se.dmoments[fsgrids::dmoments::dVzdy]);
+   Ey_SE += +HALF * ((Bz_S - HALF * dBzdx_S) * (-se.dmoments[fsgrids::dmoments::dVxdx] + se.dmoments[fsgrids::dmoments::dVxdz]) - dBzdx_S * Vx0 + SIXTH * dBzdy_S * se.dmoments[fsgrids::dmoments::dVxdy]);
+   Ey_SE += -HALF * ((Bx_E + HALF * dBxdz_E) * (-se.dmoments[fsgrids::dmoments::dVzdx] + se.dmoments[fsgrids::dmoments::dVzdz]) + dBxdz_E * Vz0 + SIXTH * dBxdy_E * se.dmoments[fsgrids::dmoments::dVzdy]);
 #endif
 
    self = stencil.oom();
@@ -814,12 +780,8 @@ void calculateEdgeElectricFieldY(fsgrids::perbspan perb,
 
 #ifndef FS_1ST_ORDER_SPACE
    // 2nd order terms:
-   Ey_NW += +HALF * ((Bz_N + HALF * dBzdx_N) *
-                         (+nw.dmoments[fsgrids::dmoments::dVxdx] - nw.dmoments[fsgrids::dmoments::dVxdz]) +
-                     dBzdx_N * Vx0 + SIXTH * dBzdy_N * nw.dmoments[fsgrids::dmoments::dVxdy]);
-   Ey_NW += -HALF * ((Bx_W - HALF * dBxdz_W) *
-                         (+nw.dmoments[fsgrids::dmoments::dVzdx] - nw.dmoments[fsgrids::dmoments::dVzdz]) -
-                     dBxdz_W * Vz0 + SIXTH * dBxdy_W * nw.dmoments[fsgrids::dmoments::dVzdy]);
+   Ey_NW += +HALF * ((Bz_N + HALF * dBzdx_N) * (+nw.dmoments[fsgrids::dmoments::dVxdx] - nw.dmoments[fsgrids::dmoments::dVxdz]) + dBzdx_N * Vx0 + SIXTH * dBzdy_N * nw.dmoments[fsgrids::dmoments::dVxdy]);
+   Ey_NW += -HALF * ((Bx_W - HALF * dBxdz_W) * (+nw.dmoments[fsgrids::dmoments::dVzdx] - nw.dmoments[fsgrids::dmoments::dVzdz]) - dBxdz_W * Vz0 + SIXTH * dBxdy_W * nw.dmoments[fsgrids::dmoments::dVzdy]);
 #endif
 
    self = stencil.moo();
@@ -843,12 +805,8 @@ void calculateEdgeElectricFieldY(fsgrids::perbspan perb,
 
 #ifndef FS_1ST_ORDER_SPACE
    // 2nd order terms:
-   Ey_NE += +HALF * ((Bz_N + HALF * dBzdx_N) *
-                         (+ne.dmoments[fsgrids::dmoments::dVxdx] + ne.dmoments[fsgrids::dmoments::dVxdz]) +
-                     dBzdx_N * Vx0 + SIXTH * dBzdy_N * ne.dmoments[fsgrids::dmoments::dVxdy]);
-   Ey_NE += -HALF * ((Bx_E + HALF * dBxdz_E) *
-                         (+ne.dmoments[fsgrids::dmoments::dVzdx] + ne.dmoments[fsgrids::dmoments::dVzdz]) +
-                     dBxdz_E * Vz0 + SIXTH * dBxdy_E * ne.dmoments[fsgrids::dmoments::dVzdy]);
+   Ey_NE += +HALF * ((Bz_N + HALF * dBzdx_N) * (+ne.dmoments[fsgrids::dmoments::dVxdx] + ne.dmoments[fsgrids::dmoments::dVxdz]) + dBzdx_N * Vx0 + SIXTH * dBzdy_N * ne.dmoments[fsgrids::dmoments::dVxdy]);
+   Ey_NE += -HALF * ((Bx_E + HALF * dBxdz_E) * (+ne.dmoments[fsgrids::dmoments::dVzdx] + ne.dmoments[fsgrids::dmoments::dVzdz]) + dBxdz_E * Vz0 + SIXTH * dBxdy_E * ne.dmoments[fsgrids::dmoments::dVzdy]);
 #endif
 
    self = stencil.mom();
@@ -911,14 +869,11 @@ void calculateEdgeElectricFieldY(fsgrids::perbspan perb,
 
 /*! \brief Low-level electric field propagation function.
  *
- * Computes the upwinded electric field Z component along the cell's corresponding edge as the cross product of B and V
- * in the XY plane. Also includes the calculation of the maximally allowed time step.
+ * Computes the upwinded electric field Z component along the cell's corresponding edge as the cross product of B and V in the XY plane. Also includes the calculation of the maximally allowed time step.
  *
- * Expects that the correct RHO and B fields are being passed, depending on the stage of the Runge-Kutta time stepping
- * method.
+ * Expects that the correct RHO and B fields are being passed, depending on the stage of the Runge-Kutta time stepping method.
  *
- * Note that the background B field is excluded from the diffusive term calculations because they are equivalent to a
- * current term and the background field is curl-free.
+ * Note that the background B field is excluded from the diffusive term calculations because they are equivalent to a current term and the background field is curl-free.
  *
  * \param perb fsGrid holding the perturbed B quantities
  * \param dperb fsGrid holding the derivatives of perturbed B
@@ -996,12 +951,8 @@ void calculateEdgeElectricFieldZ(fsgrids::perbspan perb,
 
 #ifndef FS_1ST_ORDER_SPACE
    // 2nd order terms:
-   Ez_SW += +HALF * ((Bx_S - HALF * dBxdy_S) *
-                         (-sw.dmoments[fsgrids::dmoments::dVydx] - sw.dmoments[fsgrids::dmoments::dVydy]) -
-                     dBxdy_S * Vy0 + SIXTH * dBxdz_S * sw.dmoments[fsgrids::dmoments::dVydz]);
-   Ez_SW += -HALF * ((By_W - HALF * dBydx_W) *
-                         (-sw.dmoments[fsgrids::dmoments::dVxdx] - sw.dmoments[fsgrids::dmoments::dVxdy]) -
-                     dBydx_W * Vx0 + SIXTH * dBydz_W * sw.dmoments[fsgrids::dmoments::dVxdz]);
+   Ez_SW += +HALF * ((Bx_S - HALF * dBxdy_S) * (-sw.dmoments[fsgrids::dmoments::dVydx] - sw.dmoments[fsgrids::dmoments::dVydy]) - dBxdy_S * Vy0 + SIXTH * dBxdz_S * sw.dmoments[fsgrids::dmoments::dVydz]);
+   Ez_SW += -HALF * ((By_W - HALF * dBydx_W) * (-sw.dmoments[fsgrids::dmoments::dVxdx] - sw.dmoments[fsgrids::dmoments::dVxdy]) - dBydx_W * Vx0 + SIXTH * dBydz_W * sw.dmoments[fsgrids::dmoments::dVxdz]);
 #endif
 
    size_t self = stencil.ooo();
@@ -1025,12 +976,8 @@ void calculateEdgeElectricFieldZ(fsgrids::perbspan perb,
 
 #ifndef FS_1ST_ORDER_SPACE
    // 2nd order terms:
-   Ez_SE += +HALF * ((Bx_S - HALF * dBxdy_S) *
-                         (+se.dmoments[fsgrids::dmoments::dVydx] - se.dmoments[fsgrids::dmoments::dVydy]) -
-                     dBxdy_S * Vy0 + SIXTH * dBxdz_S * se.dmoments[fsgrids::dmoments::dVydz]);
-   Ez_SE += -HALF * ((By_E + HALF * dBydx_E) *
-                         (+se.dmoments[fsgrids::dmoments::dVxdx] - se.dmoments[fsgrids::dmoments::dVxdy]) +
-                     dBydx_E * Vx0 + SIXTH * dBydz_E * se.dmoments[fsgrids::dmoments::dVxdz]);
+   Ez_SE += +HALF * ((Bx_S - HALF * dBxdy_S) * (+se.dmoments[fsgrids::dmoments::dVydx] - se.dmoments[fsgrids::dmoments::dVydy]) - dBxdy_S * Vy0 + SIXTH * dBxdz_S * se.dmoments[fsgrids::dmoments::dVydz]);
+   Ez_SE += -HALF * ((By_E + HALF * dBydx_E) * (+se.dmoments[fsgrids::dmoments::dVxdx] - se.dmoments[fsgrids::dmoments::dVxdy]) + dBydx_E * Vx0 + SIXTH * dBydz_E * se.dmoments[fsgrids::dmoments::dVxdz]);
 #endif
 
    self = stencil.moo();
@@ -1054,12 +1001,8 @@ void calculateEdgeElectricFieldZ(fsgrids::perbspan perb,
 
 #ifndef FS_1ST_ORDER_SPACE
    // 2nd order terms:
-   Ez_NW += +HALF * ((Bx_N + HALF * dBxdy_N) *
-                         (-nw.dmoments[fsgrids::dmoments::dVydx] + nw.dmoments[fsgrids::dmoments::dVydy]) +
-                     dBxdy_N * Vy0 + SIXTH * dBxdz_N * nw.dmoments[fsgrids::dmoments::dVydz]);
-   Ez_NW += -HALF * ((By_W - HALF * dBydx_W) *
-                         (-nw.dmoments[fsgrids::dmoments::dVxdx] + nw.dmoments[fsgrids::dmoments::dVxdy]) -
-                     dBydx_W * Vx0 + SIXTH * dBydz_W * nw.dmoments[fsgrids::dmoments::dVxdz]);
+   Ez_NW += +HALF * ((Bx_N + HALF * dBxdy_N) * (-nw.dmoments[fsgrids::dmoments::dVydx] + nw.dmoments[fsgrids::dmoments::dVydy]) + dBxdy_N * Vy0 + SIXTH * dBxdz_N * nw.dmoments[fsgrids::dmoments::dVydz]);
+   Ez_NW += -HALF * ((By_W - HALF * dBydx_W) * (-nw.dmoments[fsgrids::dmoments::dVxdx] + nw.dmoments[fsgrids::dmoments::dVxdy]) - dBydx_W * Vx0 + SIXTH * dBydz_W * nw.dmoments[fsgrids::dmoments::dVxdz]);
 #endif
 
    self = stencil.omo();
@@ -1083,12 +1026,8 @@ void calculateEdgeElectricFieldZ(fsgrids::perbspan perb,
 
 #ifndef FS_1ST_ORDER_SPACE
    // 2nd order terms:
-   Ez_NE += +HALF * ((Bx_N + HALF * dBxdy_N) *
-                         (+ne.dmoments[fsgrids::dmoments::dVydx] + ne.dmoments[fsgrids::dmoments::dVydy]) +
-                     dBxdy_N * Vy0 + SIXTH * dBxdz_N * ne.dmoments[fsgrids::dmoments::dVydz]);
-   Ez_NE += -HALF * ((By_E + HALF * dBydx_E) *
-                         (+ne.dmoments[fsgrids::dmoments::dVxdx] + ne.dmoments[fsgrids::dmoments::dVxdy]) +
-                     dBydx_E * Vx0 + SIXTH * dBydz_E * ne.dmoments[fsgrids::dmoments::dVxdz]);
+   Ez_NE += +HALF * ((Bx_N + HALF * dBxdy_N) * (+ne.dmoments[fsgrids::dmoments::dVydx] + ne.dmoments[fsgrids::dmoments::dVydy]) + dBxdy_N * Vy0 + SIXTH * dBxdz_N * ne.dmoments[fsgrids::dmoments::dVydz]);
+   Ez_NE += -HALF * ((By_E + HALF * dBydx_E) * (+ne.dmoments[fsgrids::dmoments::dVxdx] + ne.dmoments[fsgrids::dmoments::dVxdy]) + dBydx_E * Vx0 + SIXTH * dBydz_E * ne.dmoments[fsgrids::dmoments::dVxdz]);
 #endif
 
    self = stencil.mmo();
@@ -1167,8 +1106,7 @@ void calculateEdgeElectricFieldZ(fsgrids::perbspan perb,
  * \param sysBoundaries System boundary conditions existing
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  *
- * \sa calculateUpwindedElectricFieldSimple calculateEdgeElectricFieldX calculateEdgeElectricFieldY
- * calculateEdgeElectricFieldZ
+ * \sa calculateUpwindedElectricFieldSimple calculateEdgeElectricFieldX calculateEdgeElectricFieldY calculateEdgeElectricFieldZ
  *
  */
 void calculateElectricField(fsgrids::perbspan perb,

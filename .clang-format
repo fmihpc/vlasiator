@@ -8,7 +8,7 @@ PointerAlignment: Left
 AlignAfterOpenBracket: true
 AllowShortIfStatementsOnASingleLine: false
 IndentCaseLabels: false
-ColumnLimit: 120
+ColumnLimit: 220
 AccessModifierOffset: -3
 ...
 

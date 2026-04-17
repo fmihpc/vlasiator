@@ -23,8 +23,8 @@
 #ifndef DEFINITIONS_H
 #define DEFINITIONS_H
 
-#include <limits>
 #include <stdint.h>
+#include <limits>
 
 //set floating point precision for storing the distribution function here. Default is single precision, use -DDPF to set double precision
 #ifdef DPF

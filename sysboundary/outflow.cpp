@@ -28,19 +28,19 @@
 #include <cstdlib>
 #include <iostream>
 
+#include "../object_wrapper.h"
+#include "outflow.h"
+#include "../projects/projects_common.h"
 #include "../fieldsolver/fs_common.h"
 #include "../fieldsolver/ldz_magnetic_field.hpp"
-#include "../object_wrapper.h"
-#include "../projects/projects_common.h"
 #include "../vlasovsolver/vlasovmover.h"
-#include "outflow.h"
 #include "../grid.h"
 
 #ifdef DEBUG_VLASIATOR
-#define DEBUG_OUTFLOW
+   #define DEBUG_OUTFLOW
 #endif
 #ifdef DEBUG_SYSBOUNDARY
-#define DEBUG_OUTFLOW
+   #define DEBUG_OUTFLOW
 #endif
 
 using namespace std;
@@ -48,41 +48,30 @@ using namespace std;
 namespace SBC {
    Outflow::Outflow() : OuterBoundaryCondition() {}
    Outflow::~Outflow() {}
-   
+
    void Outflow::addParameters() {
       const string defStr = "Copy";
-      Readparameters::addComposing(
-          "outflow.faceNoFields",
-          "List of faces on which no field outflow boundary conditions are to be applied ([xyz][+-]).");
-      Readparameters::add("outflow.precedence",
-                          "Precedence value of the outflow system boundary condition (integer), the higher the stronger.",
-                          4);
-      Readparameters::add("outflow.reapplyUponRestart",
-                          "If 0 (default), keep going with the state existing in the restart file. If 1, calls again "
-                          "applyInitialState. Can be used to change boundary condition behaviour during a run.",
-                          0);
-   
+      Readparameters::addComposing( "outflow.faceNoFields", "List of faces on which no field outflow boundary conditions are to be applied ([xyz][+-]).");
+      Readparameters::add("outflow.precedence", "Precedence value of the outflow system boundary condition (integer), the higher the stronger.", 4);
+      Readparameters::add("outflow.reapplyUponRestart", "If 0 (default), keep going with the state existing in the restart file. If 1, calls again " "applyInitialState. Can be used to change boundary condition behaviour during a run.", 0);
+
       // Per-population parameters
       for (uint i = 0; i < getObjectWrapper().particleSpecies.size(); i++) {
          const string& pop = getObjectWrapper().particleSpecies[i].name;
-   
-         Readparameters::addComposing(
-             pop + "_outflow.reapplyFaceUponRestart",
-             "List of faces on which outflow boundary conditions are to be reapplied upon restart ([xyz][+-]).");
-         Readparameters::addComposing(pop + "_outflow.face",
-                                      "List of faces on which outflow boundary conditions are to be applied ([xyz][+-]).");
+
+         Readparameters::addComposing(pop + "_outflow.reapplyFaceUponRestart", "List of faces on which outflow boundary conditions are to be reapplied upon restart ([xyz][+-]).");
+         Readparameters::addComposing(pop + "_outflow.face", "List of faces on which outflow boundary conditions are to be applied ([xyz][+-]).");
          Readparameters::add(pop + "_outflow.vlasovScheme_face_x+", "Scheme to use on the face x+ (Copy, None)", defStr);
          Readparameters::add(pop + "_outflow.vlasovScheme_face_x-", "Scheme to use on the face x- (Copy, None)", defStr);
          Readparameters::add(pop + "_outflow.vlasovScheme_face_y+", "Scheme to use on the face y+ (Copy, None)", defStr);
          Readparameters::add(pop + "_outflow.vlasovScheme_face_y-", "Scheme to use on the face y- (Copy, None)", defStr);
          Readparameters::add(pop + "_outflow.vlasovScheme_face_z+", "Scheme to use on the face z+ (Copy, None)", defStr);
          Readparameters::add(pop + "_outflow.vlasovScheme_face_z-", "Scheme to use on the face z- (Copy, None)", defStr);
-   
-         Readparameters::add(pop + "_outflow.quench",
-                             "Factor by which to quench the inflowing parts of the velocity distribution function.", 1.0);
+
+         Readparameters::add(pop + "_outflow.quench", "Factor by which to quench the inflowing parts of the velocity distribution function.", 1.0);
       }
    }
-   
+
    void Outflow::getParameters() {
       int myRank;
       MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
@@ -94,20 +83,20 @@ namespace SBC {
       if (reapply == 1) {
          this->applyUponRestart = true;
       }
-   
+
       // Per-species parameters
       for (uint i = 0; i < getObjectWrapper().particleSpecies.size(); i++) {
          const string& pop = getObjectWrapper().particleSpecies[i].name;
          OutflowSpeciesParameters sP;
-   
+
          // Unless we find out otherwise, we assume that this species will not be treated at any boundary
          for (int j = 0; j < 6; j++) {
             sP.facesToSkipVlasov[j] = true;
          }
-   
+
          vector<string> thisSpeciesFaceList;
          Readparameters::get(pop + "_outflow.face", thisSpeciesFaceList);
-   
+
          for (auto& face : thisSpeciesFaceList) {
             if (face == "x+") {
                facesToProcess[0] = true;
@@ -134,13 +123,13 @@ namespace SBC {
                sP.facesToSkipVlasov[5] = false;
             }
          }
-   
+
          Readparameters::get(pop + "_outflow.reapplyFaceUponRestart", sP.faceToReapplyUponRestartList);
          array<string, 6> vlasovSysBoundarySchemeName;
          Readparameters::get(pop + "_outflow.vlasovScheme_face_x+", vlasovSysBoundarySchemeName[0]);
          Readparameters::get(pop + "_outflow.vlasovScheme_face_x-", vlasovSysBoundarySchemeName[1]);
          Readparameters::get(pop + "_outflow.vlasovScheme_face_y+", vlasovSysBoundarySchemeName[2]);
-   
+
          Readparameters::get(pop + "_outflow.vlasovScheme_face_y-", vlasovSysBoundarySchemeName[3]);
          Readparameters::get(pop + "_outflow.vlasovScheme_face_z+", vlasovSysBoundarySchemeName[4]);
          Readparameters::get(pop + "_outflow.vlasovScheme_face_z-", vlasovSysBoundarySchemeName[5]);
@@ -153,13 +142,13 @@ namespace SBC {
                abort_mpi("ERROR: " + vlasovSysBoundarySchemeName[j] + " is an invalid Outflow Vlasov scheme!");
             }
          }
-   
+
          Readparameters::get(pop + "_outflow.quench", sP.quenchFactor);
-   
+
          speciesParams.push_back(sP);
       }
    }
-   
+
    void Outflow::initSysBoundary(creal& t, Project& project) {
       /* The array of bool describes which of the x+, x-, y+, y-, z+, z- faces are to have outflow system boundary
        * conditions. A true indicates the corresponding face will have outflow. The 6 elements correspond to x+, x-, y+,
@@ -170,72 +159,60 @@ namespace SBC {
          facesToSkipFields[i] = false;
          facesToReapply[i] = false;
       }
-   
+
       this->getParameters();
-   
+
       dynamic = false;
-   
+
       vector<string>::const_iterator it;
       for (it = faceNoFieldsList.begin(); it != faceNoFieldsList.end(); it++) {
-         if (*it == "x+")
-            facesToSkipFields[0] = true;
-         if (*it == "x-")
-            facesToSkipFields[1] = true;
-         if (*it == "y+")
-            facesToSkipFields[2] = true;
-         if (*it == "y-")
-            facesToSkipFields[3] = true;
-         if (*it == "z+")
-            facesToSkipFields[4] = true;
-         if (*it == "z-")
-            facesToSkipFields[5] = true;
+         if (*it == "x+") facesToSkipFields[0] = true;
+         if (*it == "x-") facesToSkipFields[1] = true;
+         if (*it == "y+") facesToSkipFields[2] = true;
+         if (*it == "y-") facesToSkipFields[3] = true;
+         if (*it == "z+") facesToSkipFields[4] = true;
+         if (*it == "z-") facesToSkipFields[5] = true;
       }
-   
+
       for (uint i = 0; i < getObjectWrapper().particleSpecies.size(); i++) {
          OutflowSpeciesParameters& sP = this->speciesParams[i];
          for (it = sP.faceToReapplyUponRestartList.begin(); it != sP.faceToReapplyUponRestartList.end(); it++) {
-            if (*it == "x+")
-               facesToReapply[0] = true;
-            if (*it == "x-")
-               facesToReapply[1] = true;
-            if (*it == "y+")
-               facesToReapply[2] = true;
-            if (*it == "y-")
-               facesToReapply[3] = true;
-            if (*it == "z+")
-               facesToReapply[4] = true;
-            if (*it == "z-")
-               facesToReapply[5] = true;
+            if (*it == "x+") facesToReapply[0] = true;
+            if (*it == "x-") facesToReapply[1] = true;
+            if (*it == "y+") facesToReapply[2] = true;
+            if (*it == "y-") facesToReapply[3] = true;
+            if (*it == "z+") facesToReapply[4] = true;
+            if (*it == "z-") facesToReapply[5] = true;
          }
       }
    }
-   
+
    void Outflow::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                    fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
                                    fsgrids::perbspan perb,
                                    fsgrids::bgbspan bgb, Project& project) {
       const vector<CellID>& cells = getLocalCells();
-   #pragma omp parallel for schedule(static)
+      #pragma omp parallel for schedule(static)
       for (uint i = 0; i < cells.size(); ++i) {
          CellID id = cells[i];
          SpatialCell* cell = mpiGrid[id];
          if (cell->sysBoundaryFlag != this->getIndex()) {
             continue;
          }
-   
+
          bool doApply = true;
-   
+
          if (Parameters::isRestart) {
             std::array<bool, 6> isThisCellOnAFace;
             determineFace(isThisCellOnAFace, mpiGrid, id);
-   
+
             doApply = false;
             // Comparison of the array defining which faces to use and the array telling on which faces this cell is
             for (uint j = 0; j < 6; j++) {
                doApply = doApply || (facesToReapply[j] && isThisCellOnAFace[j]);
             }
          }
-   
+
          if (doApply) {
             project.setCell(cell); // We set everything including VDF even in L2 cells to avoid a pile of spaghetti. Won't get communicated.
             cell->parameters[CellParams::RHOM_DT2] = cell->parameters[CellParams::RHOM];
@@ -249,12 +226,12 @@ namespace SBC {
          }
       }
    }
-   
+
    void Outflow::updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                              fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
                              fsgrids::perbspan perb,
                              fsgrids::bgbspan bgb, creal t) {}
-   
+
    Real Outflow::fieldSolverBoundaryCondMagneticField(fsgrids::perbspan b,
                                                       fsgrids::constbgbspan bgb,
                                                       fsgrids::consttechnicalspan technical,
@@ -263,12 +240,12 @@ namespace SBC {
                                                       const fsgrid::FsStencil& stencil, cuint component) {
       return fieldBoundaryCopyFromSolvingNbrMagneticField(b, technical, stencil, component, 1 << component);
    }
-   
+
    void Outflow::fieldSolverBoundaryCondElectricField(fsgrids::efieldspan e,
                                                       const fsgrid::FsStencil& stencil, cuint component) {
       e[stencil.ooo()][fsgrids::efield::EX + component] = 0.0;
    }
-   
+
    void Outflow::fieldSolverBoundaryCondHallElectricField(fsgrids::ehallspan ehall,
                                                           const fsgrid::FsStencil& stencil, cuint component) {
       array<Real, fsgrids::ehall::N_EHALL>& cp = ehall[stencil.ooo()];
@@ -296,24 +273,24 @@ namespace SBC {
               << " Invalid component" << endl;
       }
    }
-   
+
    void Outflow::fieldSolverBoundaryCondGradPeElectricField(
        fsgrids::egradpespan EGradPe, const fsgrid::FsStencil& stencil,
        cuint component) {
       EGradPe[stencil.ooo()][fsgrids::egradpe::EXGRADPE + component] = 0.0;
    }
-   
+
    void Outflow::fieldSolverBoundaryCondDerivatives(fsgrids::dperbspan dperb,
                                                     fsgrids::dmomentsspan dmoments,
                                                     const fsgrid::FsStencil& stencil, cuint RKCase, cuint component) {
       this->setCellDerivativesToZero(dperb, dmoments, stencil, component);
    }
-   
+
    void Outflow::fieldSolverBoundaryCondBVOLDerivatives(fsgrids::volspan vols,
                                                         const fsgrid::FsStencil& stencil, cuint component) {
       this->setCellBVOLDerivativesToZero(vols, stencil, component);
    }
-   
+
    /**
     * NOTE that this is called once for each particle species!
     * @param mpiGrid
@@ -321,12 +298,12 @@ namespace SBC {
     */
    void Outflow::vlasovBoundaryCondition(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                          const CellID& cellID, const uint popID, const bool calculate_V_moments) {
-   
+
       const OutflowSpeciesParameters& sP = this->speciesParams[popID];
       if (mpiGrid[cellID]->sysBoundaryFlag != this->getIndex()) {
          return;
       }
-   
+
       std::array<bool, 6> isThisCellOnAFace;
       determineFace(isThisCellOnAFace, mpiGrid, cellID, true);
 
@@ -445,8 +422,8 @@ namespace SBC {
          faces[i] = facesToProcess[i];
       }
    }
-   
+
    string Outflow::getName() const { return "Outflow"; }
    uint Outflow::getIndex() const { return sysboundarytype::OUTFLOW; }
-   
+
 } // namespace SBC

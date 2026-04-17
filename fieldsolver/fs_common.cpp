@@ -109,97 +109,75 @@ reconstructionCoefficients(fsgrids::perbspan perb,
       perturbedResult[Rec::c_yzz] = 0.0;
       perturbedResult[Rec::c_zzz] = 0.0;
    } else if (reconstructionOrder == 3) {
-      perturbedResult[Rec::a_yy] =
-          HALF * (der_i2j1k1[fsgrids::dperb::dPERBxdyy] + der_i1j1k1[fsgrids::dperb::dPERBxdyy]);
-      perturbedResult[Rec::a_zz] =
-          HALF * (der_i2j1k1[fsgrids::dperb::dPERBxdzz] + der_i1j1k1[fsgrids::dperb::dPERBxdzz]);
-      perturbedResult[Rec::a_yz] =
-          HALF * (der_i2j1k1[fsgrids::dperb::dPERBxdyz] + der_i1j1k1[fsgrids::dperb::dPERBxdyz]);
+      perturbedResult[Rec::a_yy] = HALF*(der_i2j1k1[fsgrids::dperb::dPERBxdyy] + der_i1j1k1[fsgrids::dperb::dPERBxdyy]);
+      perturbedResult[Rec::a_zz] = HALF*(der_i2j1k1[fsgrids::dperb::dPERBxdzz] + der_i1j1k1[fsgrids::dperb::dPERBxdzz]);
+      perturbedResult[Rec::a_yz] = HALF*(der_i2j1k1[fsgrids::dperb::dPERBxdyz] + der_i1j1k1[fsgrids::dperb::dPERBxdyz]);
       perturbedResult[Rec::a_xyy] = (der_i2j1k1[fsgrids::dperb::dPERBxdyy] - der_i1j1k1[fsgrids::dperb::dPERBxdyy]);
       perturbedResult[Rec::a_xyz] = (der_i2j1k1[fsgrids::dperb::dPERBxdyz] - der_i1j1k1[fsgrids::dperb::dPERBxdyz]);
       perturbedResult[Rec::a_xzz] = (der_i2j1k1[fsgrids::dperb::dPERBxdzz] - der_i1j1k1[fsgrids::dperb::dPERBxdzz]);
 
-      perturbedResult[Rec::b_xx] =
-          HALF * (der_i1j2k1[fsgrids::dperb::dPERBydxx] + der_i1j1k1[fsgrids::dperb::dPERBydxx]);
-      perturbedResult[Rec::b_xz] =
-          HALF * (der_i1j2k1[fsgrids::dperb::dPERBydxz] + der_i1j1k1[fsgrids::dperb::dPERBydxz]);
-      perturbedResult[Rec::b_zz] =
-          HALF * (der_i1j2k1[fsgrids::dperb::dPERBydzz] + der_i1j1k1[fsgrids::dperb::dPERBydzz]);
+      perturbedResult[Rec::b_xx] = HALF*(der_i1j2k1[fsgrids::dperb::dPERBydxx] + der_i1j1k1[fsgrids::dperb::dPERBydxx]);
+      perturbedResult[Rec::b_xz] = HALF*(der_i1j2k1[fsgrids::dperb::dPERBydxz] + der_i1j1k1[fsgrids::dperb::dPERBydxz]);
+      perturbedResult[Rec::b_zz] = HALF*(der_i1j2k1[fsgrids::dperb::dPERBydzz] + der_i1j1k1[fsgrids::dperb::dPERBydzz]);
       perturbedResult[Rec::b_xxy] = (der_i1j2k1[fsgrids::dperb::dPERBydxx] - der_i1j1k1[fsgrids::dperb::dPERBydxx]);
       perturbedResult[Rec::b_xyz] = (der_i1j2k1[fsgrids::dperb::dPERBydxz] - der_i1j1k1[fsgrids::dperb::dPERBydxz]);
       perturbedResult[Rec::b_yzz] = (der_i1j2k1[fsgrids::dperb::dPERBydzz] - der_i1j1k1[fsgrids::dperb::dPERBydzz]);
 
-      perturbedResult[Rec::c_xx] =
-          HALF * (der_i1j1k2[fsgrids::dperb::dPERBzdxx] + der_i1j1k1[fsgrids::dperb::dPERBzdxx]);
-      perturbedResult[Rec::c_xy] =
-          HALF * (der_i1j1k2[fsgrids::dperb::dPERBzdxy] + der_i1j1k1[fsgrids::dperb::dPERBzdxy]);
-      perturbedResult[Rec::c_yy] =
-          HALF * (der_i1j1k2[fsgrids::dperb::dPERBzdyy] + der_i1j1k1[fsgrids::dperb::dPERBzdyy]);
+      perturbedResult[Rec::c_xx] = HALF*(der_i1j1k2[fsgrids::dperb::dPERBzdxx] + der_i1j1k1[fsgrids::dperb::dPERBzdxx]);
+      perturbedResult[Rec::c_xy] = HALF*(der_i1j1k2[fsgrids::dperb::dPERBzdxy] + der_i1j1k1[fsgrids::dperb::dPERBzdxy]);
+      perturbedResult[Rec::c_yy] = HALF*(der_i1j1k2[fsgrids::dperb::dPERBzdyy] + der_i1j1k1[fsgrids::dperb::dPERBzdyy]);
       perturbedResult[Rec::c_xxz] = (der_i1j1k2[fsgrids::dperb::dPERBzdxx] - der_i1j1k1[fsgrids::dperb::dPERBzdxx]);
       perturbedResult[Rec::c_xyz] = (der_i1j1k2[fsgrids::dperb::dPERBzdxy] - der_i1j1k1[fsgrids::dperb::dPERBzdxy]);
       perturbedResult[Rec::c_yyz] = (der_i1j1k2[fsgrids::dperb::dPERBzdyy] - der_i1j1k1[fsgrids::dperb::dPERBzdyy]);
 
-      perturbedResult[Rec::a_xxx] = -THIRD * (perturbedResult[Rec::b_xxy] + perturbedResult[Rec::c_xxz]);
-      perturbedResult[Rec::a_xxy] = -FOURTH * perturbedResult[Rec::c_xyz];
-      perturbedResult[Rec::a_xxz] = -FOURTH * perturbedResult[Rec::b_xyz];
+      perturbedResult[Rec::a_xxx] = -THIRD*(perturbedResult[Rec::b_xxy] + perturbedResult[Rec::c_xxz]);
+      perturbedResult[Rec::a_xxy] = -FOURTH*perturbedResult[Rec::c_xyz];
+      perturbedResult[Rec::a_xxz] = -FOURTH*perturbedResult[Rec::b_xyz];
 
-      perturbedResult[Rec::b_xyy] = -FOURTH * perturbedResult[Rec::c_xyz];
-      perturbedResult[Rec::b_yyy] = -THIRD * (perturbedResult[Rec::c_yyz] + perturbedResult[Rec::a_xyy]);
-      perturbedResult[Rec::b_yyz] = -FOURTH * perturbedResult[Rec::a_xyz];
+      perturbedResult[Rec::b_xyy] = -FOURTH*perturbedResult[Rec::c_xyz];
+      perturbedResult[Rec::b_yyy] = -THIRD*(perturbedResult[Rec::c_yyz] + perturbedResult[Rec::a_xyy]);
+      perturbedResult[Rec::b_yyz] = -FOURTH*perturbedResult[Rec::a_xyz];
 
-      perturbedResult[Rec::c_xzz] = -FOURTH * perturbedResult[Rec::b_xyz];
-      perturbedResult[Rec::c_yzz] = -FOURTH * perturbedResult[Rec::a_xyz];
-      perturbedResult[Rec::c_zzz] = -THIRD * (perturbedResult[Rec::a_xzz] + perturbedResult[Rec::b_yzz]);
+      perturbedResult[Rec::c_xzz] = -FOURTH*perturbedResult[Rec::b_xyz];
+      perturbedResult[Rec::c_yzz] = -FOURTH*perturbedResult[Rec::a_xyz];
+      perturbedResult[Rec::c_zzz] = -THIRD*(perturbedResult[Rec::a_xzz] + perturbedResult[Rec::b_yzz]);
    } else {
-      cerr << __FILE__ << ":" << __LINE__ << ":"
-           << " Not coded yet!" << endl;
+      cerr << __FILE__ << ":" << __LINE__ << ":" << " Not coded yet!" << endl;
       abort();
    }
 
    // Calculate 2nd order reconstruction coefficients:
    perturbedResult[Rec::a_xy] = der_i2j1k1[fsgrids::dperb::dPERBxdy] - der_i1j1k1[fsgrids::dperb::dPERBxdy];
    perturbedResult[Rec::a_xz] = der_i2j1k1[fsgrids::dperb::dPERBxdz] - der_i1j1k1[fsgrids::dperb::dPERBxdz];
-   perturbedResult[Rec::a_y] = HALF * (der_i2j1k1[fsgrids::dperb::dPERBxdy] + der_i1j1k1[fsgrids::dperb::dPERBxdy]) -
-                               SIXTH * perturbedResult[Rec::a_xxy];
-   perturbedResult[Rec::a_z] = HALF * (der_i2j1k1[fsgrids::dperb::dPERBxdz] + der_i1j1k1[fsgrids::dperb::dPERBxdz]) -
-                               SIXTH * perturbedResult[Rec::a_xxz];
+   perturbedResult[Rec::a_y] = HALF*(der_i2j1k1[fsgrids::dperb::dPERBxdy] + der_i1j1k1[fsgrids::dperb::dPERBxdy]) - SIXTH*perturbedResult[Rec::a_xxy];
+   perturbedResult[Rec::a_z] = HALF*(der_i2j1k1[fsgrids::dperb::dPERBxdz] + der_i1j1k1[fsgrids::dperb::dPERBxdz]) - SIXTH*perturbedResult[Rec::a_xxz];
 
    perturbedResult[Rec::b_xy] = der_i1j2k1[fsgrids::dperb::dPERBydx] - der_i1j1k1[fsgrids::dperb::dPERBydx];
    perturbedResult[Rec::b_yz] = der_i1j2k1[fsgrids::dperb::dPERBydz] - der_i1j1k1[fsgrids::dperb::dPERBydz];
-   perturbedResult[Rec::b_x] = HALF * (der_i1j2k1[fsgrids::dperb::dPERBydx] + der_i1j1k1[fsgrids::dperb::dPERBydx]) -
-                               SIXTH * perturbedResult[Rec::b_xyy];
-   perturbedResult[Rec::b_z] = HALF * (der_i1j2k1[fsgrids::dperb::dPERBydz] + der_i1j1k1[fsgrids::dperb::dPERBydz]) -
-                               SIXTH * perturbedResult[Rec::b_yyz];
+   perturbedResult[Rec::b_x] = HALF*(der_i1j2k1[fsgrids::dperb::dPERBydx] + der_i1j1k1[fsgrids::dperb::dPERBydx]) - SIXTH*perturbedResult[Rec::b_xyy];
+   perturbedResult[Rec::b_z] = HALF*(der_i1j2k1[fsgrids::dperb::dPERBydz] + der_i1j1k1[fsgrids::dperb::dPERBydz]) - SIXTH*perturbedResult[Rec::b_yyz];
 
    perturbedResult[Rec::c_xz] = der_i1j1k2[fsgrids::dperb::dPERBzdx] - der_i1j1k1[fsgrids::dperb::dPERBzdx];
    perturbedResult[Rec::c_yz] = der_i1j1k2[fsgrids::dperb::dPERBzdy] - der_i1j1k1[fsgrids::dperb::dPERBzdy];
-   perturbedResult[Rec::c_x] = HALF * (der_i1j1k2[fsgrids::dperb::dPERBzdx] + der_i1j1k1[fsgrids::dperb::dPERBzdx]) -
-                               SIXTH * perturbedResult[Rec::c_xzz];
-   perturbedResult[Rec::c_y] = HALF * (der_i1j1k2[fsgrids::dperb::dPERBzdy] + der_i1j1k1[fsgrids::dperb::dPERBzdy]) -
-                               SIXTH * perturbedResult[Rec::c_yzz];
+   perturbedResult[Rec::c_x] = HALF*(der_i1j1k2[fsgrids::dperb::dPERBzdx] + der_i1j1k1[fsgrids::dperb::dPERBzdx]) - SIXTH*perturbedResult[Rec::c_xzz];
+   perturbedResult[Rec::c_y] = HALF*(der_i1j1k2[fsgrids::dperb::dPERBzdy] + der_i1j1k1[fsgrids::dperb::dPERBzdy]) - SIXTH*perturbedResult[Rec::c_yzz];
 
-   perturbedResult[Rec::a_xx] = -HALF * (perturbedResult[Rec::b_xy] + perturbedResult[Rec::c_xz]);
-   perturbedResult[Rec::b_yy] = -HALF * (perturbedResult[Rec::a_xy] + perturbedResult[Rec::c_yz]);
-   perturbedResult[Rec::c_zz] = -HALF * (perturbedResult[Rec::a_xz] + perturbedResult[Rec::b_yz]);
+   perturbedResult[Rec::a_xx] = -HALF*(perturbedResult[Rec::b_xy] + perturbedResult[Rec::c_xz]);
+   perturbedResult[Rec::b_yy] = -HALF*(perturbedResult[Rec::a_xy] + perturbedResult[Rec::c_yz]);
+   perturbedResult[Rec::c_zz] = -HALF*(perturbedResult[Rec::a_xz] + perturbedResult[Rec::b_yz]);
 
-   perturbedResult[Rec::a_x] =
-       cep_i2j1k1[fsgrids::bfield::PERBX] - cep_i1j1k1[fsgrids::bfield::PERBX] - TENTH * perturbedResult[Rec::a_xxx];
-   perturbedResult[Rec::b_y] =
-       cep_i1j2k1[fsgrids::bfield::PERBY] - cep_i1j1k1[fsgrids::bfield::PERBY] - TENTH * perturbedResult[Rec::b_yyy];
-   perturbedResult[Rec::c_z] =
-       cep_i1j1k2[fsgrids::bfield::PERBZ] - cep_i1j1k1[fsgrids::bfield::PERBZ] - TENTH * perturbedResult[Rec::c_zzz];
+   perturbedResult[Rec::a_x] = cep_i2j1k1[fsgrids::bfield::PERBX] - cep_i1j1k1[fsgrids::bfield::PERBX] - TENTH*perturbedResult[Rec::a_xxx];
+   perturbedResult[Rec::b_y] = cep_i1j2k1[fsgrids::bfield::PERBY] - cep_i1j1k1[fsgrids::bfield::PERBY] - TENTH*perturbedResult[Rec::b_yyy];
+   perturbedResult[Rec::c_z] = cep_i1j1k2[fsgrids::bfield::PERBZ] - cep_i1j1k1[fsgrids::bfield::PERBZ] - TENTH*perturbedResult[Rec::c_zzz];
 
 #else
    perturbedResult.fill(0.0);
 #endif
 
    // Calculate 1st order reconstruction coefficients:
-   perturbedResult[Rec::a_0] = HALF * (cep_i2j1k1[fsgrids::bfield::PERBX] + cep_i1j1k1[fsgrids::bfield::PERBX]) -
-                               SIXTH * perturbedResult[Rec::a_xx];
-   perturbedResult[Rec::b_0] = HALF * (cep_i1j2k1[fsgrids::bfield::PERBY] + cep_i1j1k1[fsgrids::bfield::PERBY]) -
-                               SIXTH * perturbedResult[Rec::b_yy];
-   perturbedResult[Rec::c_0] = HALF * (cep_i1j1k2[fsgrids::bfield::PERBZ] + cep_i1j1k1[fsgrids::bfield::PERBZ]) -
-                               SIXTH * perturbedResult[Rec::c_zz];
+   perturbedResult[Rec::a_0] = HALF*(cep_i2j1k1[fsgrids::bfield::PERBX] + cep_i1j1k1[fsgrids::bfield::PERBX]) - SIXTH*perturbedResult[Rec::a_xx];
+   perturbedResult[Rec::b_0] = HALF*(cep_i1j2k1[fsgrids::bfield::PERBY] + cep_i1j1k1[fsgrids::bfield::PERBY]) - SIXTH*perturbedResult[Rec::b_yy];
+   perturbedResult[Rec::c_0] = HALF*(cep_i1j1k2[fsgrids::bfield::PERBZ] + cep_i1j1k1[fsgrids::bfield::PERBZ]) - SIXTH*perturbedResult[Rec::c_zz];
 
    return perturbedResult;
 }
@@ -239,15 +217,14 @@ std::array<Real, 3> interpolatePerturbedB(
    xLocal[2] -= 0.5;
 
    if (fabs(xLocal[0]) > 0.5 || fabs(xLocal[1]) > 0.5 || fabs(xLocal[2]) > 0.5) {
-      cerr << __FILE__ << ":" << __LINE__ << ": Coordinate (" << xLocal[0] << "," << xLocal[1] << "," << xLocal[2]
-           << ")  outside of this cell!" << endl;
+      cerr << __FILE__ << ":" << __LINE__ << ": Coordinate (" << xLocal[0] << "," << xLocal[1] << "," << xLocal[2] << ")  outside of this cell!" << endl;
       abort();
    }
 
    const std::array<Real, Rec::N_REC_COEFFICIENTS> rc = [&stencil, &reconstructionCoefficientsCache, &perb, &dperb]() {
       const std::array<int, 3> cellIds = {stencil.i, stencil.j, stencil.k};
       if (FieldTracing::fieldTracingParameters.useCache) {
-#pragma omp critical
+         #pragma omp critical
          {
             // Reconstruction order of the fields after Balsara 2009, 2 used for general B, but 3 used here to
             // allow for cache reuse, see interpolatePerturbedJ below
@@ -265,17 +242,14 @@ std::array<Real, 3> interpolatePerturbedB(
 
    return {
        // Eq. (7) Balsara 2009
-       rc[Rec::a_0] + rc[Rec::a_x] * xLocal[0] + rc[Rec::a_y] * xLocal[1] + rc[Rec::a_z] * xLocal[2] +
-           rc[Rec::a_xx] * (xLocal[0] * xLocal[0] - TWELWTH) + rc[Rec::a_xy] * xLocal[0] * xLocal[1] +
-           rc[Rec::a_xz] * xLocal[0] * xLocal[2],
+       rc[Rec::a_0] + rc[Rec::a_x]*xLocal[0] + rc[Rec::a_y]*xLocal[1] + rc[Rec::a_z]*xLocal[2] +
+       rc[Rec::a_xx] * (xLocal[0]*xLocal[0] - TWELWTH) + rc[Rec::a_xy]*xLocal[0]*xLocal[1] + rc[Rec::a_xz]*xLocal[0]*xLocal[2],
        // Eq. (8) Balsara 2009
-       rc[Rec::b_0] + rc[Rec::b_x] * xLocal[0] + rc[Rec::b_y] * xLocal[1] + rc[Rec::b_z] * xLocal[2] +
-           rc[Rec::b_yy] * (xLocal[1] * xLocal[1] - TWELWTH) + rc[Rec::b_xy] * xLocal[0] * xLocal[1] +
-           rc[Rec::b_yz] * xLocal[1] * xLocal[2],
+       rc[Rec::b_0] + rc[Rec::b_x]*xLocal[0] + rc[Rec::b_y]*xLocal[1] + rc[Rec::b_z]*xLocal[2] +
+       rc[Rec::b_yy] * (xLocal[1]*xLocal[1] - TWELWTH) + rc[Rec::b_xy]*xLocal[0]*xLocal[1] + rc[Rec::b_yz]*xLocal[1]*xLocal[2],
        // Eq. (9) Balsara 2009
-       rc[Rec::c_0] + rc[Rec::c_x] * xLocal[0] + rc[Rec::c_y] * xLocal[1] + rc[Rec::c_z] * xLocal[2] +
-           rc[Rec::c_zz] * (xLocal[2] * xLocal[2] - TWELWTH) + rc[Rec::c_xz] * xLocal[0] * xLocal[2] +
-           rc[Rec::c_yz] * xLocal[1] * xLocal[2],
+       rc[Rec::c_0] + rc[Rec::c_x]*xLocal[0] + rc[Rec::c_y]*xLocal[1] + rc[Rec::c_z]*xLocal[2] +
+       rc[Rec::c_zz] * (xLocal[2]*xLocal[2] - TWELWTH) + rc[Rec::c_xz]*xLocal[0]*xLocal[2] + rc[Rec::c_yz]*xLocal[1]*xLocal[2],
    };
 }
 
@@ -316,8 +290,7 @@ std::array<Real, 3> interpolateCurlB(
    xLocal[2] -= 0.5;
 
    if (fabs(xLocal[0]) > 0.5 || fabs(xLocal[1]) > 0.5 || fabs(xLocal[2]) > 0.5) {
-      cerr << __FILE__ << ":" << __LINE__ << ": Coordinate (" << xLocal[0] << "," << xLocal[1] << "," << xLocal[2]
-           << ")  outside of this cell!" << endl;
+      cerr << __FILE__ << ":" << __LINE__ << ": Coordinate (" << xLocal[0] << "," << xLocal[1] << "," << xLocal[2] << ")  outside of this cell!" << endl;
       abort();
    }
 
@@ -326,7 +299,7 @@ std::array<Real, 3> interpolateCurlB(
       // Actual use of the coefficient cache has proven not to be thread safe. But it appears to be reasonably fast even
       // without it.
       if (FieldTracing::fieldTracingParameters.useCache) {
-#pragma omp critical
+         #pragma omp critical
          {
             // Reconstruction order of the fields after Balsara 2009, 3 used to obtain 2nd
             // order curl(B) and allows for cache reuse, see interpolatePerturbedB above
@@ -342,27 +315,60 @@ std::array<Real, 3> interpolateCurlB(
    }();
 
    return {
-       (12 * rc[Rec::c_yzz] * xLocal[2] * xLocal[2] + 24 * rc[Rec::c_yyz] * xLocal[1] * xLocal[2] -
-        24 * rc[Rec::b_yzz] * xLocal[1] * xLocal[2] + 12 * rc[Rec::c_xyz] * xLocal[0] * xLocal[2] +
-        12 * rc[Rec::c_yz] * xLocal[2] - 24 * rc[Rec::b_zz] * xLocal[2] - 12 * rc[Rec::b_yyz] * xLocal[1] * xLocal[1] -
-        12 * rc[Rec::b_xyz] * xLocal[0] * xLocal[1] + 24 * rc[Rec::c_yy] * xLocal[1] - 12 * rc[Rec::b_yz] * xLocal[1] +
-        12 * rc[Rec::c_xy] * xLocal[0] - 12 * rc[Rec::b_xz] * xLocal[0] - rc[Rec::c_yzz] + 12 * rc[Rec::c_y] -
-        12 * rc[Rec::b_z] + rc[Rec::b_yyz]) /
-           12,
-       // See that minus if you ever copy again from wxMaxima!
-       -(12 * rc[Rec::c_xzz] * xLocal[2] * xLocal[2] + 12 * rc[Rec::c_xyz] * xLocal[1] * xLocal[2] +
-         24 * rc[Rec::c_xxz] * xLocal[0] * xLocal[2] - 24 * rc[Rec::a_xzz] * xLocal[0] * xLocal[2] +
-         12 * rc[Rec::c_xz] * xLocal[2] - 24 * rc[Rec::a_zz] * xLocal[2] - 12 * rc[Rec::a_xyz] * xLocal[0] * xLocal[1] +
-         12 * rc[Rec::c_xy] * xLocal[1] - 12 * rc[Rec::a_yz] * xLocal[1] - 12 * rc[Rec::a_xxz] * xLocal[0] * xLocal[0] +
-         24 * rc[Rec::c_xx] * xLocal[0] - 12 * rc[Rec::a_xz] * xLocal[0] - rc[Rec::c_xzz] + 12 * rc[Rec::c_x] -
-         12 * rc[Rec::a_z] + rc[Rec::a_xxz]) /
-           12,
-       (12 * rc[Rec::b_xyz] * xLocal[1] * xLocal[2] - 12 * rc[Rec::a_xyz] * xLocal[0] * xLocal[2] +
-        12 * rc[Rec::b_xz] * xLocal[2] - 12 * rc[Rec::a_yz] * xLocal[2] + 12 * rc[Rec::b_xyy] * xLocal[1] * xLocal[1] +
-        24 * rc[Rec::b_xxy] * xLocal[0] * xLocal[1] - 24 * rc[Rec::a_xyy] * xLocal[0] * xLocal[1] +
-        12 * rc[Rec::b_xy] * xLocal[1] - 24 * rc[Rec::a_yy] * xLocal[1] - 12 * rc[Rec::a_xxy] * xLocal[0] * xLocal[0] +
-        24 * rc[Rec::b_xx] * xLocal[0] - 12 * rc[Rec::a_xy] * xLocal[0] - rc[Rec::b_xyy] + 12 * rc[Rec::b_x] -
-        12 * rc[Rec::a_y] + rc[Rec::a_xxy]) /
-           12,
+      (
+       12*rc[Rec::c_yzz]*xLocal[2]*xLocal[2]
+      +24*rc[Rec::c_yyz]*xLocal[1]*xLocal[2]
+      -24*rc[Rec::b_yzz]*xLocal[1]*xLocal[2]
+      +12*rc[Rec::c_xyz]*xLocal[0]*xLocal[2]
+      +12*rc[Rec::c_yz]*xLocal[2]
+      -24*rc[Rec::b_zz]*xLocal[2]
+      -12*rc[Rec::b_yyz]*xLocal[1]*xLocal[1]
+      -12*rc[Rec::b_xyz]*xLocal[0]*xLocal[1]
+      +24*rc[Rec::c_yy]*xLocal[1]
+      -12*rc[Rec::b_yz]*xLocal[1]
+      +12*rc[Rec::c_xy]*xLocal[0]
+      -12*rc[Rec::b_xz]*xLocal[0]
+      -rc[Rec::c_yzz]
+      +12*rc[Rec::c_y]
+      -12*rc[Rec::b_z]
+      +rc[Rec::b_yyz]
+      )/12,
+      // See that minus if you ever copy again from wxMaxima!
+     -(
+       12*rc[Rec::c_xzz]*xLocal[2]*xLocal[2]
+      +12*rc[Rec::c_xyz]*xLocal[1]*xLocal[2]
+      +24*rc[Rec::c_xxz]*xLocal[0]*xLocal[2]
+      -24*rc[Rec::a_xzz]*xLocal[0]*xLocal[2]
+      +12*rc[Rec::c_xz]*xLocal[2]
+      -24*rc[Rec::a_zz]*xLocal[2]
+      -12*rc[Rec::a_xyz]*xLocal[0]*xLocal[1]
+      +12*rc[Rec::c_xy]*xLocal[1]
+      -12*rc[Rec::a_yz]*xLocal[1]
+      -12*rc[Rec::a_xxz]*xLocal[0]*xLocal[0]
+      +24*rc[Rec::c_xx]*xLocal[0]
+      -12*rc[Rec::a_xz]*xLocal[0]
+      -rc[Rec::c_xzz]
+      +12*rc[Rec::c_x]
+      -12*rc[Rec::a_z]
+      +rc[Rec::a_xxz]
+      )/12,
+      (
+       12*rc[Rec::b_xyz]*xLocal[1]*xLocal[2]
+      -12*rc[Rec::a_xyz]*xLocal[0]*xLocal[2]
+      +12*rc[Rec::b_xz]*xLocal[2]
+      -12*rc[Rec::a_yz]*xLocal[2]
+      +12*rc[Rec::b_xyy]*xLocal[1]*xLocal[1]
+      +24*rc[Rec::b_xxy]*xLocal[0]*xLocal[1]
+      -24*rc[Rec::a_xyy]*xLocal[0]*xLocal[1]
+      +12*rc[Rec::b_xy]*xLocal[1]
+      -24*rc[Rec::a_yy]*xLocal[1]
+      -12*rc[Rec::a_xxy]*xLocal[0]*xLocal[0]
+      +24*rc[Rec::b_xx]*xLocal[0]
+      -12*rc[Rec::a_xy]*xLocal[0]
+      -rc[Rec::b_xyy]
+      +12*rc[Rec::b_x]
+      -12*rc[Rec::a_y]
+      +rc[Rec::a_xxy]
+      )/12,
    };
 }

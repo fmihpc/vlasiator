@@ -20,34 +20,36 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-// clang-format off
-#include "backgroundfield.h"
 #include "../common.h"
 #include "../definitions.h"
 #include "../parameters.h"
 #include "cmath"
+#include "backgroundfield.h"
 #include "phiprof.hpp"
-// clang-format on
 
-// FieldFunction should be initialized
-void setBackgroundField(const FieldFunction& bgFunction, fsgrids::bgbspan bgb,
-                        fsgrids::technicalspan technical, FieldSolverGrid &fsgrid, bool append) {
+//FieldFunction should be initialized
+void setBackgroundField(
+   const FieldFunction& bgFunction,
+   fsgrids::bgbspan bgb,
+   fsgrids::technicalspan technical,
+   FieldSolverGrid &fsgrid,
+   bool append
+   ) {
    /*if we do not add a new background to the existing one we first put everything to zero*/
    if (append == false) {
       setBackgroundFieldToZero(fsgrid, technical, bgb);
    }
    const size_t numCells = fsgrid.getNumCells();
-   phiprof::Timer bgTimer{"set Background field"};
+   phiprof::Timer bgTimer {"set Background field"};
    {
-      // these are doubles, as the averaging functions copied from Gumics
-      // use internally doubles. In any case, it should provide more
-      // accurate results also for float simulations
+      //these are doubles, as the averaging functions copied from Gumics
+      //use internally doubles. In any case, it should provide more
+      //accurate results also for float simulations
       const double accuracy = 1e-17;
       unsigned int faceCoord1[3];
       unsigned int faceCoord2[3];
 
-      // the coordinates of the edges face with a normal in the third coordinate direction, stored here to enable
-      // looping
+      //the coordinates of the edges face with a normal in the third coordinate direction, stored here to enable looping
       faceCoord1[0] = 1;
       faceCoord2[0] = 2;
       faceCoord1[1] = 0;
@@ -55,11 +57,11 @@ void setBackgroundField(const FieldFunction& bgFunction, fsgrids::bgbspan bgb,
       faceCoord1[2] = 0;
       faceCoord2[2] = 1;
 
-      int loopTopId{phiprof::initializeTimer("loop-top")};
-      int loopFaceId{phiprof::initializeTimer("loop-face-averages")};
-      int loopVolumeId{phiprof::initializeTimer("loop-volume-averages")};
+      int loopTopId {phiprof::initializeTimer("loop-top")};
+      int loopFaceId {phiprof::initializeTimer("loop-face-averages")};
+      int loopVolumeId {phiprof::initializeTimer("loop-volume-averages")};
 
-// These are threaded now that the dipole field is threadsafe
+      // These are threaded now that the dipole field is threadsafe
       fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
                           phiprof::initializeTimer("setBackgroundField-loop"), technical,
                           [& /*=,&fsgrid,&bgFunction*/](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
@@ -81,8 +83,7 @@ void setBackgroundField(const FieldFunction& bgFunction, fsgrids::bgbspan bgb,
                surfaceAverage(valueFunction, (coordinate)fComponent, accuracy, start,
                   gridSpacing[faceCoord1[fComponent]], gridSpacing[faceCoord2[fComponent]]);
 
-           // Compute derivatives. Note that we scale by gridSpacing[] as the arrays are assumed to contain
-           // differences, not true derivatives!
+           // Compute derivatives. Note that we scale by gridSpacing[] as the arrays are assumed to contain differences, not true derivatives!
            T3DFunction derivFunction1 =
               std::bind(bgFunction, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
                  (coordinate)fComponent, 1, (coordinate)faceCoord1[fComponent]);
@@ -107,8 +108,7 @@ void setBackgroundField(const FieldFunction& bgFunction, fsgrids::bgbspan bgb,
                   (coordinate)fComponent, 0, (coordinate)0);
             field[fsgrids::bgbfield::BGBXVOL + fComponent] += volumeAverage(valueFunction, accuracy, start, end);
 
-            // Compute derivatives. Note that we scale by gridSpacing[] as the arrays are assumed to contain
-            // differences, not true derivatives!
+            // Compute derivatives. Note that we scale by gridSpacing[] as the arrays are assumed to contain differences, not true derivatives!
             for (uint dComponent = 0; dComponent < 3; dComponent++) {
                T3DFunction derivFunction =
                   std::bind(bgFunction, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,

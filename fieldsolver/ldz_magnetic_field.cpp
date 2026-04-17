@@ -21,7 +21,7 @@
  */
 
 #ifdef _OPENMP
-#include <omp.h>
+   #include <omp.h>
 #endif
 
 #include "ldz_magnetic_field.hpp"
@@ -44,8 +44,7 @@ void propagateMagneticField(fsgrids::perbspan perb,
          const auto& EGrid0 = e[stencil.ooo()];
          const auto& EGrid1 = e[stencil.opo()];
          const auto& EGrid2 = e[stencil.oop()];
-         perBGrid0[fsgrids::bfield::PERBX] += dtdz * (EGrid2[fsgrids::efield::EY] - EGrid0[fsgrids::efield::EY]) +
-                                              dtdy * (EGrid0[fsgrids::efield::EZ] - EGrid1[fsgrids::efield::EZ]);
+         perBGrid0[fsgrids::bfield::PERBX] += dtdz * (EGrid2[fsgrids::efield::EY] - EGrid0[fsgrids::efield::EY]) + dtdy * (EGrid0[fsgrids::efield::EZ] - EGrid1[fsgrids::efield::EZ]);
          break;
       }
 
@@ -54,8 +53,7 @@ void propagateMagneticField(fsgrids::perbspan perb,
          const auto& EGrid0 = e[stencil.ooo()];
          const auto& EGrid1 = e[stencil.opo()];
          const auto& EGrid2 = e[stencil.oop()];
-         perBDt2Grid0[fsgrids::bfield::PERBX] =
-             perBGrid0[fsgrids::bfield::PERBX] +
+         perBDt2Grid0[fsgrids::bfield::PERBX] = perBGrid0[fsgrids::bfield::PERBX] +
              0.5 * (dtdz * (EGrid2[fsgrids::efield::EY] - EGrid0[fsgrids::efield::EY]) +
                     dtdy * (EGrid0[fsgrids::efield::EZ] - EGrid1[fsgrids::efield::EZ]));
          break;
@@ -71,8 +69,7 @@ void propagateMagneticField(fsgrids::perbspan perb,
       }
 
       default:
-         std::cerr << __FILE__ << ":" << __LINE__ << ":"
-                   << "Invalid RK case." << std::endl;
+         std::cerr << __FILE__ << ":" << __LINE__ << ":" << "Invalid RK case." << std::endl;
          abort();
       }
    }
@@ -107,8 +104,7 @@ void propagateMagneticField(fsgrids::perbspan perb,
          break;
       }
       default:
-         std::cerr << __FILE__ << ":" << __LINE__ << ":"
-                   << "Invalid RK case." << std::endl;
+         std::cerr << __FILE__ << ":" << __LINE__ << ":" << "Invalid RK case." << std::endl;
          abort();
       }
    }
@@ -143,8 +139,7 @@ void propagateMagneticField(fsgrids::perbspan perb,
          break;
       }
       default:
-         std::cerr << __FILE__ << ":" << __LINE__ << ":"
-                   << "Invalid RK case." << std::endl;
+         std::cerr << __FILE__ << ":" << __LINE__ << ":" << "Invalid RK case." << std::endl;
          abort();
       }
    }

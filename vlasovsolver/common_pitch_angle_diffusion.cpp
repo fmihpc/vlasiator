@@ -182,7 +182,7 @@ void computePitchAngleDiffusionParameters(
    const uint popID, size_t CellIdx, bool& currentSpatialLoopComplete,
    Realf& sparsity, std::array<Real,3>& b, Real& nu0
    ){
-   
+
    sparsity   = 0.01 * cell.getVelocityBlockMinValue(popID);
 
    currentSpatialLoopComplete = false;

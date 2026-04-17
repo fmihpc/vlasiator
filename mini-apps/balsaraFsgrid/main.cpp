@@ -23,19 +23,15 @@ void calculateDerivatives(const fsgrid::FsStencil& stencil, fsgrids::perbspan pe
       const auto& leftPerB = perb[stencil.moo()];
       const auto& rghtPerB = perb[stencil.poo()];
 
-      dPerB[fsgrids::dperb::dPERBydx] =
-          limiter(leftPerB[fsgrids::bfield::PERBY], centPerB[fsgrids::bfield::PERBY], rghtPerB[fsgrids::bfield::PERBY]);
-      dPerB[fsgrids::dperb::dPERBzdx] =
-          limiter(leftPerB[fsgrids::bfield::PERBZ], centPerB[fsgrids::bfield::PERBZ], rghtPerB[fsgrids::bfield::PERBZ]);
+      dPerB[fsgrids::dperb::dPERBydx] = limiter(leftPerB[fsgrids::bfield::PERBY], centPerB[fsgrids::bfield::PERBY], rghtPerB[fsgrids::bfield::PERBY]);
+      dPerB[fsgrids::dperb::dPERBzdx] = limiter(leftPerB[fsgrids::bfield::PERBZ], centPerB[fsgrids::bfield::PERBZ], rghtPerB[fsgrids::bfield::PERBZ]);
 
       if (Parameters::ohmHallTerm < 2) {
          dPerB[fsgrids::dperb::dPERBydxx] = 0.0;
          dPerB[fsgrids::dperb::dPERBzdxx] = 0.0;
       } else {
-         dPerB[fsgrids::dperb::dPERBydxx] = leftPerB[fsgrids::bfield::PERBY] + rghtPerB[fsgrids::bfield::PERBY] -
-                                            2.0 * centPerB[fsgrids::bfield::PERBY];
-         dPerB[fsgrids::dperb::dPERBzdxx] = leftPerB[fsgrids::bfield::PERBZ] + rghtPerB[fsgrids::bfield::PERBZ] -
-                                            2.0 * centPerB[fsgrids::bfield::PERBZ];
+         dPerB[fsgrids::dperb::dPERBydxx] = leftPerB[fsgrids::bfield::PERBY] + rghtPerB[fsgrids::bfield::PERBY] - 2.0 * centPerB[fsgrids::bfield::PERBY];
+         dPerB[fsgrids::dperb::dPERBzdxx] = leftPerB[fsgrids::bfield::PERBZ] + rghtPerB[fsgrids::bfield::PERBZ] - 2.0 * centPerB[fsgrids::bfield::PERBZ];
       }
    }
 
@@ -45,19 +41,15 @@ void calculateDerivatives(const fsgrid::FsStencil& stencil, fsgrids::perbspan pe
       const auto& leftPerB = perb[stencil.omo()];
       const auto& rghtPerB = perb[stencil.opo()];
 
-      dPerB[fsgrids::dperb::dPERBxdy] =
-          limiter(leftPerB[fsgrids::bfield::PERBX], centPerB[fsgrids::bfield::PERBX], rghtPerB[fsgrids::bfield::PERBX]);
-      dPerB[fsgrids::dperb::dPERBzdy] =
-          limiter(leftPerB[fsgrids::bfield::PERBZ], centPerB[fsgrids::bfield::PERBZ], rghtPerB[fsgrids::bfield::PERBZ]);
+      dPerB[fsgrids::dperb::dPERBxdy] = limiter(leftPerB[fsgrids::bfield::PERBX], centPerB[fsgrids::bfield::PERBX], rghtPerB[fsgrids::bfield::PERBX]);
+      dPerB[fsgrids::dperb::dPERBzdy] = limiter(leftPerB[fsgrids::bfield::PERBZ], centPerB[fsgrids::bfield::PERBZ], rghtPerB[fsgrids::bfield::PERBZ]);
 
       if (Parameters::ohmHallTerm < 2) {
          dPerB[fsgrids::dperb::dPERBxdyy] = 0.0;
          dPerB[fsgrids::dperb::dPERBzdyy] = 0.0;
       } else {
-         dPerB[fsgrids::dperb::dPERBxdyy] = leftPerB[fsgrids::bfield::PERBX] + rghtPerB[fsgrids::bfield::PERBX] -
-                                            2.0 * centPerB[fsgrids::bfield::PERBX];
-         dPerB[fsgrids::dperb::dPERBzdyy] = leftPerB[fsgrids::bfield::PERBZ] + rghtPerB[fsgrids::bfield::PERBZ] -
-                                            2.0 * centPerB[fsgrids::bfield::PERBZ];
+         dPerB[fsgrids::dperb::dPERBxdyy] = leftPerB[fsgrids::bfield::PERBX] + rghtPerB[fsgrids::bfield::PERBX] - 2.0 * centPerB[fsgrids::bfield::PERBX];
+         dPerB[fsgrids::dperb::dPERBzdyy] = leftPerB[fsgrids::bfield::PERBZ] + rghtPerB[fsgrids::bfield::PERBZ] - 2.0 * centPerB[fsgrids::bfield::PERBZ];
       }
    }
 
@@ -66,19 +58,15 @@ void calculateDerivatives(const fsgrid::FsStencil& stencil, fsgrids::perbspan pe
       const auto& leftPerB = perb[stencil.oom()];
       const auto& rghtPerB = perb[stencil.oop()];
 
-      dPerB[fsgrids::dperb::dPERBxdz] =
-          limiter(leftPerB[fsgrids::bfield::PERBX], centPerB[fsgrids::bfield::PERBX], rghtPerB[fsgrids::bfield::PERBX]);
-      dPerB[fsgrids::dperb::dPERBydz] =
-          limiter(leftPerB[fsgrids::bfield::PERBY], centPerB[fsgrids::bfield::PERBY], rghtPerB[fsgrids::bfield::PERBY]);
+      dPerB[fsgrids::dperb::dPERBxdz] = limiter(leftPerB[fsgrids::bfield::PERBX], centPerB[fsgrids::bfield::PERBX], rghtPerB[fsgrids::bfield::PERBX]);
+      dPerB[fsgrids::dperb::dPERBydz] = limiter(leftPerB[fsgrids::bfield::PERBY], centPerB[fsgrids::bfield::PERBY], rghtPerB[fsgrids::bfield::PERBY]);
 
       if (Parameters::ohmHallTerm < 2) {
          dPerB[fsgrids::dperb::dPERBxdzz] = 0.0;
          dPerB[fsgrids::dperb::dPERBydzz] = 0.0;
       } else {
-         dPerB[fsgrids::dperb::dPERBxdzz] = leftPerB[fsgrids::bfield::PERBX] + rghtPerB[fsgrids::bfield::PERBX] -
-                                            2.0 * centPerB[fsgrids::bfield::PERBX];
-         dPerB[fsgrids::dperb::dPERBydzz] = leftPerB[fsgrids::bfield::PERBY] + rghtPerB[fsgrids::bfield::PERBY] -
-                                            2.0 * centPerB[fsgrids::bfield::PERBY];
+         dPerB[fsgrids::dperb::dPERBxdzz] = leftPerB[fsgrids::bfield::PERBX] + rghtPerB[fsgrids::bfield::PERBX] - 2.0 * centPerB[fsgrids::bfield::PERBX];
+         dPerB[fsgrids::dperb::dPERBydzz] = leftPerB[fsgrids::bfield::PERBY] + rghtPerB[fsgrids::bfield::PERBY] - 2.0 * centPerB[fsgrids::bfield::PERBY];
       }
    }
 
@@ -94,9 +82,7 @@ void calculateDerivatives(const fsgrid::FsStencil& stencil, fsgrids::perbspan pe
          const auto& topLeft = perb[stencil.mpo()];
          const auto& topRght = perb[stencil.ppo()];
 
-         dPerB[fsgrids::dperb::dPERBzdxy] =
-             FOURTH * (botLeft[fsgrids::bfield::PERBZ] + topRght[fsgrids::bfield::PERBZ] -
-                       botRght[fsgrids::bfield::PERBZ] - topLeft[fsgrids::bfield::PERBZ]);
+         dPerB[fsgrids::dperb::dPERBzdxy] = FOURTH * (botLeft[fsgrids::bfield::PERBZ] + topRght[fsgrids::bfield::PERBZ] - botRght[fsgrids::bfield::PERBZ] - topLeft[fsgrids::bfield::PERBZ]);
       }
 
       // Calculate xz mixed derivatives:
@@ -106,9 +92,7 @@ void calculateDerivatives(const fsgrid::FsStencil& stencil, fsgrids::perbspan pe
          const auto& topLeft = perb[stencil.mop()];
          const auto& topRght = perb[stencil.pop()];
 
-         dPerB[fsgrids::dperb::dPERBydxz] =
-             FOURTH * (botLeft[fsgrids::bfield::PERBY] + topRght[fsgrids::bfield::PERBY] -
-                       botRght[fsgrids::bfield::PERBY] - topLeft[fsgrids::bfield::PERBY]);
+         dPerB[fsgrids::dperb::dPERBydxz] = FOURTH * (botLeft[fsgrids::bfield::PERBY] + topRght[fsgrids::bfield::PERBY] - botRght[fsgrids::bfield::PERBY] - topLeft[fsgrids::bfield::PERBY]);
       }
 
       // Calculate yz mixed derivatives:
@@ -118,9 +102,7 @@ void calculateDerivatives(const fsgrid::FsStencil& stencil, fsgrids::perbspan pe
          const auto& topLeft = perb[stencil.omp()];
          const auto& topRght = perb[stencil.opp()];
 
-         dPerB[fsgrids::dperb::dPERBxdyz] =
-             FOURTH * (botLeft[fsgrids::bfield::PERBX] + topRght[fsgrids::bfield::PERBX] -
-                       botRght[fsgrids::bfield::PERBX] - topLeft[fsgrids::bfield::PERBX]);
+         dPerB[fsgrids::dperb::dPERBxdyz] = FOURTH * (botLeft[fsgrids::bfield::PERBX] + topRght[fsgrids::bfield::PERBX] - botRght[fsgrids::bfield::PERBX] - topLeft[fsgrids::bfield::PERBX]);
       }
    }
 }
@@ -229,8 +211,7 @@ int main(int argc, char** argv) {
       }
       std::array<Real, 3> B = interpolatePerturbedB(perb.view(), dperb.view(), technical.view(), fsgrid, cache,
                                                     fsgridCell[0], fsgridCell[1], fsgridCell[2], randPos);
-      sampleFile << randPos[0] << " " << randPos[1] << " " << randPos[2] << " " << B[0] << " " << B[1] << " " << B[2]
-                 << endl;
+      sampleFile << randPos[0] << " " << randPos[1] << " " << randPos[2] << " " << B[0] << " " << B[1] << " " << B[2] << endl;
    }
 
    cout << "--- DONE. ---" << endl;

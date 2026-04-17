@@ -30,9 +30,9 @@
 #include <iostream>
 
 #include "../fieldsolver/fs_common.h"
-#include "../grid.h"
 #include "../object_wrapper.h"
 #include "../vlasovsolver/vlasovmover.h"
+#include "../grid.h"
 #include "inflow.h"
 
 #ifdef DEBUG_VLASIATOR
@@ -43,19 +43,18 @@
 #endif
 
 namespace SBC {
-   
    Inflow::Inflow() : OuterBoundaryCondition() {}
    Inflow::~Inflow() {}
-   
+
    void Inflow::initSysBoundary(creal& t, Project& project) {
       // The array of bool describes which of the faces are to have inflow boundary
       // conditions, in the order of x+, x-, y+, y-, z+, z-.
       for(uint i=0; i<6; i++) {
          facesToProcess[i] = false;
       }
-   
+
       this->getParameters();
-   
+
       for (auto& it : faceList) {
          if (it == "x+") {
             facesToProcess[0] = true;
@@ -71,15 +70,15 @@ namespace SBC {
             facesToProcess[5] = true;
          }
       }
-   
+
       for (unsigned int i = 0; i < speciesParams.size(); i++) {
          loadInputData(i);
       }
-   
+
       generateTemplateCells(t);
       tLastApply = t;
    }
-   
+
    void Inflow::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                   fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
                                   fsgrids::perbspan perb,
@@ -94,7 +93,7 @@ namespace SBC {
          setBFromTemplate(mpiGrid, perb, bgb, technical, fsgrid, true);
       }
    }
-   
+
    void Inflow::updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                             fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
                             fsgrids::perbspan perb,
@@ -112,15 +111,15 @@ namespace SBC {
       for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID) {
          setCellsFromTemplate(mpiGrid, popID);
       }
-      
+
       setBFromTemplate(mpiGrid, perb, bgb, technical, fsgrid, false);
-      
+
       // Ensure up-to-date velocity block counts for all neighbours
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          updateRemoteVelocityBlockLists(mpiGrid,popID,Neighborhoods::FULL);
       }
    }
-   
+
    Real Inflow::fieldSolverBoundaryCondMagneticField(fsgrids::perbspan b,
                                                      fsgrids::constbgbspan bgb,
                                                      fsgrids::consttechnicalspan technical,
@@ -134,29 +133,29 @@ namespace SBC {
       creal x = (convert<Real>(globalCoordinates[0]) + 0.5) * gridSpacing[0] + Parameters::xmin;
       creal y = (convert<Real>(globalCoordinates[1]) + 0.5) * gridSpacing[1] + Parameters::ymin;
       creal z = (convert<Real>(globalCoordinates[2]) + 0.5) * gridSpacing[2] + Parameters::zmin;
-   
+
       bool isThisCellOnAFace[6];
       determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz, true);
-   
+
       for (uint i = 0; i < 6; i++) {
          if (isThisCellOnAFace[i]) {
             result = templateB[i][component];
             break; // This effectively sets the precedence of faces through the order of faces.
          }
       }
-   
+
       // There are projects that have non-uniform and non-zero perturbed B, e.g. Magnetosphere with dipole type 4.
       // We cannot jsut take the value from the templateCell, we also need a copy of the value from initialization.
       // This value is stored in the BgBGrid at fsgrids::bgbfield::BGBXVDCORR,BGBYVDCORR,BGBZVDCORR
       result += bgb[stencil.ooo()][fsgrids::bgbfield::BGBXVDCORR + component];
       return result;
    }
-   
+
    void Inflow::fieldSolverBoundaryCondElectricField(fsgrids::efieldspan e,
                                                      const fsgrid::FsStencil& stencil, cuint component) {
       e[stencil.ooo()][fsgrids::efield::EX + component] = 0.0;
    }
-   
+
    void Inflow::fieldSolverBoundaryCondHallElectricField(fsgrids::ehallspan ehall,
                                                          const fsgrid::FsStencil& stencil, cuint component) {
       std::array<Real, fsgrids::ehall::N_EHALL>& cp = ehall[stencil.ooo()];
@@ -183,30 +182,30 @@ namespace SBC {
          abort_mpi("Invalid component", 1);
       }
    }
-   
+
    void Inflow::fieldSolverBoundaryCondGradPeElectricField(
       fsgrids::egradpespan EGradPe, const fsgrid::FsStencil& stencil,
       cuint component) {
       EGradPe[stencil.ooo()][fsgrids::egradpe::EXGRADPE + component] = 0.0;
    }
-   
+
    void Inflow::fieldSolverBoundaryCondDerivatives(fsgrids::dperbspan dperb,
                                                    fsgrids::dmomentsspan dmoments,
                                                    const fsgrid::FsStencil& stencil, cuint RKCase, cuint component) {
       this->setCellDerivativesToZero(dperb, dmoments, stencil, component);
    }
-   
+
    void Inflow::fieldSolverBoundaryCondBVOLDerivatives(fsgrids::volspan vols,
                                                        const fsgrid::FsStencil& stencil, cuint component) {
       this->setCellBVOLDerivativesToZero(vols, stencil, component);
    }
-   
+
    void Inflow::vlasovBoundaryCondition(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                         const CellID& cellID, const uint popID, const bool doCalcMomentsV) {
       // This is a no-op because both template cell generation and block data copying takes place in
       // updateState() (at pre-set intervals only)
    }
-   
+
    void Inflow::setBFromTemplate(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                  fsgrids::perbspan perb,
                                  fsgrids::bgbspan bgb,
@@ -225,11 +224,11 @@ namespace SBC {
          std::array<bool, 6> isThisCellOnAFace = {{false}};
          const std::array<Real, 3> coords = coordinates.getPhysicalCoords(stencil.i, stencil.j, stencil.k);
          const std::array<Real, 3> gridSpacing = coordinates.physicalGridSpacing;
- 
+
          determineFaceNoClassMembers(isThisCellOnAFace.data(), coords[0] + 0.5 * gridSpacing[0], coords[1] + 0.5 * gridSpacing[1], coords[2] + 0.5 * gridSpacing[2], dx, dy, dz, periodic_local);
-         
+
          cuint bitfield = technical[stencil.ooo()].SOLVE;
-         
+
          for (uint iface = 0; iface < 6; iface++) {
             if (facesToProcess_local[iface] && isThisCellOnAFace[iface]) {
                // Reset all PerB components if requested, otherwise only unsolved components
@@ -247,7 +246,7 @@ namespace SBC {
          }
       });
    }
-   
+
    void Inflow::setCellsFromTemplate(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const uint popID) {
       // Assign boundary flags to local DCCRG cells
       const std::vector<CellID>& cells = getLocalCells();
@@ -263,17 +262,17 @@ namespace SBC {
          creal x = cell->parameters[CellParams::XCRD] + 0.5 * dx;
          creal y = cell->parameters[CellParams::YCRD] + 0.5 * dy;
          creal z = cell->parameters[CellParams::ZCRD] + 0.5 * dz;
-   
+
          bool isThisCellOnAFace[6];
          determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz, true);
-   
+
          for (uint i = 0; i < 6; i++) {
             if (facesToProcess[i] && isThisCellOnAFace[i]) {
                copyCellData(&templateCells[i], cell, false, popID, true); // copy also vdf, _V
                copyCellData(&templateCells[i], cell, true, popID, false); // don't copy vdf again but copy _R now
-   #ifdef USE_GPU
+               #ifdef USE_GPU
                cell->setReservation(popID, templateCells[i].getReservation(popID));
-   #endif
+               #endif
                break; // Effectively sets the precedence of faces through the order of faces.
             }
          }
@@ -283,22 +282,22 @@ namespace SBC {
       //    printf("ERROR in vmesh check: %s at %d\n",__FILE__,__LINE__);
       // }
    }
-   
+
    void Inflow::getFaces(bool* faces) {
       for (uint i = 0; i < 6; i++) {
          faces[i] = facesToProcess[i];
       }
    }
-   
+
    void Inflow::loadInputData(const uint popID) {
       InflowSpeciesParameters& sP = speciesParams[popID];
-   
+
       for (uint i = 0; i < 6; i++) {
          if (facesToProcess[i])
             sP.inputData[i] = loadFile(sP.files[i].c_str(), sP.nParams);
       }
    }
-   
+
    /*! Load inflow boundary data from given file.
     * The number of entries per line is given by nParams which is defined as a parameter
     * from the configuration file/command line.
@@ -307,9 +306,9 @@ namespace SBC {
     */
    vector<std::vector<Real>> Inflow::loadFile(const char* fn, const unsigned int nParams) {
       vector<std::vector<Real>> dataset(0, std::vector<Real>(nParams, 0));
-   
+
       ifstream fi;
-      fi.open(fn); 
+      fi.open(fn);
 
       // Check that the file opened correctly
       if (!fi.is_open()) {
@@ -324,9 +323,9 @@ namespace SBC {
          // Skip the comments
          if (line[0] == '#')
             continue;
-   
+
          stringstream ss(line);
-   
+
          int i = 0;
          Real num = 0;
          while (ss >> num) {
@@ -337,18 +336,18 @@ namespace SBC {
             vars[i] = num;
             i++;
          }
-   
+
          for (vector<Real>::iterator v = vars.begin(); v != vars.end(); ++v) {
             if (fabs(*v + 7777.) < numeric_limits<double>::epsilon()) {
                cerr << "Missing input values at line " << nlines + 1 << " in " << fn << endl;
                MPI_Abort(MPI_COMM_WORLD, 1);
             }
          }
-   
+
          dataset.push_back(vars);
          nlines++;
       }
-   
+
       if (nlines < 1) {
          cerr << "Input file " << fn << " is empty!" << endl;
          MPI_Abort(MPI_COMM_WORLD, 1);
@@ -360,12 +359,12 @@ namespace SBC {
             }
          }
       }
-   
+
       fi.close();
-   
+
       return dataset;
    }
-   
+
    /*! Loops through the array of template cells and generates the ones needed.
     * The function generateTemplateCell is defined in the child class to have the specific condition needed.
     * \param t Simulation time
@@ -378,7 +377,7 @@ namespace SBC {
          }
       }
    }
-   
+
    /*!Interpolate the input data to the given time.
     * The first entry of each line is assumed to be the time.
     * \param inputDataIndex Index used to get the correct face's input data.
@@ -388,12 +387,12 @@ namespace SBC {
     */
    void Inflow::interpolate(const int inputDataIndex, const uint popID, creal t, Real* outputData) {
       InflowSpeciesParameters& sP = speciesParams[popID];
-   
+
       // Find first data[0] value which is >= t
       int i1 = 0, i2 = 0;
       bool found = false;
       Real s; // 0 <= s < 1
-   
+
       // Use the first value of data if interpolating for time before data starts
       if (t < sP.inputData[inputDataIndex][0][0]) {
          i1 = i2 = 0;
@@ -422,12 +421,12 @@ namespace SBC {
             s = 0.0;
          }
       }
-   
+
       creal s1 = 1 - s;
-   
+
       for (uint i = 0; i < sP.nParams - 1; i++) {
          outputData[i] = s1 * sP.inputData[inputDataIndex][i1][i + 1] + s * sP.inputData[inputDataIndex][i2][i + 1];
       }
    }
-   
+
 } // namespace SBC

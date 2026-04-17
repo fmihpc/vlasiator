@@ -35,10 +35,10 @@ using namespace std;
 namespace SBC {
    DoNotCompute::DoNotCompute(): SysBoundaryCondition() { }
    DoNotCompute::~DoNotCompute() { }
-   
+
    void DoNotCompute::addParameters() { }
    void DoNotCompute::getParameters() { }
-   
+
    void DoNotCompute::initSysBoundary(
       creal& t,
       Project &project
@@ -46,7 +46,7 @@ namespace SBC {
       precedence = 0;
       dynamic = false;
    }
-   
+
    void DoNotCompute::assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>&,
                                         fsgrids::technicalspan technical, FieldSolverGrid &fsgrid) {
       // Does nothing.
@@ -57,12 +57,12 @@ namespace SBC {
                                         fsgrids::perbspan perb,
                                         fsgrids::bgbspan bgb, Project&) {
       const vector<CellID>& cells = getLocalCells();
-#pragma omp parallel for
+      #pragma omp parallel for
       for (size_t i=0; i<cells.size(); ++i) {
          SpatialCell* cell = mpiGrid[cells[i]];
          if(cell->sysBoundaryFlag != this->getIndex()) continue;
 
-         //TODO: Set fields on B grid to 0         
+         //TODO: Set fields on B grid to 0
          cell->parameters[CellParams::RHOM] = 0.0;
          cell->parameters[CellParams::VX] = 0.0;
          cell->parameters[CellParams::VY] = 0.0;
@@ -84,6 +84,6 @@ namespace SBC {
    void DoNotCompute::getFaces(bool *faces) {}
 
    string DoNotCompute::getName() const {return "DoNotCompute";}
-   
+
    uint DoNotCompute::getIndex() const {return sysboundarytype::DO_NOT_COMPUTE;}
 }

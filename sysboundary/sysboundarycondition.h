@@ -27,37 +27,37 @@
 #include <dccrg_cartesian_geometry.hpp>
 #include <fsgrid.hpp>
 
+#include <vector>
 #include "../common.h"
 #include "../definitions.h"
-#include "../projects/project.h"
 #include "../spatial_cells/spatial_cell_wrapper.hpp"
-#include <vector>
+#include "../projects/project.h"
 
 using namespace spatial_cell;
 using namespace projects;
 
 namespace SBC {
    /*!\brief SBC::SysBoundaryCondition is the base class for system boundary conditions.
-    * 
+    *
     * SBC::SysBoundaryCondition defines a base class for applying boundary conditions.
     * Specific system boundary conditions inherit from this base class, that's why most
     * functions defined here are not meant to be called and contain a corresponding error
     * message. The functions to be called are the inherited class members.
-    * 
+    *
     * The initSysBoundary function is used to initialise the internal workings needed by the
     * system boundary condition to run (e.g. importing parameters, initialising class
     * members). assignSysBoundary is used to determine whether a given cell is within the
     * domain of system boundary condition. applyInitialState is called to initialise a system
     * boundary cell's parameters and velocity space.
-    * 
-    * If needed, a user can write his or her own SBC::SysBoundaryConditions, which 
+    *
+    * If needed, a user can write his or her own SBC::SysBoundaryConditions, which
     * are loaded when the simulation initializes.
     */
    class SysBoundaryCondition {
       public:
          SysBoundaryCondition();
          virtual ~SysBoundaryCondition();
-         
+
          static void addParameters();
          virtual void getParameters() {
             std::cerr << "ERROR: base class SysBoundaryCondition::getParameters called!" << std::endl;
@@ -114,8 +114,8 @@ namespace SBC {
             std::array<Real, CellParams::N_SPATIAL_CELL_PARAMS>& cellParams
          );
 
-         /** This function computes the Vlasov (distribution function) 
-          * boundary condition for the given particle species only. 
+         /** This function computes the Vlasov (distribution function)
+          * boundary condition for the given particle species only.
           * It is not! allowed to change block structure in cell.
           * @param mpiGrid Parallel grid.
           * @param cellID Spatial cell ID.
@@ -150,7 +150,7 @@ namespace SBC {
 //         }
          uint getPrecedence() const;
          bool isDynamic() const;
-      
+
          bool updateSysBoundaryConditionsAfterLoadBalance(
             dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             const std::vector<CellID> & local_cells_on_boundary
@@ -188,7 +188,7 @@ namespace SBC {
                const vmesh::GlobalID blockGID,
                const uint popID
          );
-      
+
 
       /*! Helper function to get the index of a neighboring cell in the arrays in allFlowtoCells.
        * \param i Offset in x direction (-1, 0 or 1)
@@ -199,7 +199,7 @@ namespace SBC {
       inline int nbrID(const int i, const int j, const int k){
          return (k+1)*9 + (j+1)*3 + i + 1;
       }
-      
+
          void vlasovBoundaryCopyFromTheClosestNbr(
             dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             const CellID& cellID,
@@ -274,7 +274,7 @@ namespace SBC {
          std::unordered_map<CellID, std::vector<CellID>> allClosestL1OutflowCells;
          /*! Map of close Outflow L1 cells. Used in getAllCloseL1OutflowCells. */
          std::unordered_map<CellID, std::vector<CellID>> allCloseL1OutflowCells;
-      
+
          /*! bool telling whether to call again applyInitialState upon restarting the simulation. */
          bool applyUponRestart;
    };
@@ -286,7 +286,7 @@ namespace SBC {
          /*! Array of bool telling which faces are going to be processed by the system boundary condition.*/
          std::array<bool, 6> facesToProcess;
    };
-   
+
    // Moved outside the class since it's a helper function that doesn't require member access
    void averageCellData (
       dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
@@ -297,7 +297,7 @@ namespace SBC {
    );
 
    /*!\brief SBC::findMaxwellianBlocksToInitialize returns a list of blocks to construct the VDF with.
-    * 
+    *
     *  Here the while loop iterates  from the centre of the maxwellian in blocksize (4*dvx) increments,
     *  and looks at the centre of the first velocity cell in the block (+0.5dvx), checking if the
     *  phase-space density there is large enough to be included due to sparsity threshold.

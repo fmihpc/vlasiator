@@ -42,9 +42,9 @@ namespace SBC {
    };
 
    /*!\brief Copysphere is a class applying an ionosphere-ish boundary conditions.
-    * 
+    *
     * Copysphere is a class handling cells tagged as sysboundarytype::COPYSPHERE by this system boundary condition. It applies copy boundary conditions to perturbed magnetic field.
-    * 
+    *
     * These consist in:
     * - Do nothing for the distribution (keep the initial state constant in time);
     * - Copy the closest neighbors' perturbed B and average it;
@@ -56,7 +56,7 @@ namespace SBC {
    public:
       Copysphere();
       virtual ~Copysphere();
-      
+
       static void addParameters();
       virtual void getParameters() override;
 
@@ -101,21 +101,21 @@ namespace SBC {
 
       void generateTemplateCell(Project &project);
       void setCellFromTemplate(SpatialCell* cell,const uint popID);
-      
+
       std::array<Real, 3> fieldSolverGetNormalDirection(
          fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
          cint i,
          cint j,
          cint k
       );
-      
+
       Real center[3]; /*!< Coordinates of the centre of the copy sphere. */
       Real radius; /*!< Radius of the copy sphere. */
       uint geometry; /*!< Geometry of the copy sphere, 0: inf-norm (diamond), 1: 1-norm (square), 2: 2-norm (circle, DEFAULT), 3: polar-plane cylinder with line dipole. */
 
       std::vector<CopysphereSpeciesParameters> speciesParams;
       bool zeroPerB;
-      
+
       spatial_cell::SpatialCell templateCell;
 
    };

@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH -t 01:30:00        # Run time (hh:mm:ss)
 #SBATCH --job-name=ctestpackage
-##SBATCH -A spacephysics 
-#SBATCH -M carrington
+##SBATCH -A spacephysics
+#SBATCH --constraint="carrington"
 # test short medium 20min1d 3d
 #SBATCH -p short
 #SBATCH --exclusive
@@ -17,7 +17,7 @@
 # if 0 then we check the v1 against reference files
 create_verification_files=0
 
-# folder for all reference data 
+# folder for all reference data
 reference_dir="/proj/group/spacephysics/vlasiator_testpackage/"
 cd $SLURM_SUBMIT_DIR
 
@@ -34,7 +34,7 @@ module load OpenMPI/4.1.6-GCC-13.2.0
 module load PMIx/4.2.6-GCCcore-13.2.0
 module load PAPI/7.1.0-GCCcore-13.2.0
 #module load xthi
-export UCX_NET_DEVICES=eth0 # This is important for multi-node performance!
+export UCX_NET_DEVICES=eth5 # This is important for multi-node performance!
 
 #Carrington has 2 x 16 cores per node, plus hyperthreading
 ht=2
@@ -60,5 +60,5 @@ source test_definitions_small.sh
 wait
 # Run tests
 source run_tests.sh
-wait 
+wait
 

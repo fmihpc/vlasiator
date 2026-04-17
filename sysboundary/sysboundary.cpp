@@ -31,13 +31,13 @@
 #include "../object_wrapper.h"
 #include "../vlasovsolver/arch_moments.h"
 
-#include "../fieldsolver/gridGlue.hpp"
-#include "copysphere.h"
 #include "donotcompute.h"
 #include "ionosphere.h"
+#include "copysphere.h"
 #include "outflow.h"
 #include "setmaxwellian.h"
 #include "sysboundary.h"
+#include "../fieldsolver/gridGlue.hpp"
 
 using namespace std;
 using namespace spatial_cell;
@@ -362,7 +362,7 @@ void SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
    const auto rank = fsgrid.getRank();
 
    /*set all cells to default value, not_sysboundary */
-#pragma omp parallel for
+   #pragma omp parallel for
    for (uint i = 0; i < cells.size(); i++) {
       mpiGrid[cells[i]]->sysBoundaryFlag = sysboundarytype::NOT_SYSBOUNDARY;
    }
@@ -544,7 +544,7 @@ void SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
       const auto gid = coordinates.localToGlobal(stencil.i, stencil.j, stencil.k);
       auto& tech = technical[stencil.ooo()];
       tech.SOLVE = 0;
-      
+
       if (((gid[0] == 0 || gid[0] == fsGridDimensions[0] - 1) && !periodic_l[0]) ||
           ((gid[1] == 0 || gid[1] == fsGridDimensions[1] - 1) && !periodic_l[1]) ||
           ((gid[2] == 0 || gid[2] == fsGridDimensions[2] - 1) && !periodic_l[2])) {
@@ -689,7 +689,7 @@ void SysBoundary::applySysBoundaryVlasovConditions(dccrg::Dccrg<SpatialCell, dcc
       vector<CellID> localCells;
       getBoundaryCellList(mpiGrid, mpiGrid.get_local_cells_not_on_process_boundary(Neighborhoods::SYSBOUNDARIES), localCells);
 
-#pragma omp parallel for
+      #pragma omp parallel for
       for (uint i = 0; i < localCells.size(); i++) {
          cuint sysBoundaryType = mpiGrid[localCells[i]]->sysBoundaryFlag;
          this->getSysBoundary(sysBoundaryType)
@@ -712,9 +712,8 @@ void SysBoundary::applySysBoundaryVlasovConditions(dccrg::Dccrg<SpatialCell, dcc
       // Compute vlasov boundary on system boundary/process boundary cells
       phiprof::Timer computeBoundaryTimer{"Compute process boundary cells"};
       vector<CellID> boundaryCells;
-      getBoundaryCellList(mpiGrid, mpiGrid.get_local_cells_on_process_boundary(Neighborhoods::SYSBOUNDARIES),
-                          boundaryCells);
-#pragma omp parallel for
+      getBoundaryCellList(mpiGrid, mpiGrid.get_local_cells_on_process_boundary(Neighborhoods::SYSBOUNDARIES), boundaryCells);
+      #pragma omp parallel for
       for (uint i = 0; i < boundaryCells.size(); i++) {
          cuint sysBoundaryType = mpiGrid[boundaryCells[i]]->sysBoundaryFlag;
          this->getSysBoundary(sysBoundaryType)

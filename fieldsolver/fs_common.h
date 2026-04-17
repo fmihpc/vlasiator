@@ -23,14 +23,14 @@
 #ifndef FS_COMMON_H
 #define FS_COMMON_H
 
-#include <cmath>
 #include <cstdlib>
 #include <iostream>
-#include <list>
+#include <cmath>
+#include <vector>
 #include <map>
+#include <list>
 #include <set>
 #include <stdint.h>
-#include <vector>
 
 #include <fsgrid.hpp>
 #include <phiprof.hpp>
@@ -42,8 +42,8 @@
 #include "../sysboundary/sysboundary.h"
 #include "../sysboundary/sysboundarycondition.h"
 
-// Constants: not needed as such, but if field solver is implemented on GPUs 
-// these force CPU to use float accuracy, which in turn helps to compare 
+// Constants: not needed as such, but if field solver is implemented on GPUs
+// these force CPU to use float accuracy, which in turn helps to compare
 // CPU and GPU results.
 
 const Real HALF    = 0.5;
@@ -98,17 +98,25 @@ reconstructionCoefficients(fsgrids::perbspan perb,
                            const fsgrid::FsStencil& stencil, Real reconstructionOrder);
 
 std::array<Real, 3> interpolatePerturbedB(
-    fsgrids::perbspan perb,
-    fsgrids::constdperbspan dperb,
-    fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
-    std::map<std::array<int, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS>>& reconstructionCoefficientsCache, cint i,
-    cint j, cint k, const std::array<Real, 3> x);
+   fsgrids::perbspan perb,
+   fsgrids::constdperbspan dperb,
+   fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
+   std::map<std::array<int, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS>>& reconstructionCoefficientsCache,
+   cint i,
+   cint j,
+   cint k,
+   const std::array<Real, 3> x
+);
 
 std::array<Real, 3> interpolateCurlB(
-    fsgrids::perbspan perb,
-    fsgrids::constdperbspan dperb,
-    fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
-    std::map<std::array<int, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS>>& reconstructionCoefficientsCache, cint i,
-    cint j, cint k, const std::array<Real, 3> x);
+   fsgrids::perbspan perb,
+   fsgrids::constdperbspan dperb,
+   fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
+   std::map<std::array<int, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS>>& reconstructionCoefficientsCache,
+   cint i,
+   cint j,
+   cint k,
+   const std::array<Real, 3> x
+);
 
 #endif

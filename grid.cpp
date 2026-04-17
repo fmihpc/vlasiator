@@ -21,33 +21,33 @@
  */
 
 #include "common.h"
-#include <cmath>
 #include <cstdlib>
-#include <ctime>
-#include <iomanip> // for setprecision()
 #include <iostream>
-#include <sstream>
+#include <iomanip> // for setprecision()
+#include <cmath>
 #include <vector>
+#include <sstream>
+#include <ctime>
 #ifdef _OPENMP
-#include <omp.h>
+   #include <omp.h>
 #endif
-#include "datareduction/datareducer.h"
+#include "grid.h"
+#include "vlasovsolver/vlasovmover.h"
 #include "definitions.h"
-#include "fieldsolver/derivatives.hpp"
+#include "mpiconversion.h"
+#include "logger.h"
+#include "parameters.h"
+#include "sysboundary/sysboundary.h"
 #include "fieldsolver/fs_common.h"
 #include "fieldsolver/gridGlue.hpp"
-#include "grid.h"
-#include "ioread.h"
-#include "iowrite.h"
-#include "logger.h"
-#include "memory_report.h"
-#include "mpiconversion.h"
-#include "object_wrapper.h"
-#include "parameters.h"
-#include "projects/project.h"
-#include "sysboundary/sysboundary.h"
+#include "fieldsolver/derivatives.hpp"
 #include "vlasovsolver/cpu_trans_pencils.hpp"
-#include "vlasovsolver/vlasovmover.h"
+#include "projects/project.h"
+#include "iowrite.h"
+#include "ioread.h"
+#include "object_wrapper.h"
+#include "memory_report.h"
+#include "datareduction/datareducer.h"
 
 #ifdef PAPI_MEM
 #include "papi.h"
@@ -106,8 +106,7 @@ void initializeGrids(int argn, char** argc, dccrg::Dccrg<SpatialCell, dccrg::Car
    // Init Zoltan:
    float zoltanVersion;
    if (Zoltan_Initialize(argn, argc, &zoltanVersion) != ZOLTAN_OK) {
-      if (myRank == MASTER_RANK)
-         cerr << "\t ERROR: Zoltan initialization failed." << endl;
+      if (myRank == MASTER_RANK) cerr << "\t ERROR: Zoltan initialization failed." << endl;
       exit(1);
    } else {
       logFile << "\t Zoltan " << zoltanVersion << " initialized successfully" << std::endl << writeVerbose;
@@ -150,11 +149,9 @@ void initializeGrids(int argn, char** argc, dccrg::Dccrg<SpatialCell, dccrg::Car
          mapRefinement(mpiGrid, technical.view(), fsgrid);
       }
    } else {
-      if (myRank == MASTER_RANK)
-         logFile << "(INIT): Reading grid structure from " << P::restartFileName << endl << writeVerbose;
+      if (myRank == MASTER_RANK) logFile << "(INIT): Reading grid structure from " << P::restartFileName << endl << writeVerbose;
       bool restartSuccess = readFileCells(mpiGrid, P::restartFileName);
-      if (myRank == MASTER_RANK)
-         logFile << "        ...done." << endl << writeVerbose;
+      if (myRank == MASTER_RANK) logFile << "        ...done." << endl << writeVerbose;
       if (restartSuccess) {
          mpiGrid.balance_load();
          recalculateLocalCellsCache(mpiGrid);
@@ -168,8 +165,7 @@ void initializeGrids(int argn, char** argc, dccrg::Dccrg<SpatialCell, dccrg::Car
       mpiGrid.set_partitioning_option(key, value);
    }
    phiprof::Timer initialLBTimer{"Initial load-balancing"};
-   if (myRank == MASTER_RANK)
-      logFile << "(INIT): Starting initial load balance." << endl << writeVerbose;
+   if (myRank == MASTER_RANK) logFile << "(INIT): Starting initial load balance." << endl << writeVerbose;
    mpiGrid.balance_load(); // Direct DCCRG call, recalculate cache afterwards
    recalculateLocalCellsCache(mpiGrid);
 
@@ -182,9 +178,7 @@ void initializeGrids(int argn, char** argc, dccrg::Dccrg<SpatialCell, dccrg::Car
    const vector<CellID>& cells = getLocalCells();
    initialLBTimer.stop();
 
-   if (myRank == MASTER_RANK) {
-      logFile << "(INIT): Set initial state." << endl << writeVerbose;
-   }
+   if (myRank == MASTER_RANK) logFile << "(INIT): Set initial state." << endl << writeVerbose;
 
    phiprof::Timer initialStateTimer{"Set initial state"};
 
@@ -265,7 +259,7 @@ void initializeGrids(int argn, char** argc, dccrg::Dccrg<SpatialCell, dccrg::Car
       project.setupBeforeSetCell(cells);
 
       phiprof::Timer setCellTimer{"setCell"};
-#pragma omp parallel for schedule(dynamic)
+      #pragma omp parallel for schedule(dynamic)
       for (size_t i = 0; i < cells.size(); ++i) {
          SpatialCell* cell = mpiGrid[cells[i]];
          if (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
@@ -277,15 +271,15 @@ void initializeGrids(int argn, char** argc, dccrg::Dccrg<SpatialCell, dccrg::Car
       // Initial state for sys-boundary cells
       sysBoundaries.applyInitialState(mpiGrid, technical.view(), fsgrid, perb.view(), bgb.view(), project);
 
-#pragma omp parallel for schedule(static)
+      #pragma omp parallel for schedule(static)
       for (size_t i = 0; i < cells.size(); ++i) {
          mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] = 0;
       }
 
       for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID) {
          adjustVelocityBlocks(mpiGrid, cells, true, popID);
-// set initial LB metric based on number of blocks
-#pragma omp parallel for schedule(static)
+         // set initial LB metric based on number of blocks
+         #pragma omp parallel for schedule(static)
          for (size_t i = 0; i < cells.size(); ++i) {
             SpatialCell* SC = mpiGrid[cells[i]];
             if (SC->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
@@ -333,7 +327,7 @@ void initializeGrids(int argn, char** argc, dccrg::Dccrg<SpatialCell, dccrg::Car
    phiprof::Timer setBTimer{"project.setProjectBField"};
    project.setProjectBField(perb.view(), bgb.view(), technical.view(), fsgrid);
    setBTimer.stop();
-   
+
    if (P::isRestart) {
       // There are projects that have non-uniform and non-zero perturbed B, e.g. Magnetosphere with dipole type 4.
       // If restarting with reapplyUponRestart active, we need to set PerB again 
@@ -348,8 +342,7 @@ void initializeGrids(int argn, char** argc, dccrg::Dccrg<SpatialCell, dccrg::Car
    fsgrid.updateGhostCells(vol.view());
    fsGridGhostTimer.stop();
    phiprof::Timer getFieldsTimer{"getFieldsFromFsGrid"};
-   getFieldsFromFsGrid(vol.view(), bgb.view(), egradpe.view(), dmoments.view(), technical.view(), fsgrid, mpiGrid,
-                       cells);
+   getFieldsFromFsGrid(vol.view(), bgb.view(), egradpe.view(), dmoments.view(), technical.view(), fsgrid, mpiGrid, cells);
    getFieldsTimer.stop();
 
    setBTimer.stop();
@@ -361,8 +354,8 @@ void initializeGrids(int argn, char** argc, dccrg::Dccrg<SpatialCell, dccrg::Car
 
    if (P::isRestart == false) {
       // Apply boundary conditions so that we get correct initial moments
-      sysBoundaries.applySysBoundaryVlasovConditions(mpiGrid, Parameters::t,
-                                                     true); // It doesn't matter here whether we put _R or _V moments
+      // It doesn't matter here whether we put _R or _V moments
+      sysBoundaries.applySysBoundaryVlasovConditions(mpiGrid, Parameters::t, true);
 
       // compute moments, and set them  in RHO* and RHO_*_DT2. If restart, they are already read in
       phiprof::Timer timer{"Init moments"};
@@ -404,7 +397,7 @@ void initializeGrids(int argn, char** argc, dccrg::Dccrg<SpatialCell, dccrg::Car
 
 void initSpatialCellCoordinates(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid) {
    vector<CellID> cells = mpiGrid.get_cells();
-#pragma omp parallel for
+   #pragma omp parallel for
    for (size_t i = 0; i < cells.size(); ++i) {
       std::array<double, 3> cell_min = mpiGrid.geometry.get_min(cells[i]);
       std::array<double, 3> cell_length = mpiGrid.geometry.get_length(cells[i]);
@@ -430,16 +423,11 @@ void setFaceNeighborRanks(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& 
    // TODO: Try a #pragma omp parallel for
    for (const auto& cellid : cells) {
 
-      if (cellid == INVALID_CELLID) {
-         continue;
-      }
+      if (cellid == INVALID_CELLID) continue;
 
       SpatialCell* cell = mpiGrid[cellid];
 
-      if (!cell) {
-         continue;
-      }
-
+      if (!cell) continue;
       cell->face_neighbor_ranks.clear();
 
       for (const auto& [neighbor, dir] : mpiGrid.get_face_neighbors_of(cellid)) {
@@ -604,7 +592,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, 
 
          int prepareReceives{phiprof::initializeTimer("Preparing receives")};
          int receives = 0;
-#pragma omp parallel for schedule(guided)
+         #pragma omp parallel for schedule(guided)
          for (unsigned int i = 0; i < incoming_cells_list.size(); i++) {
             CellID cell_id = incoming_cells_list[i];
             SpatialCell* cell = mpiGrid[cell_id];
@@ -654,7 +642,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, 
 
    // Make sure transfers are enabled for all cells
    recalculateLocalCellsCache(mpiGrid);
-#pragma omp parallel for
+   #pragma omp parallel for
    for (uint i = 0; i < cells.size(); ++i) {
       mpiGrid[cells[i]]->set_mpi_transfer_enabled(true);
    }
@@ -742,10 +730,8 @@ void prepareAMRLists(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGr
 
       // Update (face and other) neighbor information for remote cells on boundary
       phiprof::Timer updateRemoteNeighborsTimer{"update neighbor lists of remote cells"};
-      const vector<CellID> remote_cells =
-          mpiGrid.get_remote_cells_on_process_boundary(Neighborhoods::VLASOV_SOLVER_GHOST_REQNEIGH);
-      // const vector<CellID> remote_cells =
-      // mpiGrid.get_remote_cells_on_process_boundary(Neighborhoods::VLASOV_SOLVER_GHOST);
+      const vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(Neighborhoods::VLASOV_SOLVER_GHOST_REQNEIGH);
+      // const vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(Neighborhoods::VLASOV_SOLVER_GHOST);
       mpiGrid.force_update_cell_neighborhoods(remote_cells);
       updateRemoteNeighborsTimer.stop();
 
@@ -815,7 +801,7 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& 
 void shrink_to_fit_grid_data(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid) {
    const std::vector<CellID>& cells = getLocalCells();
    const std::vector<CellID>& remote_cells = mpiGrid.get_remote_cells_on_process_boundary();
-#pragma omp parallel for
+   #pragma omp parallel for
    for (size_t i = 0; i < cells.size() + remote_cells.size(); ++i) {
       if (i < cells.size()) {
          SpatialCell* target = mpiGrid[cells[i]];
@@ -876,7 +862,7 @@ void updateRemoteVelocityBlockLists(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_G
    phiprof::Timer receivesTimer{"Preparing receives"};
    const std::vector<uint64_t> incoming_cells = mpiGrid.get_remote_cells_on_process_boundary(neighborhood);
 
-#pragma omp parallel for
+   #pragma omp parallel for
    for (unsigned int i = 0; i < incoming_cells.size(); ++i) {
       uint64_t cell_id = incoming_cells[i];
       SpatialCell* cell = mpiGrid[cell_id];
@@ -1054,15 +1040,9 @@ void initializeStencils(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mp
       for (int y = -1; y <= 1; y++) {
          for (int x = -1; x <= 1; x++) {
             // do not add cells already in neighborhood (vlasov solver)
-            if (x == 0 && y == 0) {
-               continue;
-            }
-            if (x == 0 && z == 0) {
-               continue;
-            }
-            if (y == 0 && z == 0) {
-               continue;
-            }
+            if (x == 0 && y == 0) continue;
+            if (x == 0 && z == 0) continue;
+            if (y == 0 && z == 0) continue;
             neigh_t offsets = {{x, y, z}};
             neighborhood.push_back(offsets);
          }
@@ -1174,10 +1154,8 @@ void initializeStencils(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mp
       // Ghost translation neighbourhood where we need to have neighbour information
       neighborhood.clear();
       for (int dy = -(int)P::vlasovSolverGhostTranslateExtent; dy <= (int)P::vlasovSolverGhostTranslateExtent; dy++) {
-         for (int dx = -(int)P::vlasovSolverGhostTranslateExtent; dx <= (int)P::vlasovSolverGhostTranslateExtent;
-              dx++) {
-            for (int dz = -(int)P::vlasovSolverGhostTranslateExtent; dz <= (int)P::vlasovSolverGhostTranslateExtent;
-                 dz++) {
+         for (int dx = -(int)P::vlasovSolverGhostTranslateExtent; dx <= (int)P::vlasovSolverGhostTranslateExtent; dx++) {
+            for (int dz = -(int)P::vlasovSolverGhostTranslateExtent; dz <= (int)P::vlasovSolverGhostTranslateExtent; dz++) {
                if ((dz == 0) && (dy == 0) && (dx == 0)) {
                   continue;
                }

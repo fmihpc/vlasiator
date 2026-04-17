@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH -t 01:30:00        # Run time (hh:mm:ss)
 #SBATCH --job-name=CI_testpackage
-#SBATCH --constraint ukko
+#SBATCH --constraint="carrington"
 #SBATCH -p short
 #SBATCH --exclusive
 #SBATCH --nodes=1
@@ -32,7 +32,7 @@ module load PMIx/4.2.6-GCCcore-13.2.0
 module load PAPI/7.1.0-GCCcore-13.2.0
 module load Boost/1.83.0-GCC-13.2.0
 #module load xthi
-export UCX_NET_DEVICES=eth0 # This is important for multi-node performance!
+export UCX_NET_DEVICES=eth5 # This is important for multi-node performance!
 
 # send JOB ID to output usable by CI eg to scancel this job
 echo "SLURM_JOB_ID=$SLURM_JOB_ID" >> $GITHUB_OUTPUT
@@ -222,7 +222,7 @@ for run in ${run_tests[*]}; do
        echo "Comparing file ${vlsv_dir_short}/${vlsv} against reference"
        COMPAREDFILES=$((COMPAREDFILES+1))
        echo $COMPAREDFILES > $RUNNER_TEMP/COMPAREDFILES.txt
-       
+
        for i in ${!variables[*]}
        do
            if [[ "${variables[$i]}" == "fg_"* ]]

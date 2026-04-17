@@ -33,14 +33,21 @@ Background magnetic field class of Vlasiator.
 #include "functions.hpp"
 #include "quadr.hpp"
 
-double lineAverage(const T3DFunction& f1, coordinate line, double accuracy, const std::array<double, 3>& r1, double L) {
+
+double lineAverage(
+   const T3DFunction& f1,
+   coordinate line,
+   double accuracy,
+   const std::array<double, 3>& r1,
+   double L
+) {
    using namespace std::placeholders;
    double value;
    const double norm = 1/L;
    const double acc = accuracy*L;
    const double a = r1[line];
    const double b = r1[line] + L;
-   
+
    switch (line) {
       case X:
       {
@@ -68,8 +75,15 @@ double lineAverage(const T3DFunction& f1, coordinate line, double accuracy, cons
    return value;
 }
 
-double surfaceAverage(const T3DFunction& f1, coordinate face, double accuracy, const std::array<double, 3>& r1,
-                      double L1, double L2) {
+
+double surfaceAverage(
+   const T3DFunction& f1,
+   coordinate face,
+   double accuracy,
+   const std::array<double, 3>& r1,
+   double L1,
+   double L2
+) {
    using namespace std::placeholders;
    double value;
    const double acc = accuracy*L1*L2;
@@ -84,7 +98,7 @@ double surfaceAverage(const T3DFunction& f1, coordinate face, double accuracy, c
       case Y:
       {
          T2DFunction f = std::bind(f1,std::placeholders::_1,r1[1],std::placeholders::_2);
-         value = Romberg(f, r1[0],r1[0]+L1, r1[2],r1[2]+L2, acc)*norm; 
+         value = Romberg(f, r1[0],r1[0]+L1, r1[2],r1[2]+L2, acc)*norm;
       }
       break;
       case Z:
@@ -101,11 +115,17 @@ double surfaceAverage(const T3DFunction& f1, coordinate face, double accuracy, c
    return value;
 }
 
-double volumeAverage(const T3DFunction& f1, double accuracy, const std::array<double, 3>& r1,
-                     const std::array<double, 3>& r2) {
+
+double volumeAverage(
+   const T3DFunction& f1,
+   double accuracy,
+   const std::array<double, 3>& r1,
+   const std::array<double, 3>& r2
+) {
    double value;
    const double acc = accuracy*(r2[0]-r1[0])*(r2[1]-r1[1])*(r2[2]-r1[2]);
    const double norm = 1.0/((r2[0]-r1[0])*(r2[1]-r1[1])*(r2[2]-r1[2]));
    value= Romberg(f1, r1[0],r2[0], r1[1],r2[1], r1[2],r2[2], acc)*norm;
    return value;
 }
+

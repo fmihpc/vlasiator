@@ -23,13 +23,13 @@
 #ifndef FIELDTRACING_H
 #define FIELDTRACING_H
 
-#include "../common.h"
-#include "../fieldsolver/derivatives.hpp"
-#include "../fieldsolver/fs_common.h"
-#include "../logger.h"
-#include "../sysboundary/ionosphere.h"
-#include <array>
 #include <cstdlib>
+#include <array>
+#include "../common.h"
+#include "../fieldsolver/fs_common.h"
+#include "../fieldsolver/derivatives.hpp"
+#include "../sysboundary/ionosphere.h"
+#include "../logger.h"
 extern Logger logFile;
 
 // Used in full box + flux rope tracing, the others used in coupling should use Real as double probably.
@@ -68,7 +68,10 @@ template <class T> std::array<Real, 3> getFractionalFsGridCellForCoord(T& grid, 
 
 namespace FieldTracing {
 
-enum Direction { FORWARD, BACKWARD };
+enum Direction {
+   FORWARD,
+   BACKWARD
+};
 
 /*! Field line integrator for Magnetosphere<->Ionosphere coupling */
 enum TracingMethod {
@@ -85,20 +88,13 @@ struct FieldTracingParameters {
    TracingMethod tracingMethod;
    Real max_allowed_error;             /*!< Maximum alowed error for the adaptive field line tracing methods */
    uint32_t max_field_tracer_attempts; /*!< Max allowed attempts for the iterative field tracers */
-   Real min_tracer_dx_full_box; /*!< Min allowed tracer dx for tracing in the full domain to avoid getting bogged down
-                                   in the archipelago */
-   const Real min_tracer_dx_ionospere_coupling =
-       50e3; /*!< Min allowed tracer dx for tracing between the Vlasov domain and the ionosphere */
-   const Real max_tracer_dx_ionospere_coupling =
-       100e3; /*!< Max allowed tracer dx for tracing between the Vlasov domain and the ionosphere */
-   Real fullbox_max_incomplete_cells;  /*!< Max allowed fraction of cells left unfinished before exiting tracing loop,
-                                          fullbox */
-   Real fluxrope_max_incomplete_cells; /*!< Max allowed fraction of cells left unfinished before exiting tracing loop,
-                                          fluxrope */
-   Real fullbox_and_fluxrope_max_distance; /*!< Max allowed tracing distance before ending tracing, fullbox and fluxrope
-                                              tracing */
-   std::map<std::array<int, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS>>
-       reconstructionCoefficientsCache; /*!< cache for Balsara reconstruction coefficients */
+   Real min_tracer_dx_full_box; /*!< Min allowed tracer dx for tracing in the full domain to avoid getting bogged down in the archipelago */
+   const Real min_tracer_dx_ionospere_coupling = 50e3; /*!< Min allowed tracer dx for tracing between the Vlasov domain and the ionosphere */
+   const Real max_tracer_dx_ionospere_coupling = 100e3; /*!< Max allowed tracer dx for tracing between the Vlasov domain and the ionosphere */
+   Real fullbox_max_incomplete_cells;  /*!< Max allowed fraction of cells left unfinished before exiting tracing loop, fullbox */
+   Real fluxrope_max_incomplete_cells; /*!< Max allowed fraction of cells left unfinished before exiting tracing loop, fluxrope */
+   Real fullbox_and_fluxrope_max_distance; /*!< Max allowed tracing distance before ending tracing, fullbox and fluxrope tracing */
+   std::map<std::array<int, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS>> reconstructionCoefficientsCache; /*!< cache for Balsara reconstruction coefficients */
    Real fluxrope_max_curvature_radii_to_trace;
    Real fluxrope_max_curvature_radii_extent;
    Real innerBoundaryRadius = 0; /*!< If non-zero this will be used to determine CLOSED field lines. */
@@ -113,8 +109,10 @@ struct FieldTracingParameters {
 extern FieldTracingParameters fieldTracingParameters;
 
 /*! Type of field line ending, used to classify the ionospheric nodes and the forward and backward field lines in
- * full.box tracing. CLOSED: ends in the ionosphere OPEN: exits the simulation domain DANGLING: has not exited, might
- * keep looping or would exit given enough time/steps. Not called LOOP to avoid confusion with fluxrope tracing.
+ * full.box tracing.
+ * CLOSED: ends in the ionosphere
+ * OPEN: exits the simulation domain
+ * DANGLING: has not exited, might keep looping or would exit given enough time/steps. Not called LOOP to avoid confusion with fluxrope tracing.
  * UNPROCESSED: cells inside the ionosphere or outside the outer limits that weren't even processed in the first place
  */
 enum TracingLineEndType {
@@ -159,8 +157,13 @@ bool traceFullFieldFunction(fsgrids::perbspan perb,
                             fsgrids::technicalspan technical, FieldSolverGrid &fsgrid, std::array<REAL, 3>& r,
                             const bool alongB, std::array<REAL, 3>& b) {
 
-   if (r[0] > P::xmax - 2 * P::dx_ini || r[0] < P::xmin + 2 * P::dx_ini || r[1] > P::ymax - 2 * P::dy_ini ||
-       r[1] < P::ymin + 2 * P::dy_ini || r[2] > P::zmax - 2 * P::dz_ini || r[2] < P::zmin + 2 * P::dz_ini) {
+   if (   r[0] > P::xmax - 2*P::dx_ini
+       || r[0] < P::xmin + 2*P::dx_ini
+       || r[1] > P::ymax - 2*P::dy_ini
+       || r[1] < P::ymin + 2*P::dy_ini
+       || r[2] > P::zmax - 2*P::dz_ini
+       || r[2] < P::zmin + 2*P::dz_ini
+   ) {
       cerr << (string)("(fieldtracing) Error: fsgrid coupling trying to step outside of the global domain?\n");
       return false;
    }
@@ -181,13 +184,17 @@ bool traceFullFieldFunction(fsgrids::perbspan perb,
    fsgridCell[1] -= localStart[1];
    fsgridCell[2] -= localStart[2];
 
-   if (fsgridCell[0] > localSize[0] || fsgridCell[1] > localSize[1] || fsgridCell[2] > localSize[2] ||
-       fsgridCell[0] < -1 || fsgridCell[1] < -1 || fsgridCell[2] < -1) {
-      cerr << (string)("(fieldtracing) Error: fsgrid coupling trying to access local ID " + to_string(fsgridCell[0]) +
-                       " " + to_string(fsgridCell[1]) + " " + to_string(fsgridCell[2]) + " for local domain size " +
-                       to_string(localSize[0]) + " " + to_string(localSize[1]) + " " + to_string(localSize[2]) +
-                       " at position " + to_string(r[0]) + " " + to_string(r[1]) + " " + to_string(r[2]) + " radius " +
-                       to_string(sqrt(r[0] * r[0] + r[1] * r[1] + r[2] * r[2])) + "\n");
+   if (   fsgridCell[0] > localSize[0]
+       || fsgridCell[1] > localSize[1]
+       || fsgridCell[2] > localSize[2]
+       || fsgridCell[0] < -1
+       || fsgridCell[1] < -1
+       || fsgridCell[2] < -1
+   ) {
+      cerr << (string)("(fieldtracing) Error: fsgrid coupling trying to access local ID " + to_string(fsgridCell[0]) + " " + to_string(fsgridCell[1]) + " " + to_string(fsgridCell[2])
+      + " for local domain size " + to_string(localSize[0]) + " " + to_string(localSize[1]) + " " + to_string(localSize[2])
+      + " at position " + to_string(r[0]) + " " + to_string(r[1]) + " " + to_string(r[2]) + " radius " + to_string(sqrt(r[0] * r[0] + r[1] * r[1] + r[2] * r[2]))
+      + "\n");
       abort();
       return false;
    } else {
@@ -203,15 +210,15 @@ bool traceFullFieldFunction(fsgrids::perbspan perb,
    }
 
    // Normalize
-   REAL norm = 1. / sqrt(b[0] * b[0] + b[1] * b[1] + b[2] * b[2]);
+   REAL norm = 1. / sqrt(b[0]*b[0] + b[1]*b[1] + b[2]*b[2]);
    for (int c = 0; c < 3; c++) {
       b[c] = b[c] * norm;
    }
 
    // Make sure motion is outwards. Flip b if dot(r,b) < 0
    if (!(std::isfinite(b[0]) && std::isfinite(b[1]) && std::isfinite(b[2]))) {
-      cerr << "(fieldtracing) Error: magnetic field is nan or inf in getRadialBfieldDirection at location " << r[0]
-           << ", " << r[1] << ", " << r[2] << ", with B = " << b[0] << ", " << b[1] << ", " << b[2] << endl;
+      cerr << "(fieldtracing) Error: magnetic field is nan or inf in getRadialBfieldDirection at location "
+           << r[0] << ", " << r[1] << ", " << r[2] << ", with B = " << b[0] << ", " << b[1] << ", " << b[2] << endl;
       b[0] = 0;
       b[1] = 0;
       b[2] = 0;
@@ -446,19 +453,13 @@ bool dormandPrinceStep(std::array<REAL, 3>& r, std::array<REAL, 3>& b, REAL& ste
    if (proceed) {
       // Error calculation
       std::array<REAL, 3> error_xyz;
-      rf[0] = r[0] + (35. / 384.) * kx[0] + (500. / 1113.) * kx[2] + (125. / 192.) * kx[3] - (2187. / 6784.) * kx[4] +
-              (11. / 84.) * kx[5];
-      rf[1] = r[1] + (35. / 384.) * ky[0] + (500. / 1113.) * ky[2] + (125. / 192.) * ky[3] - (2187. / 6784.) * ky[4] +
-              (11. / 84.) * ky[5];
-      rf[2] = r[2] + (35. / 384.) * kz[0] + (500. / 1113.) * kz[2] + (125. / 192.) * kz[3] - (2187. / 6784.) * kz[4] +
-              (11. / 84.) * kz[5];
+      rf[0] = r[0] + (35. / 384.) * kx[0] + (500. / 1113.) * kx[2] + (125. / 192.) * kx[3] - (2187. / 6784.) * kx[4] + (11. / 84.) * kx[5];
+      rf[1] = r[1] + (35. / 384.) * ky[0] + (500. / 1113.) * ky[2] + (125. / 192.) * ky[3] - (2187. / 6784.) * ky[4] + (11. / 84.) * ky[5];
+      rf[2] = r[2] + (35. / 384.) * kz[0] + (500. / 1113.) * kz[2] + (125. / 192.) * kz[3] - (2187. / 6784.) * kz[4] + (11. / 84.) * kz[5];
 
-      error_xyz[0] = abs((71. / 57600.) * kx[0] - (71. / 16695.) * kx[2] + (71. / 1920.) * kx[3] -
-                         (17253. / 339200.) * kx[4] + (22. / 525.) * kx[5] - (1. / 40.) * kx[6]);
-      error_xyz[1] = abs((71. / 57600.) * ky[0] - (71. / 16695.) * ky[2] + (71. / 1920.) * ky[3] -
-                         (17253. / 339200.) * ky[4] + (22. / 525.) * ky[5] - (1. / 40.) * ky[6]);
-      error_xyz[2] = abs((71. / 57600.) * kz[0] - (71. / 16695.) * kz[2] + (71. / 1920.) * kz[3] -
-                         (17253. / 339200.) * kz[4] + (22. / 525.) * kz[5] - (1. / 40.) * kz[6]);
+      error_xyz[0] = abs((71. / 57600.) * kx[0] - (71. / 16695.) * kx[2] + (71. / 1920.) * kx[3] - (17253. / 339200.) * kx[4] + (22. / 525.) * kx[5] - (1. / 40.) * kx[6]);
+      error_xyz[1] = abs((71. / 57600.) * ky[0] - (71. / 16695.) * ky[2] + (71. / 1920.) * ky[3] - (17253. / 339200.) * ky[4] + (22. / 525.) * ky[5] - (1. / 40.) * ky[6]);
+      error_xyz[2] = abs((71. / 57600.) * kz[0] - (71. / 16695.) * kz[2] + (71. / 1920.) * kz[3] - (17253. / 339200.) * kz[4] + (22. / 525.) * kz[5] - (1. / 40.) * kz[6]);
 
       // Estimate proper stepsize
       err = std::max(std::max(error_xyz[0], error_xyz[1]), error_xyz[2]);

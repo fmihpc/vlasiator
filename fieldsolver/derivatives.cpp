@@ -22,8 +22,8 @@
 
 #include <cstdlib>
 
-#include "derivatives.hpp"
 #include "fs_common.h"
+#include "derivatives.hpp"
 #include "fs_limiters.h"
 #include <Eigen/Geometry>
 
@@ -57,9 +57,9 @@ void computeMomentsDerivatives(fsgrids::constmomentsspan moments,
    const Real Pe_const = Pe_anchor * pow(Parameters::electronDensity, -Parameters::electronPTindex);
    auto computeGradPeLimiter = [=](const auto& right, const auto& left, const auto& center) {
       // pres_e = const * np.power(rho_e, index)
-      return Pe_const * limiter(pow(left[mom::RHOQ] / physicalconstants::CHARGE, Parameters::electronPTindex),
-                               pow(center[mom::RHOQ] / physicalconstants::CHARGE, Parameters::electronPTindex),
-                               pow(right[mom::RHOQ] / physicalconstants::CHARGE, Parameters::electronPTindex));
+      return Pe_const * limiter(pow(left[mom::RHOQ]   / physicalconstants::CHARGE, Parameters::electronPTindex),
+                                pow(center[mom::RHOQ] / physicalconstants::CHARGE, Parameters::electronPTindex),
+                                pow(right[mom::RHOQ]  / physicalconstants::CHARGE, Parameters::electronPTindex));
    };
 
    auto computeGradPeDiff = [=](const auto& right, const auto& left) {
@@ -67,45 +67,38 @@ void computeMomentsDerivatives(fsgrids::constmomentsspan moments,
    };
 
    const DerivativesData momData{
-       moments[stencil.ooo()], moments[stencil.poo()], moments[stencil.moo()], moments[stencil.opo()],
-       moments[stencil.omo()],   moments[stencil.oop()],  moments[stencil.oom()],
+       moments[stencil.ooo()],
+       moments[stencil.poo()], moments[stencil.moo()],
+       moments[stencil.opo()], moments[stencil.omo()],
+       moments[stencil.oop()], moments[stencil.oom()],
    };
 
    {
 #ifdef DEBUG_SOLVERS
       const auto& cv = momData.ooo[mom::RHOM];
       if (cv <= 0) {
-         std::cerr << __FILE__ << ":" << __LINE__ << (cv < 0 ? " Negative" : " Zero") << " density in fsgrid cell id " << stencil.indexFromOffset(0,0,0) << std::endl;
+         std::cerr << __FILE__ << ":" << __LINE__ << (cv < 0 ? " Negative" : " Zero") << " density in fsgrid cell " << stencil.indexFromOffset( 0,0,0) << std::endl;
          abort();
-
       }
 
       const auto& lv = momData.moo[mom::RHOM];
       if (lv <= 0) {
-         std::cerr << __FILE__ << ":" << __LINE__ << (lv < 0 ? " Negative" : " Zero") << " density in fsgrid cell " << stencil.indexFromOffset(-1,0,0)
-                   << std::endl;
+         std::cerr << __FILE__ << ":" << __LINE__ << (lv < 0 ? " Negative" : " Zero") << " density in fsgrid cell " << stencil.indexFromOffset(-1,0,0) << std::endl;
          abort();
       }
 
       const auto& rv = momData.poo[mom::RHOM];
       if (rv <= 0) {
-         std::cerr << __FILE__ << ":" << __LINE__ << (rv < 0 ? " Negative" : " Zero") << " density in fsgrid cell " << stencil.indexFromOffset(1,0,0)
-                   << std::endl;
+         std::cerr << __FILE__ << ":" << __LINE__ << (rv < 0 ? " Negative" : " Zero") << " density in fsgrid cell " << stencil.indexFromOffset( 1,0,0) << std::endl;
          abort();
       }
 #endif
    }
 
    static constexpr std::array moms{mom::RHOM, mom::RHOQ, mom::P_11, mom::P_22, mom::P_33, mom::VX, mom::VY, mom::VZ};
-   static constexpr std::array dmix{
-       dmo::drhomdx, dmo::drhoqdx, dmo::dp11dx, dmo::dp22dx, dmo::dp33dx, dmo::dVxdx, dmo::dVydx, dmo::dVzdx,
-   };
-   static constexpr std::array dmiy{
-       dmo::drhomdy, dmo::drhoqdy, dmo::dp11dy, dmo::dp22dy, dmo::dp33dy, dmo::dVxdy, dmo::dVydy, dmo::dVzdy,
-   };
-   static constexpr std::array dmiz{
-       dmo::drhomdz, dmo::drhoqdz, dmo::dp11dz, dmo::dp22dz, dmo::dp33dz, dmo::dVxdz, dmo::dVydz, dmo::dVzdz,
-   };
+   static constexpr std::array dmix{dmo::drhomdx, dmo::drhoqdx, dmo::dp11dx, dmo::dp22dx, dmo::dp33dx, dmo::dVxdx, dmo::dVydx, dmo::dVzdx};
+   static constexpr std::array dmiy{dmo::drhomdy, dmo::drhoqdy, dmo::dp11dy, dmo::dp22dy, dmo::dp33dy, dmo::dVxdy, dmo::dVydy, dmo::dVzdy};
+   static constexpr std::array dmiz{dmo::drhomdz, dmo::drhoqdz, dmo::dp11dz, dmo::dp22dz, dmo::dp33dz, dmo::dVxdz, dmo::dVydz, dmo::dVzdz};
 
    if (P::fieldSolverFiniteDifferencingAtBoundaries && atSysBoundary) {
       for (size_t i = 0; i < moms.size(); i++) {
@@ -126,8 +119,6 @@ void computeMomentsDerivatives(fsgrids::constmomentsspan moments,
       dMoments[dmo::dPedy] = computeGradPeLimiter(momData.opo, momData.omo, momData.ooo);
       dMoments[dmo::dPedz] = computeGradPeLimiter(momData.oop, momData.oom, momData.ooo);
    }
-
-
 }
 
 void computePerbDerivatives(fsgrids::perbspan perb,
@@ -193,12 +184,9 @@ void computePerbDerivatives(fsgrids::perbspan perb,
             return FOURTH * (botLeft[i] + topRght[i] - botRght[i] - topLeft[i]);
          };
 
-         dPerB[dpb::dPERBxdyz] =
-             crossDerivative(stencil.omm(), stencil.opm(), stencil.omp(), stencil.opp(), bfi::PERBX);
-         dPerB[dpb::dPERBydxz] =
-             crossDerivative(stencil.mom(), stencil.pom(), stencil.mop(), stencil.pop(), bfi::PERBY);
-         dPerB[dpb::dPERBzdxy] =
-             crossDerivative(stencil.mmo(), stencil.pmo(), stencil.mpo(), stencil.ppo(), bfi::PERBZ);
+         dPerB[dpb::dPERBxdyz] = crossDerivative(stencil.omm(), stencil.opm(), stencil.omp(), stencil.opp(), bfi::PERBX);
+         dPerB[dpb::dPERBydxz] = crossDerivative(stencil.mom(), stencil.pom(), stencil.mop(), stencil.pop(), bfi::PERBY);
+         dPerB[dpb::dPERBzdxy] = crossDerivative(stencil.mmo(), stencil.pmo(), stencil.mpo(), stencil.ppo(), bfi::PERBZ);
       }
    }
 }
@@ -229,8 +217,7 @@ void calculateDerivatives(fsgrids::perbspan perb,
     * slope limiter-adjusted values. This is to minimize oscillations as a smooth behaviour is required near artificial
     * boundaries, unlike at boundaries and shocks inside the simulation domain.
     */
-   const bool atSysBoundary =
-       sysBoundaryLayer == 1 || (sysBoundaryLayer == 2 && sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY);
+   const bool atSysBoundary = sysBoundaryLayer == 1 || (sysBoundaryLayer == 2 && sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY);
    const bool dontCompute2ndDerivatives = Parameters::ohmHallTerm < 2 || sysBoundaryLayer == 1;
 
    if (doMoments) {
@@ -284,8 +271,7 @@ void calculateDerivativesSimple(fsgrids::perbspan perb,
    fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
                        phiprof::initializeTimer("FS derivatives compute cells"), technical,
                        [=](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
-                          calculateDerivatives(perb, moments, dperb, dmoments, stencil, sysBoundaryFlag,
-                                               sysBoundaryLayer, doMoments);
+                          calculateDerivatives(perb, moments, dperb, dmoments, stencil, sysBoundaryFlag, sysBoundaryLayer, doMoments);
                        });
 
    derivativesTimer.stop(numCells, "Spatial Cells");
@@ -413,7 +399,7 @@ void calculateCurvature(fsgrids::volspan vol,
       const Real bx = b[fsgrids::bgbfield::BGBXVOL] + v[fsgrids::volfields::PERBXVOL];
       const Real by = b[fsgrids::bgbfield::BGBYVOL] + v[fsgrids::volfields::PERBYVOL];
       const Real bz = b[fsgrids::bgbfield::BGBZVOL] + v[fsgrids::volfields::PERBZVOL];
-      const Real bnorm = sqrt(bx * bx + by * by + bz * bz);
+      const Real bnorm = sqrt(bx*bx + by*by + bz*bz);
 
       return {
           bx / bnorm,
@@ -477,7 +463,8 @@ void calculateCurvatureSimple(fsgrids::volspan vol,
  *
  */
 [[maybe_unused]] static std::array<Real, 3> getPerBVol(SpatialCell* cell) {
-   return std::array<Real, 3>{{cell->parameters[CellParams::PERBXVOL], cell->parameters[CellParams::PERBYVOL],
+   return std::array<Real, 3>{{cell->parameters[CellParams::PERBXVOL],
+	                       cell->parameters[CellParams::PERBYVOL],
                                cell->parameters[CellParams::PERBZVOL]}};
 }
 
@@ -495,7 +482,8 @@ static std::array<Real, 3> getBVol(SpatialCell* cell) {
  */
 static std::array<Real, 3> getMomentumDensity(SpatialCell* cell) {
    Real rho = cell->parameters[CellParams::RHOM];
-   return std::array<Real, 3>{{rho * cell->parameters[CellParams::VX], rho * cell->parameters[CellParams::VY],
+   return std::array<Real, 3>{{rho * cell->parameters[CellParams::VX],
+                               rho * cell->parameters[CellParams::VY],
                                rho * cell->parameters[CellParams::VZ]}};
 }
 
@@ -506,19 +494,18 @@ static Real calculateU(SpatialCell* cell) {
    Real rho = cell->parameters[CellParams::RHOM];
    std::array<Real, 3> p = getMomentumDensity(cell);
    std::array<Real, 3> B = getBVol(cell);
-   return (pow(B[0], 2) + pow(B[1], 2) + pow(B[2], 2)) / (2.0 * physicalconstants::MU_0) + // Magnetic field energy
-          (rho > EPS ? (pow(p[0], 2) + pow(p[1], 2) + pow(p[2], 2)) / (2.0 * cell->parameters[CellParams::RHOM])
-                     : 0.0); // Kinetic energy
+   return (pow(B[0],2) + pow(B[1],2) + pow(B[2],2)) / (2.0 * physicalconstants::MU_0) +                               // Magnetic field energy
+          (rho > EPS ? (pow(p[0],2) + pow(p[1],2) + pow(p[2],2)) / (2.0 * cell->parameters[CellParams::RHOM]) : 0.0); // Kinetic energy
 }
 
 /*! \brief Calculates pressure anistotropy from B and Pi
- *  \param rot Eigen rotatino matrix for parallel/perpendicular pressure
+ *  \param rot Eigen rotation matrix for parallel/perpendicular pressure
  *  \param P elements of pressure order in order: P_11, P_22, P_33, P_23, P_13, P_12
  */
 static Real calculateAnisotropy(const Eigen::Matrix3d& rot, const std::array<Real, 6>& P) {
    // Now, rotation matrix to get parallel and perpendicular pressure
-   // Eigen::Quaterniond q {Quaterniond::FromTwoVectors(Eigen::vector3d{0, 0, 1}, Eigen::vector3d{myB[0], myB[1],
-   // myB[2]})}; Eigen::Matrix3d rot = q.toRotationMatrix();
+   // Eigen::Quaterniond q {Quaterniond::FromTwoVectors(Eigen::vector3d{0, 0, 1}, Eigen::vector3d{myB[0], myB[1], myB[2]})};
+   // Eigen::Matrix3d rot = q.toRotationMatrix();
    Eigen::Matrix3d Ptensor{
        {P[0], P[5], P[4]},
        {P[5], P[1], P[3]},
@@ -554,7 +541,8 @@ void calculateScaledDeltas(SpatialCell* cell, std::vector<SpatialCell*>& neighbo
 
    Real myRho{cell->parameters[CellParams::RHOM]};
    Real myU{calculateU(cell)};
-   Real myV{std::sqrt(std::pow(cell->parameters[CellParams::VX], 2) + std::pow(cell->parameters[CellParams::VY], 2) +
+   Real myV{std::sqrt(std::pow(cell->parameters[CellParams::VX], 2) +
+                      std::pow(cell->parameters[CellParams::VY], 2) +
                       std::pow(cell->parameters[CellParams::VZ], 2))};
    Real maxV{myV};
    std::array<Real, 3> myP = getMomentumDensity(cell);
@@ -567,12 +555,11 @@ void calculateScaledDeltas(SpatialCell* cell, std::vector<SpatialCell*>& neighbo
                             std::pow(neighbor->parameters[CellParams::VZ], 2))};
       std::array<Real, 3> otherP = getMomentumDensity(neighbor);
       std::array<Real, 3> otherB = getBVol(neighbor);
-      Real deltaBsq = pow(myB[0] - otherB[0], 2) + pow(myB[1] - otherB[1], 2) + pow(myB[2] - otherB[2], 2);
+      Real deltaBsq = pow(myB[0]-otherB[0], 2) + pow(myB[1]-otherB[1], 2) + pow(myB[2]-otherB[2], 2);
 
       if (myV < EPS) {
          maxV = std::max(maxV, otherV);
       }
-
       Real maxRho = std::max(myRho, otherRho);
       if (maxRho > EPS) {
          dRho = std::max(fabs(myRho - otherRho) / maxRho, dRho);
@@ -582,13 +569,10 @@ void calculateScaledDeltas(SpatialCell* cell, std::vector<SpatialCell*>& neighbo
          dU = std::max(fabs(myU - otherU) / maxU, dU);
          dBsq = std::max(deltaBsq / (2 * physicalconstants::MU_0 * maxU), dBsq);
          if (myRho > EPS) {
-            dPsq = std::max((pow(myP[0] - otherP[0], 2) + pow(myP[1] - otherP[1], 2) + pow(myP[2] - otherP[2], 2)) /
-                                (2 * myRho * maxU),
-                            dPsq);
+            dPsq = std::max((pow(myP[0]-otherP[0], 2) + pow(myP[1]-otherP[1], 2) + pow(myP[2] - otherP[2], 2)) / (2 * myRho * maxU), dPsq);
          }
       }
-      Real maxB = sqrt(std::max(pow(myB[0], 2) + pow(myB[1], 2) + pow(myB[2], 2),
-                                pow(otherB[0], 2) + pow(otherB[1], 2) + pow(otherB[2], 2)));
+      Real maxB = sqrt(std::max(pow(myB[0], 2) + pow(myB[1], 2) + pow(myB[2], 2), pow(otherB[0], 2) + pow(otherB[1], 2) + pow(otherB[2], 2)));
       if (maxB > EPS) {
          dB = std::max(sqrt(deltaBsq) / maxB, dB);
       }
@@ -665,8 +649,7 @@ void calculateScaledDeltas(SpatialCell* cell, std::vector<SpatialCell*>& neighbo
    cell->parameters[CellParams::AMR_DBSQ] = dBsq;
    cell->parameters[CellParams::AMR_DB] = dB;
    cell->parameters[CellParams::AMR_ALPHA1] = alpha;
-   cell->parameters[CellParams::AMR_ALPHA2] =
-       cell->parameters[CellParams::DX] * J / (Bperp + EPS); // Epsilon in denominator so we don't get infinities
+   cell->parameters[CellParams::AMR_ALPHA2] = cell->parameters[CellParams::DX] * J / (Bperp + EPS); // Epsilon in denominator so we don't get infinities
    cell->parameters[CellParams::P_ANISOTROPY] = Panisotropy;
    // Experimental, current scaling is bulk velocity
    cell->parameters[CellParams::AMR_VORTICITY] = amr_vorticity;
@@ -690,11 +673,11 @@ void calculateScaledDeltasSimple(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geom
    mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::NEAREST);
    commTimer.stop(N_cells, "Spatial Cells");
 
-// Calculate derivatives
-#pragma omp parallel
+   // Calculate derivatives
+   #pragma omp parallel
    {
       phiprof::Timer computeTimer{computeTimerId};
-#pragma omp for
+      #pragma omp for
       for (uint i = 0; i < cells.size(); ++i) {
          CellID id = cells[i];
          SpatialCell* cell = mpiGrid[id];

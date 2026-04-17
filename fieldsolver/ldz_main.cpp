@@ -43,17 +43,17 @@
  * *****      IN THE ABOVEMENTIONED PUBLICATION(S)           *****
  */
 
+#include "ldz_electric_field.hpp"
+#include "ldz_magnetic_field.hpp"
+#include "ldz_hall.hpp"
+#include "ldz_gradpe.hpp"
+#include "ldz_volume.hpp"
+#include "fs_common.h"
+#include "derivatives.hpp"
+#include "fs_limiters.h"
+#include "mpiconversion.h"
 #include "../fieldtracing/fieldtracing.h"
 #include "../logger.h"
-#include "derivatives.hpp"
-#include "fs_common.h"
-#include "fs_limiters.h"
-#include "ldz_electric_field.hpp"
-#include "ldz_gradpe.hpp"
-#include "ldz_hall.hpp"
-#include "ldz_magnetic_field.hpp"
-#include "ldz_volume.hpp"
-#include "mpiconversion.h"
 extern Logger logFile;
 
 /*! \brief Top-level field propagation function.
@@ -67,7 +67,7 @@ extern Logger logFile;
  * \param perb fsgrid holding perturbed magnetic field
  * \param perbdt2 fsgrid holding perturbed magnetic field at Runge-Kutta half-step
  * \param e fsgrid holding electric field
- * \param edt2 fsgrid holding electric field 
+ * \param edt2 fsgrid holding electric field
  * \param ehall fsgrid holding Hall term electric field
  * \param egradpe fsgrid holding gradient of electron pressure electric field
  * \param egradpedt2 fsgrid holding gradient of electron pressure electric field at Runge-Kutta half-step
@@ -123,55 +123,133 @@ bool propagateFields(fsgrids::perbspan perb,
       propagateMagneticFieldSimple(perb, perbdt2, bgb, e, edt2, technical, fsgrid, sysBoundaries, dt, RK_ORDER1);
       calculateDerivativesSimple(perb, moments, dperb, dmoments, technical, fsgrid, true /*doMoments*/);
       if (P::ohmGradPeTerm > 0) {
-         calculateGradPeTermSimple(egradpe, egradpedt2, moments, momentsdt2, dmoments, dmomentsdt2, technical, fsgrid,
-                                   sysBoundaries, RK_ORDER1);
+         calculateGradPeTermSimple(egradpe, egradpedt2, moments, momentsdt2, dmoments, dmomentsdt2, technical, fsgrid, sysBoundaries, RK_ORDER1);
       }
       if (P::ohmHallTerm > 0) {
-         calculateHallTermSimple(perb, perbdt2, ehall, moments, momentsdt2, dperb, dmoments, dmomentsdt2, bgb,
-                                 technical, fsgrid, sysBoundaries, RK_ORDER1,
-                                 true // communicateMomentsDerivatives
+         calculateHallTermSimple(
+            perb,
+            perbdt2,
+            ehall,
+            moments,
+            momentsdt2,
+            dperb,
+            dmoments,
+            dmomentsdt2,
+            bgb,
+            technical,
+            fsgrid,
+            sysBoundaries,xi
+            RK_ORDER1,
+            true // communicateMomentsDerivatives
          );
       }
-      calculateUpwindedElectricFieldSimple(perb, perbdt2, e, edt2, ehall, egradpe, egradpedt2, moments, momentsdt2,
-                                           dperb, dmoments, dmomentsdt2, bgb, technical, fsgrid, sysBoundaries, RK_ORDER1,
-                                           true // communicateEGradPeOrMomentsDerivatives
+      calculateUpwindedElectricFieldSimple(
+         perb,
+         perbdt2,
+         e,
+         edt2,
+         ehall,
+         egradpe,
+         egradpedt2,
+         moments,
+         momentsdt2,
+         dperb,
+         dmoments,
+         dmomentsdt2,
+         bgb,
+         technical,
+         fsgrid,
+         sysBoundaries,
+         RK_ORDER1,
+         true // communicateEGradPeOrMomentsDerivatives
       );
 #else
       propagateMagneticFieldSimple(perb, perbdt2, bgb, e, edt2, technical, fsgrid, sysBoundaries, dt, RK_ORDER2_STEP1);
       calculateDerivativesSimple(perbdt2, momentsdt2, dperb, dmomentsdt2, technical, fsgrid, true /*doMoments*/);
       if (P::ohmGradPeTerm > 0) {
-         calculateGradPeTermSimple(egradpe, egradpedt2, moments, momentsdt2, dmoments, dmomentsdt2, technical, fsgrid,
-                                   sysBoundaries, RK_ORDER2_STEP1);
+         calculateGradPeTermSimple(egradpe, egradpedt2, moments, momentsdt2, dmoments, dmomentsdt2, technical, fsgrid, sysBoundaries, RK_ORDER2_STEP1);
       }
       if (P::ohmHallTerm > 0) {
-         calculateHallTermSimple(perb, perbdt2, ehall, moments, momentsdt2, dperb, dmoments, dmomentsdt2, bgb,
-                                 technical, fsgrid, sysBoundaries, RK_ORDER2_STEP1,
-                                 true // communicateMomentsDerivatives
+         calculateHallTermSimple(
+            perb,
+            perbdt2,
+            ehall,
+            moments,
+            momentsdt2,
+            dperb,
+            dmoments,
+            dmomentsdt2,
+            bgb,
+            technical,
+            fsgrid,
+            sysBoundaries,
+            RK_ORDER2_STEP1,
+            true // communicateMomentsDerivatives
          );
       }
-      calculateUpwindedElectricFieldSimple(perb, perbdt2, e, edt2, ehall, egradpe, egradpedt2, moments, momentsdt2,
-                                           dperb, dmoments, dmomentsdt2, bgb, technical, fsgrid, sysBoundaries,
-                                           RK_ORDER2_STEP1,
-                                           true // communicateEGradPeOrMomentsDerivatives
+      calculateUpwindedElectricFieldSimple(
+         perb,
+         perbdt2,
+         e,
+         edt2,
+         ehall,
+         egradpe,
+         egradpedt2,
+         moments,
+         momentsdt2,
+         dperb,
+         dmoments,
+         dmomentsdt2,
+         bgb,
+         technical,
+         fsgrid,
+         sysBoundaries,
+         RK_ORDER2_STEP1,
+         true // communicateEGradPeOrMomentsDerivatives
       );
 
       propagateMagneticFieldSimple(perb, perbdt2, bgb, e, edt2, technical, fsgrid, sysBoundaries, dt, RK_ORDER2_STEP2);
       calculateDerivativesSimple(perb, moments, dperb, dmoments, technical, fsgrid, true /*doMoments*/);
       if (P::ohmGradPeTerm > 0) {
-         calculateGradPeTermSimple(egradpe, egradpedt2, moments, momentsdt2, dmoments, dmomentsdt2, technical, fsgrid,
-                                   sysBoundaries, RK_ORDER2_STEP2);
+         calculateGradPeTermSimple(egradpe, egradpedt2, moments, momentsdt2, dmoments, dmomentsdt2, technical, fsgrid, sysBoundaries, RK_ORDER2_STEP2);
       }
       if (P::ohmHallTerm > 0) {
-         calculateHallTermSimple(perb, perbdt2, ehall, moments, momentsdt2, dperb, dmoments, dmomentsdt2, bgb,
-                                 technical, fsgrid, sysBoundaries, RK_ORDER2_STEP2,
-                                 true // communicateMomentsDerivatives
-
+         calculateHallTermSimple(
+            perb,
+            perbdt2,
+            ehall,
+            moments,
+            momentsdt2,
+            dperb,
+            dmoments,
+            dmomentsdt2,
+            bgb,
+            technical,
+            fsgrid,
+            sysBoundaries,
+            RK_ORDER2_STEP2,
+            true // communicateMomentsDerivatives
          );
       }
-      calculateUpwindedElectricFieldSimple(perb, perbdt2, e, edt2, ehall, egradpe, egradpedt2, moments, momentsdt2,
-                                           dperb, dmoments, dmomentsdt2, bgb, technical, fsgrid, sysBoundaries,
-                                           RK_ORDER2_STEP2,
-                                           true // communicateEGradPeOrMomentsDerivatives
+      calculateUpwindedElectricFieldSimple(
+         perb,
+         perbdt2,
+         e,
+         edt2,
+         ehall,
+         egradpe,
+         egradpedt2,
+         moments,
+         momentsdt2,
+         dperb,
+         dmoments,
+         dmomentsdt2,
+         bgb,
+         technical,
+         fsgrid,
+         sysBoundaries,
+         RK_ORDER2_STEP2,
+         true // communicateEGradPeOrMomentsDerivatives
       );
 #endif
    } else {
@@ -186,49 +264,98 @@ bool propagateFields(fsgrids::perbspan perb,
          // In case of subcycling, we decided to go for a blunt Runge-Kutta subcycling even though e.g. moments are not
          // going along. Result of the Summer of Debugging 2016, the behaviour in wave dispersion was much improved with
          // this.
-         propagateMagneticFieldSimple(perb, perbdt2, bgb, e, edt2, technical, fsgrid, sysBoundaries, subcycleDt,
-                                      RK_ORDER2_STEP1);
+         propagateMagneticFieldSimple(perb, perbdt2, bgb, e, edt2, technical, fsgrid, sysBoundaries, subcycleDt, RK_ORDER2_STEP1);
 
          // We need to calculate derivatives of the moments at every substep, but the moments only
          // need to be communicated in the first one.
-         calculateDerivativesSimple(perbdt2, momentsdt2, dperb, dmomentsdt2, technical, fsgrid,
-                                    (subcycleCount == 0) /*doMoments*/);
+         calculateDerivativesSimple(perbdt2, momentsdt2, dperb, dmomentsdt2, technical, fsgrid, (subcycleCount == 0) /*doMoments*/);
          if (P::ohmGradPeTerm > 0 && subcycleCount == 0) {
-            calculateGradPeTermSimple(egradpe, egradpedt2, moments, momentsdt2, dmoments, dmomentsdt2, technical, fsgrid,
-                                      sysBoundaries, RK_ORDER2_STEP1);
+            calculateGradPeTermSimple(egradpe, egradpedt2, moments, momentsdt2, dmoments, dmomentsdt2, technical, fsgrid, sysBoundaries, RK_ORDER2_STEP1);
          }
          if (P::ohmHallTerm > 0) {
-            calculateHallTermSimple(perb, perbdt2, ehall, moments, momentsdt2, dperb, dmoments, dmomentsdt2, bgb,
-                                    technical, fsgrid, sysBoundaries, RK_ORDER2_STEP1,
-                                    subcycleCount == 0 // communicateMomentsDerivatives
+            calculateHallTermSimple(
+               perb,
+               perbdt2,
+               ehall,
+               moments,
+               momentsdt2,
+               dperb,
+               dmoments,
+               dmomentsdt2,
+               bgb,
+               technical,
+               fsgrid,
+               sysBoundaries,
+               RK_ORDER2_STEP1,
+               subcycleCount == 0 // communicateMomentsDerivatives
             );
          }
-         calculateUpwindedElectricFieldSimple(perb, perbdt2, e, edt2, ehall, egradpe, egradpedt2, moments, momentsdt2,
-                                              dperb, dmoments, dmomentsdt2, bgb, technical, fsgrid, sysBoundaries,
-                                              RK_ORDER2_STEP1,
-                                              subcycleCount == 0 // communicateEGradPeOrMomentsDerivatives
+         calculateUpwindedElectricFieldSimple(
+            perb,
+            perbdt2,
+            e,
+            edt2,
+            ehall,
+            egradpe,
+            egradpedt2,
+            moments,
+            momentsdt2,
+            dperb,
+            dmoments,
+            dmomentsdt2,
+            bgb,
+            technical,
+            fsgrid,
+            sysBoundaries,
+            RK_ORDER2_STEP1,
+            subcycleCount == 0 // communicateEGradPeOrMomentsDerivatives
          );
 
-         propagateMagneticFieldSimple(perb, perbdt2, bgb, e, edt2, technical, fsgrid, sysBoundaries, subcycleDt,
-                                      RK_ORDER2_STEP2);
+         propagateMagneticFieldSimple(perb, perbdt2, bgb, e, edt2, technical, fsgrid, sysBoundaries, subcycleDt, RK_ORDER2_STEP2);
 
          // We need to calculate derivatives of the moments at every substep, but the moments only
          // need to be communicated in the first one.
          calculateDerivativesSimple(perb, moments, dperb, dmoments, technical, fsgrid, (subcycleCount == 0) /*doMoments*/);
          if (P::ohmGradPeTerm > 0 && subcycleCount == 0) {
-            calculateGradPeTermSimple(egradpe, egradpedt2, moments, momentsdt2, dmoments, dmomentsdt2, technical, fsgrid,
-                                      sysBoundaries, RK_ORDER2_STEP2);
+            calculateGradPeTermSimple(egradpe, egradpedt2, moments, momentsdt2, dmoments, dmomentsdt2, technical, fsgrid, sysBoundaries, RK_ORDER2_STEP2);
          }
          if (P::ohmHallTerm > 0) {
-            calculateHallTermSimple(perb, perbdt2, ehall, moments, momentsdt2, dperb, dmoments, dmomentsdt2, bgb,
-                                    technical, fsgrid, sysBoundaries, RK_ORDER2_STEP2,
-                                    subcycleCount == 0 // communicateMomentsDerivatives
+            calculateHallTermSimple(
+               perb,
+               perbdt2,
+               ehall,
+               moments,
+               momentsdt2,
+               dperb,
+               dmoments,
+               dmomentsdt2,
+               bgb,
+               technical,
+               fsgrid,
+               sysBoundaries,
+               RK_ORDER2_STEP2,
+               subcycleCount == 0 // communicateMomentsDerivatives
             );
          }
-         calculateUpwindedElectricFieldSimple(perb, perbdt2, e, edt2, ehall, egradpe, egradpedt2, moments, momentsdt2,
-                                              dperb, dmoments, dmomentsdt2, bgb, technical, fsgrid, sysBoundaries,
-                                              RK_ORDER2_STEP2,
-                                              subcycleCount == 0 // communicateEGradPeOrMomentsDerivatives
+         calculateUpwindedElectricFieldSimple(
+            perb,
+            perbdt2,
+            e,
+            edt2,
+            ehall,
+            egradpe,
+            egradpedt2,
+            moments,
+            momentsdt2,
+            dperb,
+            dmoments,
+            dmomentsdt2,
+            bgb,
+            technical,
+            fsgrid,
+            sysBoundaries,
+            RK_ORDER2_STEP2,
+            subcycleCount == 0 // communicateEGradPeOrMomentsDerivatives
          );
 
          phiprof::Timer subcyclingTimer{"FS subcycle stuff"};
@@ -239,8 +366,7 @@ bool propagateFields(fsgrids::perbspan perb,
             // we are done
             if (subcycleT > targetT) {
                // due to roundoff we might hit this, should add delta
-               std::cerr << "subcycleT > targetT, should not happen! (values: subcycleT " << subcycleT
-                         << ", subcycleDt " << subcycleDt << ", targetT " << targetT << ")" << std::endl;
+               std::cerr << "subcycleT > targetT, should not happen! (values: subcycleT " << subcycleT << ", subcycleDt " << subcycleDt << ", targetT " << targetT << ")" << std::endl;
             }
             break;
          }
@@ -259,7 +385,7 @@ bool propagateFields(fsgrids::perbspan perb,
                return maximum;
             }
          });
-         
+
          phiprof::Timer allreduceTimer{"MPI_Allreduce"};
          fsgrid.Allreduce(&(dtMaxLocal), &(dtMaxGlobal), 1, MPI_Type<Real>(), MPI_MIN);
          allreduceTimer.stop();
@@ -269,8 +395,7 @@ bool propagateFields(fsgrids::perbspan perb,
             creal meanFieldsCFL = 0.5 * (P::fieldSolverMaxCFL + P::fieldSolverMinCFL);
             subcycleDt = meanFieldsCFL * dtMaxGlobal;
             if (myRank == MASTER_RANK) {
-               logFile << "(TIMESTEP) New field solver subcycle dt = " << subcycleDt << " computed on step " << P::tstep
-                       << " and substep " << subcycleCount << " at " << P::t << " s" << std::endl;
+               logFile << "(TIMESTEP) New field solver subcycle dt = " << subcycleDt << " computed on step " << P::tstep << " and substep " << subcycleCount << " at " << P::t << " s" << std::endl;
             }
          }
 
@@ -290,8 +415,7 @@ bool propagateFields(fsgrids::perbspan perb,
       }
 
       if (subcycles != subcycleCount && myRank == MASTER_RANK) {
-         logFile << "Effective field solver subcycles were " << subcycleCount << " instead of "
-                 << P::fieldSolverSubcycles << " on step " << P::tstep << std::endl;
+         logFile << "Effective field solver subcycles were " << subcycleCount << " instead of " << P::fieldSolverSubcycles << " on step " << P::tstep << std::endl;
       }
    }
 

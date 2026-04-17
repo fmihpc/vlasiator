@@ -20,14 +20,12 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-// clang-format off
 #include "fs_common.h"
-#include <limits>
 #include "ldz_gradpe.hpp"
-// clang-format on
+#include <limits>
 
 #ifdef DEBUG_VLASIATOR
-#define DEBUG_FSOLVER
+   #define DEBUG_FSOLVER
 #endif
 
 using namespace std;
@@ -131,12 +129,9 @@ void calculateGradPeTerm(fsgrids::egradpespan egradpes,
    }
 
    if ((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) && (cellSysBoundaryLayer != 1)) {
-      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)
-          ->fieldSolverBoundaryCondGradPeElectricField(egradpes, stencil, 0);
-      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)
-          ->fieldSolverBoundaryCondGradPeElectricField(egradpes, stencil, 1);
-      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)
-          ->fieldSolverBoundaryCondGradPeElectricField(egradpes, stencil, 2);
+      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondGradPeElectricField(egradpes, stencil, 0);
+      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondGradPeElectricField(egradpes, stencil, 1);
+      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondGradPeElectricField(egradpes, stencil, 2);
    } else {
       if (Parameters::ohmGradPeTerm == 0) {
          cerr << __FILE__ << __LINE__
@@ -154,8 +149,7 @@ void calculateGradPeTerm(fsgrids::egradpespan egradpes,
          calculateEdgeGradPeTermComponent(fsgrids::egradpe::EYGRADPE, fsgrids::dmoments::dPedy, gridSpacing[1]);
          calculateEdgeGradPeTermComponent(fsgrids::egradpe::EZGRADPE, fsgrids::dmoments::dPedz, gridSpacing[2]);
       } else {
-         cerr << __FILE__ << ":" << __LINE__ << "You are welcome to code higher-order Hall term correction terms."
-              << endl;
+         cerr << __FILE__ << ":" << __LINE__ << "You are welcome to code higher-order Hall term correction terms." << endl;
       }
    }
 }

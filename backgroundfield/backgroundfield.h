@@ -23,16 +23,21 @@
 #ifndef BACKGROUNDFIELD_H
 #define BACKGROUNDFIELD_H
 
-#include "../common.h"
-#include "../definitions.h"
 #include "fieldfunction.hpp"
-#include "fsgrid.hpp"
 #include "integratefunction.hpp"
+#include "../definitions.h"
+#include "../common.h"
+#include "fsgrid.hpp"
 #include "phiprof.hpp"
 #include <span>
 
-void setBackgroundField(const FieldFunction& bgFunction, fsgrids::bgbspan bgb,
-                        fsgrids::technicalspan technical, FieldSolverGrid &fsgrid, bool append = false);
+void setBackgroundField(
+   const FieldFunction& bgFunction,
+   fsgrids::bgbspan bgb,
+   fsgrids::technicalspan technical,
+   FieldSolverGrid &fsgrid,
+   bool append=false
+);
 
 void setBackgroundFieldToZero(
    FieldSolverGrid &fsgrid,
@@ -46,12 +51,11 @@ void setBackgroundFieldToZero(
    vector dipole correction terms inside the background field FSgrid
    object to zero (see setPerturbedField below).
 */
-template <long unsigned int numFields>
-void setPerturbedFieldToZero(
+template<long unsigned int numFields> void setPerturbedFieldToZero(
    FieldSolverGrid &fsgrid,
    fsgrids::technicalspan technical,
    std::span<std::array<Real, numFields>> b,
-   int offset = fsgrids::bfield::PERBX
+   int offset=fsgrids::bfield::PERBX
 ) {
    fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
                        phiprof::initializeTimer("setPerturbedFieldToZero"), technical,
@@ -63,6 +67,7 @@ void setPerturbedFieldToZero(
    });
 }
 
+
 /**
     This function is used along with a field function to append the given function values to the
     perturbed B grid.
@@ -70,23 +75,27 @@ void setPerturbedFieldToZero(
     the corrective terms to vanish the dipole towards the inflow boundary are stored in
     the backgroundfield FSgrid object at offset fsgrids::bgbfield::BGBXVDCORR
 */
-template <long unsigned int numFields>
-void setPerturbedField(const FieldFunction& bfFunction, std::span<std::array<Real, numFields>> b,
-                       fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
-                       int offset = fsgrids::bfield::PERBX, bool append = false) {
+template<long unsigned int numFields> void setPerturbedField(
+   const FieldFunction& bfFunction,
+   std::span<std::array<Real, numFields>> b,
+   fsgrids::technicalspan technical,
+   FieldSolverGrid &fsgrid,
+   int offset=fsgrids::bfield::PERBX,
+   bool append=false
+) {
    /*if we do not add a new background to the existing one we first put everything to zero*/
    if (append == false) {
       setPerturbedFieldToZero(fsgrid, technical, b, offset);
    }
 
-   // these are doubles, as the averaging functions copied from Gumics
-   // use internally doubles. In any case, it should provide more
-   // accurate results also for float simulations
+   //these are doubles, as the averaging functions copied from Gumics
+   //use internally doubles. In any case, it should provide more
+   //accurate results also for float simulations
    const double accuracy = 1e-17;
    unsigned int faceCoord1[3];
    unsigned int faceCoord2[3];
 
-   // the coordinates of the edges face with a normal in the third coordinate direction, stored here to enable looping
+   //the coordinates of the edges face with a normal in the third coordinate direction, stored here to enable looping
    faceCoord1[0] = 1;
    faceCoord2[0] = 2;
    faceCoord1[1] = 0;

@@ -23,13 +23,13 @@
 #define GRID_H
 
 #include "definitions.h"
-#include "fsgrid.hpp"
-#include "projects/project.h"
-#include "spatial_cells/block_adjust_wrapper.hpp"
 #include "spatial_cells/spatial_cell_wrapper.hpp"
-#include "sysboundary/sysboundary.h"
+#include "spatial_cells/block_adjust_wrapper.hpp"
 #include <dccrg.hpp>
 #include <dccrg_cartesian_geometry.hpp>
+#include "fsgrid.hpp"
+#include "sysboundary/sysboundary.h"
+#include "projects/project.h"
 #include <string>
 
 struct FieldSolverData {
@@ -114,8 +114,7 @@ void updateRemoteVelocityBlockLists(
    const uint neighborhood=Neighborhoods::DIST_FUNC
 );
 
-/*! Deallocates all blocks in remote cells in order to save
- *  memory. 
+/*! Deallocates all blocks in remote cells in order to save  memory.
  * \param mpiGrid Spatial grid
  */
 void deallocateRemoteCellBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
@@ -130,9 +129,8 @@ void deallocateRemoteCellBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
  Note that block existence does not use vlasov stencil as it is important to also include diagonals to avoid massloss
 
  \param mpiGrid  Parallel grid with spatial cells
- \param cellsToAdjust  List of cells that are adjusted, that is cells which blocks are added or removed. 
+ \param cellsToAdjust  List of cells that are adjusted, that is cells which blocks are added or removed.
  \param doPrepareToReceiveBlocks If true, then remote cells are set up so that velocity space data can be received. Global operation, value has to be the same for all processes.
- 
 */
 bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                           const std::vector<CellID>& cellsToAdjust,

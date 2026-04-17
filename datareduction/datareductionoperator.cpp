@@ -20,14 +20,14 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include "datareductionoperator.h"
-#include "../object_wrapper.h"
-#include <algorithm>
-#include <array>
 #include <cstdlib>
+#include <mpi.h>
 #include <iostream>
 #include <limits>
-#include <mpi.h>
+#include <algorithm>
+#include <array>
+#include "datareductionoperator.h"
+#include "../object_wrapper.h"
 
 
 using namespace std;

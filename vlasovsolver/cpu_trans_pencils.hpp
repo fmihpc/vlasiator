@@ -199,7 +199,7 @@ struct setOfPencils {
       gpuMemoryManager.createPointer(host_binSize);
       gpuMemoryManager.createPointer(dev_binStart);
       gpuMemoryManager.createPointer(dev_binSize);
-      
+
       gpuMemoryManager.allocate(dev_pencilsInBin, sumOfLengths*sizeof(uint));
       gpuMemoryManager.hostAllocate(host_binStart, activeBins.size()*sizeof(uint));
       gpuMemoryManager.hostAllocate(host_binSize, activeBins.size()*sizeof(uint));
@@ -269,7 +269,7 @@ struct setOfPencils {
       // so that we don't add duplicates.
       std::vector<int> existingSteps;
 
-#pragma omp parallel for
+      #pragma omp parallel for
       for (uint theirPencilId = 0; theirPencilId < this->N; ++theirPencilId) {
          if(theirPencilId == myPencilId) {
             continue;
@@ -290,7 +290,7 @@ struct setOfPencils {
 
                      if(samePath) {
                         uint theirStep = theirPath.at(myPath.size());
-#pragma omp critical
+                        #pragma omp critical
                         {
                            existingSteps.push_back(theirStep);
                         }

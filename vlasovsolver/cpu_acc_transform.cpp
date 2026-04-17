@@ -40,13 +40,13 @@ using namespace Eigen;
 */
 void updateAccelerationMaxdt(
    SpatialCell* spatial_cell,
-   const uint popID) 
+   const uint popID)
 {
    const Real Bx = spatial_cell->parameters[CellParams::BGBXVOL]+spatial_cell->parameters[CellParams::PERBXVOL];
    const Real By = spatial_cell->parameters[CellParams::BGBYVOL]+spatial_cell->parameters[CellParams::PERBYVOL];
    const Real Bz = spatial_cell->parameters[CellParams::BGBZVOL]+spatial_cell->parameters[CellParams::PERBZVOL];
    const Eigen::Matrix<Real,3,1> B(Bx,By,Bz);
-   const Real B_mag = B.norm() + 1e-30;      
+   const Real B_mag = B.norm() + 1e-30;
    const Real gyro_period = 2 * M_PI * getObjectWrapper().particleSpecies[popID].mass
       / (getObjectWrapper().particleSpecies[popID].charge * B_mag);
 
@@ -75,7 +75,7 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
    // perturbed field
    //const Real perBx = spatial_cell->parameters[CellParams::PERBXVOL];
    //const Real perBy = spatial_cell->parameters[CellParams::PERBYVOL];
-   //const Real perBz = spatial_cell->parameters[CellParams::PERBZVOL];   
+   //const Real perBz = spatial_cell->parameters[CellParams::PERBZVOL];
 
    // read in derivatives need for curl of B (only perturbed, curl of background field is always 0!)
    const Real dBXdy = spatial_cell->derivativesBVOL[bvolderivatives::dPERBXVOLdy];
@@ -130,12 +130,12 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
       // rotation origin is the point through which we place our rotation axis (direction of which is unitB).
       // first add bulk velocity (using the total transform computed this far.
       Eigen::Matrix<Real,3,1> rotation_pivot(total_transform*bulk_velocity);
-      
-      //include lorentzHallTerm (we should include, always)      
+
+      //include lorentzHallTerm (we should include, always)
       rotation_pivot[0]-= hallPrefactor*(dBZdy - dBYdz);
       rotation_pivot[1]-= hallPrefactor*(dBXdz - dBZdx);
       rotation_pivot[2]-= hallPrefactor*(dBYdx - dBXdy);
-      
+
       // add to transform matrix the small rotation around  pivot
       // when added like this, and not using *= operator, the transformations
       // are in the correct order

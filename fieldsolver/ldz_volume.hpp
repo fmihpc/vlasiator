@@ -20,13 +20,13 @@
 #ifndef LDZ_VOLUME
 #define LDZ_VOLUME
 
-// #include "../spatial_cells/spatial_cell_wrapper.hpp"
 #include "fs_common.h"
+//#include "../spatial_cells/spatial_cell_wrapper.hpp"
 
 /*! \brief Top-level field averaging function.
- * 
+ *
  * Averages the electric and magnetic fields over the cell volumes.
- * 
+ *
  * \sa reconstructionCoefficients
  */
 void calculateVolumeAveragedFieldsSimple(fsgrids::perbspan perb,

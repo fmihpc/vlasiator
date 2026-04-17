@@ -1,6 +1,6 @@
 /*
  * This file is part of Vlasiator.
- * Copyright 2010-2016 Finnish Meteorological Institute, 
+ * Copyright 2010-2016 Finnish Meteorological Institute,
  * 2017 CSC - IT center for Science
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
@@ -32,11 +32,11 @@ void loadColumnBlockData(
    vmesh::LocalID n_blocks,
    const int dimension,
    Vec* __restrict__ values) {
-   // first set the 0 values for the two empty blocks 
+   // first set the 0 values for the two empty blocks
    // we store above and below the existing blocks
 
    for (uint k=0; k<WID; ++k) {
-      for (uint j = 0; j < WID; j += VECL/WID){ 
+      for (uint j = 0; j < WID; j += VECL/WID){
          values[i_pcolumnv(j, k, -1, n_blocks)] = Vec(0);
          values[i_pcolumnv(j, k, n_blocks, n_blocks)] = Vec(0);
       }
@@ -50,14 +50,14 @@ for wi, WID in enumerate(WIDs):
    if wi == 0:
       cog.outl("#if WID == %d " % WID)
    else:
-      cog.outl("#elif WID == %d " % WID)      
+      cog.outl("#elif WID == %d " % WID)
 
    for dimension in range(0, 2):
-      if dimension == 0:    
+      if dimension == 0:
             cell_indices_to_id = [ WID2, WID, 1]
-      if dimension == 1:    
+      if dimension == 1:
             cell_indices_to_id = [ 1, WID2, WID]
-      if dimension == 2:    
+      if dimension == 2:
             cell_indices_to_id = [ 1, WID, WID2]
 
       cellid_transpose=[]
@@ -68,7 +68,7 @@ for wi, WID in enumerate(WIDs):
 
       cog.outl("if(dimension == %s) {" % dimension)
       cog.outl("   for (vmesh::LocalID block_k=0; block_k<n_blocks; ++block_k) {")
-      cog.outl("      Realf* __restrict__ data = blockContainer->getData(vmesh->getLocalID(blocks[block_k]));")    
+      cog.outl("      Realf* __restrict__ data = blockContainer->getData(vmesh->getLocalID(blocks[block_k]));")
       init = True
       noinitlist = False
       if noinitlist:
@@ -144,7 +144,7 @@ for wi, WID in enumerate(WIDs):
       cog.outl("#else // Fell through, never fall into this particular pit again")
       cog.outl("      std::cerr << \"Undefined VECTORCLASS flag or implementation missing in loadColumnBlockData() before \" << __FILE__ << \":\" << __LINE__ << std::endl;")
       cog.outl("      abort();")
-      cog.outl("#endif")  
+      cog.outl("#endif")
 
 
 
@@ -152,16 +152,16 @@ for wi, WID in enumerate(WIDs):
       cog.outl("      for (uint i=0; i<WID3; ++i) {")
       cog.outl("         data[i]=0;")
       cog.outl("      }")
-      cog.outl("   }")                
+      cog.outl("   }")
       cog.outl("}")
 
 cog.outl("#else")
 cog.outl("   std::cerr << \"Undefined WID (\" <<WID<< \") encountered in \" << __FILE__ << \":\" << __LINE__ << std::endl;")
-cog.outl("   abort();")      
-cog.outl("#endif")          
+cog.outl("   abort();")
+cog.outl("#endif")
 
     ]]]*/
-   #if WID == 4 
+   #if WID == 4
    if(dimension == 0) {
       for (vmesh::LocalID block_k=0; block_k<n_blocks; ++block_k) {
          Realf* __restrict__ data = blockContainer->getData(vmesh->getLocalID(blocks[block_k]));
@@ -256,7 +256,7 @@ cog.outl("#endif")
          }
       }
    }
-   #elif WID == 8 
+   #elif WID == 8
    if(dimension == 0) {
       for (vmesh::LocalID block_k=0; block_k<n_blocks; ++block_k) {
          Realf* __restrict__ data = blockContainer->getData(vmesh->getLocalID(blocks[block_k]));

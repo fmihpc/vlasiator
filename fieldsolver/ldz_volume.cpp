@@ -84,12 +84,9 @@ void calculateVolumeAveragedFields(fsgrids::perbspan perb,
       CHECK_FLOAT(E_i2j1k2[fsgrids::efield::EY]);
       CHECK_FLOAT(E_i2j2k1[fsgrids::efield::EZ]);
 
-      vol[fsgrids::volfields::EXVOL] = FOURTH * (E_i1j1k1[fsgrids::efield::EX] + E_i1j2k1[fsgrids::efield::EX] +
-                                                 E_i1j1k2[fsgrids::efield::EX] + E_i1j2k2[fsgrids::efield::EX]);
-      vol[fsgrids::volfields::EYVOL] = FOURTH * (E_i1j1k1[fsgrids::efield::EY] + E_i2j1k1[fsgrids::efield::EY] +
-                                                 E_i1j1k2[fsgrids::efield::EY] + E_i2j1k2[fsgrids::efield::EY]);
-      vol[fsgrids::volfields::EZVOL] = FOURTH * (E_i1j1k1[fsgrids::efield::EZ] + E_i2j1k1[fsgrids::efield::EZ] +
-                                                 E_i1j2k1[fsgrids::efield::EZ] + E_i2j2k1[fsgrids::efield::EZ]);
+      vol[fsgrids::volfields::EXVOL] = FOURTH * (E_i1j1k1[fsgrids::efield::EX] + E_i1j2k1[fsgrids::efield::EX] + E_i1j1k2[fsgrids::efield::EX] + E_i1j2k2[fsgrids::efield::EX]);
+      vol[fsgrids::volfields::EYVOL] = FOURTH * (E_i1j1k1[fsgrids::efield::EY] + E_i2j1k1[fsgrids::efield::EY] + E_i1j1k2[fsgrids::efield::EY] + E_i2j1k2[fsgrids::efield::EY]);
+      vol[fsgrids::volfields::EZVOL] = FOURTH * (E_i1j1k1[fsgrids::efield::EZ] + E_i2j1k1[fsgrids::efield::EZ] + E_i1j2k1[fsgrids::efield::EZ] + E_i2j2k1[fsgrids::efield::EZ]);
    } else {
       vol[fsgrids::volfields::EXVOL] = 0.0;
       vol[fsgrids::volfields::EYVOL] = 0.0;

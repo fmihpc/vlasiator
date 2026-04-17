@@ -20,27 +20,27 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include <array>
-#include <cmath>
 #include <cstdlib>
-#include <ctime>
-#include <iomanip> // for setprecision()
 #include <iostream>
-#include <span>
-#include <sstream>
-#include <sys/stat.h>
-#include <sys/types.h>
+#include <iomanip> // for setprecision()
+#include <cmath>
 #include <vector>
+#include <sstream>
+#include <ctime>
+#include <array>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <span>
 
-#include "grid.h"
 #include "ioread.h"
-#include "logger.h"
-#include "object_wrapper.h"
-#include "parameters.h"
 #include "phiprof.hpp"
-#include "velocity_mesh_parameters.h"
-#include "vlasovsolver/vlasovmover.h"
+#include "parameters.h"
+#include "logger.h"
 #include "vlsv_reader_parallel.h"
+#include "vlasovsolver/vlasovmover.h"
+#include "object_wrapper.h"
+#include "velocity_mesh_parameters.h"
+#include "grid.h"
 
 using namespace std;
 using namespace phiprof;
@@ -232,8 +232,7 @@ bool readCellIds(vlsv::ParallelReader& file, vector<CellID>& fileCells, const in
  * The returned value for each cell is a sum of the velocity blocks associated in each particle species.
  * The value is used to calculate an initial load balance after restart.
  * @param file Some vlsv reader with a file open (can be old or new vlsv reader)
- * @param nBlocks Vector for holding information on cells and the number of blocks in them -- this function saves data
- here
+ * @param nBlocks Vector for holding information on cells and the number of blocks in them -- this function saves data here
  * @param masterRank The master rank of this process (Vlasiator uses masterRank = 0 and so it should be the default)
  * @param comm MPI comm
  * @return Returns true if the operation was successful
@@ -269,24 +268,21 @@ bool readNBlocks(vlsv::ParallelReader& file, const std::string& meshName, std::v
 
    uint64_t N_spatialCells = 0;
    int64_t* domainInfo = NULL;
-   if (file.read("MESH_DOMAIN_SIZES", attribsIn, 0, N_domains, domainInfo) == false)
-      return false;
+   if (file.read("MESH_DOMAIN_SIZES", attribsIn, 0, N_domains, domainInfo) == false) return false;
 
    for (uint i_domain = 0; i_domain < N_domains; ++i_domain) {
       N_spatialCells += domainInfo[2 * i_domain];
    }
    nBlocks.resize(N_spatialCells);
 
-#pragma omp parallel for
-   for (size_t i = 0; i < nBlocks.size(); ++i)
-      nBlocks[i] = 0;
+   #pragma omp parallel for
+   for (size_t i = 0; i < nBlocks.size(); ++i) nBlocks[i] = 0;
 
    // Note: the input file contains N particle species, which are also
    // defined in the configuration file. We need to read the BLOCKSPERCELL
    // array for each species, and sum the values for each spatial cell.
    set<string> speciesNames;
-   if (file.getUniqueAttributeValues("BLOCKSPERCELL", "name", speciesNames) == false)
-      return false;
+   if (file.getUniqueAttributeValues("BLOCKSPERCELL", "name", speciesNames) == false) return false;
 
    // Iterate over all particle species and read in BLOCKSPERCELL array
    // to all processes, and add the values to nBlocks
@@ -295,8 +291,7 @@ bool readNBlocks(vlsv::ParallelReader& file, const std::string& meshName, std::v
       attribsIn.clear();
       attribsIn.push_back(make_pair("mesh", meshName));
       attribsIn.push_back(make_pair("name", *s));
-      if (file.getArrayInfo("BLOCKSPERCELL", attribsIn, arraySize, vectorSize, dataType, byteSize) == false)
-         return false;
+      if (file.getArrayInfo("BLOCKSPERCELL", attribsIn, arraySize, vectorSize, dataType, byteSize) == false) return false;
 
       if (file.read("BLOCKSPERCELL", attribsIn, 0, arraySize, buffer) == false) {
          delete[] buffer;
@@ -304,10 +299,8 @@ bool readNBlocks(vlsv::ParallelReader& file, const std::string& meshName, std::v
          return false;
       }
 
-#pragma omp parallel for
-      for (size_t i = 0; i < N_spatialCells; ++i) {
-         nBlocks[i] += buffer[i];
-      }
+      #pragma omp parallel for
+      for (size_t i = 0; i < N_spatialCells; ++i) nBlocks[i] += buffer[i];
    }
    delete[] buffer;
    buffer = NULL;
@@ -341,13 +334,11 @@ bool readScalarParameter(vlsv::ParallelReader& file, string name, T& value, int 
  */
 
 template <typename T>
-bool checkScalarParameter(vlsv::ParallelReader& file, const string& name, T correctValue, int masterRank,
-                          MPI_Comm comm) {
+bool checkScalarParameter(vlsv::ParallelReader& file, const string& name, T correctValue, int masterRank, MPI_Comm comm) {
    T value;
    if (readScalarParameter(file, name, value, masterRank, comm) == false) {
       ostringstream s;
-      s << "(RESTART) ERROR: Failed to read parameter '" << name << "' value in " << __FILE__ << ":" << __LINE__
-        << endl;
+      s << "(RESTART) ERROR: Failed to read parameter '" << name << "' value in " << __FILE__ << ":" << __LINE__ << endl;
       exitOnError(false, s.str(), MPI_COMM_WORLD);
       return false;
    }
@@ -401,8 +392,7 @@ bool _readBlockData(vlsv::ParallelReader& file, const std::string& spatMeshName,
    vlsv::datatype::type blockIdDataType;
    blockIdAttribs.push_back(make_pair("mesh", spatMeshName));
    blockIdAttribs.push_back(make_pair("name", popName));
-   if (file.getArrayInfo("BLOCKIDS", blockIdAttribs, arraySize, blockIdVectorSize, blockIdDataType, blockIdByteSize) ==
-       false) {
+   if (file.getArrayInfo("BLOCKIDS", blockIdAttribs, arraySize, blockIdVectorSize, blockIdDataType, blockIdByteSize) == false) {
       logFile << "(RESTART) ERROR: Failed to read BLOCKCOORDINATES array info " << endl << write;
       return false;
    }
@@ -446,8 +436,8 @@ bool _readBlockData(vlsv::ParallelReader& file, const std::string& spatMeshName,
       success = false;
    }
 
-// Go through all spatial cells
-#pragma omp parallel for schedule(dynamic, 1)
+   // Go through all spatial cells
+   #pragma omp parallel for schedule(dynamic, 1)
    for (uint64_t i = 0; i < localCells; i++) {
       CellID cell = fileCells[localCellStartOffset + i]; // spatial cell id
       uint64_t blockBufferOffset = blockSumOffsets[i];
@@ -527,14 +517,11 @@ bool readBlockData(vlsv::ParallelReader& file, const string& meshName, const vec
           fileMeshBBox[2] != ourMeshParams.gridLength[2]) {
 
          logFile << "(RESTART) INFO: velocity mesh sizes don't match:" << endl
-                 << "    restart file has " << fileMeshBBox[0] << " x " << fileMeshBBox[1] << " x " << fileMeshBBox[2]
-                 << "," << endl
-                 << "    config specifies " << ourMeshParams.gridLength[0] << " x " << ourMeshParams.gridLength[1]
-                 << " x " << ourMeshParams.gridLength[2] << endl
+                 << "    restart file has " << fileMeshBBox[0] << " x " << fileMeshBBox[1] << " x " << fileMeshBBox[2] << "," << endl
+                 << "    config specifies " << ourMeshParams.gridLength[0] << " x " << ourMeshParams.gridLength[1] << " x " << ourMeshParams.gridLength[2] << endl
                  << write;
 
-         if (ourMeshParams.gridLength[0] < fileMeshBBox[0] || ourMeshParams.gridLength[1] < fileMeshBBox[1] ||
-             ourMeshParams.gridLength[2] < fileMeshBBox[2]) {
+         if (ourMeshParams.gridLength[0] < fileMeshBBox[0] || ourMeshParams.gridLength[1] < fileMeshBBox[1] || ourMeshParams.gridLength[2] < fileMeshBBox[2]) {
             logFile << "(RESTART) ERROR: trying to shrink velocity space." << endl << write;
             abort();
          }
@@ -546,24 +533,18 @@ bool readBlockData(vlsv::ParallelReader& file, const string& meshName, const vec
          std::vector<Real> fileVelCoordsZ(fileMeshBBox[2] * fileMeshBBox[5] + 1);
 
          Real* tempPointer = fileVelCoordsX.data();
-         if (file.read("MESH_NODE_CRDS_X", attribs, 0, fileMeshBBox[0] * fileMeshBBox[3] + 1, tempPointer, false) ==
-             false) {
-            logFile << "(RESTART) ERROR: Failed to read MESH_NODE_CRDS_X at " << __FILE__ << ":" << __LINE__ << endl
-                    << write;
+         if (file.read("MESH_NODE_CRDS_X", attribs, 0, fileMeshBBox[0] * fileMeshBBox[3] + 1, tempPointer, false) == false) {
+            logFile << "(RESTART) ERROR: Failed to read MESH_NODE_CRDS_X at " << __FILE__ << ":" << __LINE__ << endl << write;
             success = false;
          }
          tempPointer = fileVelCoordsY.data();
-         if (file.read("MESH_NODE_CRDS_Y", attribs, 0, fileMeshBBox[1] * fileMeshBBox[4] + 1, tempPointer, false) ==
-             false) {
-            logFile << "(RESTART) ERROR: Failed to read MESH_NODE_CRDS_Y at " << __FILE__ << ":" << __LINE__ << endl
-                    << write;
+         if (file.read("MESH_NODE_CRDS_Y", attribs, 0, fileMeshBBox[1] * fileMeshBBox[4] + 1, tempPointer, false) == false) {
+            logFile << "(RESTART) ERROR: Failed to read MESH_NODE_CRDS_Y at " << __FILE__ << ":" << __LINE__ << endl << write;
             success = false;
          }
          tempPointer = fileVelCoordsZ.data();
-         if (file.read("MESH_NODE_CRDS_Z", attribs, 0, fileMeshBBox[2] * fileMeshBBox[5] + 1, tempPointer, false) ==
-             false) {
-            logFile << "(RESTART) ERROR: Failed to read MESH_NODE_CRDS_Z at " << __FILE__ << ":" << __LINE__ << endl
-                    << write;
+         if (file.read("MESH_NODE_CRDS_Z", attribs, 0, fileMeshBBox[2] * fileMeshBBox[5] + 1, tempPointer, false) == false) {
+            logFile << "(RESTART) ERROR: Failed to read MESH_NODE_CRDS_Z at " << __FILE__ << ":" << __LINE__ << endl << write;
             success = false;
          }
 
@@ -619,12 +600,10 @@ bool readBlockData(vlsv::ParallelReader& file, const string& meshName, const vec
          if ((velGridOffset[0] % ourMeshParams.blockLength[0] != 0) ||
              (velGridOffset[1] % ourMeshParams.blockLength[1] != 0) ||
              (velGridOffset[2] % ourMeshParams.blockLength[2] != 0)) {
-            logFile << "(RESTART) ERROR: resizing velocity space on restart must end up with the old velocity space"
-                    << endl
+            logFile << "(RESTART) ERROR: resizing velocity space on restart must end up with the old velocity space" << endl
                     << "                 at a block boundary of the new space!" << endl
                     << "                 (It now starts at cell [" << velGridOffset[0] << ", " << velGridOffset[1]
-                    << "," << velGridOffset[2] << "])" << endl
-                    << write;
+                    << "," << velGridOffset[2] << "])" << endl << write;
             abort();
          }
 
@@ -834,34 +813,28 @@ bool readCellParamsVariable(vlsv::ParallelReader& file, const vector<CellID>& fi
    if (dataType == vlsv::datatype::type::FLOAT) {
       switch (byteSize) {
       case sizeof(double):
-         return _readCellParamsVariable<double>(file, fileCells, localCellStartOffset, localCells, variableName,
-                                                cellParamsIndex, expectedVectorSize, mpiGrid);
+         return _readCellParamsVariable<double>(file, fileCells, localCellStartOffset, localCells, variableName, cellParamsIndex, expectedVectorSize, mpiGrid);
          break;
       case sizeof(float):
-         return _readCellParamsVariable<float>(file, fileCells, localCellStartOffset, localCells, variableName,
-                                               cellParamsIndex, expectedVectorSize, mpiGrid);
+         return _readCellParamsVariable<float>(file, fileCells, localCellStartOffset, localCells, variableName, cellParamsIndex, expectedVectorSize, mpiGrid);
          break;
       }
    } else if (dataType == vlsv::datatype::type::UINT) {
       switch (byteSize) {
       case sizeof(uint32_t):
-         return _readCellParamsVariable<uint32_t>(file, fileCells, localCellStartOffset, localCells, variableName,
-                                                  cellParamsIndex, expectedVectorSize, mpiGrid);
+         return _readCellParamsVariable<uint32_t>(file, fileCells, localCellStartOffset, localCells, variableName, cellParamsIndex, expectedVectorSize, mpiGrid);
          break;
       case sizeof(uint64_t):
-         return _readCellParamsVariable<uint64_t>(file, fileCells, localCellStartOffset, localCells, variableName,
-                                                  cellParamsIndex, expectedVectorSize, mpiGrid);
+         return _readCellParamsVariable<uint64_t>(file, fileCells, localCellStartOffset, localCells, variableName, cellParamsIndex, expectedVectorSize, mpiGrid);
          break;
       }
    } else if (dataType == vlsv::datatype::type::INT) {
       switch (byteSize) {
       case sizeof(int32_t):
-         return _readCellParamsVariable<int32_t>(file, fileCells, localCellStartOffset, localCells, variableName,
-                                                 cellParamsIndex, expectedVectorSize, mpiGrid);
+         return _readCellParamsVariable<int32_t>(file, fileCells, localCellStartOffset, localCells, variableName, cellParamsIndex, expectedVectorSize, mpiGrid);
          break;
       case sizeof(int64_t):
-         return _readCellParamsVariable<int64_t>(file, fileCells, localCellStartOffset, localCells, variableName,
-                                                 cellParamsIndex, expectedVectorSize, mpiGrid);
+         return _readCellParamsVariable<int64_t>(file, fileCells, localCellStartOffset, localCells, variableName, cellParamsIndex, expectedVectorSize, mpiGrid);
          break;
       }
    } else {
@@ -957,10 +930,8 @@ bool readFsGridVariable(vlsv::ParallelReader& file, const string& variableName, 
       size_t localStartOffset = 0;
       for (fsgrid::Task_t task = 0; task < myRank; task++) {
          std::array<fsgrid::FsIndex_t, 3> thatTasksSize;
-         thatTasksSize[0] =
-             fsgrid::calcLocalSize(globalSize[0], decomposition[0], task / decomposition[2] / decomposition[1]);
-         thatTasksSize[1] =
-             fsgrid::calcLocalSize(globalSize[1], decomposition[1], (task / decomposition[2]) % decomposition[1]);
+         thatTasksSize[0] = fsgrid::calcLocalSize(globalSize[0], decomposition[0], task / decomposition[2] / decomposition[1]);
+         thatTasksSize[1] = fsgrid::calcLocalSize(globalSize[1], decomposition[1], (task / decomposition[2]) % decomposition[1]);
          thatTasksSize[2] = fsgrid::calcLocalSize(globalSize[2], decomposition[2], task % decomposition[2]);
          localStartOffset += thatTasksSize[0] * thatTasksSize[1] * thatTasksSize[2];
       }
@@ -1011,16 +982,12 @@ bool readFsGridVariable(vlsv::ParallelReader& file, const string& variableName, 
 
          std::array<fsgrid::FsIndex_t, 3> thatTasksSize;
          std::array<fsgrid::FsIndex_t, 3> thatTasksStart;
-         thatTasksSize[0] = fsgrid::calcLocalSize(globalSize[0], fileDecomposition[0],
-                                                  task / fileDecomposition[2] / fileDecomposition[1]);
-         thatTasksSize[1] = fsgrid::calcLocalSize(globalSize[1], fileDecomposition[1],
-                                                  (task / fileDecomposition[2]) % fileDecomposition[1]);
+         thatTasksSize[0] = fsgrid::calcLocalSize(globalSize[0], fileDecomposition[0], task / fileDecomposition[2] / fileDecomposition[1]);
+         thatTasksSize[1] = fsgrid::calcLocalSize(globalSize[1], fileDecomposition[1], (task / fileDecomposition[2]) % fileDecomposition[1]);
          thatTasksSize[2] = fsgrid::calcLocalSize(globalSize[2], fileDecomposition[2], task % fileDecomposition[2]);
 
-         thatTasksStart[0] = fsgrid::calcLocalStart(globalSize[0], fileDecomposition[0],
-                                                    task / fileDecomposition[2] / fileDecomposition[1]);
-         thatTasksStart[1] = fsgrid::calcLocalStart(globalSize[1], fileDecomposition[1],
-                                                    (task / fileDecomposition[2]) % fileDecomposition[1]);
+         thatTasksStart[0] = fsgrid::calcLocalStart(globalSize[0], fileDecomposition[0], task / fileDecomposition[2] / fileDecomposition[1]);
+         thatTasksStart[1] = fsgrid::calcLocalStart(globalSize[1], fileDecomposition[1], (task / fileDecomposition[2]) % fileDecomposition[1]);
          thatTasksStart[2] = fsgrid::calcLocalStart(globalSize[2], fileDecomposition[2], task % fileDecomposition[2]);
 
          // Iterate through overlap area
@@ -1252,8 +1219,7 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid
    if (myRank == 0) {
       vector<CellID> allGridCells = mpiGrid.get_all_cells();
       if (fileCells.size() != allGridCells.size()) {
-         std::cout << "File has " << fileCells.size() << " cells, got " << allGridCells.size() << " cells!"
-                   << std::endl;
+         std::cout << "File has " << fileCells.size() << " cells, got " << allGridCells.size() << " cells!" << std::endl;
          success = false;
       }
    }
@@ -1356,66 +1322,51 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid
    // todo, check file datatype, and do not just use double
    phiprof::Timer readParametersTimer{"readCellParameters"};
    if (success) {
-      success = readCellParamsVariable(file, fileCells, localCellStartOffset, localCells, "moments", CellParams::RHOM,
-                                       5, mpiGrid);
+      success = readCellParamsVariable(file, fileCells, localCellStartOffset, localCells, "moments", CellParams::RHOM, 5, mpiGrid);
    }
    if (success) {
-      success = readCellParamsVariable(file, fileCells, localCellStartOffset, localCells, "moments_dt2",
-                                       CellParams::RHOM_DT2, 5, mpiGrid);
+      success = readCellParamsVariable(file, fileCells, localCellStartOffset, localCells, "moments_dt2", CellParams::RHOM_DT2, 5, mpiGrid);
    }
    if (success) {
-      success = readCellParamsVariable(file, fileCells, localCellStartOffset, localCells, "moments_r",
-                                       CellParams::RHOM_R, 5, mpiGrid);
+      success = readCellParamsVariable(file, fileCells, localCellStartOffset, localCells, "moments_r", CellParams::RHOM_R, 5, mpiGrid);
    }
    if (success) {
-      success = readCellParamsVariable(file, fileCells, localCellStartOffset, localCells, "moments_v",
-                                       CellParams::RHOM_V, 5, mpiGrid);
+      success = readCellParamsVariable(file, fileCells, localCellStartOffset, localCells, "moments_v", CellParams::RHOM_V, 5, mpiGrid);
    }
    if (success) {
-      success = readCellParamsVariable(file, fileCells, localCellStartOffset, localCells, "pressure", CellParams::P_11,
-                                       3, mpiGrid);
+      success = readCellParamsVariable(file, fileCells, localCellStartOffset, localCells, "pressure", CellParams::P_11, 3, mpiGrid);
    }
    if (success) {
-      success = readCellParamsVariable(file, fileCells, localCellStartOffset, localCells, "pressure_dt2",
-                                       CellParams::P_11_DT2, 3, mpiGrid);
+      success = readCellParamsVariable(file, fileCells, localCellStartOffset, localCells, "pressure_dt2", CellParams::P_11_DT2, 3, mpiGrid);
    }
    if (success) {
-      success = readCellParamsVariable(file, fileCells, localCellStartOffset, localCells, "pressure_r",
-                                       CellParams::P_11_R, 3, mpiGrid);
+      success = readCellParamsVariable(file, fileCells, localCellStartOffset, localCells, "pressure_r", CellParams::P_11_R, 3, mpiGrid);
    }
    if (success) {
-      success = readCellParamsVariable(file, fileCells, localCellStartOffset, localCells, "pressure_v",
-                                       CellParams::P_11_V, 3, mpiGrid);
+      success = readCellParamsVariable(file, fileCells, localCellStartOffset, localCells, "pressure_v", CellParams::P_11_V, 3, mpiGrid);
    }
    if (success) {
-      success = readCellParamsVariable(file, fileCells, localCellStartOffset, localCells, "LB_weight",
-                                       CellParams::LBWEIGHTCOUNTER, 1, mpiGrid);
+      success = readCellParamsVariable(file, fileCells, localCellStartOffset, localCells, "LB_weight", CellParams::LBWEIGHTCOUNTER, 1, mpiGrid);
    }
    if (success) {
-      success = readCellParamsVariable(file, fileCells, localCellStartOffset, localCells, "max_v_dt",
-                                       CellParams::MAXVDT, 1, mpiGrid);
+      success = readCellParamsVariable(file, fileCells, localCellStartOffset, localCells, "max_v_dt", CellParams::MAXVDT, 1, mpiGrid);
    }
    if (success) {
-      success = readCellParamsVariable(file, fileCells, localCellStartOffset, localCells, "max_r_dt",
-                                       CellParams::MAXRDT, 1, mpiGrid);
+      success = readCellParamsVariable(file, fileCells, localCellStartOffset, localCells, "max_r_dt", CellParams::MAXRDT, 1, mpiGrid);
    }
    if (success) {
-      success = readCellParamsVariable(file, fileCells, localCellStartOffset, localCells, "max_fields_dt",
-                                       CellParams::MAXFDT, 1, mpiGrid);
+      success = readCellParamsVariable(file, fileCells, localCellStartOffset, localCells, "max_fields_dt", CellParams::MAXFDT, 1, mpiGrid);
    }
    if (success) {
-      success = readCellParamsVariable(file, fileCells, localCellStartOffset, localCells, "vg_drift",
-                                       CellParams::BULKV_FORCING_X, 3, mpiGrid);
+      success = readCellParamsVariable(file, fileCells, localCellStartOffset, localCells, "vg_drift", CellParams::BULKV_FORCING_X, 3, mpiGrid);
    }
    if (P::refineOnRestart) {
       // Refinement indices alpha_1 and alpha_2
       if (success) {
-         success = readCellParamsVariable(file, fileCells, localCellStartOffset, localCells, "vg_amr_alpha1",
-                                          CellParams::AMR_ALPHA1, 1, mpiGrid);
+         success = readCellParamsVariable(file, fileCells, localCellStartOffset, localCells, "vg_amr_alpha1", CellParams::AMR_ALPHA1, 1, mpiGrid);
       }
       if (success) {
-         success = readCellParamsVariable(file, fileCells, localCellStartOffset, localCells, "vg_amr_alpha2",
-                                          CellParams::AMR_ALPHA2, 1, mpiGrid);
+         success = readCellParamsVariable(file, fileCells, localCellStartOffset, localCells, "vg_amr_alpha2", CellParams::AMR_ALPHA2, 1, mpiGrid);
       }
    }
 
@@ -1464,10 +1415,8 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid
       SBC::ionosphereGrid.nodes[i].parameters[ionosphereParameters::SOURCE] *= area;
    }
    ionosphereSuccess &= readIonosphereNodeVariable(file, "ig_rhon", SBC::ionosphereGrid, ionosphereParameters::RHON);
-   ionosphereSuccess &=
-       readIonosphereNodeVariable(file, "ig_electrontemp", SBC::ionosphereGrid, ionosphereParameters::TEMPERATURE);
-   ionosphereSuccess &=
-       readIonosphereNodeVariable(file, "ig_potential", SBC::ionosphereGrid, ionosphereParameters::SOLUTION);
+   ionosphereSuccess &= readIonosphereNodeVariable(file, "ig_electrontemp", SBC::ionosphereGrid, ionosphereParameters::TEMPERATURE);
+   ionosphereSuccess &= readIonosphereNodeVariable(file, "ig_potential", SBC::ionosphereGrid, ionosphereParameters::SOLUTION);
    if (!ionosphereSuccess) {
       logFile << "(RESTART) Reading ionosphere variables failed. Continuing anyway. Variables will be zero, assuming "
                  "this is an ionosphere cold start?"
@@ -1479,14 +1428,10 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid
    // timestep is very large.
    // If these are missing from the restart file, we are fine continuing with
    // zeros.
-   bool ionosphereOptionalSuccess =
-       readIonosphereNodeVariable(file, "ig_sigmah", SBC::ionosphereGrid, ionosphereParameters::SIGMAH);
-   ionosphereOptionalSuccess &=
-       readIonosphereNodeVariable(file, "ig_sigmap", SBC::ionosphereGrid, ionosphereParameters::SIGMAP);
-   ionosphereOptionalSuccess &=
-       readIonosphereNodeVariable(file, "ig_sigmaparallel", SBC::ionosphereGrid, ionosphereParameters::SIGMAPARALLEL);
-   ionosphereOptionalSuccess &=
-       readIonosphereNodeVariable(file, "ig_precipitation", SBC::ionosphereGrid, ionosphereParameters::PRECIP);
+   bool ionosphereOptionalSuccess = readIonosphereNodeVariable(file, "ig_sigmah", SBC::ionosphereGrid, ionosphereParameters::SIGMAH);
+   ionosphereOptionalSuccess &= readIonosphereNodeVariable(file, "ig_sigmap", SBC::ionosphereGrid, ionosphereParameters::SIGMAP);
+   ionosphereOptionalSuccess &= readIonosphereNodeVariable(file, "ig_sigmaparallel", SBC::ionosphereGrid, ionosphereParameters::SIGMAPARALLEL);
+   ionosphereOptionalSuccess &= readIonosphereNodeVariable(file, "ig_precipitation", SBC::ionosphereGrid, ionosphereParameters::PRECIP);
    if (ionosphereSuccess && !ionosphereOptionalSuccess) {
       logFile << "(RESTART) Restart file contains no ionosphere conductivity data. Ionosphere will run fine, but first "
                  "output bulk file might have bogus conductivities."
@@ -1618,15 +1563,12 @@ bool readFsgridDecomposition(vlsv::ParallelReader& file, std::array<fsgrid::Task
 
       if (decomposition[0] * decomposition[1] * decomposition[2] == fsgridInputRanks) {
          if (myRank == MASTER_RANK) {
-            std::cout << "Fsgrid decomposition computed from MESH to be " << decomposition[0] << " " << decomposition[1]
-                      << " " << decomposition[2] << endl;
+            std::cout << "Fsgrid decomposition computed from MESH to be " << decomposition[0] << " " << decomposition[1] << " " << decomposition[2] << endl;
          }
          return true;
       } else {
          if (myRank == MASTER_RANK) {
-            std::cout << "Fsgrid decomposition computed from MESH to be " << decomposition[0] << " " << decomposition[1]
-                      << " " << decomposition[2] << ", which is not compatible with numWritingRanks ("
-                      << fsgridInputRanks << ")" << endl;
+            std::cout << "Fsgrid decomposition computed from MESH to be " << decomposition[0] << " " << decomposition[1] << " " << decomposition[2] << ", which is not compatible with numWritingRanks (" << fsgridInputRanks << ")" << endl;
          }
          return false;
       }
@@ -1635,8 +1577,7 @@ bool readFsgridDecomposition(vlsv::ParallelReader& file, std::array<fsgrid::Task
       decomposition[0] = fsGridDecomposition[0];
       decomposition[1] = fsGridDecomposition[1];
       decomposition[2] = fsGridDecomposition[2];
-      // logFile << "(RESTART) Fsgrid decomposition read as " << decomposition[0] << " " << decomposition[1] << " "
-      // <<decomposition[2] << "\n";
+      // logFile << "(RESTART) Fsgrid decomposition read as " << decomposition[0] << " " << decomposition[1] << " " << decomposition[2] << "\n";
       return true;
    }
    return false;
