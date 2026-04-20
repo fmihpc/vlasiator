@@ -124,7 +124,7 @@ void vmesh::MeshWrapper::initVelocityMeshes(const uint nMeshes) {
    // Copy data in, also set auxiliary values
    for (uint i=0; i<nMeshes; ++i) {
       vmesh::MeshParameters* vMesh = &(meshWrapper->velocityMeshes->at(i));
-      vmesh::MeshParameters* vMeshIn = &(meshWrapper->velocityMeshesCreation->at(i));
+      const vmesh::MeshParameters* vMeshIn = &(meshWrapper->velocityMeshesCreation->at(i));
 
       // Limits
       vMesh->meshLimits[0] = vMeshIn->meshLimits[0];

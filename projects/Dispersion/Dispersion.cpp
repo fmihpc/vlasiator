@@ -42,9 +42,9 @@ using namespace spatial_cell;
 namespace projects {
    Dispersion::Dispersion(): Project() { }
    Dispersion::~Dispersion() { }
-   
+
    bool Dispersion::initialize(void) {return Project::initialize();}
-   
+
    void Dispersion::addParameters() {
       typedef Readparameters RP;
       RP::add("Dispersion.B0", "Guide magnetic field strength (T)", 1.0e-9);
@@ -64,7 +64,7 @@ namespace projects {
         RP::add(pop + "_Dispersion.velocityPertAbsAmp", "Absolute amplitude of the velocity perturbation", 1.0e6);
       }
    }
-   
+
    void Dispersion::getParameters() {
       Project::getParameters();
       typedef Readparameters RP;
@@ -93,7 +93,9 @@ namespace projects {
    void Dispersion::hook(cuint& stage,
                          const dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                          fsgrids::perbspan perb,
-                         fsgrids::technicalspan technical, FieldSolverGrid &fsgrid) const {
+                         fsgrids::technicalspan technical, FieldSolverGrid &fsgrid
+   ) const {
+      /*
       if(hook::END_OF_TIME_STEP == stage) {
          int myRank;
          MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
@@ -107,7 +109,7 @@ namespace projects {
                localRhom[cells[i] - 1] = mpiGrid[cells[i]]->parameters[CellParams::RHOM];
             }
          }
-         
+
          MPI_Reduce(&(localRhom[0]), &(outputRhom[0]), P::xcells_ini, MPI_DOUBLE, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
 
          vector<Real> localPerBx(P::xcells_ini, 0.0);
@@ -129,7 +131,7 @@ namespace projects {
          MPI_Reduce(&(localPerBx[0]), &(outputPerBx[0]), P::xcells_ini, MPI_DOUBLE, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
          MPI_Reduce(&(localPerBy[0]), &(outputPerBy[0]), P::xcells_ini, MPI_DOUBLE, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
          MPI_Reduce(&(localPerBz[0]), &(outputPerBz[0]), P::xcells_ini, MPI_DOUBLE, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
-         
+
          if(myRank == MASTER_RANK) {
             FILE* outputFile = fopen("perBxt.bin", "ab");
             fwrite(&(outputPerBx[0]), sizeof(outputPerBx[0]), P::xcells_ini, outputFile);
@@ -145,8 +147,9 @@ namespace projects {
             fclose(outputFile);
          }
       }
+      */
    }
-   
+
    Realf Dispersion::fillPhaseSpace(spatial_cell::SpatialCell *cell,
                                        const uint popID,
                                        const uint nRequested
@@ -198,9 +201,9 @@ namespace projects {
    void Dispersion::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
       std::default_random_engine rndState;
       setRandomCellSeed(cell,rndState);
-      
+
       this->rndRho=getRandomNumber(rndState);
-      
+
       this->rndVel[0]=getRandomNumber(rndState);
       this->rndVel[1]=getRandomNumber(rndState);
       this->rndVel[2]=getRandomNumber(rndState);

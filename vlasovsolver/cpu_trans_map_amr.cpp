@@ -15,7 +15,7 @@ using namespace spatial_cell;
 
 #define i_trans_ps_blockv_pencil(planeVectorIndex, planeIndex, blockIndex, lengthOfPencil) ( (blockIndex)  +  ( (planeVectorIndex) + (planeIndex) * VEC_PER_PLANE ) * ( lengthOfPencil) )
 
-inline bool check_skip_remapping(Vec* values) {
+inline bool check_skip_remapping(const Vec* const values) {
    for (int index=-VLASOV_STENCIL_WIDTH; index<VLASOV_STENCIL_WIDTH+1; ++index) {
       if (horizontal_or(values[index] > Vec(0))) {
          return false;
@@ -35,8 +35,8 @@ inline bool check_skip_remapping(Vec* values) {
  * @param lengthOfPencil Number of cells in the pencil
  */
 void propagatePencil(
-   Realf* dz,
-   Vec* values, // Vec-ordered block data values for pencils
+   const Realf* const dz,
+   const Vec* const values, // Vec-ordered block data values for pencils
    const uint dimension,
    const uint blockGID,
    const Realf dt,
@@ -44,14 +44,14 @@ void propagatePencil(
    const int lengthOfPencil,
    const Realf threshold,
    Realf** blockDataPointer, // Spacing is for sources, but will be written into
-   Realf* targetRatios, // Vector holding target ratios
+   const Realf* const targetRatios, // Vector holding target ratios
    const unsigned int* const vcell_transpose
 ) {
    // Get velocity data from vmesh that we need later to calculate the translation
    velocity_block_indices_t block_indices;
    vmesh->getIndices(blockGID, block_indices[0], block_indices[1], block_indices[2]);
-   Realf dvz = vmesh->getCellSize()[dimension];
-   Realf vz_min = vmesh->getMeshMinLimits()[dimension];
+   const Realf dvz = vmesh->getCellSize()[dimension];
+   const Realf vz_min = vmesh->getMeshMinLimits()[dimension];
 
    // Assuming 1 neighbor in the target array because of the CFL condition
    // In fact propagating to > 1 neighbor will give an error
@@ -162,7 +162,7 @@ void propagatePencil(
  * @param popID ID of the particle species.
  */
 bool copy_trans_block_data_amr(
-   Realf** pencilBlockData,
+   const Realf* const* pencilBlockData,
    const int lengthOfPencil,
    Vec* values,
    const unsigned int* const vcell_transpose,
@@ -172,7 +172,7 @@ bool copy_trans_block_data_amr(
    for (int b = 0; b < lengthOfPencil; b++) {
       if(pencilBlockData[b] != NULL) {
          Realf blockValues[WID3];
-         Realf* block_data = pencilBlockData[b];
+         const Realf* block_data = pencilBlockData[b];
          // Copy data to a temporary array and transpose values so that mapping is along k direction.
          #pragma omp simd
          for (uint i=0; i<WID3; ++i) {
@@ -291,7 +291,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
       for (uint i=0; i<localPropagatedCells.size(); i++) {
          for (uint ip=0; ip<DimensionPencils[dimension].N; ip++) {
             // Read only central IDs for each pencil
-            std::vector<CellID> centerIds = DimensionPencils[dimension].getIds(ip);
+            const std::vector<CellID> centerIds = DimensionPencils[dimension].getIds(ip);
             cuint myPencilCount = std::count(centerIds.begin(), centerIds.end(), localPropagatedCells[i]);
             nPencils[i] += myPencilCount;
             nPencils[nPencils.size()-1] += myPencilCount;
@@ -353,7 +353,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
       for(uint blocki = 0; blocki < blocksSize; blocki++) {
          for (uint nBin = 0; nBin < binsSize; ++nBin) {
             // For each block + bin we copy first copy each pencil's data into a buffer, clear the target blocks, and then sum the translated pencils in
-            uint currentBin = DimensionPencils[dimension].activeBins[nBin];
+            const uint currentBin = DimensionPencils[dimension].activeBins[nBin];
 
             phiprof::Timer loadTimer {loadTimerId};
             vmesh::GlobalID blockGID = unionOfBlocks[blocki];
@@ -411,16 +411,16 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
                }
 
                // sourceVecData => targetBlockData[this pencil])
-               int L = DimensionPencils[dimension].lengthOfPencils[pencili];
-               int start = DimensionPencils[dimension].idsStart[pencili];
+               const int L = DimensionPencils[dimension].lengthOfPencils[pencili];
+               const int start = DimensionPencils[dimension].idsStart[pencili];
                // Dz and sourceVecData are both padded by VLASOV_STENCIL_WIDTH
                // Dz has 1 value/cell, sourceVecData has WID3 values/cell
                // vmesh is required just for general indexes and accessors
-               Realf scalingthreshold = mpiGrid[DimensionPencils[dimension].ids[start + VLASOV_STENCIL_WIDTH]]->getVelocityBlockMinValue(popID);
-               Realf* pencilDZ = DimensionPencils[dimension].sourceDZ.data() + start;
-               Realf* pencilRatios = DimensionPencils[dimension].targetRatios.data() + start;
+               const Realf scalingthreshold = mpiGrid[DimensionPencils[dimension].ids[start + VLASOV_STENCIL_WIDTH]]->getVelocityBlockMinValue(popID);
+               const Realf* pencilDZ = DimensionPencils[dimension].sourceDZ.data() + start;
+               const Realf* pencilRatios = DimensionPencils[dimension].targetRatios.data() + start;
                Realf** pencilBlockData = cellBlockData.data() + start;
-               Vec* blockDataSource = blockDataBuffer.data() +start*WID3/VECL;
+               const Vec* blockDataSource = blockDataBuffer.data() +start*WID3/VECL;
                propagatePencil(pencilDZ,
                               blockDataSource,
                               dimension,
@@ -448,7 +448,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
  * @param mpiGrid DCCRG grid object
  * @param cellid DCCRG id of this cell
  */
-int get_sibling_index(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, const CellID& cellid) {
+int get_sibling_index(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, const CellID& cellid) {
 
    const int NO_SIBLINGS = 0;
    if(mpiGrid.get_refinement_level(cellid) == 0) {
@@ -456,7 +456,7 @@ int get_sibling_index(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
    }
 
    //CellID parent = mpiGrid.mapping.get_parent(cellid);
-   CellID parent = mpiGrid.get_parent(cellid);
+   const CellID parent = mpiGrid.get_parent(cellid);
 
    if (parent == INVALID_CELLID) {
       std::cerr<<"Invalid parent id"<<std::endl;
@@ -466,8 +466,8 @@ int get_sibling_index(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
    // get_all_children returns an array instead of a vector now, need to map it to a vector for find and distance
    // std::array<uint64_t, 8> siblingarr = mpiGrid.mapping.get_all_children(parent);
    // vector<CellID> siblings(siblingarr.begin(), siblingarr.end());
-   vector<CellID> siblings = mpiGrid.get_all_children(parent);
-   auto location = std::find(siblings.begin(),siblings.end(),cellid);
+   const vector<CellID> siblings = mpiGrid.get_all_children(parent);
+   const auto location = std::find(siblings.begin(),siblings.end(),cellid);
    auto index = std::distance(siblings.begin(), location);
    if (index>7) {
       std::cerr<<"Invalid parent id"<<std::endl;

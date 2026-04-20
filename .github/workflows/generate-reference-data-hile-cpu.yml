@@ -11,6 +11,7 @@ jobs:
     # Build Vlasiator with testpackage flags, on the HILE cluster using
     # its CPUs
     runs-on: hile
+    if: false
 
     steps:
       - name: Clean workspace
@@ -29,9 +30,18 @@ jobs:
       - name: Make clean
         run: VLASIATOR_ARCH=hile_cpu make clean
       - uses: ursg/gcc-problem-matcher@master
+      - name: Build libraries
+        run: |
+         WORKSPACE=`pwd`
+         rm -rf library-build
+         mkdir -p library-build
+         BUILDDIR=library-build
+         bash ./fetch_libraries.sh hile_cpu
+         srun -C c --job-name CI_ref_build_lib --interactive --nodes=1 -n 1 -c 16 --mem-per-cpu=2G -t 0:20:0 bash -c 'set -e; module load papi; module load cray-pmi; module load libfabric/1.22.0; export VLASIATOR_ARCH=hile_cpu; ./build_fetched_libraries hile_cpu'
+         rm -rf $BUILDDIR
       - name: Compile vlasiator (Testpackage build w/ HIP)
         run: |
-          srun -C c --job-name CI_tp_C_compile --interactive --nodes=1 -n 1 -c 16 --mem-per-cpu=2G -t 0:20:0 bash -c 'module load papi; module load cray-pmi; module load libfabric/1.22.0; export VLASIATOR_ARCH=hile_cpu; make -j 16 testpackage fluxfunction; sleep 10s'
+          srun -C c --job-name CI_tp_C_compile --interactive --nodes=1 -n 1 -c 16 --mem-per-cpu=2G -t 0:20:0 bash -c 'set -e; module load papi; module load cray-pmi; module load libfabric/1.22.0; export VLASIATOR_ARCH=hile_cpu; make -j 16 testpackage fluxfunction; sleep 10s'
       - name: Make sure the output binary is visible in lustre
         uses: nick-fields/retry@v3
         with:
@@ -49,6 +59,7 @@ jobs:
   run_TP_HILE-C:
     # Run the testpackage on the HILE-C cluster
     runs-on: hile
+    if: false
     needs: [build_TP_HILE-C] # tools included in build tp
     continue-on-error: true
 

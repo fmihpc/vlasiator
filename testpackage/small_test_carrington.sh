@@ -11,18 +11,17 @@
 #SBATCH -n 16                  # number of tasks
 #SBATCH --mem-per-cpu=5G
 #SBATCH --hint=multithread
-##SBATCH -x carrington-[801-808]
 
 # If 1, the reference vlsv files are generated
 # if 0 then we check the v1 against reference files
 create_verification_files=0
 
 # folder for all reference data
-reference_dir="/proj/group/spacephysics/vlasiator_testpackage/"
+reference_dir="/turso/group/spacephysics/vlasiator/testpackage/"
 cd $SLURM_SUBMIT_DIR
 
 bin="/proj/USERNAME/BINARYNAME"
-diffbin="/proj/group/spacephysics/vlasiator_testpackage/vlsvdiff_DP_carrington"
+diffbin="/turso/group/spacephysics/vlasiator/testpackage/vlsvdiff_DP_carrington"
 
 #compare agains which revision
 #reference_revision="CI_reference"
@@ -33,6 +32,7 @@ module load GCC/13.2.0
 module load OpenMPI/4.1.6-GCC-13.2.0
 module load PMIx/4.2.6-GCCcore-13.2.0
 module load PAPI/7.1.0-GCCcore-13.2.0
+module load Boost/1.83.0-GCC-13.2.0
 #module load xthi
 export UCX_NET_DEVICES=eth5 # This is important for multi-node performance!
 

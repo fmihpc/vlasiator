@@ -21,7 +21,7 @@ jobs:
         rm -f *.xml
         MORO
         )
-        srun -M carrington bash -c "$RUN_STRING"
+        srun --constraint="carrington" bash -c "$RUN_STRING"
     - name: Checkout source
       uses: actions/checkout@v4
       with:
@@ -29,9 +29,18 @@ jobs:
     - name: Make clean
       run: VLASIATOR_ARCH=ukko_dgx make clean
     - uses: ursg/gcc-problem-matcher@master
+    - name: Build libraries
+      run: |
+        WORKSPACE=`pwd`
+        rm -rf library-build
+        mkdir -p library-build
+        BUILDDIR=library-build
+        bash ./fetch_libraries.sh ukkogpu
+        srun --constraint="v100" --gres="gpu:V100" -pgpu --job-name CI_ref_build_lib --interactive --nodes=1 -n 1 -c 8 --mem-per-cpu=2G -t 0:20:0 bash -c 'set -e; module purge; ml OpenMPI/4.1.6.withucx-GCC-13.2.0 PAPI/7.1.0-GCCcore-13.2.0 CUDA/12.6.0; export VLASIATOR_ARCH=ukko_dgx; ./build_fetched_libraries.sh ukkogpu'
+        rm -rf $BUILDDIR
     - name: Compile vlasiator (Testpackage build w/ CUDA) and fluxfunction
       run: |
-        srun -Mukko -pgpu-oversub --job-name CI_tp_compile --interactive --nodes=1 -n 1 -c 8 --mem-per-cpu=2G -t 0:20:0 bash -c 'module purge; ml OpenMPI/4.1.6.withucx-GCC-13.2.0 PAPI/7.1.0-GCCcore-13.2.0 CUDA/12.6.0; export VLASIATOR_ARCH=ukko_dgx; make -j 9 testpackage fluxfunction; sleep 10s'
+        srun --constraint="v100" --gres="gpu:V100" -pgpu --job-name CI_tp_compile --interactive --nodes=1 -n 1 -c 8 --mem-per-cpu=2G -t 0:20:0 bash -c 'set -e; module purge; ml OpenMPI/4.1.6.withucx-GCC-13.2.0 PAPI/7.1.0-GCCcore-13.2.0 CUDA/12.6.0; export VLASIATOR_ARCH=ukko_dgx; make -j 9 testpackage fluxfunction; sleep 10s'
     - name: Make sure the output binary is visible in lustre
       uses: nick-fields/retry@v3
       with:
@@ -76,9 +85,9 @@ jobs:
     - name: Generate reference fluxfunction files
       run: |
         chmod +x $GITHUB_WORKSPACE/fluxfunction
-        srun --job-name fluxtest_gpu -M ukko -pgpu-oversub -N 1 -c 1 --mem=1G bash -c "module purge; ml OpenMPI/4.1.6.withucx-GCC-13.2.0 PAPI/7.1.0-GCCcore-13.2.0 CUDA/12.6.0; $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_small/bulk.0000001.vlsv equatorial.bin"
-        srun --job-name fluxtest_gpu -M ukko -pgpu-oversub -N 1 -c 1 --mem=1G bash -c "module purge; ml OpenMPI/4.1.6.withucx-GCC-13.2.0 PAPI/7.1.0-GCCcore-13.2.0 CUDA/12.6.0; $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_polar_small/bulk.0000001.vlsv polar.bin"
+        srun --job-name fluxtest_gpu --constraint="v100" --gres="gpu:V100" -pgpu -N 1 -c 1 --mem=1G bash -c "module purge; ml OpenMPI/4.1.6.withucx-GCC-13.2.0 PAPI/7.1.0-GCCcore-13.2.0 CUDA/12.6.0; $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_small/bulk.0000001.vlsv equatorial.bin"
+        srun --job-name fluxtest_gpu --constraint="v100" --gres="gpu:V100" -pgpu -N 1 -c 1 --mem=1G bash -c "module purge; ml OpenMPI/4.1.6.withucx-GCC-13.2.0 PAPI/7.1.0-GCCcore-13.2.0 CUDA/12.6.0; $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_polar_small/bulk.0000001.vlsv polar.bin"
         chmod 775 polar.bin equatorial.bin
         cp equatorial.bin polar.bin $REFERENCE_REVISION
-        # No longer overwrites files in /proj/group/spacephysics/vlasiator_testpackage/CI_reference/ but places in proper folder
+        # No longer overwrites files in $reference_dir/CI_reference/ but places in proper folder
     # We don't bother to create artefacts or anything here.

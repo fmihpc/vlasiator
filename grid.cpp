@@ -70,7 +70,7 @@ void initVelocityGridGeometry(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometr
 void initSpatialCellCoordinates(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid);
 void initializeStencils(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid);
 
-void writeVelMesh(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid) {
+void writeVelMesh(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid) {
    const vector<CellID>& cells = getLocalCells();
 
    static int counter = 0;
@@ -462,6 +462,196 @@ void setFaceNeighborRanks(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& 
 
          cell->face_neighbor_ranks[neighborhood].insert(mpiGrid.get_process(neighbor));
       }
+   }
+}
+
+inline uint64_t get_transfer_part(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, uint64_t num_part_transfers, CellID cell)
+{
+   // Siblings transfer in same part
+   return (mpiGrid.mapping.get_refinement_level(cell) ? mpiGrid.mapping.get_parent(cell) : cell) % num_part_transfers;
+}
+
+// TODO bool here is kinda stupid but less janky than function pointer
+void transferInParts(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, std::vector<CellID>& incoming_cells_list, std::vector<CellID>& outgoing_cells_list, bool refinement = false)
+{
+   phiprof::Timer transfersTimer {"Data transfers"};
+   const vector<CellID>& cells = getLocalCells();
+
+   // Idea: do as many cell sending passes hereafter so that there's not more than transfer_block_fraction_limit
+   // blocks of this task's total block count that gets sent. Helps in reducing memory peaks during load balancing.
+   creal transfer_block_fraction_limit = 0.1;
+   uint64_t num_part_transfers_local = 1, num_part_transfers, outgoing_block_count = 0, total_block_count = 0;
+   bool count_determined = false;
+   Real outgoing_block_fraction;
+
+   // count blocks
+   for (unsigned int i=0; i<outgoing_cells_list.size(); i++) {
+      CellID cell_id=outgoing_cells_list[i];
+      SpatialCell* cell = mpiGrid[cell_id];
+      outgoing_block_count += cell->get_number_of_all_velocity_blocks();
+   }
+   for (unsigned int i=0; i<cells.size(); i++) {
+      CellID cell_id=cells[i];
+      SpatialCell* cell = mpiGrid[cell_id];
+      total_block_count += cell->get_number_of_all_velocity_blocks();
+   }
+   outgoing_block_fraction = (Real)outgoing_block_count / ((Real)total_block_count + 1);
+   // if we're not exceeding transfer_block_fraction_limit we're good
+   if(outgoing_block_fraction < transfer_block_fraction_limit) {
+      count_determined = true;
+   }
+   // otherwise we increase the number of chunks until all chunks are below transfer_block_fraction_limit
+   while(!count_determined) {
+      uint64_t transfer_part; // we use this in the logic after the for
+      for (transfer_part=0; transfer_part<num_part_transfers_local; transfer_part++) {
+         uint64_t transfer_part_block_count=0;
+         for (unsigned int i=0;i<outgoing_cells_list.size();i++){
+            CellID cell_id=outgoing_cells_list[i];
+            if (get_transfer_part(mpiGrid, num_part_transfers_local, cell_id) == transfer_part) {
+               transfer_part_block_count += mpiGrid[cell_id]->get_number_of_all_velocity_blocks();
+            }
+         }
+         outgoing_block_fraction = (Real)transfer_part_block_count / ((Real)total_block_count + 1);
+         if(outgoing_block_fraction > transfer_block_fraction_limit) {
+            num_part_transfers_local *= 2;
+            break; // out of for
+         }
+      }
+      if((transfer_part == num_part_transfers_local // either the loop ended or we hit that number with the *= 2
+         && outgoing_block_fraction <= transfer_block_fraction_limit) // so cross-check with this
+         || num_part_transfers_local >= cells.size()
+      ) {
+         count_determined = true; // we got a break out if any chunk was still too big
+      }
+   }
+   // ...and finally we reduce this across all tasks of course.
+   MPI_Allreduce(&num_part_transfers_local, &num_part_transfers, 1, MPI_UINT64_T, MPI_MAX, MPI_COMM_WORLD);
+
+   for (uint64_t transfer_part=0; transfer_part<num_part_transfers; transfer_part++) {
+      //Set transfers on/off for the incoming cells in this transfer set and prepare for receive
+      for (const CellID& cell_id : incoming_cells_list) {
+         SpatialCell* cell = mpiGrid[cell_id];
+         if (get_transfer_part(mpiGrid, num_part_transfers, cell_id) != transfer_part) {
+            cell->set_mpi_transfer_enabled(false);
+         } else {
+            cell->set_mpi_transfer_enabled(true);
+         }
+      }
+
+      //Set transfers on/off for the outgoing cells in this transfer set
+      for (const CellID cell_id : outgoing_cells_list) {
+         SpatialCell* cell = mpiGrid[cell_id];
+         if (get_transfer_part(mpiGrid, num_part_transfers, cell_id) != transfer_part) {
+            cell->set_mpi_transfer_enabled(false);
+         } else {
+            cell->set_mpi_transfer_enabled(true);
+         }
+      }
+
+      for (size_t popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+         // Set active population
+         SpatialCell::setCommunicatedSpecies(popID);
+
+         // Transfer velocity block lists. On-device GPU mesh preparation tasks require
+         // device synchronization between transfer phases.
+         SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_STAGE1);
+         if (!refinement) {
+            mpiGrid.continue_balance_load();
+         } else {
+            mpiGrid.continue_refining();
+         }
+         #ifdef USE_GPU
+         CHK_ERR( gpuDeviceSynchronize() );
+         #endif
+         SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_STAGE2);
+         if (!refinement) {
+            mpiGrid.continue_balance_load();
+         } else {
+            mpiGrid.continue_refining();
+         }
+         #ifdef USE_GPU
+         CHK_ERR( gpuDeviceSynchronize() );
+         #endif
+
+         int prepareReceives {phiprof::initializeTimer("Preparing receives")};
+         int receives = 0;
+         #pragma omp parallel for schedule(guided)
+         for (const CellID cell_id : incoming_cells_list) {
+            SpatialCell* cell = mpiGrid[cell_id];
+            if (get_transfer_part(mpiGrid, num_part_transfers, cell_id) == transfer_part) {
+               receives++;
+               // reserve space for velocity block data in arriving remote cells
+               phiprof::Timer timer {prepareReceives};
+               cell->prepare_to_receive_blocks(popID);
+               timer.stop(1, "Spatial cells");
+            }
+         }
+         if(receives == 0) {
+            //empty phiprof timer, to avoid unneccessary divergence in unique
+            //profiles (keep order same)
+            phiprof::Timer timer {prepareReceives};
+            timer.stop(0, "Spatial cells");
+         }
+
+         //do the actual transfer of data for the set of cells to be transferred
+         phiprof::Timer transferTimer {"transfer_all_data"};
+         SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA);
+         if (!refinement) {
+            mpiGrid.continue_balance_load();
+         } else {
+            mpiGrid.continue_refining();
+         }
+         transferTimer.stop();
+
+         // Free memory for cells that have been sent (the block data)
+         for (const CellID cell_id : outgoing_cells_list){
+            SpatialCell* cell = mpiGrid[cell_id];
+
+            // Free memory of this cell as it has already been transferred,
+            // it will not be used anymore. NOTE: Only clears memory allocated
+            // to the active population.
+            if (get_transfer_part(mpiGrid, num_part_transfers, cell_id) == transfer_part) {
+               cell->clear(popID,true);
+            }
+         }
+
+         if (refinement) {
+            // Old cells removed by refinement
+            phiprof::Timer copyParentsTimer {"copy to parents"};
+            std::set<CellID> processed;
+            for (CellID id : mpiGrid.get_removed_cells()) {
+               if (get_transfer_part(mpiGrid, num_part_transfers, id) == transfer_part) {
+                  CellID parent = mpiGrid.get_existing_cell(mpiGrid.get_center(id));
+                  if (!processed.count(parent)) {
+                     std::vector<CellID> children = mpiGrid.get_all_children(parent);
+                     // Make sure cell contents aren't garbage
+                     *mpiGrid[parent] = *mpiGrid[id];
+
+                     for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+                        SBC::averageCellData(mpiGrid, children, mpiGrid[parent], popID, 1);
+                     }
+
+                     // Averaging moments
+                     calculateCellMoments(mpiGrid[parent], true, false);
+
+                     processed.insert(parent);
+
+                     for (const CellID child : children) {
+                        mpiGrid[child]->clear(popID, true);
+                     }
+                  }
+               }
+            }
+            copyParentsTimer.stop(processed.size(), "Spatial cells");
+         }
+
+         memory_purge(); // Purge jemalloc allocator to actually release memory
+      } // for-loop over populations
+   } // for-loop over transfer parts
+
+   // Re-enable transfer for received cells
+   for (const CellID cell_id : incoming_cells_list) {
+      mpiGrid[cell_id]->set_mpi_transfer_enabled(true);
    }
 }
 
@@ -1326,14 +1516,22 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGr
    auto newChildren = mpiGrid.execute_refines();
    executeTimer.stop();
 
-   std::vector<CellID> receives;
+   // TODO surely this doesn't need a for loop
+   std::vector<CellID> incoming_cells_list;
    for (auto const& [key, val] : mpiGrid.get_cells_to_receive()) {
       for (auto i : val) {
-         receives.push_back(i.first);
+         incoming_cells_list.push_back(i.first);
       }
    }
 
    phiprof::Timer transfersTimer{"transfers"};
+   std::vector<CellID> outgoing_cells_list;
+   for (auto const& [key, val] : mpiGrid.get_cells_to_send()) {
+      for (auto i : val) {
+         outgoing_cells_list.push_back(i.first);
+      }
+   }
+   /*
    for (size_t popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID) {
       // Set active population
       SpatialCell::setCommunicatedSpecies(popID);
@@ -1367,7 +1565,9 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGr
 
       memory_purge(); // Purge jemalloc allocator to actually release memory
    }
-   transfersTimer.stop();
+   */
+
+   transferInParts(mpiGrid, incoming_cells_list, outgoing_cells_list, true);
 
    phiprof::Timer copyChildrenTimer{"copy to children"};
    for (CellID id : newChildren) {

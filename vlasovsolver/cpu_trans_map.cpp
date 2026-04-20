@@ -69,7 +69,7 @@ CellID get_spatial_neighbor(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geom
                             const int spatial_di,
                             const int spatial_dj,
                             const int spatial_dk ) {
-   dccrg::Types<3>::indices_t indices = mpiGrid.mapping.get_indices(cellID);
+   const dccrg::Types<3>::indices_t indices = mpiGrid.mapping.get_indices(cellID);
 
    std::set<uint64_t> nbrIDs = mpiGrid.find_cells_at_offset(indices, cellID, 0, {spatial_di, spatial_dj, spatial_dk});
 
@@ -218,7 +218,7 @@ void compute_spatial_target_neighbors(const dccrg::Dccrg<SpatialCell,dccrg::Cart
  * @param popID ID of the particle species.
  */
 void copy_trans_block_data(
-    SpatialCell** source_neighbors,
+    const SpatialCell* const* source_neighbors,
     const vmesh::GlobalID blockGID,
     Vec* values,
     const unsigned char* const cellid_transpose,
@@ -227,7 +227,7 @@ void copy_trans_block_data(
    /*load pointers to blocks and prefetch them to L1*/
    Realf* blockDatas[VLASOV_STENCIL_WIDTH * 2 + 1];
    for (int b = -VLASOV_STENCIL_WIDTH; b <= VLASOV_STENCIL_WIDTH; ++b) {
-      SpatialCell* srcCell = source_neighbors[b + VLASOV_STENCIL_WIDTH];
+      const SpatialCell* srcCell = source_neighbors[b + VLASOV_STENCIL_WIDTH];
       const vmesh::LocalID blockLID = srcCell->get_velocity_block_local_id(blockGID,popID);
       if (blockLID != srcCell->invalid_local_id()) {
          blockDatas[b + VLASOV_STENCIL_WIDTH] = srcCell->get_data(blockLID,popID);

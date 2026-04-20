@@ -23,7 +23,7 @@ std::unordered_set<CellID> ghostTranslate_active_z;
 std::array<setOfPencils,3> DimensionPencils;
 
 //Is cell translated? It is not translated if DO_NO_COMPUTE or if it is sysboundary cell and not in first sysboundarylayer
-bool do_translate_cell(SpatialCell* SC){
+bool do_translate_cell(const SpatialCell* const SC){
    if(SC->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
       (SC->sysBoundaryLayer != 1 && SC->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY)) {
       return false;
@@ -63,9 +63,9 @@ bool check_is_active(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
    }
 }
 
-bool check_is_written_to(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, CellID cid, int dimension) {
+bool check_is_written_to(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const CellID cid,const int dimension) {
    // Only called if doing ghost translation
-   SpatialCell *SC = mpiGrid[cid];
+   const SpatialCell *SC = mpiGrid[cid];
    if (!SC) {
       return false;
    }
@@ -153,14 +153,14 @@ int getNeighborhood(const uint dimension, const uint stencil) {
 */
 void findNeighborhoodCells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                            const CellID startingCellID,
-                           uint dimension,
-                           uint searchLength,
+                           const uint dimension,
+                           const uint searchLength,
                            std::vector<CellID>& foundCells) {
 
-   int neighborhood = getNeighborhood(dimension,searchLength);
+   const int neighborhood = getNeighborhood(dimension,searchLength);
    foundCells.clear();
 
-   SpatialCell *ccell = mpiGrid[startingCellID];
+   const SpatialCell *ccell = mpiGrid[startingCellID];
    if (!ccell) {
       return;
    }
@@ -180,7 +180,7 @@ void findNeighborhoodCells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
    }
 }
 
-void prepareGhostTranslationCellLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+void prepareGhostTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                       const vector<CellID>& localPropagatedCells) {
    // Clear existing lists
    ghostTranslate_sources_x.clear();
@@ -215,8 +215,8 @@ void prepareGhostTranslationCellLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_
 
    phiprof::Timer ghostYTimer {"prepare ghost translation Y lists"};
    int dimension = 1;
-   for (CellID c : localPropagatedCells) {
-      SpatialCell *ccell = mpiGrid[c];
+   for (const CellID c : localPropagatedCells) {
+      const SpatialCell *ccell = mpiGrid[c];
       if (!ccell) {
          continue;
       }
@@ -233,7 +233,7 @@ void prepareGhostTranslationCellLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_
 
       // Sources to be updated
       findNeighborhoodCells(mpiGrid, c, dimension, searchLength, foundCells);
-      for (CellID cid: foundCells) {
+      for (const CellID cid: foundCells) {
          // Update as sources only non-sysb cells
          if (mpiGrid[cid]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
             ghostTranslate_sources_y.insert(cid);
@@ -241,7 +241,7 @@ void prepareGhostTranslationCellLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_
       }
       // Cells to be translated so local end result is good (find neighborhood contains do_translate check)
       findNeighborhoodCells(mpiGrid, c, dimension, 1, foundCells);
-      for (CellID cid: foundCells) {
+      for (const CellID cid: foundCells) {
          ghostTranslate_active_y.insert(cid);
       }
    } // end loop over local propagated cells
@@ -253,8 +253,8 @@ void prepareGhostTranslationCellLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_
 
    phiprof::Timer ghostXTimer {"prepare ghost translation X lists"};
    dimension = 0;
-   for (CellID c : ghostTranslate_sources_y) {
-      SpatialCell *ccell = mpiGrid[c];
+   for (const CellID c : ghostTranslate_sources_y) {
+      const SpatialCell *ccell = mpiGrid[c];
       if (!ccell) {
          continue;
       }
@@ -277,7 +277,7 @@ void prepareGhostTranslationCellLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_
       }
       // Cells to be translated so local end result is good
       findNeighborhoodCells(mpiGrid, c, dimension, 1, foundCells);
-      for (CellID cid: foundCells) {
+      for (const CellID cid: foundCells) {
          ghostTranslate_active_x.insert(cid);
       }
    } // end loop over y-translation sources
@@ -289,8 +289,8 @@ void prepareGhostTranslationCellLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_
 
    phiprof::Timer ghostZTimer {"prepare ghost translation Z lists"};
    dimension = 2;
-   for (CellID c : ghostTranslate_sources_x) {
-      SpatialCell *ccell = mpiGrid[c];
+   for (const CellID c : ghostTranslate_sources_x) {
+      const SpatialCell *ccell = mpiGrid[c];
       if (!ccell) {
          continue;
       }
@@ -305,7 +305,7 @@ void prepareGhostTranslationCellLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_
       }
       // Sources to be updated
       findNeighborhoodCells(mpiGrid, c, dimension, searchLength, foundCells);
-      for (CellID cid: foundCells) {
+      for (const CellID cid: foundCells) {
          // Update as sources only non-sysb cells
          if (mpiGrid[cid]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
             ghostTranslate_sources_z.insert(cid);
@@ -313,7 +313,7 @@ void prepareGhostTranslationCellLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_
       }
       // Cells to be translated so local end result is good
       findNeighborhoodCells(mpiGrid, c, dimension, 1, foundCells);
-      for (CellID cid: foundCells) {
+      for (const CellID cid: foundCells) {
          ghostTranslate_active_z.insert(cid);
       }
    } // end loop over y-translation sources
@@ -626,7 +626,7 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
       }
 
       if (ids[i]) {
-         SpatialCell* tc = mpiGrid[ids[i]];
+         const SpatialCell* tc = mpiGrid[ids[i]];
          if (tc && tc->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
             // areaRatio is the ratio of the cross-section of the spatial cell to the cross-section of the pencil.
             const int diff = tc->SpatialCell::parameters[CellParams::REFINEMENT_LEVEL] - path.size();
@@ -661,7 +661,7 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
  * @return neighbor DCCRG cell id of the neighbor
  */
 CellID selectPositiveNeighbor(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> &grid,
-                      CellID id, int dimension = 0, uint path = 0) {
+                      const CellID id, const int dimension = 0, const uint path = 0) {
    // If face neighbours are at a higher refinement level, only returns the one which
    // which has a neighbor index matching the input path
 
@@ -1082,7 +1082,7 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
  */
 void check_ghost_cells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                        setOfPencils& pencils,
-                       uint dimension) {
+                       const uint dimension) {
 
    const bool debug = false;
    int neighborhood = getNeighborhood(dimension,VLASOV_STENCIL_WIDTH);
@@ -1193,7 +1193,7 @@ void check_ghost_cells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>
 
    // No threading here! Splitting requires knowledge of all
    // already existing pencils.
-   for (auto pencili: pencilIdsToSplit) {
+   for (const auto pencili: pencilIdsToSplit) {
 
       Real dx = 0.0;
       Real dy = 0.0;
