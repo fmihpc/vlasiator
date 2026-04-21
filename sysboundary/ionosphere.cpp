@@ -2169,7 +2169,7 @@ namespace SBC {
          }
       } else if (ionosphereGrid.gaugeFixing == Equator) {
          // clang-format off
-         // FIXME: is there a typo in the second condition? Because as is the state of transposed doesn't matter
+         // note that the second term in the first and second line involve different nodes!
          if ((!transposed && fabs(nodes[node1].x[2]) < Ionosphere::innerRadius * sin(Ionosphere::shieldingLatitude * M_PI / 180.0)) ||
               (transposed && fabs(nodes[node2].x[2]) < Ionosphere::innerRadius * sin(Ionosphere::shieldingLatitude * M_PI / 180.0))) {
             if (node1 == node2) {

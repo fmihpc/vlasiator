@@ -138,7 +138,7 @@ bool propagateFields(fsgrids::perbspan perb,
             bgb,
             technical,
             fsgrid,
-            sysBoundaries,xi
+            sysBoundaries,
             RK_ORDER1,
             true // communicateMomentsDerivatives
          );
