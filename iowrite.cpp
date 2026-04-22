@@ -100,10 +100,11 @@ bool updateLocalIds(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGri
 bool globalSuccess(bool success, const string& errorMessage, MPI_Comm comm) {
    int successInt;
    int globalSuccessInt;
-   if (success)
+   if (success) {
       successInt = 1;
-   else
+   } else {
       successInt = 0;
+   }
 
    MPI_Allreduce(&successInt, &globalSuccessInt, 1, MPI_INT, MPI_MIN, comm);
 
@@ -287,7 +288,7 @@ bool writeVelocityDistributionData(const uint popID, Writer& vlsvWriter,
 
       // Get the number of blocks in this cell
       const uint64_t arrayElements = SC->get_number_of_velocity_blocks(popID);
-// Add a subarray to write. Note: We told beforehands that the vectorsize = WID3
+      // Add a subarray to write. Note: We told beforehands that the vectorsize = WID3
 #ifdef USE_GPU
       char* arrayToWrite = IObuffer + bufferOffset;
       if (arrayElements > 0) {
@@ -1961,8 +1962,9 @@ bool writeDiagnostic(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>&
       }
       localAvg[i] = localSum[i + 1];
 
-      if (success == false)
+      if (success == false) {
          logFile << "(MAIN) writeDiagnostic: ERROR datareductionoperator '" << dataReducer.getName(i) << "' returned false!" << endl << writeVerbose;
+      }
    }
 
    MPI_Reduce(&localMin[0], &globalMin[0], nOps, MPI_Type<Real>(), MPI_MIN, 0, MPI_COMM_WORLD);
@@ -1975,10 +1977,11 @@ bool writeDiagnostic(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>&
    diagnostic << Parameters::dt << "\t";
 
    for (uint i = 0; i < nOps; ++i) {
-      if (globalSum[0] != 0.0)
+      if (globalSum[0] != 0.0) {
          globalAvg[i] = globalSum[i + 1] / globalSum[0];
-      else
+      } else {
          globalAvg[i] = globalSum[i + 1];
+      }
       if (myRank == MASTER_RANK) {
          diagnostic << globalMin[i] << "\t" << globalMax[i] << "\t" << globalSum[i + 1] << "\t" << globalAvg[i] << "\t";
       }

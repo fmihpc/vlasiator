@@ -300,7 +300,9 @@ bool readNBlocks(vlsv::ParallelReader& file, const std::string& meshName, std::v
       }
 
       #pragma omp parallel for
-      for (size_t i = 0; i < N_spatialCells; ++i) nBlocks[i] += buffer[i];
+      for (size_t i = 0; i < N_spatialCells; ++i) {
+         nBlocks[i] += buffer[i];
+      }
    }
    delete[] buffer;
    buffer = NULL;

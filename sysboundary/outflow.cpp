@@ -53,7 +53,7 @@ namespace SBC {
       const string defStr = "Copy";
       Readparameters::addComposing( "outflow.faceNoFields", "List of faces on which no field outflow boundary conditions are to be applied ([xyz][+-]).");
       Readparameters::add("outflow.precedence", "Precedence value of the outflow system boundary condition (integer), the higher the stronger.", 4);
-      Readparameters::add("outflow.reapplyUponRestart", "If 0 (default), keep going with the state existing in the restart file. If 1, calls again " "applyInitialState. Can be used to change boundary condition behaviour during a run.", 0);
+      Readparameters::add("outflow.reapplyUponRestart", "If 0 (default), keep going with the state existing in the restart file. If 1, calls again applyInitialState. Can be used to change boundary condition behaviour during a run.", 0);
 
       // Per-population parameters
       for (uint i = 0; i < getObjectWrapper().particleSpecies.size(); i++) {

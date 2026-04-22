@@ -1179,22 +1179,24 @@ namespace SBC {
          }
 
          calculatePrecipitation();
-
+         // clang-format off
          if (ionosphereGrid.ionizationModel == Robinson2020) {
             // In the Robinson (2020) model, conductivity gets directly calculated from FACs.
             // DOI: doi/10.1029/2020JA028008
-            const static std::array<Real, 3> SigmaP0d_coefficients = {5., -0.8, 60.9};
-            const static std::array<Real, 3> SigmaP0u_coefficients = {4.2, 1.1, 318.6};
+            const static std::array<Real, 3> SigmaP0d_coefficients = {5.0, -0.8,  60.9};
+            const static std::array<Real, 3> SigmaP0u_coefficients = {4.2,  1.1, 318.6};
             const static std::array<Real, 3> SigmaH0d_coefficients = {7.7, -1.8, 139.0};
-            const static std::array<Real, 3> SigmaH0u_coefficients = {8.7, 4.6, 327.1};
+            const static std::array<Real, 3> SigmaH0u_coefficients = {8.7,  4.6, 327.1};
 
-            const static std::array<Real, 3> SigmaP1d_coefficients = {-3.2, -3.6, 21.9};
-            const static std::array<Real, 3> SigmaP1u_coefficients = {6.8, -1.5, 184.9};
-            const static std::array<Real, 3> SigmaH1d_coefficients = {-7.3, 5.6, 100.9};
+            const static std::array<Real, 3> SigmaP1d_coefficients = {-3.2,  -3.6,  21.9};
+            const static std::array<Real, 3> SigmaP1u_coefficients = { 6.8,  -1.5, 184.9};
+            const static std::array<Real, 3> SigmaH1d_coefficients = {-7.3,   5.6, 100.9};
             const static std::array<Real, 3> SigmaH1u_coefficients = {14.8, -10.4, 129.9};
 
             // MLT interpolation (eq 7 from the paper)
-            auto interpolate_robinson = [](const std::array<Real, 3>& variable, Real MLT) -> Real { return variable[0] + variable[1] * cos(variable[2] / 180. * M_PI + MLT); };
+            auto interpolate_robinson = [](const std::array<Real, 3>& variable, Real MLT) -> Real {
+               return variable[0] + variable[1] * cos(variable[2] / 180. * M_PI + MLT);
+            };
 
             // Smooth (cubic hermite) interpolation between two curves a and b, x is clamped to [-1; 1]
             auto smoothstep = [](Real a, Real b, Real x) -> Real {
@@ -1229,6 +1231,7 @@ namespace SBC {
                nodes[n].parameters[ionosphereParameters::SIGMAH] = SigmaH0 + SigmaH1 * FAC;
                // TODO: What do we do about SIGMAPARALLEL?
             }
+            // clang-format on
          } else if (ionosphereGrid.ionizationModel == Juusola2025) {
 
             const static int NODE_CONSTRAINT_REDUCTION = 1;
@@ -1648,7 +1651,14 @@ namespace SBC {
                Real SigmaP = nodes[n].parameters[ionosphereParameters::SIGMAP] = Ionosphere::fixedSigmaP;
                Real SigmaH = nodes[n].parameters[ionosphereParameters::SIGMAH] = Ionosphere::fixedSigmaH;
 
-               static const int epsilon[3][3][3] = {{{0, 0, 0}, {0, 0, 1}, {0, -1, 0}}, {{0, 0, -1}, {0, 0, 0}, {1, 0, 0}}, {{0, 1, 0}, {-1, 0, 0}, {0, 0, 0}}};
+               // Antisymmetric tensor epsilon_ijk
+               // clang-format off
+               static const int epsilon[3][3][3] = {
+                  {{0,0, 0}, { 0,0,1}, {0,-1,0}},
+                  {{0,0,-1}, { 0,0,0}, {1, 0,0}},
+                  {{0,1, 0}, {-1,0,0}, {0, 0,0}}
+               };
+               // clang-format on
 
                Eigen::Vector3d b(nodes[n].x.data());
                b.normalized();
@@ -3737,8 +3747,16 @@ namespace SBC {
       }
 
       // Calculate E from potential differences as E = -grad(phi)
-      Vec3d E({(potentials[0] - potentials[1]) / cellParams[CellParams::DX], (potentials[2] - potentials[3]) / cellParams[CellParams::DY], (potentials[4] - potentials[5]) / cellParams[CellParams::DZ]});
-      Vec3d B({cellParams[CellParams::BGBXVOL] + cellParams[CellParams::PERBXVOL], cellParams[CellParams::BGBYVOL] + cellParams[CellParams::PERBYVOL], cellParams[CellParams::BGBZVOL] + cellParams[CellParams::PERBZVOL]});
+      // clang-format off
+      Vec3d E({
+         (potentials[0] - potentials[1]) / cellParams[CellParams::DX],
+         (potentials[2] - potentials[3]) / cellParams[CellParams::DY],
+         (potentials[4] - potentials[5]) / cellParams[CellParams::DZ]});
+      Vec3d B({
+         cellParams[CellParams::BGBXVOL] + cellParams[CellParams::PERBXVOL],
+         cellParams[CellParams::BGBYVOL] + cellParams[CellParams::PERBYVOL],
+         cellParams[CellParams::BGBZVOL] + cellParams[CellParams::PERBZVOL]});
+      // clang-format on
 
       // Add E from neutral wind convection for all cells with L <= 5
       Vec3d Omega(0, 0, Ionosphere::earthAngularVelocity); // Earth rotation vector

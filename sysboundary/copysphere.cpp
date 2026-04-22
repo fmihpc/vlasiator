@@ -55,10 +55,10 @@ namespace SBC {
       Readparameters::add("copysphere.centerY", "Y coordinate of copysphere center (m)", 0.0);
       Readparameters::add("copysphere.centerZ", "Z coordinate of copysphere center (m)", 0.0);
       Readparameters::add("copysphere.radius", "Radius of copysphere (m).", 1.0e7);
-      Readparameters::add("copysphere.geometry", "Select the geometry of the copysphere, 0: inf-norm (diamond), 1: 1-norm (square), 2: 2-norm " "(circle, DEFAULT), 3: 2-norm cylinder aligned with y-axis, use with polar plane/line dipole.", 2);
+      Readparameters::add("copysphere.geometry", "Select the geometry of the copysphere, 0: inf-norm (diamond), 1: 1-norm (square), 2: 2-norm (circle, DEFAULT), 3: 2-norm cylinder aligned with y-axis, use with polar plane/line dipole.", 2);
       Readparameters::add( "copysphere.precedence", "Precedence value of the copysphere system boundary condition (integer), the higher the stronger.", 2);
-      Readparameters::add("copysphere.reapplyUponRestart", "If 0 (default), keep going with the state existing in the restart file. If 1, calls again " "applyInitialState. Can be used to change boundary condition behaviour during a run.", 0);
-      Readparameters::add("copysphere.zeroPerB", "If 0 (default), normal copysphere behaviour of magnetic field at inner boundary. If 1, keep " "magnetic field static at the inner boundary", 0);
+      Readparameters::add("copysphere.reapplyUponRestart", "If 0 (default), keep going with the state existing in the restart file. If 1, calls again applyInitialState. Can be used to change boundary condition behaviour during a run.", 0);
+      Readparameters::add("copysphere.zeroPerB", "If 0 (default), normal copysphere behaviour of magnetic field at inner boundary. If 1, keep magnetic field static at the inner boundary", 0);
 
       // Per-population parameters
       for (uint i = 0; i < getObjectWrapper().particleSpecies.size(); i++) {
@@ -69,7 +69,7 @@ namespace SBC {
          Readparameters::add(pop + "_copysphere.VX0", "Bulk velocity of copyspheric distribution function in X direction (m/s)", 0.0);
          Readparameters::add(pop + "_copysphere.VY0", "Bulk velocity of copyspheric distribution function in X direction (m/s)", 0.0);
          Readparameters::add(pop + "_copysphere.VZ0", "Bulk velocity of copyspheric distribution function in X direction (m/s)", 0.0);
-         Readparameters::add(pop + "_copysphere.fluffiness", "Inertia of boundary smoothing when copying neighbour's moments and velocity distributions " "(0=completely constant boundaries, 1=neighbours are interpolated immediately).", 0);
+         Readparameters::add(pop + "_copysphere.fluffiness", "Inertia of boundary smoothing when copying neighbour's moments and velocity distributions (0=completely constant boundaries, 1=neighbours are interpolated immediately).", 0);
       }
    }
 
