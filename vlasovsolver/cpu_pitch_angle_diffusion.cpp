@@ -149,13 +149,13 @@ void pitchAngleDiffusion(
          SpatialCell& cell                  = *mpiGrid[CellID];
          const Real* parameters             = cell.get_block_parameters(popID);
          const vmesh::LocalID* nBlocks      = cell.get_velocity_grid_length(popID);
-         const size_t meshID = getObjectWrapper().particleSpecies[popID].velocityMesh;
+         const size_t meshID = getObjectWrapper().particleSpecies[popID]->velocityMesh;
          const vmesh::MeshParameters& vMesh = vmesh::getMeshWrapper()->velocityMeshes->at(meshID);
 
          // Ensure mass conservation
          Realf density_pre_adjust  = 0.0;
          Realf density_post_adjust = 0.0;
-         if (getObjectWrapper().particleSpecies[popID].sparse_conserve_mass) {
+         if (getObjectWrapper().particleSpecies[popID]->sparse_conserve_mass) {
             Vec vectorSum {0};
             Vec vectorAdd {0};
             for (size_t i=0; i<cell.get_number_of_velocity_blocks(popID)*WID3/VECL; ++i) {
@@ -367,7 +367,7 @@ void pitchAngleDiffusion(
          } // End Time loop
 
          // Ensure mass conservation
-         if (getObjectWrapper().particleSpecies[popID].sparse_conserve_mass) {
+         if (getObjectWrapper().particleSpecies[popID]->sparse_conserve_mass) {
             Vec vectorSum {0};
             Vec vectorAdd {0};
             for (size_t i=0; i<cell.get_number_of_velocity_blocks(popID)*WID3/VECL; ++i) {

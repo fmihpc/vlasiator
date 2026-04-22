@@ -22,6 +22,10 @@
 
 #include "readparameters.h"
 #include "CLI11.hpp"
+#include "common.h"
+#include "object_wrapper.h"
+#include "projects/project.h"
+#include <algorithm>
 
 using namespace std;
 // namespace PO = boost::program_options;
@@ -29,10 +33,10 @@ using namespace std;
 // Initialize static member of class ReadParameters
 bool Readparameters::helpRequested = false;
 bool Readparameters::versionRequested = false;
-
-CLI::App app{"Usage: main [options (options given on the command line override "
-                                                 "options given everywhere else)], where options are:"};
-
+vector<string> Readparameters::populations = {};
+CLI::App app_new{"Usage: main [options (options given on the command line override "
+                 "options given everywhere else)], where options are:"};
+CLI::App* Readparameters::app = &app_new;
 // PO::options_description* Readparameters::descriptions = NULL;
 // PO::variables_map* Readparameters::variables = NULL;
 
@@ -60,26 +64,19 @@ Readparameters::Readparameters(int cmdargc, char* cmdargv[]) {
    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
    if (rank == MASTER_RANK) {
-      app=app;
       // variables = new PO::variables_map;
       addDefaultParameters();
-      app->set_config("--config");
+      app->set_config("--run_config");
 
       // Read options from command line, first time for help message parsing, second time in parse() below.
       // PO::store(PO::command_line_parser(argc, argv).options(*descriptions).allow_unregistered().run(), *variables);
       // PO::notify(*variables);
-
-      try {                                                                                                              \
-          app->parse(argc,argv);
-      } catch(const CLI::ParseError &e) {                                                                                \
-          app->exit(e);                                                                                          \
-      }
    }
    MPI_Bcast(&Readparameters::helpRequested, sizeof(bool), MPI_BYTE, 0, MPI_COMM_WORLD);
 }
 
 Readparameters::~Readparameters() {
-  delete app;
+   // delete app;
 }
 
 /** Add a new composing input parameter.
@@ -123,7 +120,7 @@ bool Readparameters::versionMessage() {
    int rank;
    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
    if (rank == MASTER_RANK) {
-      if (&Readparameters::versionRequested) {
+      if (Readparameters::versionRequested) {
          printVersion();
          return true;
       }
@@ -132,21 +129,15 @@ bool Readparameters::versionMessage() {
    return true;
 }
 
-
 /** Helper wrapper function to get version info
    @return std string with the version information
  */
-std::string Readparameters::versionInfo() {
-   return getVersion();
-}
+std::string Readparameters::versionInfo() { return getVersion(); }
 
 /** Helper wrapper function to get the config info
    @return std string with the config information
  */
-std::string Readparameters::configInfo() {
-   return getConfig(run_config_file_name.c_str());
-}
-
+std::string Readparameters::configInfo() { return getConfig(run_config_file_name.c_str()); }
 
 /** Request Parameters to reparse input file(s). This function needs to be
  * called after new options have been added via Parameters:add functions.
@@ -157,6 +148,111 @@ std::string Readparameters::configInfo() {
  * @param allowUnknown true if unregistered options are parsed without error.
  * @return True if input file(s) were parsed successfully.
  */
+void Readparameters::parse(bool main) {
+   int rank;
+   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+   if (rank == MASTER_RANK) {
+      try {
+
+         // app->allow_config_extras();
+         app->parse(argc, argv);
+
+
+         string conf1 = app->config_to_str();
+         int confsize1 = conf1.size();
+
+      } catch (const CLI::ParseError& e) {
+         app->exit(e);
+      }
+   }
+  
+   // if (main) {
+
+std::string conf;
+int confsize;
+
+if (rank == MASTER_RANK) {
+    conf = app->config_to_str();
+    confsize = conf.size();
+
+}
+
+/* One thread per rank performs MPI calls */
+// #pragma omp master
+// {
+    /* Broadcast size */
+    MPI_Bcast(&confsize, 1, MPI_INT,
+              MASTER_RANK, MPI_COMM_WORLD);
+
+    /* Non-root ranks allocate space */
+    if (rank != MASTER_RANK) {
+        conf.resize(confsize);
+    }
+
+    /* Broadcast data */
+    MPI_Bcast(conf.data(), confsize, MPI_CHAR,
+              MASTER_RANK, MPI_COMM_WORLD);
+// }
+// #pragma omp barrier
+      if (rank != MASTER_RANK) {
+         stringstream strs(conf);
+         std::istream_iterator<string> it(strs);
+         std::istream_iterator<string> end;
+         std::string parsed_conf = "";
+         for (it = it; it != end; ++it) {
+            // lists/vectors in the config are parsed to have a space between the items
+            // since strings are parsed with quotes, we can prevent adding " --" to items inside the list
+            // by checking if the first character is an alphabet.
+            if (std::isalpha((*it).at(0))) {
+               parsed_conf.append(" --" + *it);
+            } else {
+               parsed_conf.append(*it);
+            }
+         }
+
+         // std::replace(parsed_conf.begin(), parsed_conf.end(), '"','\0' );
+         parsed_conf.erase(remove(parsed_conf.begin(), parsed_conf.end(), '"'), parsed_conf.end());
+         std::cout << parsed_conf << std::endl;
+         // app->allow_extras();
+         // string part = " --ParticlePopulations=[proton]";
+         // app->parse(parsed_conf + part);
+         // app->remove_option(app->get_option("--ParticlePopulations"));
+         app->allow_extras(!main);
+         // getObjectWrapper().project->addParameters();
+         //
+
+         // projects::createProject();
+
+
+
+
+         // std::cout << "CSTR=" << parsed_conf << std::endl;
+         app->parse(parsed_conf);
+
+         // // getObjectWrapper().project->getParameters();
+         // auto subs = app->get_subcommands();
+         // auto opts1 = app->get_options();
+         // for (auto opt : opts1) {
+         //    std::cout << "OPTION=" << opt->get_name() << std::endl;
+         // }
+         // std::cout << "SUBSSIZE=" << subs.size() << std::endl;
+         // string last_name;
+         // for (auto sub : subs) {
+         //    if (last_name == sub->get_name()) {
+         //       continue;
+         //    }
+         //    auto opts = sub->get_options();
+         //    std::cout << "OPTSIZE=" << opts.size() << std::endl;
+         //    std::cout << sub->get_name() << std::endl;
+         //    for (auto opt : opts) {
+         //       std::cout << "SUBCOM=" << sub->get_name() << "      OPTION=" << opt->get_name() << std::endl;
+         //    }
+         //    last_name = sub->get_name();
+         // }
+         // abort();
+      }
+   // }
+}
 // bool Readparameters::parse(const bool needsRunConfig, const bool allowUnknown) {
 //
 //    int rank;
@@ -203,7 +299,8 @@ std::string Readparameters::configInfo() {
 //             PO::notify(*variables);
 //             global_config_file.close();
 //          } else {
-//             cerr << __FILE__ << ":" << __LINE__ << "Couldn't open or read global config file " + global_config_file_name
+//             cerr << __FILE__ << ":" << __LINE__ << "Couldn't open or read global config file " +
+//             global_config_file_name
 //                  << endl;
 //             MPI_Abort(MPI_COMM_WORLD, 1);
 //          }
@@ -333,8 +430,14 @@ void Readparameters::addDefaultParameters() {
    int rank;
    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
    if (rank == MASTER_RANK) {
-      Readparameters::add("help", "print this help message",Readparameters::helpRequested);
-      Readparameters::add("version", "print version information",Readparameters::versionRequested);
+      app->remove_option(app->get_help_ptr());
+      Readparameters::add_flag("--help", "print this help message", Readparameters::helpRequested);
+      // std::cout << "INSIDE DEFAULT PARAM ADD" << std::endl;
+      // Readparameters::app->get_option("--help")->each([](const string){
+      //   std::cout << "test" << std::endl;
+      //   Readparameters::helpRequested=true;
+      // });
+      Readparameters::add_flag("--version", "print version information", Readparameters::versionRequested);
 
       // // Parameters which set the names of the configuration file(s):
       // descriptions->add_options()(

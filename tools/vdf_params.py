@@ -9,12 +9,12 @@ q =  1.602177e-19 # C
 
 # enter parameters in SI!!!
 particle_mass = 1*mp       # kg
-density = 1e6              # m^-3
+density = 2e6              # m^-3
 temperature = 5e5          # K
 vmean = 5e5                # m/s
-vmin = -1.2e6                # m/s
-vmax =  1.2e6                # m/s
-n_blocks = 15
+vmin = -2.0e6                # m/s
+vmax =  2.0e6                # m/s
+n_blocks = 50
 block_width = 4
 sparsity_threshold = 1e-15 # s^3/m^6
 

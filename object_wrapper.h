@@ -45,14 +45,16 @@ namespace projects {
 struct ObjectWrapper {
    ObjectWrapper() { }
 
-   std::vector<species::Species> particleSpecies;           /**< Parameters for all particle species.*/
+   std::vector<species::Species*> particleSpecies;           /**< Parameters for all particle species.*/
    projects::Project*                    project;           /**< Simulated project.*/
    SysBoundary sysBoundaryContainer;                        /**< Container for sysboundaries.*/
 
    bool addParameters();                                    /**< Add config file parameters for objects held in this wrapper */
    bool addPopulationParameters();                          /**< After parsing the names of populations, create parameters for each of them */
    bool getPopulationParameters();                          /**< Use parsed config file parameters for objects held in this wrapper */
+   bool addHelp(); 
 
+   void initpop(const std::string pop);
  private:
    ObjectWrapper(const ObjectWrapper& ow);
    ObjectWrapper& operator=(const ObjectWrapper& ow);

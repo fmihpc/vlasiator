@@ -46,21 +46,21 @@ namespace projects {
 
     void Larmor::addParameters() {
       typedef Readparameters RP;
-      RP::add("Larmor.BX0", "Background field value (T)", 0.0);
-      RP::add("Larmor.BY0", "Background field value (T)", 0.0);
-      RP::add("Larmor.BZ0", "Background field value (T)", 3.0e-9);
-      RP::add("Larmor.VX0", "Bulk velocity in x", 0.0);
-      RP::add("Larmor.VY0", "Bulk velocity in y", 0.0);
-      RP::add("Larmor.VZ0", "Bulk velocuty in z", 0.0);
-      RP::add("Larmor.rho", "Number density (m^-3)", 1.0e7);
-      RP::add("Larmor.Temperature", "Temperature (K)", 2.0e6);
-      RP::add("Larmor.maxwCutoff", "Cutoff for the maxwellian distribution", 1e-12);
-      RP::add("Larmor.Scale_x", "Scale length in x (m)", 2.0e6);
-      RP::add("Larmor.Scale_y", "Scale length in y (m)", 2.0e6);
+      RP::add("Larmor.BX0", "Background field value (T)",this->BX0);
+      RP::add("Larmor.BY0", "Background field value (T)",this->BY0);
+      RP::add("Larmor.BZ0", "Background field value (T)",this->BZ0);
+      RP::add("Larmor.VX0", "Bulk velocity in x",this->VX0);
+      RP::add("Larmor.VY0", "Bulk velocity in y",this->VY0);
+      RP::add("Larmor.VZ0", "Bulk velocuty in z",this->VZ0);
+      RP::add("Larmor.rho", "Number density (m^-3)",this->DENSITY);
+      RP::add("Larmor.Temperature", "Temperature (K)",this->TEMPERATURE);
+      RP::add("Larmor.maxwCutoff", "Cutoff for the maxwellian distribution",this->maxwCutoff);
+      RP::add("Larmor.Scale_x", "Scale length in x (m)",this->SCA_X);
+      RP::add("Larmor.Scale_y", "Scale length in y (m)",this->SCA_Y);
     }
 
     void Larmor::getParameters() {
-       Project::getParameters();
+       // Project::getParameters();
       typedef Readparameters RP;
 
       if(getObjectWrapper().particleSpecies.size() > 1) {
@@ -91,7 +91,7 @@ namespace projects {
       const Real y  = cell->parameters[CellParams::YCRD] + 0.5*cell->parameters[CellParams::DY];
       // const Real z  = cell->parameters[CellParams::ZCRD] + 0.5*cell->parameters[CellParams::DZ];
 
-      const Real mass = getObjectWrapper().particleSpecies[popID].mass;
+      const Real mass = getObjectWrapper().particleSpecies[popID]->mass;
       Real initRho = this->DENSITY;
       Real initT = this->TEMPERATURE;
       const Real initV0X = this->VX0;

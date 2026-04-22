@@ -41,26 +41,26 @@ namespace projects {
 
    void Shock::addParameters() {
       typedef Readparameters RP;
-      RP::add("Shock.BX0", "Background field value (T)", 1.0e-9);
-      RP::add("Shock.BY0", "Background field value (T)", 2.0e-9);
-      RP::add("Shock.BZ0", "Background field value (T)", 3.0e-9);
-      RP::add("Shock.EX0", "Background electric field", 0.0);
-      RP::add("Shock.VX0", "Bulk velocity in x", 0.0);
-      RP::add("Shock.VY0", "Bulk velocity in y", 0.0);
-      RP::add("Shock.VZ0", "Bulk velocuty in z", 0.0);
-      RP::add("Shock.rho", "Number density (m^-3)", 1.0e7);
-      RP::add("Shock.Temperature", "Temperature (K)", 2.0e6);
-      RP::add("Shock.magPertAmp", "Amplitude of the magnetic perturbation", 1.0e-9);
-      RP::add("Shock.densityPertAmp", "Amplitude factor of the density perturbation", 0.1);
-      RP::add("Shock.velocityPertAmp", "Amplitude of the velocity perturbation", 1.0e6);
-      RP::add("Shock.maxwCutoff", "Cutoff for the maxwellian distribution", 1e-12);
-      RP::add("Shock.Scale_x", "Scale length in x (m)", 2.0e6);
-      RP::add("Shock.Scale_y", "Scale length in y (m)", 2.0e6);
-      RP::add("Shock.Sharp_Y", "Sharpness of tannh", 0.1);
+      RP::add("Shock.BX0", "Background field value (T)",this->BX0);
+      RP::add("Shock.BY0", "Background field value (T)",this->BY0);
+      RP::add("Shock.BZ0", "Background field value (T)",this->BZ0);
+      RP::add("Shock.EX0", "Background electric field",this->EX0);
+      RP::add("Shock.VX0", "Bulk velocity in x",this->VX0);
+      RP::add("Shock.VY0", "Bulk velocity in y",this->VY0);
+      RP::add("Shock.VZ0", "Bulk velocuty in z",this->VZ0);
+      RP::add("Shock.rho", "Number density (m^-3)",this->DENSITY);
+      RP::add("Shock.Temperature", "Temperature (K)",this->TEMPERATURE);
+      RP::add("Shock.magPertAmp", "Amplitude of the magnetic perturbation",this->magPertAmp);
+      RP::add("Shock.densityPertAmp", "Amplitude factor of the density perturbation",this->densityPertAmp);
+      RP::add("Shock.velocityPertAmp", "Amplitude of the velocity perturbation",this->velocityPertAmp);
+      RP::add("Shock.maxwCutoff", "Cutoff for the maxwellian distribution",this->maxwCutoff);
+      RP::add("Shock.Scale_x", "Scale length in x (m)",this->SCA_X);
+      RP::add("Shock.Scale_y", "Scale length in y (m)",this->SCA_Y);
+      RP::add("Shock.Sharp_Y", "Sharpness of tannh",this->Sharp_Y);
    }
 
    void Shock::getParameters() {
-      Project::getParameters();
+      // Project::getParameters();
       typedef Readparameters RP;
 
       if(getObjectWrapper().particleSpecies.size() > 1) {
@@ -91,7 +91,7 @@ namespace projects {
       ) const {
       //const speciesParameters& sP = this->speciesParams[popID];
 
-      const Real mass = getObjectWrapper().particleSpecies[popID].mass;
+      const Real mass = getObjectWrapper().particleSpecies[popID]->mass;
       Real initRho = this->DENSITY;
       Real initT = this->TEMPERATURE;
       const Real initV0X = this->VX0;

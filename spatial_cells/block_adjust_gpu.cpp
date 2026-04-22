@@ -49,7 +49,7 @@ void update_velocity_block_content_lists(
    }
 
    // Consider mass loss evaluation?
-   const bool gatherMass = getObjectWrapper().particleSpecies[popID].sparse_conserve_mass;
+   const bool gatherMass = getObjectWrapper().particleSpecies[popID]->sparse_conserve_mass;
 
    const gpuStream_t baseStream = gpu_getStream();
    // Allocate buffers for GPU operations
@@ -361,7 +361,7 @@ void adjust_velocity_blocks_in_cells(
 
    // Evaluate velocity halo for local content blocks
    phiprof::Timer blockHaloTimer {"Block halo batch kernels"};
-   const int addWidthV = getObjectWrapper().particleSpecies[popID].sparseBlockAddWidthV;
+   const int addWidthV = getObjectWrapper().particleSpecies[popID]->sparseBlockAddWidthV;
    if (addWidthV!=1) {
       std::cerr<<"Error! "<<__FILE__<<":"<<__LINE__<<" Halo extent is not 1, unsupported size."<<std::endl;
       abort();
@@ -636,7 +636,7 @@ void adjust_velocity_blocks_in_cells(
          SC->checkMesh(popID);
          #endif
 
-         if (getObjectWrapper().particleSpecies[popID].sparse_conserve_mass) {
+         if (getObjectWrapper().particleSpecies[popID]->sparse_conserve_mass) {
             // Block adjustment can only add empty blocks or delete existing blocks,
             // So post_adjust density must be equal to pre_adjust density minus mass loss.
             SC->density_post_adjust = SC->density_pre_adjust - (GET_POINTER(gpuMemoryManager, Real, host_massLoss))[i];
@@ -654,7 +654,7 @@ void adjust_velocity_blocks_in_cells(
       } // end cell loop
    } // end parallel region
 
-   if ( (getObjectWrapper().particleSpecies[popID].sparse_conserve_mass)
+   if ( (getObjectWrapper().particleSpecies[popID]->sparse_conserve_mass)
         && (largestBlocksToChange > 0) ) {
       phiprof::Timer massConservationTimer {"GPU batch conserve mass"};
       CHK_ERR( gpuMemcpyAsync(GET_POINTER(gpuMemoryManager, Real, dev_massLoss), GET_POINTER(gpuMemoryManager, Real, host_massLoss), nCells*sizeof(Real), gpuMemcpyHostToDevice, baseStream) );

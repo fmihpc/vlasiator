@@ -43,20 +43,20 @@ namespace projects {
 
    void verificationLarmor::addParameters() {
       typedef Readparameters RP;
-      RP::add("VerificationLarmor.BX0", "Background field value (T)", 0.0);
-      RP::add("VerificationLarmor.BY0", "Background field value (T)", 0.0);
-      RP::add("VerificationLarmor.BZ0", "Background field value (T)", 0.0);
-      RP::add("VerificationLarmor.VX0", "Bulk velocity in x", 0.0);
-      RP::add("VerificationLarmor.VY0", "Bulk velocity in y", 0.0);
-      RP::add("VerificationLarmor.VZ0", "Bulk velocity in z", 0.0);
-      RP::add("VerificationLarmor.X0", "Initial Position", 0.0);
-      RP::add("VerificationLarmor.Y0", "Initial Position", 0.0);
-      RP::add("VerificationLarmor.Z0", "Initial Position", 0.0);
-      RP::add("VerificationLarmor.rho", "Number density (m^-3)", 1.0e7);
+      RP::add("VerificationLarmor.BX0", "Background field value (T)",this->BX0);
+      RP::add("VerificationLarmor.BY0", "Background field value (T)",this->BY0);
+      RP::add("VerificationLarmor.BZ0", "Background field value (T)",this->BZ0);
+      RP::add("VerificationLarmor.VX0", "Bulk velocity in x",this->VX0);
+      RP::add("VerificationLarmor.VY0", "Bulk velocity in y",this->VY0);
+      RP::add("VerificationLarmor.VZ0", "Bulk velocity in z",this->VZ0);
+      RP::add("VerificationLarmor.X0", "Initial Position",this->X0);
+      RP::add("VerificationLarmor.Y0", "Initial Position",this->Y0);
+      RP::add("VerificationLarmor.Z0", "Initial Position",this->Z0);
+      RP::add("VerificationLarmor.rho", "Number density (m^-3)",this->DENSITY);
    }
 
    void verificationLarmor::getParameters() {
-      Project::getParameters();
+      // Project::getParameters();
       typedef Readparameters RP;
 
       if(getObjectWrapper().particleSpecies.size() > 1) {
@@ -86,7 +86,7 @@ namespace projects {
       const Real dy = cell->parameters[CellParams::DY];
       const Real z  = cell->parameters[CellParams::ZCRD];
       const Real dz = cell->parameters[CellParams::DZ];
-      const Real mass = getObjectWrapper().particleSpecies[popID].mass;
+      const Real mass = getObjectWrapper().particleSpecies[popID]->mass;
       Real initRho = this->DENSITY;
 
       // NOTE: This fill function does not have a GPU-supported version.

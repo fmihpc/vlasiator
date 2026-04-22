@@ -35,18 +35,18 @@ using namespace std;
 
 namespace projects {
    
-   bool ReadGaussianPopulation::addParameters(const std::string& prefix) {
+   bool ReadGaussianPopulation::addParameters(const std::string& prefix,projects::GaussianPopulation& populations) {
       // Add input variables to config file reader
       typedef Readparameters RP;
-      RP::add(prefix+".n", "Number of populations to use", 0);
-      RP::add(prefix+".rho", "Number density (m^-3)");
-      RP::add(prefix+".rhoPertAbsAmp", "Absolute amplitude of the density perturbation");
-      RP::add(prefix+".Tx", "Temperature (K)");
-      RP::add(prefix+".Ty", "Temperature");
-      RP::add(prefix+".Tz", "Temperature");
-      RP::add(prefix+".Vx", "Bulk velocity x component (m/s)");
-      RP::add(prefix+".Vy", "Bulk velocity y component (m/s)");
-      RP::add(prefix+".Vz", "Bulk velocity z component (m/s)");
+      RP::add(prefix+".n", "Number of populations to use", populations.numberOfPopulations);
+      RP::add(prefix+".rho", "Number density (m^-3)",populations.rho);
+      RP::add(prefix+".rhoPertAbsAmp", "Absolute amplitude of the density perturbation",populations.rhoPertAbsAmp);
+      RP::add(prefix+".Tx", "Temperature (K)",populations.Tx);
+      RP::add(prefix+".Ty", "Temperature",populations.Ty);
+      RP::add(prefix+".Tz", "Temperature",populations.Tz);
+      RP::add(prefix+".Vx", "Bulk velocity x component (m/s)",populations.Vx);
+      RP::add(prefix+".Vy", "Bulk velocity y component (m/s)",populations.Vy);
+      RP::add(prefix+".Vz", "Bulk velocity z component (m/s)",populations.Vz);
       return true;
    }
 

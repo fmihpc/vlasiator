@@ -47,48 +47,48 @@ namespace projects {
    
    void Shocktest::addParameters(){
       typedef Readparameters RP;
-      RP::add("Shocktest.rho1", "Number density, left state (m^-3)", 0.0);
-      RP::add("Shocktest.rho2", "Number density, right state (m^-3)", 0.0);
-      RP::add("Shocktest.T1", "Temperature, left state (K)", 0.0);
-      RP::add("Shocktest.T2", "Temperature, right state (K)", 0.0);
-      RP::add("Shocktest.Vx1", "Bulk velocity x component, left state (m/s)", 0.0);
-      RP::add("Shocktest.Vx2", "Bulk velocity x component, right state (m/s)", 0.0);
-      RP::add("Shocktest.Vy1", "Bulk velocity y component, left state (m/s)", 0.0);
-      RP::add("Shocktest.Vy2", "Bulk velocity y component, right state (m/s)", 0.0);
-      RP::add("Shocktest.Vz1", "Bulk velocity z component, left state (m/s)", 0.0);
-      RP::add("Shocktest.Vz2", "Bulk velocity z component, right state (m/s)", 0.0);
-      RP::add("Shocktest.Bx1", "Magnetic field x component, left state (T)", 0.0);
-      RP::add("Shocktest.Bx2", "Magnetic field x component, right state (T)", 0.0);
-      RP::add("Shocktest.By1", "Magnetic field y component, left state (T)", 0.0);
-      RP::add("Shocktest.By2", "Magnetic field y component, right state (T)", 0.0);
-      RP::add("Shocktest.Bz1", "Magnetic field z component, left state (T)", 0.0);
-      RP::add("Shocktest.Bz2", "Magnetic field z component, right state (T)", 0.0);
+      RP::add("Shocktest.rho1", "Number density, left state (m^-3)",this->rho[this->LEFT]);
+      RP::add("Shocktest.rho2", "Number density, right state (m^-3)",this->rho[this->RIGHT]);
+      RP::add("Shocktest.T1", "Temperature, left state (K)",this->T[this->LEFT]);
+      RP::add("Shocktest.T2", "Temperature, right state (K)",this->T[this->RIGHT]);
+      RP::add("Shocktest.Vx1", "Bulk velocity x component, left state (m/s)",this->Vx[this->LEFT]);
+      RP::add("Shocktest.Vx2", "Bulk velocity x component, right state (m/s)",this->Vx[this->RIGHT]);
+      RP::add("Shocktest.Vy1", "Bulk velocity y component, left state (m/s)",this->Vy[this->LEFT]);
+      RP::add("Shocktest.Vy2", "Bulk velocity y component, right state (m/s)",this->Vy[this->RIGHT]);
+      RP::add("Shocktest.Vz1", "Bulk velocity z component, left state (m/s)",this->Vz[this->LEFT]);
+      RP::add("Shocktest.Vz2", "Bulk velocity z component, right state (m/s)",this->Vz[this->RIGHT]);
+      RP::add("Shocktest.Bx1", "Magnetic field x component, left state (T)",this->Bx[this->LEFT]);
+      RP::add("Shocktest.Bx2", "Magnetic field x component, right state (T)",this->Bx[this->RIGHT]);
+      RP::add("Shocktest.By1", "Magnetic field y component, left state (T)",this->By[this->LEFT]);
+      RP::add("Shocktest.By2", "Magnetic field y component, right state (T)",this->By[this->RIGHT]);
+      RP::add("Shocktest.Bz1", "Magnetic field z component, left state (T)",this->Bz[this->LEFT]);
+      RP::add("Shocktest.Bz2", "Magnetic field z component, right state (T)",this->Bz[this->RIGHT]);
    }
    
    void Shocktest::getParameters(){
-      Project::getParameters();
+      // Project::getParameters();
 
       if(getObjectWrapper().particleSpecies.size() > 1) {
          std::cerr << "The selected project does not support multiple particle populations! Aborting in " << __FILE__ << " line " << __LINE__ << std::endl;
          abort();
       }
-      this->rho[this->LEFT] = {NAN};
-      this->T[this->LEFT] = {NAN};
-      this->Vx[this->LEFT] = {NAN};
-      this->Vy[this->LEFT] = {NAN};
-      this->Vz[this->LEFT] = {NAN};
-      this->Bx[this->LEFT] = {NAN};
-      this->By[this->LEFT] = {NAN};
-      this->Bz[this->LEFT] = {NAN};
-      this->rho[this->RIGHT] = {NAN};
-      this->T[this->RIGHT] = {NAN};
-      this->Vx[this->RIGHT] = {NAN};
-      this->Vy[this->RIGHT] = {NAN};
-      this->Vz[this->RIGHT] = {NAN};
-      this->Bx[this->RIGHT] = {NAN};
-      this->By[this->RIGHT] = {NAN};
-      this->Bz[this->RIGHT] = {NAN};
-
+      // this->rho[this->LEFT] = {NAN};
+      // this->T[this->LEFT] = {NAN};
+      // this->Vx[this->LEFT] = {NAN};
+      // this->Vy[this->LEFT] = {NAN};
+      // this->Vz[this->LEFT] = {NAN};
+      // this->Bx[this->LEFT] = {NAN};
+      // this->By[this->LEFT] = {NAN};
+      // this->Bz[this->LEFT] = {NAN};
+      // this->rho[this->RIGHT] = {NAN};
+      // this->T[this->RIGHT] = {NAN};
+      // this->Vx[this->RIGHT] = {NAN};
+      // this->Vy[this->RIGHT] = {NAN};
+      // this->Vz[this->RIGHT] = {NAN};
+      // this->Bx[this->RIGHT] = {NAN};
+      // this->By[this->RIGHT] = {NAN};
+      // this->Bz[this->RIGHT] = {NAN};
+      //
       typedef Readparameters RP;
       //RP::get("Shocktest.rho1", this->rho[this->LEFT]);
       //RP::get("Shocktest.rho2", this->rho[this->RIGHT]);
@@ -118,7 +118,7 @@ namespace projects {
       // const Real y  = cell->parameters[CellParams::YCRD] + 0.5*cell->parameters[CellParams::DY];
       // const Real z  = cell->parameters[CellParams::ZCRD] + 0.5*cell->parameters[CellParams::DZ];
 
-      const Real mass = getObjectWrapper().particleSpecies[popID].mass;
+      const Real mass = getObjectWrapper().particleSpecies[popID]->mass;
       cint side = (x < 0.0) ? this->LEFT : this->RIGHT;
       Real initRho = this->rho[side];
       Real initT = this->T[side];
@@ -176,7 +176,7 @@ namespace projects {
       // const Real y  = cell->parameters[CellParams::YCRD] + 0.5*cell->parameters[CellParams::DY];
       // const Real z  = cell->parameters[CellParams::ZCRD] + 0.5*cell->parameters[CellParams::DZ];
 
-      const Real mass = getObjectWrapper().particleSpecies[popID].mass;
+      const Real mass = getObjectWrapper().particleSpecies[popID]->mass;
       cint side = (x < 0.0) ? this->LEFT : this->RIGHT;
       Real initRho = this->rho[side];
       Real initT = this->T[side];

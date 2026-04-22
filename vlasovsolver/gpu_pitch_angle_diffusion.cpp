@@ -586,7 +586,7 @@ void pitchAngleDiffusion(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian
    }
 
    // Load CPU data
-   const size_t meshID = getObjectWrapper().particleSpecies[popID].velocityMesh;
+   const size_t meshID = getObjectWrapper().particleSpecies[popID]->velocityMesh;
    const vmesh::MeshParameters& vMeshParams = vmesh::getMeshWrapper()->velocityMeshes->at(meshID);
 
    const Real Vmax   = 2*sqrt(3)*vMeshParams.meshLimits[1];
@@ -613,7 +613,7 @@ void pitchAngleDiffusion(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian
    CHK_ERR( gpuMemcpy(dev_bulkVZ, host_bulkVZ, numberOfLocalCells*sizeof(Real), gpuMemcpyHostToDevice) );
    CHK_ERR( gpuMemcpy(GET_POINTER(gpuMemoryManager, vmesh::VelocityBlockContainer*, dev_VBCs), GET_POINTER(gpuMemoryManager, vmesh::VelocityBlockContainer*, host_VBCs), numberOfLocalCells*sizeof(vmesh::VelocityBlockContainer*), gpuMemcpyHostToDevice) );
 
-   if (getObjectWrapper().particleSpecies[popID].sparse_conserve_mass) {
+   if (getObjectWrapper().particleSpecies[popID]->sparse_conserve_mass) {
       dim3 threadsPerBlock_massConservation(WID, WID, WID);
       int blocksPerGrid_massConservation = numberOfLocalCells;
 
@@ -837,7 +837,7 @@ void pitchAngleDiffusion(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian
 
    } // End Time loop
 
-   if (getObjectWrapper().particleSpecies[popID].sparse_conserve_mass) {
+   if (getObjectWrapper().particleSpecies[popID]->sparse_conserve_mass) {
       dim3 threadsPerBlock_massConservation(WID, WID, WID);
       int blocksPerGrid_massConservation = numberOfLocalCells;
 

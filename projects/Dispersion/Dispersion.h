@@ -47,7 +47,7 @@ namespace projects {
       virtual ~Dispersion();
       
       virtual bool initialize(void) override;
-      static void addParameters(void);
+      void addParameters(void);
       virtual void getParameters(void) override;
       virtual void setProjectBField(
          FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
@@ -71,7 +71,7 @@ namespace projects {
       Real angleXY;
       Real angleXZ;
       Real maxwCutoff;
-      std::vector<DispersionSpeciesParameters> speciesParams;
+      std::vector<DispersionSpeciesParameters*> speciesParams;
       uint seed;
       
       static Real rndRho, rndVel[3];

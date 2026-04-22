@@ -145,7 +145,7 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
    // In restart we just write velocity grids for all cells.
    // First write global Ids of those cells which write velocity blocks (here: all cells):
    map<string,string> attribs;
-   const string popName      = getObjectWrapper().particleSpecies[popID].name;
+   const string popName      = getObjectWrapper().particleSpecies[popID]->name;
    const string spatMeshName = "SpatialGrid";
    attribs["name"] = popName;
    bool success=true;
@@ -174,7 +174,7 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
    // in blocks and cells. Note that this is not the physical extent of that
    // space, but a purely numerical bounding box.
    uint64_t bbox[6];
-   const size_t meshID = getObjectWrapper().particleSpecies[popID].velocityMesh;
+   const size_t meshID = getObjectWrapper().particleSpecies[popID]->velocityMesh;
    bbox[0] = vmesh::getMeshWrapper()->velocityMeshes->at(meshID).gridLength[0];
    bbox[1] = vmesh::getMeshWrapper()->velocityMeshes->at(meshID).gridLength[1];
    bbox[2] = vmesh::getMeshWrapper()->velocityMeshes->at(meshID).gridLength[2];
@@ -183,7 +183,7 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
    bbox[5] = vmesh::getMeshWrapper()->velocityMeshes->at(meshID).blockLength[2];
 
    attribs.clear();
-   attribs["mesh"] = getObjectWrapper().particleSpecies[popID].name;
+   attribs["mesh"] = getObjectWrapper().particleSpecies[popID]->name;
    attribs["type"] = vlsv::mesh::STRING_UCD_AMR;
 
    // stringstream is necessary here to correctly convert refLevelMaxAllowed (hardcoded to zero now) into a string 

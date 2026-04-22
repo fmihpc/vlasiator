@@ -51,18 +51,18 @@ namespace projects {
 
    void TestHall::addParameters(){
       typedef Readparameters RP;
-      RP::add("TestHall.BX0", "Magnetic field x (T)", 1.0e-9);
-      RP::add("TestHall.BY0", "Magnetic field y (T)", 1.0e-9);
-      RP::add("TestHall.BZ0", "Magnetic field z (T)", 1.0e-9);
-      RP::add("TestHall.VX0", "velocity x (m/s)", -1.0e3);
-      RP::add("TestHall.VY0", "velocity y (m/s)", 1.0e3);
-      RP::add("TestHall.VZ0", "velocity z (m/s)", 1.0e3);
-      RP::add("TestHall.Temperature", "Temperature (K)", 1.0e6);
-      RP::add("TestHall.rho", "Number density (m^-3)", 1.0e6);
+      RP::add("TestHall.BX0", "Magnetic field x (T)",this->BX0);
+      RP::add("TestHall.BY0", "Magnetic field y (T)",this->BY0);
+      RP::add("TestHall.BZ0", "Magnetic field z (T)",this->BZ0);
+      RP::add("TestHall.VX0", "velocity x (m/s)",this->VX0);
+      RP::add("TestHall.VY0", "velocity y (m/s)",this->VY0);
+      RP::add("TestHall.VZ0", "velocity z (m/s)",this->VZ0);
+      RP::add("TestHall.Temperature", "Temperature (K)",this->TEMPERATURE);
+      RP::add("TestHall.rho", "Number density (m^-3)",this->DENSITY);
    }
 
    void TestHall::getParameters(){
-      Project::getParameters();
+      // Project::getParameters();
       typedef Readparameters RP;
 
       if(getObjectWrapper().particleSpecies.size() > 1) {
@@ -89,7 +89,7 @@ namespace projects {
       // const Real y  = cell->parameters[CellParams::YCRD] + 0.5*cell->parameters[CellParams::DY];
       // const Real z  = cell->parameters[CellParams::ZCRD] + 0.5*cell->parameters[CellParams::DZ];
 
-      const Real mass = getObjectWrapper().particleSpecies[popID].mass;
+      const Real mass = getObjectWrapper().particleSpecies[popID]->mass;
       Real initRho = this->DENSITY;
       Real initT = this->TEMPERATURE;
       const Real initV0X = this->VX0;

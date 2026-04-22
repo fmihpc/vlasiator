@@ -40,7 +40,7 @@ namespace projects {
       virtual ~Alfven();
       
       virtual bool initialize(void) override;
-      static void addParameters(void);
+      void addParameters(void);
       virtual void getParameters(void) override;
       virtual void setProjectBField(
          FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
@@ -60,7 +60,7 @@ namespace projects {
       Real ALPHA;
       Real WAVELENGTH;
       Real A_MAG;
-      std::vector<AlfvenSpeciesParameters> speciesParams;
+      std::vector<AlfvenSpeciesParameters*> speciesParams;
    } ; // class Alfven
 } // namespace projects
 

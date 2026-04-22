@@ -93,7 +93,7 @@ namespace spatial_cell {
                neighbor_ptrs.push_back(mpiGrid[neighbor_id]);
             }
 
-            if (getObjectWrapper().particleSpecies[popID].sparse_conserve_mass) {
+            if (getObjectWrapper().particleSpecies[popID]->sparse_conserve_mass) {
                for (size_t i=0; i<cell->get_number_of_velocity_blocks(popID)*WID3; ++i) {
                   density_pre_adjust += cell->get_data(popID)[i];
                }
@@ -101,7 +101,7 @@ namespace spatial_cell {
 
             cell->adjust_velocity_blocks(neighbor_ptrs,popID);
 
-            if (getObjectWrapper().particleSpecies[popID].sparse_conserve_mass) {
+            if (getObjectWrapper().particleSpecies[popID]->sparse_conserve_mass) {
                for (size_t i=0; i<cell->get_number_of_velocity_blocks(popID)*WID3; ++i) {
                   density_post_adjust += cell->get_data(popID)[i];
                }

@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -t 01:30:00        # Run time (hh:mm:ss)
+#SBATCH -t 00:05:00        # Run time (hh:mm:ss)
 #SBATCH --job-name=ctestpackage
 ##SBATCH -A spacephysics 
 #SBATCH --constraint="carrington"
@@ -20,7 +20,7 @@ create_verification_files=0
 reference_dir="/turso/group/spacephysics/vlasiator/testpackage/"
 cd $SLURM_SUBMIT_DIR
 
-bin="/proj/USERNAME/BINARYNAME"
+bin="../vlasiator"
 diffbin="/turso/group/spacephysics/vlasiator/testpackage/vlsvdiff_DP_carrington"
 
 #compare agains which revision

@@ -57,17 +57,17 @@ namespace projects {
 
    void test_fp::addParameters(void){
       typedef Readparameters RP;
-      RP::add("test_fp.V0", "Velocity magnitude (m/s)", 1.0e6);
-      RP::add("test_fp.B0", "Magnetic field value in the non-zero patch (T)", 1.0e-9);
-      RP::add("test_fp.rho", "Number density (m^-3)", 1.0e7);
-      RP::add("test_fp.Temperature", "Temperature (K)", 1.0e-6);
-      RP::add("test_fp.angle", "Orientation of the propagation expressed in pi/4", 0.0);
-      RP::add("test_fp.Bdirection", "Direction of the magnetic field (0:x, 1:y, 2:z, 3:all)", 0);
-      RP::add("test_fp.shear", "Add a shear (if false, V=0.5 everywhere).", true);
+      RP::add("test_fp.V0", "Velocity magnitude (m/s)",this->V0);
+      RP::add("test_fp.B0", "Magnetic field value in the non-zero patch (T)",this->B0);
+      RP::add("test_fp.rho", "Number density (m^-3)",this->DENSITY);
+      RP::add("test_fp.Temperature", "Temperature (K)",this->TEMPERATURE);
+      RP::add("test_fp.angle", "Orientation of the propagation expressed in pi/4",this->ALPHA);
+      RP::add("test_fp.Bdirection", "Direction of the magnetic field (0:x, 1:y, 2:z, 3:all)",this->CASE);
+      RP::add("test_fp.shear", "Add a shear (if false, V=0.5 everywhere).",this->shear);
    }
 
    void test_fp::getParameters(void){
-      Project::getParameters();
+      // Project::getParameters();
       typedef Readparameters RP;
 
       if(getObjectWrapper().particleSpecies.size() > 1) {
@@ -98,7 +98,7 @@ namespace projects {
       const Real y  = cell->parameters[CellParams::YCRD] + 0.5*cell->parameters[CellParams::DY];
       const Real z  = cell->parameters[CellParams::ZCRD] + 0.5*cell->parameters[CellParams::DZ];
 
-      const Real mass = getObjectWrapper().particleSpecies[popID].mass;
+      const Real mass = getObjectWrapper().particleSpecies[popID]->mass;
       Real initRho = this->DENSITY;
       Real initT = this->TEMPERATURE;
 
@@ -156,7 +156,7 @@ namespace projects {
       const Real y  = cell->parameters[CellParams::YCRD] + 0.5*cell->parameters[CellParams::DY];
       const Real z  = cell->parameters[CellParams::ZCRD] + 0.5*cell->parameters[CellParams::DZ];
 
-      const Real mass = getObjectWrapper().particleSpecies[popID].mass;
+      const Real mass = getObjectWrapper().particleSpecies[popID]->mass;
       Real initRho = this->DENSITY;
       Real initT = this->TEMPERATURE;
 

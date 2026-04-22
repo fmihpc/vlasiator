@@ -45,45 +45,34 @@ namespace projects {
 
    void Diffusion::addParameters() {
       typedef Readparameters RP;
-      RP::add("Diffusion.B0", "Background field value (T)", 1.0e-9);
+      RP::add<Real>("Diffusion.B0", "Background field value (T)", this->B0,1.0e-9);
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
 
-         RP::add(pop + "_Diffusion.rho", "Number density (m^-3)", 1.0e7);
-         RP::add(pop + "_Diffusion.Temperature", "Temperature (K)", 2.0e6);
-         RP::add(pop + "_Diffusion.Scale_x", "Scale length in x (m)", 100000.0);
-         RP::add(pop + "_Diffusion.Scale_y", "Scale length in y (m)", 100000.0);
+         const std::string& pop = getObjectWrapper().particleSpecies[i]->name;
+        
+
+         DiffusionSpeciesParameters* sP=new DiffusionSpeciesParameters;
+    
+         this->speciesParams.push_back(sP);
+         RP::add<Real>(pop + "_Diffusion.rho", "Number density (m^-3)",sP->DENSITY ,1.0e7);
+         RP::add<Real>(pop + "_Diffusion.Temperature", "Temperature (K)", sP->TEMPERATURE,2.0e6);
+         RP::add<Real>(pop + "_Diffusion.Scale_x", "Scale length in x (m)", sP->SCA_X,100000.0);
+         RP::add<Real>(pop + "_Diffusion.Scale_y", "Scale length in y (m)", sP->SCA_Y,100000.0);
       }
    }
 
    void Diffusion::getParameters() {
-      Project::getParameters();
 
-      typedef Readparameters RP;
-      //RP::get("Diffusion.B0", this->B0);
-
-      // Per-population parameters
-      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-        const std::string& pop = getObjectWrapper().particleSpecies[i].name;
-        DiffusionSpeciesParameters sP;
-
-        //RP::get(pop + "_Diffusion.rho", sP.DENSITY);
-        //RP::get(pop + "_Diffusion.Temperature", sP.TEMPERATURE);
-        //RP::get(pop + "_Diffusion.Scale_x", sP.SCA_X);
-        //RP::get(pop + "_Diffusion.Scale_y", sP.SCA_Y);
-
-        speciesParams.push_back(sP);
-      }
    }
 
    Realf Diffusion::fillPhaseSpace(spatial_cell::SpatialCell *cell,
                                        const uint popID,
                                        const uint nRequested
       ) const {
-      const DiffusionSpeciesParameters& sP = speciesParams[popID];
-      creal mass = getObjectWrapper().particleSpecies[popID].mass;
+      const DiffusionSpeciesParameters& sP = *speciesParams[popID];
+      creal mass = getObjectWrapper().particleSpecies[popID]->mass;
       // Fetch spatial cell center coordinates
       const Real x  = cell->parameters[CellParams::XCRD] + 0.5*cell->parameters[CellParams::DX];
       const Real y  = cell->parameters[CellParams::YCRD] + 0.5*cell->parameters[CellParams::DY];

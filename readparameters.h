@@ -29,9 +29,11 @@
 #include <iostream>
 #include <limits>
 #include <mpi.h>
+#include <optional>
 #include <stdint.h>
 #include <string>
 #include <typeinfo>
+#include "projects/project.h"
 #include <vector>
 
 #include "common.h"
@@ -60,11 +62,12 @@ public:
    //           desc.c_str());
    //    }
    // }
-
-   template <typename T> static void add(const std::string& name, const std::string& desc, const T& defValue) {
+    template <typename T> static CLI::Option* add_each_lambda(const std::string& name, const std::string& desc, T& defValue,
+        std::function<void(const std::string)> lambda
+                                                    ) {
       int rank;
       MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-      if (rank == MASTER_RANK) {
+      if (rank == MASTER_RANK or true) {
          // std::stringstream ss;
          //
          // static constexpr bool n = (std::is_floating_point<T>::value);
@@ -73,14 +76,194 @@ public:
          // } else {
          //    ss << defValue;
          // }
-         options[name] = "";
-         isOptionParsed[name] = false;
-         app->add_option(
-             name.c_str(), defValue,
-             desc.c_str());
+        options[name] = "";
+        isOptionParsed[name] = false;
+        std::cout << name << std::endl;
+
+        CLI::Option* opt;
+        if (name.find('.') != std::string::npos) {
+
+          auto indx = name.find('.');
+          auto subcom = name.substr(0, indx);
+          auto namein = name.substr(indx + 1, name.size());
+          CLI::App* sub = nullptr;
+          // CLI::CallbackPriority priority = CLI::CallbackPriority::First;
+          //
+          //
+          // if (name=="proton_properties.mass") {
+          //   std::cout << "priority" << std::endl;
+          //   CLI::CallbackPriority priority = CLI::CallbackPriority::Last;
+          // };
+          if (!isOptionParsed[subcom]){
+            
+            sub = app->add_subcommand(subcom, "uhuhh");
+
+          } else {
+            sub = app->get_subcommand(subcom);
+          };
+          if (sub!=nullptr)
+          {
+            std::string dashes="-";
+            if (namein.size() != 1){
+              dashes+="-";
+            }
+            opt=sub->add_option((dashes+namein).c_str(), defValue, desc.c_str())->each(lambda);//->callback_priority(priority)->force_callback();
+            isOptionParsed[subcom]=true;
+          } else {
+          std::cerr << "Something went wrong with adding subcommand "+subcom+"!" << std::endl;
+          abort();
+           };
+        } else {
+
+          opt=app->add_option(("--"+name).c_str(), defValue, desc.c_str())->each(lambda);
+          // app->callback([](){projects::Project::addParameters();});
+        }  
+        return opt;
+         // options[name] = "";
+         // isOptionParsed[name] = false;
+         // app->add_option(
+         //     name.c_str(), defValue,
+             // desc.c_str())->each(lambda);
       }
    }
+  // template <typename T> static void add_each_lambda(const std::string& name, const std::string& desc, const T& defValue,
+  //       std::function<void(const std::string)> lambda
+  //                                                   ) {
+  //     int rank;
+  //     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  //     if (rank == MASTER_RANK) {
+  //        // std::stringstream ss;
+  //        //
+  //        // static constexpr bool n = (std::is_floating_point<T>::value);
+  //        // if (n) {
+  //        //    ss << std::setprecision(std::numeric_limits<double>::digits10 + 1) << defValue;
+  //        // } else {
+  //        //    ss << defValue;
+  //        // }
+  //        options[name] = "";
+  //        isOptionParsed[name] = false;
+  //        app->add_option(
+  //            name.c_str(), defValue,
+  //            desc.c_str())->each(lambda);
+  //     }
+  //  }
+   static CLI::App* get_app(){
+      return app;
+   }
+   template <typename T> static CLI::Option* add(const std::string& name, const std::string& desc,
+       T& value,
+       std::optional<T> defval=std::nullopt, bool join=false, bool required=false
 
+              ) {
+      int rank;
+      MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+      if (rank == MASTER_RANK or true) {
+         
+         // std::stringstream ss;
+         //
+         // static constexpr bool n = (std::is_floating_point<T>::value);
+         // if (n) {
+         //    ss << std::setprecision(std::numeric_limits<double>::digits10 + 1) << defValue;
+         // } else {
+         //    ss << defValue;
+         // }
+      //
+        options[name] = "";
+        isOptionParsed[name] = false;
+        std::cout << name << std::endl;
+        CLI::Option* opt;
+        if (name.find('.') != std::string::npos) {
+
+          auto indx = name.find('.');
+          auto subcom = name.substr(0, indx);
+          auto namein = name.substr(indx + 1, name.size());
+          CLI::App* sub = nullptr;
+          
+          if (!isOptionParsed[subcom]){
+            sub = app->add_subcommand(subcom, "uhuhh");
+          } else {
+            sub = app->get_subcommand(subcom);
+          };
+          if (sub!=nullptr)
+          {
+            std::string dashes="-";
+            if (namein.size() != 1){
+              dashes+="-";
+            }
+            opt = sub->add_option((dashes+namein).c_str(), value, desc.c_str())->capture_default_str(); //->each(lambda);
+            isOptionParsed[subcom]=true;
+          } else {
+          std::cerr << "Something went wrong with adding subcommand "+subcom+"!" << std::endl;
+          abort();
+           };
+        } else {
+          opt=app->add_option(("--"+name).c_str(), value, desc.c_str())->capture_default_str();//->expected(0,-1); //->each(lambda);
+        }
+        if (defval && opt != nullptr){
+            opt->default_val(*defval);
+        } 
+        if (required) {
+          opt->required();
+        }
+        if (join) {
+          opt->join(',');
+        }
+        return opt;
+         // app->add_option(
+         //     name.c_str(), defValue,
+             // desc.c_str());
+      }
+      // std::cerr << "Something went wrong with adding option " << name << std::endl;
+      // abort();
+      // return nullptr;
+   }
+   static string getPops(int i){
+     return populations.at(i);
+   };
+   template <typename T> static void add_flag(const std::string& name, const std::string& desc,  T& defValue) {
+      int rank;
+      MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+      if (rank == MASTER_RANK or true) {
+         // std::stringstream ss;
+         //
+         // static constexpr bool n = (std::is_floating_point<T>::value);
+         // if (n) {
+         //    ss << std::setprecision(std::numeric_limits<double>::digits10 + 1) << defValue;
+         // } else {
+         //    ss << defValue;
+         // }
+      //
+        options[name] = "";
+        isOptionParsed[name] = false;
+        std::cout << name << std::endl;
+        if (name.find('.') != std::string::npos) {
+
+          auto indx = name.find('.');
+          auto subcom = name.substr(0, indx);
+          auto namein = name.substr(indx + 1, name.size());
+          CLI::App* sub = nullptr;
+          
+          if (!isOptionParsed[subcom]){
+            sub = app->add_subcommand(subcom, "uhuhh");
+          } else {
+            sub = app->get_subcommand(subcom);
+          };
+          if (sub!=nullptr)
+          {
+            sub->add_flag(namein.c_str(), defValue, desc.c_str()); //->each(lambda);
+            isOptionParsed[subcom]=true;
+          } else {
+          std::cerr << "Something went wrong with adding subcommand "+subcom+"!" << std::endl;
+          abort();
+           };
+        } else {
+          app->add_flag(name.c_str(), defValue, desc.c_str()); //->each(lambda);
+        }
+         // app->add_option(
+         //     name.c_str(), defValue,
+             // desc.c_str());
+      }
+   }
    /** Get the value of the given parameter added with add().
     * This may be called after having called Parse, and it may be called by any process, in any order.
     * Aborts if given parameter was not found (a parameter passed to get() wasn't add()ed, defaults are ok).
@@ -165,7 +348,9 @@ public:
    static bool isSet(const std::string& name) {
       return(app->get_option_no_throw(name)!=nullptr);
    }
-
+   static CLI::Option* get_option(const std::string& name) {
+      return app->get_option(name);
+   }
 
    static void helpMessage();
 
@@ -175,10 +360,12 @@ public:
    
    static std::string configInfo();
 
-   static bool parse(const bool needsRunConfig = true, const bool allowUnknown = true);
+   static void parse(bool main=false);
 
    static bool helpRequested;
    static bool versionRequested;
+
+   static std::vector<std::string> populations;
 
 private:
    static int argc;    /**< How many entries argv contains.*/
@@ -187,7 +374,6 @@ private:
 
    // static boost::program_options::options_description* descriptions;
    // static boost::program_options::variables_map* variables;
-
    static std::map<std::string, std::string> options;
    static std::map<std::string, bool> isOptionParsed;
    static std::map<std::string, std::vector<std::string>> vectorOptions;
@@ -196,7 +382,6 @@ private:
    static std::string global_config_file_name;
    static std::string user_config_file_name;
    static std::string run_config_file_name;
-
    static void addDefaultParameters();
 };
 

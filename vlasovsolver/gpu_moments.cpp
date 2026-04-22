@@ -347,8 +347,8 @@ void gpu_calculateMoments_R(
       CHK_ERR( gpuDeviceSynchronize());
       CHK_ERR( gpuMemcpy(host_moments1, dev_moments1, nAllCells*nMom1*sizeof(Real), gpuMemcpyDeviceToHost) );
 
-      const Real mass = getObjectWrapper().particleSpecies[popID].mass;
-      const Real charge = getObjectWrapper().particleSpecies[popID].charge;
+      const Real mass = getObjectWrapper().particleSpecies[popID]->mass;
+      const Real charge = getObjectWrapper().particleSpecies[popID]->charge;
       #pragma omp parallel for schedule(static)
       for (uint celli = 0; celli < nAllCells; celli++){
          SpatialCell* cell = mpiGrid[cells[celli]];
@@ -426,7 +426,7 @@ void gpu_calculateMoments_R(
       CHK_ERR( gpuDeviceSynchronize());
       CHK_ERR( gpuMemcpy(host_moments2, dev_moments2, nAllCells*nMom2*sizeof(Real), gpuMemcpyDeviceToHost) );
 
-      const Real mass = getObjectWrapper().particleSpecies[popID].mass;
+      const Real mass = getObjectWrapper().particleSpecies[popID]->mass;
       #pragma omp parallel for schedule(static)
       for (uint celli = 0; celli < nAllCells; celli++){
          SpatialCell* cell = mpiGrid[cells[celli]];
@@ -567,8 +567,8 @@ void gpu_calculateMoments_V(
       CHK_ERR( gpuDeviceSynchronize());
       CHK_ERR( gpuMemcpy(host_moments1, dev_moments1, nAllCells*nMom1*sizeof(Real), gpuMemcpyDeviceToHost) );
 
-      const Real mass = getObjectWrapper().particleSpecies[popID].mass;
-      const Real charge = getObjectWrapper().particleSpecies[popID].charge;
+      const Real mass = getObjectWrapper().particleSpecies[popID]->mass;
+      const Real charge = getObjectWrapper().particleSpecies[popID]->charge;
       #pragma omp parallel for schedule(static)
       for (uint celli = 0; celli < nAllCells; celli++){
          SpatialCell* cell = mpiGrid[cells[celli]];
@@ -645,7 +645,7 @@ void gpu_calculateMoments_V(
       CHK_ERR( gpuDeviceSynchronize());
       CHK_ERR( gpuMemcpy(host_moments2, dev_moments2, nAllCells*nMom2*sizeof(Real), gpuMemcpyDeviceToHost) );
 
-      const Real mass = getObjectWrapper().particleSpecies[popID].mass;
+      const Real mass = getObjectWrapper().particleSpecies[popID]->mass;
       #pragma omp parallel for schedule(static)
       for (uint celli = 0; celli < nAllCells; celli++){
          SpatialCell* cell = mpiGrid[cells[celli]];

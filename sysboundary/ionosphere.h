@@ -321,7 +321,7 @@ namespace SBC {
       Ionosphere();
       virtual ~Ionosphere();
       
-      static void addParameters();
+      void addParameters();
       virtual void getParameters() override;
       
       virtual void initSysBoundary(
@@ -406,7 +406,7 @@ namespace SBC {
       virtual std::string getName() const override;
       virtual uint getIndex() const override;
       static Real radius; /*!< Radius of the inner simulation boundary */
-      static std::vector<IonosphereSpeciesParameters> speciesParams;
+      static std::vector<IonosphereSpeciesParameters*> speciesParams;
 
       // Parameters of the ionosphere model
       static Real innerRadius; /*!< Radius of the ionosphere model */
@@ -445,10 +445,11 @@ namespace SBC {
          cint j,
          cint k
       );
-      
+      std::string VDFmodeString; 
+      std::string gaugeFixingString;
+      std::string ionizationModelString;
       Real center[3]; /*!< Coordinates of the centre of the ionosphere. */
       uint geometry; /*!< Geometry of the ionosphere, 0: inf-norm (diamond), 1: 1-norm (square), 2: 2-norm (circle, DEFAULT), 3: polar-plane cylinder with line dipole. */
-
 
       std::string baseShape; /*!< Basic mesh shape (sphericalFibonacci / icosahedron / tetrahedron) */
       int fibonacciNodeNum;  /*!< If spherical fibonacci: number of nodes to generate */

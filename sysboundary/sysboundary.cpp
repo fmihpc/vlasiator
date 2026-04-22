@@ -80,17 +80,17 @@ void SysBoundary::addParameters() {
    Readparameters::add(
        "boundaries.boundary",
        "List of boundary condition (BC) types to be used. Each boundary condition to be used has to be on a new line "
-       "boundary = YYY. Available options are: Outflow, Ionosphere, Copysphere, Maxwellian.");
-   Readparameters::add("boundaries.periodic_x", "Set the grid periodicity in x-direction. 'yes'(default)/'no'.", "yes");
-   Readparameters::add("boundaries.periodic_y", "Set the grid periodicity in y-direction. 'yes'(default)/'no'.", "yes");
-   Readparameters::add("boundaries.periodic_z", "Set the grid periodicity in z-direction. 'yes'(default)/'no'.", "yes");
+       "boundary = YYY. Available options are: Outflow, Ionosphere, Copysphere, Maxwellian.",this->sysBoundaryCondList);
+   Readparameters::add("boundaries.periodic_x", "Set the grid periodicity in x-direction. 'yes'(default)/'no'.", this->periodic[0]);
+   Readparameters::add("boundaries.periodic_y", "Set the grid periodicity in y-direction. 'yes'(default)/'no'.", this->periodic[1]);
+   Readparameters::add("boundaries.periodic_z", "Set the grid periodicity in z-direction. 'yes'(default)/'no'.", this->periodic[2]);
 
    // call static addParameter functions in all bc's
    SBC::DoNotCompute::addParameters();
-   SBC::Ionosphere::addParameters();
-   SBC::Copysphere::addParameters();
-   SBC::Outflow::addParameters();
-   SBC::Maxwellian::addParameters();
+   // SBC::Ionosphere::addParameters();
+   // SBC::Copysphere::addParameters();
+   // SBC::Outflow::addParameters();
+   // SBC::Maxwellian::addParameters();
 }
 
 /*!\brief Get this class' parameters.
@@ -101,16 +101,47 @@ void SysBoundary::addParameters() {
  * SysBoundaryCondition's initialization function.
  */
 void SysBoundary::getParameters() {
-   string periodic_x, periodic_y, periodic_z;
+   // string periodic_x, periodic_y, periodic_z;
+   // for (auto boundary : this->sysBoundaryCondList) {
+   //    std::cout << "BOUNDARY="<< boundary << std::endl;
+   //    if (boundary=="Maxwellian") {
+   //      SBC::Maxwellian::addParameters();
+   //    } else if (boundary =="Outflow"){
+   //      SBC::Outflow::addParameters();
+   //    }
+   // }
+   //Readparameters::get("boundaries.boundary", sysBoundaryCondList);
+   //Readparameters::get("boundaries.periodic_x", periodic_x);
+   //Readparameters::get("boundaries.periodic_y", periodic_y);
+   //Readparameters::get("boundaries.periodic_z", periodic_z);
 
-   Readparameters::get("boundaries.boundary", sysBoundaryCondList);
-   Readparameters::get("boundaries.periodic_x", periodic_x);
-   Readparameters::get("boundaries.periodic_y", periodic_y);
-   Readparameters::get("boundaries.periodic_z", periodic_z);
-
-   periodic[0] = (periodic_x == "yes");
-   periodic[1] = (periodic_y == "yes");
-   periodic[2] = (periodic_z == "yes");
+   vector<string>::const_iterator it;
+   for (it = sysBoundaryCondList.begin(); it != sysBoundaryCondList.end(); it++) {
+      if (*it == "Outflow" || *it == "outflow") {
+         SBC::Outflow* bc = new SBC::Outflow();
+         bc->addParameters();
+         sysBoundaries.push_back(bc);
+         indexToSysBoundary[bc->getIndex()] = bc;
+      }
+      if (*it == "Maxwellian" || *it == "maxwellian") {
+         SBC::Maxwellian* bc = new SBC::Maxwellian();
+         bc->addParameters();
+         sysBoundaries.push_back(bc);
+         indexToSysBoundary[bc->getIndex()] = bc;
+      }
+      if (*it == "Copysphere" || *it == "copysphere") {
+         SBC::Copysphere* bc = new SBC::Copysphere();
+         bc->addParameters();
+         sysBoundaries.push_back(bc);
+         indexToSysBoundary[bc->getIndex()] = bc;
+      }
+      if (*it == "Ionosphere" || *it == "ionosphere") {
+         SBC::Ionosphere* bc = new SBC::Ionosphere();
+         bc->addParameters();
+         sysBoundaries.push_back(bc);
+         indexToSysBoundary[bc->getIndex()] = bc;
+      }
+   }
 }
 
 /*! Add a new SBC::SysBoundaryCondition which has been created with new sysBoundary.
@@ -126,16 +157,17 @@ void SysBoundary::addSysBoundary(SBC::SysBoundaryCondition* bc, Project& project
    stringstream timername;
    timername<<"Initialize system boundary condition "<<bc->getName();
    phiprof::Timer timer {timername.str()};
+   std::cout << "INITING SYSBOUNDARY"<<bc->getName() << std::endl;
    bc->initSysBoundary(t, project);
    timer.stop();
 
-   sysBoundaries.push_back(bc);
-   if (sysBoundaries.size() > 1) {
-      sysBoundaries.sort(precedenceSort);
-   }
+   // sysBoundaries.push_back(bc);
+   // if (sysBoundaries.size() > 1) {
+   //    sysBoundaries.sort(precedenceSort);
+   // }
 
    // This assumes that only one instance of each type is created.
-   indexToSysBoundary[bc->getIndex()] = bc;
+   // indexToSysBoundary[bc->getIndex()] = bc;
 }
 
 /*!\brief Initialise all system boundary conditions actually used.
@@ -154,7 +186,12 @@ void SysBoundary::initSysBoundaries(Project& project, creal& t) {
    int myRank;
    MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
    vector<string>::const_iterator it;
-
+   std::cout << "SYSBOUNDARYSIZE="<<sysBoundaries.size() << std::endl;
+   for (auto& b : sysBoundaries)  {
+     std::cout << "LOOP INIT=" <<b->getName()<< std::endl;
+     this->addSysBoundary(b, project, t);
+     b->setPeriodicity(periodic);
+   }
    if (sysBoundaryCondList.size() == 0) {
       if (!periodic[0] && !Readparameters::helpRequested) {
          abort_mpi("Non-periodic in x but no boundary condtion loaded!");
@@ -169,7 +206,7 @@ void SysBoundary::initSysBoundaries(Project& project, creal& t) {
 
    for (it = sysBoundaryCondList.begin(); it != sysBoundaryCondList.end(); it++) {
       if (*it == "Outflow" || *it == "outflow") {
-         this->addSysBoundary(::new SBC::Outflow, project, t);
+         // this->addSysBoundary(::new SBC::Outflow, project, t);
 
          anyDynamic = anyDynamic | this->getSysBoundary(sysboundarytype::OUTFLOW)->isDynamic();
          bool faces[6];
@@ -198,15 +235,15 @@ void SysBoundary::initSysBoundaries(Project& project, creal& t) {
          }
 
       } else if (*it == "Ionosphere" || *it == "ionosphere") {
-         this->addSysBoundary(::new SBC::Ionosphere, project, t);
-         this->addSysBoundary(::new SBC::DoNotCompute, project, t);
+         // this->addSysBoundary(::new SBC::Ionosphere, project, t);
+         // this->addSysBoundary(::new SBC::DoNotCompute, project, t);
          anyDynamic = anyDynamic | this->getSysBoundary(sysboundarytype::IONOSPHERE)->isDynamic();
       } else if(*it == "Copysphere" || *it == "copysphere") {
-         this->addSysBoundary(::new SBC::Copysphere, project, t);
-         this->addSysBoundary(::new SBC::DoNotCompute, project, t);
+         // this->addSysBoundary(::new SBC::Copysphere, project, t);
+         // this->addSysBoundary(::new SBC::DoNotCompute, project, t);
          anyDynamic = anyDynamic | this->getSysBoundary(sysboundarytype::COPYSPHERE)->isDynamic();
       } else if (*it == "Maxwellian" || *it == "maxwellian") {
-         this->addSysBoundary(::new SBC::Maxwellian, project, t);
+         // this->addSysBoundary(::new SBC::Maxwellian, project, t);
          anyDynamic = anyDynamic | this->getSysBoundary(sysboundarytype::MAXWELLIAN)->isDynamic();
          bool faces[6];
          this->getSysBoundary(sysboundarytype::MAXWELLIAN)->getFaces(&faces[0]);
@@ -235,9 +272,11 @@ void SysBoundary::initSysBoundaries(Project& project, creal& t) {
       }
    }
 
-   for (auto& b : sysBoundaries)  {
-      b->setPeriodicity(periodic);
+   if (sysBoundaries.size() > 1) {
+      sysBoundaries.sort(precedenceSort);
    }
+
+
 }
 
 /*!\brief Boolean check if queried sysboundarycondition exists
@@ -476,7 +515,7 @@ void SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
    SysBoundary& sysBoundaryContainer = getObjectWrapper().sysBoundaryContainer;
    Real ionosphereDownmapRadius = 0;
    if (sysBoundaryContainer.existSysBoundary("Ionosphere")) {
-      Readparameters::get("ionosphere.downmapRadius", ionosphereDownmapRadius);
+      //Readparameters::get("ionosphere.downmapRadius", ionosphereDownmapRadius);
    }
    if(ionosphereDownmapRadius < 1000) {
       ionosphereDownmapRadius *= physicalconstants::R_E;

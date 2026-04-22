@@ -310,7 +310,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       }
       if(P::systemWriteAllDROs || lowercase == "populations_rho" || lowercase == "populations_vg_rho") { // Per-population particle number density
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
-            species::Species& species=getObjectWrapper().particleSpecies[i];
+            species::Species& species=*getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
             outputReducer->addOperator(new DRO::DataReductionOperatorPopulations<Real>(pop + "/vg_rho", i, offsetof(spatial_cell::Population, RHO), 1));
             outputReducer->addMetadata(outputReducer->size()-1,"1/m^3","$\\mathrm{m}^{-3}$","$n_\\mathrm{"+pop+"}$","1.0");
@@ -370,7 +370,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       }
       if(P::systemWriteAllDROs || lowercase == "populations_v" || lowercase == "populations_vg_v") { // Per population bulk velocities
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
-            species::Species& species=getObjectWrapper().particleSpecies[i];
+            species::Species& species=*getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
             outputReducer->addOperator(new DRO::DataReductionOperatorPopulations<Real>(pop + "/vg_v", i, offsetof(spatial_cell::Population, V), 3));
             outputReducer->addMetadata(outputReducer->size()-1,"m/s","$\\mathrm{m}\\,\\mathrm{s}^{-1}$","$V_\\mathrm{"+pop+"}$","1.0");
@@ -381,7 +381,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       }
       if(P::systemWriteAllDROs || lowercase == "populations_moments_backstream" || lowercase == "populations_moments_nonthermal" || lowercase == "populations_vg_moments_nonthermal") { // Per-population moments of the backstreaming part
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
-            species::Species& species=getObjectWrapper().particleSpecies[i];
+            species::Species& species=*getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
             outputReducer->addOperator(new DRO::VariableRhoNonthermal(i));
             outputReducer->addOperator(new DRO::VariableVNonthermal(i));
@@ -398,7 +398,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       }
       if(P::systemWriteAllDROs || lowercase == "populations_moments_nonbackstream" || lowercase == "populations_moments_thermal" || lowercase == "populations_vg_moments_thermal") { // Per-population moments of the non-backstreaming (thermal?) part.
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
-            species::Species& species=getObjectWrapper().particleSpecies[i];
+            species::Species& species=*getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
             outputReducer->addOperator(new DRO::VariableRhoThermal(i));
             outputReducer->addOperator(new DRO::VariableVThermal(i));
@@ -416,7 +416,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(P::systemWriteAllDROs || lowercase == "populations_minvalue" || lowercase == "populations_effectivesparsitythreshold" || lowercase == "populations_vg_effectivesparsitythreshold") {
          // Effective sparsity threshold affecting each cell, if dynamic threshould algorithm is used
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
-            species::Species& species=getObjectWrapper().particleSpecies[i];
+            species::Species& species=*getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
             outputReducer->addOperator(new DRO::VariableEffectiveSparsityThreshold(i));
             outputReducer->addMetadata(outputReducer->size()-1,"s^3/m^6","$\\mathrm{m}^{-6}\\,\\mathrm{s}^{3}$","$f_\\mathrm{"+pop+",min}$","1.0");
@@ -428,7 +428,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(P::systemWriteAllDROs || lowercase == "populations_rholossadjust" || lowercase == "populations_rho_loss_adjust" || lowercase == "populations_vg_rho_loss_adjust") {
          // Accumulated lost particle number, per population, in each cell, since last restart
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
-            species::Species& species=getObjectWrapper().particleSpecies[i];
+            species::Species& species=*getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
             outputReducer->addOperator(new DRO::DataReductionOperatorPopulations<Real>(pop + "/vg_rho_loss_adjust", i, offsetof(spatial_cell::Population, RHOLOSSADJUST), 1));
             outputReducer->addMetadata(outputReducer->size()-1,"1/m^3","$\\mathrm{m}^{-3}$","$\\Delta_\\mathrm{loss} n_\\mathrm{"+pop+"}$","1.0");
@@ -456,7 +456,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(P::systemWriteAllDROs || lowercase == "populations_maxvdt" || lowercase == "populations_vg_maxdt_acceleration" || lowercase == "populations_maxdt_acceleration") {
          // Per-population maximum timestep constraint as calculated by the velocity space vlasov update
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
-            species::Species& species=getObjectWrapper().particleSpecies[i];
+            species::Species& species=*getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
             outputReducer->addOperator(new DRO::DataReductionOperatorPopulations<Real>(pop + "/vg_maxdt_acceleration", i, offsetof(spatial_cell::Population, max_dt[1]), 1));
             outputReducer->addMetadata(outputReducer->size()-1,"s","$\\mathrm{s}$","$\\Delta t_\\mathrm{"+pop+",V,max}$","1.0");
@@ -476,7 +476,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(P::systemWriteAllDROs || lowercase == "populations_maxrdt" || lowercase == "populations_vg_maxdt_translation" || lowercase == "populations_maxdt_translation") {
          // Per-population maximum timestep constraint as calculated by the real space vlasov update
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
-            species::Species& species=getObjectWrapper().particleSpecies[i];
+            species::Species& species=*getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
             outputReducer->addOperator(new DRO::DataReductionOperatorPopulations<Real>(pop + "/vg_maxdt_translation", i, offsetof(spatial_cell::Population, max_dt[0]), 1));
             outputReducer->addMetadata(outputReducer->size()-1,"s","$\\mathrm{s}$","$\\Delta t_\\mathrm{"+pop+",R,max}$","1.0");
@@ -488,7 +488,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(P::systemWriteAllDROs || lowercase == "populations_energydensity" || lowercase == "populations_vg_energydensity") {
          // Per-population energy density in three energy ranges
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
-            species::Species& species=getObjectWrapper().particleSpecies[i];
+            species::Species& species=*getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
             outputReducer->addOperator(new DRO::VariableEnergyDensity(i));
             std::stringstream conversion;
@@ -502,7 +502,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(P::systemWriteAllDROs || lowercase == "populations_precipitationflux" || lowercase == "populations_vg_precipitationdifferentialflux" || lowercase == "populations_precipitationdifferentialflux") {
          // Per-population precipitation differential flux (within loss cone)
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
-            species::Species& species=getObjectWrapper().particleSpecies[i];
+            species::Species& species=*getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
             outputReducer->addOperator(new DRO::VariablePrecipitationDiffFlux(i));
             std::stringstream conversion;
@@ -516,7 +516,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(P::systemWriteAllDROs || lowercase == "populations_1dmuspace" || lowercase == "populations_vg_1dmuspace") {
          // Per-population 1d muspace
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
-            species::Species& species=getObjectWrapper().particleSpecies[i];
+            species::Species& species=*getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
             outputReducer->addOperator(new DRO::VariableMuSpace(i));
             outputReducer->addMetadata(outputReducer->size()-1,"1/m^3","$\\mathrm{m}^{-3}$","$f(\\mu)_\\mathrm{"+pop+"}$","1.0");
@@ -528,7 +528,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(P::systemWriteAllDROs || lowercase == "populations_precipitationlineflux" || lowercase == "populations_vg_precipitationlinedifferentialflux" || lowercase == "populations_precipitationlinedifferentialflux") {
          // Per-population precipitation differential flux (along line)
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
-            species::Species& species=getObjectWrapper().particleSpecies[i];
+            species::Species& species=*getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
             outputReducer->addOperator(new DRO::VariablePrecipitationLineDiffFlux(i));
             std::stringstream conversion;
@@ -542,7 +542,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(P::systemWriteAllDROs || lowercase == "populations_heatflux" || lowercase == "populations_vg_heatflux") {
          // Per-population heat flux vector
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
-            species::Species& species=getObjectWrapper().particleSpecies[i];
+            species::Species& species=*getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
             outputReducer->addOperator(new DRO::VariableHeatFluxVector(i));
             outputReducer->addMetadata(outputReducer->size()-1,"W/m^2","$\\mathrm{W}\\,\\mathrm{m}^{-2}$","$q_\\mathrm{"+pop+"}$","1.0");
@@ -554,7 +554,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if (P::systemWriteAllDROs || lowercase == "populations_nonmaxwellianity" || lowercase == "populations_vg_nonmaxwellianity") {
          // Per-population dimensionless non-maxwellianity parameter
          for (unsigned int i = 0; i < getObjectWrapper().particleSpecies.size(); i++) {
-            species::Species& species = getObjectWrapper().particleSpecies[i];
+            species::Species& species = *getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
             outputReducer->addOperator(new DRO::VariableNonMaxwellianity(i));
             outputReducer->addMetadata(outputReducer->size() - 1, "", "",
@@ -748,7 +748,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(P::systemWriteAllDROs || lowercase == "populations_blocks" || lowercase == "populations_vg_blocks") {
          // Per-population velocity space block counts
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
-            species::Species& species=getObjectWrapper().particleSpecies[i];
+            species::Species& species=*getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
             outputReducer->addOperator(new DRO::Blocks(i));
             outputReducer->addMetadata(outputReducer->size()-1,"","","$\\mathrm{"+pop+" blocks}$","");
@@ -768,7 +768,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(P::systemWriteAllDROs || lowercase == "populations_accsubcycles" || lowercase == "populations_acceleration_subcycles" || lowercase == "populations_vg_acceleration_subcycles") {
          // Per-population number of subcycles performed for velocity space update
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
-            species::Species& species=getObjectWrapper().particleSpecies[i];
+            species::Species& species=*getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
             outputReducer->addOperator(new DRO::DataReductionOperatorPopulations<uint>(pop + "/vg_acceleration_subcycles", i, offsetof(spatial_cell::Population, ACCSUBCYCLES), 1));
             outputReducer->addMetadata(outputReducer->size()-1,"","","$\\mathrm{"+pop+" Acc subcycles}$","");
@@ -966,7 +966,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(P::systemWriteAllDROs || lowercase == "populations_ptensor" || lowercase == "populations_vg_ptensor") {
          // Per-population pressure tensor, stored as diagonal and offdiagonal components
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
-            species::Species& species=getObjectWrapper().particleSpecies[i];
+            species::Species& species=*getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
             outputReducer->addOperator(new DRO::VariablePTensorDiagonal(i));
             outputReducer->addMetadata(outputReducer->size()-1,"Pa","$\\mathrm{Pa}$","$\\mathcal{P}_\\mathrm{"+pop+"}$","1.0");
@@ -3655,7 +3655,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(P::diagnosticWriteAllDROs || lowercase == "populations_rholossadjust" || lowercase == "populations_rho_loss_adjust" || lowercase == "populations_vg_rho_loss_adjust") {
          // Per-particle overall lost particle number
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
-            species::Species& species=getObjectWrapper().particleSpecies[i];
+            species::Species& species=*getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
             diagnosticReducer->addOperator(new DRO::DataReductionOperatorPopulations<Real>(pop + "/vg_rho_loss_adjust", i, offsetof(spatial_cell::Population, RHOLOSSADJUST), 1));
          }
@@ -3689,7 +3689,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       }
       if(P::diagnosticWriteAllDROs || lowercase == "populations_maxrdt" || lowercase == "populations_maxdt_translation" || lowercase == "populations_vg_maxdt_translation") {
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
-            species::Species& species=getObjectWrapper().particleSpecies[i];
+            species::Species& species=*getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
             diagnosticReducer->addOperator(new DRO::DataReductionOperatorPopulations<Real>(pop + "/vg_maxdt_translation", i, offsetof(spatial_cell::Population, max_dt[0]), 1));
          }
@@ -3699,7 +3699,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       }
       if(P::diagnosticWriteAllDROs || lowercase == "populations_maxvdt" || lowercase == "populations_maxdt_acceleration" || lowercase == "populations_vg_maxdt_acceleration") {
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
-            species::Species& species=getObjectWrapper().particleSpecies[i];
+            species::Species& species=*getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
             diagnosticReducer->addOperator(new DRO::DataReductionOperatorPopulations<Real>(pop + "/vg_maxdt_acceleration", i, offsetof(spatial_cell::Population, max_dt[1]), 1));
          }

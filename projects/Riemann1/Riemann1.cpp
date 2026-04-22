@@ -42,26 +42,26 @@ namespace projects {
 
    void Riemann1::addParameters(){
       typedef Readparameters RP;
-      RP::add("Riemann.rho1", "Number density, left state (m^-3)", 0.0);
-      RP::add("Riemann.rho2", "Number density, right state (m^-3)", 0.0);
-      RP::add("Riemann.T1", "Temperature, left state (K)", 0.0);
-      RP::add("Riemann.T2", "Temperature, right state (K)", 0.0);
-      RP::add("Riemann.Vx1", "Bulk velocity x component, left state (m/s)", 0.0);
-      RP::add("Riemann.Vx2", "Bulk velocity x component, right state (m/s)", 0.0);
-      RP::add("Riemann.Vy1", "Bulk velocity y component, left state (m/s)", 0.0);
-      RP::add("Riemann.Vy2", "Bulk velocity y component, right state (m/s)", 0.0);
-      RP::add("Riemann.Vz1", "Bulk velocity z component, left state (m/s)", 0.0);
-      RP::add("Riemann.Vz2", "Bulk velocity z component, right state (m/s)", 0.0);
-      RP::add("Riemann.Bx1", "Magnetic field x component, left state (T)", 0.0);
-      RP::add("Riemann.Bx2", "Magnetic field x component, right state (T)", 0.0);
-      RP::add("Riemann.By1", "Magnetic field y component, left state (T)", 0.0);
-      RP::add("Riemann.By2", "Magnetic field y component, right state (T)", 0.0);
-      RP::add("Riemann.Bz1", "Magnetic field z component, left state (T)", 0.0);
-      RP::add("Riemann.Bz2", "Magnetic field z component, right state (T)", 0.0);
+      RP::add("Riemann.rho1", "Number density, left state (m^-3)",this->rho[this->LEFT]);
+      RP::add("Riemann.rho2", "Number density, right state (m^-3)",this->rho[this->RIGHT]);
+      RP::add("Riemann.T1", "Temperature, left state (K)",this->T[this->LEFT]);
+      RP::add("Riemann.T2", "Temperature, right state (K)",this->T[this->RIGHT]);
+      RP::add("Riemann.Vx1", "Bulk velocity x component, left state (m/s)",this->Vx[this->LEFT]);
+      RP::add("Riemann.Vx2", "Bulk velocity x component, right state (m/s)",this->Vx[this->RIGHT]);
+      RP::add("Riemann.Vy1", "Bulk velocity y component, left state (m/s)",this->Vy[this->LEFT]);
+      RP::add("Riemann.Vy2", "Bulk velocity y component, right state (m/s)",this->Vy[this->RIGHT]);
+      RP::add("Riemann.Vz1", "Bulk velocity z component, left state (m/s)",this->Vz[this->LEFT]);
+      RP::add("Riemann.Vz2", "Bulk velocity z component, right state (m/s)",this->Vz[this->RIGHT]);
+      RP::add("Riemann.Bx1", "Magnetic field x component, left state (T)",this->Bx[this->LEFT]);
+      RP::add("Riemann.Bx2", "Magnetic field x component, right state (T)",this->Bx[this->RIGHT]);
+      RP::add("Riemann.By1", "Magnetic field y component, left state (T)",this->By[this->LEFT]);
+      RP::add("Riemann.By2", "Magnetic field y component, right state (T)",this->By[this->RIGHT]);
+      RP::add("Riemann.Bz1", "Magnetic field z component, left state (T)",this->Bz[this->LEFT]);
+      RP::add("Riemann.Bz2", "Magnetic field z component, right state (T)",this->Bz[this->RIGHT]);
    }
 
    void Riemann1::getParameters(){
-      Project::getParameters();
+      // Project::getParameters();
       typedef Readparameters RP;
 
       if(getObjectWrapper().particleSpecies.size() > 1) {
@@ -97,7 +97,7 @@ namespace projects {
       // const Real z  = cell->parameters[CellParams::ZCRD] + 0.5*cell->parameters[CellParams::DZ];
       cint side = (x < 0.0) ? this->LEFT : this->RIGHT;
 
-      const Real mass = getObjectWrapper().particleSpecies[popID].mass;
+      const Real mass = getObjectWrapper().particleSpecies[popID]->mass;
       Real initRho = this->rho[side];
       Real initT = this->T[side];
       const Real initV0X = this->Vx[side];

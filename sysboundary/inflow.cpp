@@ -52,9 +52,7 @@ namespace SBC {
       // conditions, in the order of x+, x-, y+, y-, z+, z-.
       std::fill_n(facesToProcess, 6, false);
 
-      this->getParameters();
-
-      for (auto& it : faceList) {
+      for (auto& it : this->faceList) {
          if (it == "x+") {
             facesToProcess[0] = true;
          } else if (it == "x-") {
@@ -377,7 +375,7 @@ namespace SBC {
    }
 
    void Inflow::loadInputData(const uint popID) {
-      InflowSpeciesParameters& sP = speciesParams[popID];
+      InflowSpeciesParameters& sP = *speciesParams[popID];
 
       for (uint i = 0; i < 6; i++) {
          if (facesToProcess[i])
@@ -473,7 +471,7 @@ namespace SBC {
  * Make sure from the calling side that nParams Real values can be written there!
  */
    void Inflow::interpolate(const int inputDataIndex, const uint popID, creal t, Real* outputData) {
-      InflowSpeciesParameters& sP = speciesParams[popID];
+      InflowSpeciesParameters& sP = *speciesParams[popID];
 
       // Find first data[0] value which is >= t
       int i1 = 0, i2 = 0;

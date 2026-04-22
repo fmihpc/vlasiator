@@ -83,10 +83,10 @@ do
 
     # Run the actual simulation
     if [[ ${single_cell[$run]} ]]; then
-    	$small_run_command $bin --version  > VERSION.txt
+    	# $small_run_command $bin --version  > VERSION.txt
 	$small_run_command $bin --run_config=${test_name[$run]}.cfg
     else
-	$run_command $bin --version  > VERSION.txt
+	# $run_command $bin --version  > VERSION.txt
 	$run_command $bin --run_config=${test_name[$run]}.cfg
     fi
 

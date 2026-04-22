@@ -47,76 +47,68 @@
 #endif
 
 namespace SBC {
-   Copysphere::Copysphere(): SysBoundaryCondition() { }
+
+   std::vector<CopysphereSpeciesParameters*> Copysphere::speciesParams;
+   Copysphere::Copysphere(): SysBoundaryCondition() {}
 
    Copysphere::~Copysphere() { }
 
    void Copysphere::addParameters() {
-      Readparameters::add("copysphere.centerX", "X coordinate of copysphere center (m)", 0.0);
-      Readparameters::add("copysphere.centerY", "Y coordinate of copysphere center (m)", 0.0);
-      Readparameters::add("copysphere.centerZ", "Z coordinate of copysphere center (m)", 0.0);
-      Readparameters::add("copysphere.radius", "Radius of copysphere (m).", 1.0e7);
-      Readparameters::add("copysphere.geometry", "Select the geometry of the copysphere, 0: inf-norm (diamond), 1: 1-norm (square), 2: 2-norm (circle, DEFAULT), 3: 2-norm cylinder aligned with y-axis, use with polar plane/line dipole.", 2);
-      Readparameters::add("copysphere.precedence", "Precedence value of the copysphere system boundary condition (integer), the higher the stronger.", 2);
-      Readparameters::add("copysphere.reapplyUponRestart", "If 0 (default), keep going with the state existing in the restart file. If 1, calls again applyInitialState. Can be used to change boundary condition behaviour during a run.", 0);
-      Readparameters::add("copysphere.zeroPerB","If 0 (default), normal copysphere behaviour of magnetic field at inner boundary. If 1, keep magnetic field static at the inner boundary",0);
+      Readparameters::add<Real>("copysphere.centerX", "X coordinate of copysphere center (m)",this->center[0],0.0);
+      Readparameters::add<Real>("copysphere.centerY", "Y coordinate of copysphere center (m)",this->center[1],0.0);
+      Readparameters::add<Real>("copysphere.centerZ", "Z coordinate of copysphere center (m)",this->center[2],0.0);
+      Readparameters::add<Real>("copysphere.radius", "Radius of copysphere (m).", this->radius,1.0e7);
+      Readparameters::add<uint>("copysphere.geometry", "Select the geometry of the copysphere, 0: inf-norm (diamond), 1: 1-norm (square), 2: 2-norm (circle, DEFAULT), 3: 2-norm cylinder aligned with y-axis, use with polar plane/line dipole.", this->geometry,2);
+      Readparameters::add<uint>("copysphere.precedence", "Precedence value of the copysphere system boundary condition (integer), the higher the stronger.", this->precedence,2);
+      Readparameters::add<bool>("copysphere.reapplyUponRestart", "If 0 (default), keep going with the state existing in the restart file. If 1, calls again applyInitialState. Can be used to change boundary condition behaviour during a run.", this->applyUponRestart,0);
+      Readparameters::add<bool>("copysphere.zeroPerB","If 0 (default), normal copysphere behaviour of magnetic field at inner boundary. If 1, keep magnetic field static at the inner boundary",this->zeroPerB,0);
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
+         const std::string& pop = getObjectWrapper().particleSpecies[i]->name;
+         CopysphereSpeciesParameters* sP=new CopysphereSpeciesParameters();
 
-         Readparameters::add(pop + "_copysphere.rho", "Number density of the copysphere (m^-3)", 0.0);
-         Readparameters::add(pop + "_copysphere.T", "Temperature of the copysphere (K)", 0.0);
-         Readparameters::add(pop + "_copysphere.VX0", "Bulk velocity of copyspheric distribution function in X direction (m/s)", 0.0);
-         Readparameters::add(pop + "_copysphere.VY0", "Bulk velocity of copyspheric distribution function in X direction (m/s)", 0.0);
-         Readparameters::add(pop + "_copysphere.VZ0", "Bulk velocity of copyspheric distribution function in X direction (m/s)", 0.0);
-         Readparameters::add(pop + "_copysphere.fluffiness", "Inertia of boundary smoothing when copying neighbour's moments and velocity distributions (0=completely constant boundaries, 1=neighbours are interpolated immediately).", 0);
+         this->speciesParams.push_back(sP);
+         Readparameters::add<Real>(pop + "_copysphere.rho", "Number density of the copysphere (m^-3)", sP->rho,0.0);
+         Readparameters::add<Real>(pop + "_copysphere.T", "Temperature of the copysphere (K)", sP->T,0.0);
+         Readparameters::add<Real>(pop + "_copysphere.VX0", "Bulk velocity of copyspheric distribution function in X direction (m/s)", sP->V0[0],0.0);
+         Readparameters::add<Real>(pop + "_copysphere.VY0", "Bulk velocity of copyspheric distribution function in X direction (m/s)", sP->V0[1],0.0); 
+         Readparameters::add<Real>(pop + "_copysphere.VZ0", "Bulk velocity of copyspheric distribution function in X direction (m/s)", sP->V0[2],0.0); 
+         Readparameters::add<Real>(pop + "_copysphere.fluffiness", "Inertia of boundary smoothing when copying neighbour's moments and velocity distributions (0=completely constant boundaries, 1=neighbours are interpolated immediately).", sP->fluffiness,0);
+      //   if(sP.T == 0) {
+      //       //Readparameters::get(pop + "_Magnetosphere.T", sP.T);
+      //    }
+      //    if(sP.rho == 0) {
+      //       //Readparameters::get(pop + "_Magnetosphere.rho", sP.rho);
+      //    } //see note about this in ionosphere
       }
    }
 
    void Copysphere::getParameters() {
 
-      Readparameters::get("copysphere.centerX", this->center[0]);
-      Readparameters::get("copysphere.centerY", this->center[1]);
-      Readparameters::get("copysphere.centerZ", this->center[2]);
-      Readparameters::get("copysphere.radius", this->radius);
       FieldTracing::fieldTracingParameters.innerBoundaryRadius = this->radius;
-      Readparameters::get("copysphere.geometry", this->geometry);
-      Readparameters::get("copysphere.precedence", this->precedence);
-      uint reapply;
-      Readparameters::get("copysphere.reapplyUponRestart",reapply);
-      this->applyUponRestart = false;
-      if(reapply == 1) {
-         this->applyUponRestart = true;
-      }
-      uint noperb;
-      Readparameters::get("copysphere.zeroPerB",noperb);
-      this->zeroPerB = false;
-      if(noperb == 1) {
-         this->zeroPerB = true;
-      }
 
+      //TODO Needs to be updated for the new handling
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-        const std::string& pop = getObjectWrapper().particleSpecies[i].name;
+        const std::string& pop = getObjectWrapper().particleSpecies[i]->name;
         CopysphereSpeciesParameters sP;
 
-        Readparameters::get(pop + "_copysphere.rho", sP.rho);
-        Readparameters::get(pop + "_copysphere.VX0", sP.V0[0]);
-        Readparameters::get(pop + "_copysphere.VY0", sP.V0[1]);
-        Readparameters::get(pop + "_copysphere.VZ0", sP.V0[2]);
-        Readparameters::get(pop + "_copysphere.fluffiness", sP.fluffiness);
-        Readparameters::get(pop + "_copysphere.T", sP.T);
+        //Readparameters::get(pop + "_copysphere.rho", sP.rho);
+        //Readparameters::get(pop + "_copysphere.VX0", sP.V0[0]);
+        //Readparameters::get(pop + "_copysphere.VY0", sP.V0[1]);
+        //Readparameters::get(pop + "_copysphere.VZ0", sP.V0[2]);
+        //Readparameters::get(pop + "_copysphere.fluffiness", sP.fluffiness);
+        //Readparameters::get(pop + "_copysphere.T", sP.T);
 
         // Failsafe, if density or temperature is zero, read from Magnetosphere
         // (compare the corresponding verbose handling in projects/Magnetosphere/Magnetosphere.cpp)
         if(sP.T == 0) {
-            Readparameters::get(pop + "_Magnetosphere.T", sP.T);
+            //Readparameters::get(pop + "_Magnetosphere.T", sP.T);
          }
          if(sP.rho == 0) {
-            Readparameters::get(pop + "_Magnetosphere.rho", sP.rho);
+            //Readparameters::get(pop + "_Magnetosphere.rho", sP.rho);
          }
 
-         speciesParams.push_back(sP);
       }
    }
 
@@ -742,7 +734,7 @@ namespace SBC {
       const uint popID,
       const bool calculate_V_moments
    ) {
-      this->vlasovBoundaryFluffyCopyFromAllCloseNbrs(mpiGrid, cellID, popID, calculate_V_moments, this->speciesParams[popID].fluffiness);
+      this->vlasovBoundaryFluffyCopyFromAllCloseNbrs(mpiGrid, cellID, popID, calculate_V_moments, this->speciesParams[popID]->fluffiness);
    }
 
    /**
@@ -764,8 +756,8 @@ namespace SBC {
       // Loop over particle species
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          templateCell.clear(popID,false); //clear, do not de-allocate memory
-         const CopysphereSpeciesParameters& sP = this->speciesParams[popID];
-         const Real mass = getObjectWrapper().particleSpecies[popID].mass;
+         const CopysphereSpeciesParameters& sP = *this->speciesParams[popID];
+         const Real mass = getObjectWrapper().particleSpecies[popID]->mass;
          initRho = sP.rho;
          initT = sP.T;
          initV0X = sP.V0[0];

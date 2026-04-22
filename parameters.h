@@ -160,6 +160,9 @@ struct Parameters {
 
    static std::string loadBalanceAlgorithm; /*!< Algorithm to be used for load balance.*/
    static std::map<std::string, std::string> loadBalanceOptions;  // Other Load balancing options
+   
+   static std::vector<std::string> loadBalanceKeys;
+   static std::vector<std::string> loadBalanceValues;
    static uint rebalanceInterval;           /*!< Load rebalance interval (steps). */
    static bool prepareForRebalance; /**< If true, propagators should measure their time consumption in preparation
                                      * for mesh repartitioning.*/

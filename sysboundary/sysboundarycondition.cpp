@@ -789,7 +789,7 @@ namespace SBC {
       uint counter = 0;
       const vmesh::LocalID* vblocks_ini = cell.get_velocity_grid_length(popID);
       vmesh::VelocityMesh *vmesh = cell.get_velocity_mesh(popID);
-      const Real mass = getObjectWrapper().particleSpecies[popID].mass;
+      const Real mass = getObjectWrapper().particleSpecies[popID]->mass;
 
       vmesh::GlobalID *GIDbuffer;
       #ifdef USE_GPU

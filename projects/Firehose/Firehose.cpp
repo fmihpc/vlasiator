@@ -43,62 +43,36 @@ namespace projects {
    void Firehose::addParameters(){
       typedef Readparameters RP;
 
-      RP::add("Firehose.Bx", "Magnetic field x component (T)", 0.0);
-      RP::add("Firehose.By", "Magnetic field y component (T)", 0.0);
-      RP::add("Firehose.Bz", "Magnetic field z component (T)", 0.0);
-      RP::add("Firehose.lambda", "Initial perturbation wavelength (m)", 0.0);
-      RP::add("Firehose.amp", "Initial perturbation amplitude (m)", 0.0);
+      RP::add("Firehose.Bx", "Magnetic field x component (T)", this->Bx);
+      RP::add("Firehose.By", "Magnetic field y component (T)", this->By);
+      RP::add("Firehose.Bz", "Magnetic field z component (T)", this->Bz);
+      RP::add("Firehose.lambda", "Initial perturbation wavelength (m)", this->lambda);
+      RP::add("Firehose.amp", "Initial perturbation amplitude (m)", this->amp);
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
-         RP::add(pop + "_Firehose.rho1", "Number density, first peak (m^-3)", 0.0);
-         RP::add(pop + "_Firehose.rho2", "Number density, second peak (m^-3)", 0.0);
-         RP::add(pop + "_Firehose.Tx1", "Temperature x, first peak (K)", 0.0);
-         RP::add(pop + "_Firehose.Tx2", "Temperature x, second peak (K)", 0.0);
-         RP::add(pop + "_Firehose.Ty1", "Temperature y, first peak (K)", 0.0);
-         RP::add(pop + "_Firehose.Ty2", "Temperature y, second peak (K)", 0.0);
-         RP::add(pop + "_Firehose.Tz1", "Temperature z, first peak (K)", 0.0);
-         RP::add(pop + "_Firehose.Tz2", "Temperature z, second peak (K)", 0.0);
-         RP::add(pop + "_Firehose.Vx1", "Bulk velocity x component, first peak (m/s)", 0.0);
-         RP::add(pop + "_Firehose.Vx2", "Bulk velocity x component, second peak (m/s)", 0.0);
-         RP::add(pop + "_Firehose.Vy1", "Bulk velocity y component, first peak (m/s)", 0.0);
-         RP::add(pop + "_Firehose.Vy2", "Bulk velocity y component, second peak (m/s)", 0.0);
-         RP::add(pop + "_Firehose.Vz1", "Bulk velocity z component, first peak (m/s)", 0.0);
-         RP::add(pop + "_Firehose.Vz2", "Bulk velocity z component, second peak (m/s)", 0.0);
+        FirehoseSpeciesParameters *sP=new FirehoseSpeciesParameters();
+         this->speciesParams.push_back(sP);
+         const std::string& pop = getObjectWrapper().particleSpecies[i]->name;
+         RP::add(pop + "_Firehose.rho1", "Number density, first peak (m^-3)", sP->rho[0]);
+         RP::add(pop + "_Firehose.rho2", "Number density, second peak (m^-3)", sP->rho[1]);
+         RP::add(pop + "_Firehose.Tx1", "Temperature x, first peak (K)", sP->Tx[0]);
+         RP::add(pop + "_Firehose.Tx2", "Temperature x, second peak (K)", sP->Tx[1]);
+         RP::add(pop + "_Firehose.Ty1", "Temperature y, first peak (K)", sP->Ty[0]);
+         RP::add(pop + "_Firehose.Ty2", "Temperature y, second peak (K)", sP->Ty[1]);
+         RP::add(pop + "_Firehose.Tz1", "Temperature z, first peak (K)", sP->Tz[0]);
+         RP::add(pop + "_Firehose.Tz2", "Temperature z, second peak (K)", sP->Tz[1]);
+         RP::add(pop + "_Firehose.Vx1", "Bulk velocity x component, first peak (m/s)", sP->Vx[0]);
+         RP::add(pop + "_Firehose.Vx2", "Bulk velocity x component, second peak (m/s)", sP->Vx[1]);
+         RP::add(pop + "_Firehose.Vy1", "Bulk velocity y component, first peak (m/s)", sP->Vy[0]);
+         RP::add(pop + "_Firehose.Vy2", "Bulk velocity y component, second peak (m/s)",sP->Vy[1]);
+         RP::add(pop + "_Firehose.Vz1", "Bulk velocity z component, first peak (m/s)", sP->Vz[0]);
+         RP::add(pop + "_Firehose.Vz2", "Bulk velocity z component, second peak (m/s)",sP->Vz[1]);
       }
    }
 
    void Firehose::getParameters(){
-      Project::getParameters();
-      typedef Readparameters RP;
-      //RP::get("Firehose.Bx", this->Bx);
-      //RP::get("Firehose.By", this->By);
-      //RP::get("Firehose.Bz", this->Bz);
-      //RP::get("Firehose.lambda", this->lambda);
-      //RP::get("Firehose.amp", this->amp);
 
-      // Per-population parameters
-      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
-         FirehoseSpeciesParameters sP;
-         //RP::get(pop + "_Firehose.rho1", sP.rho[0]);
-         //RP::get(pop + "_Firehose.rho2", sP.rho[1]);
-         //RP::get(pop + "_Firehose.Tx1", sP.Tx[0]);
-         //RP::get(pop + "_Firehose.Tx2", sP.Tx[1]);
-         //RP::get(pop + "_Firehose.Ty1", sP.Ty[0]);
-         //RP::get(pop + "_Firehose.Ty2", sP.Ty[1]);
-         //RP::get(pop + "_Firehose.Tz1", sP.Tz[0]);
-         //RP::get(pop + "_Firehose.Tz2", sP.Tz[1]);
-         //RP::get(pop + "_Firehose.Vx1", sP.Vx[0]);
-         //RP::get(pop + "_Firehose.Vx2", sP.Vx[1]);
-         //RP::get(pop + "_Firehose.Vy1", sP.Vy[0]);
-         //RP::get(pop + "_Firehose.Vy2", sP.Vy[1]);
-         //RP::get(pop + "_Firehose.Vz1", sP.Vz[0]);
-         //RP::get(pop + "_Firehose.Vz2", sP.Vz[1]);
-
-         speciesParams.push_back(sP);
-      }
    }
 
    Real Firehose::profile(creal top, creal bottom, creal x) const {
@@ -109,13 +83,13 @@ namespace projects {
                                        const uint popID,
                                        const uint nRequested
       ) const {
-      const FirehoseSpeciesParameters& sP = speciesParams[popID];
+      const FirehoseSpeciesParameters& sP = *speciesParams[popID];
       // Fetch spatial cell center coordinates
       const Real x  = cell->parameters[CellParams::XCRD] + 0.5*cell->parameters[CellParams::DX];
       // const Real y  = cell->parameters[CellParams::YCRD] + 0.5*cell->parameters[CellParams::DY];
       // const Real z  = cell->parameters[CellParams::ZCRD] + 0.5*cell->parameters[CellParams::DZ];
 
-      const Real mass = getObjectWrapper().particleSpecies[popID].mass;
+      const Real mass = getObjectWrapper().particleSpecies[popID]->mass;
       Real initRho = sP.rho[0];
       Real initTx = sP.Tx[0];
       Real initTy = sP.Ty[0];

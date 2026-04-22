@@ -20,6 +20,7 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include "CLI11.hpp"
 #include "common.h"
 #include <cstdlib>
 #include <iostream>
@@ -270,25 +271,62 @@ int simulate(int argn,char* args[]) {
    // init parameter file reader
    Readparameters readparameters(argn,args);
 
+   getObjectWrapper().addParameters();
+
    P::addParameters();
 
-   // Add parameters for number of populations
-   getObjectWrapper().addParameters();
-   readparameters.parse();
-   P::getParameters();
-
-   getObjectWrapper().addPopulationParameters();
    sysBoundaryContainer.addParameters();
-   projects::Project::addParameters();
 
-   Project* project = projects::createProject();
-   getObjectWrapper().project = project;
-   readparameters.parse(true, false); // 2nd parsing for specific population parameters
+
+    auto app = readparameters.get_app();
+    //we have to handle particle species separately because we need the full number of particle species
+    //during the population init
+    app->allow_config_extras();
+    readparameters.parse(false);
+    if (!Readparameters::helpRequested){
+      //this can be replaced with if parsed type thing that was already there
+      app->remove_option(app->get_option("--ParticlePopulations"));
+    } else {
+      getObjectWrapper().addHelp();
+    }
+
+
+
+   
+   sysBoundaryContainer.getParameters(); 
+   projects::createProject();
+   
+  if (myRank==MASTER_RANK) {
+    auto app = readparameters.get_app();
+    app->allow_config_extras();
+  }
+   readparameters.parse(true); // 2nd parsing for specific population parameters
+                           // 
+   P::getParameters();
    readparameters.helpMessage(); // Call after last parse, exits after printing help if help requested
+   // CLI::Option* opt=readparameters.get_app()->get_subcommand("proton_properties")->get_option("mass");
+   // cout << opt->get_description() << endl;
+   // cout << "force "<< opt->get_force_callback() << endl;
+   // opt->run_callback();
+   // cout << "call back run? = "<< opt->get_callback_run() << endl;
+   bool hasVersionOption = readparameters.versionMessage();
+   MPI_Bcast(&hasVersionOption, sizeof(bool), MPI_BYTE, 0, MPI_COMM_WORLD);
+   if (hasVersionOption) {
+     MPI_Finalize();
+     exit(0);
+   }
+   
+
+
+   Project* project = getObjectWrapper().project;
+
+   // getObjectWrapper().project = project;
+
    getObjectWrapper().getPopulationParameters();
-   sysBoundaryContainer.getParameters();
+   // sysBoundaryContainer.getParameters();
    project->getParameters();
 
+   // project->printPopulations();
    #ifdef USE_GPU
    // Activate device, create streams
    gpu_init_device();

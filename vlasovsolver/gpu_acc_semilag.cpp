@@ -172,7 +172,7 @@ void gpu_accelerate_cells(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
       CHK_ERR( gpuMemcpy(GET_POINTER(gpuMemoryManager, vmesh::VelocityBlockContainer*, dev_VBCs), GET_POINTER(gpuMemoryManager, vmesh::VelocityBlockContainer*, host_VBCs), nCells*sizeof(vmesh::VelocityBlockContainer*), gpuMemcpyHostToDevice) );
       copyTimer.stop();
 
-      string profName = "accelerate "+getObjectWrapper().particleSpecies[popID].name;
+      string profName = "accelerate "+getObjectWrapper().particleSpecies[popID]->name;
       phiprof::Timer accTimer {profName};
 
       // used when computing id of target block.

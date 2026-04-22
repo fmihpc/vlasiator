@@ -35,7 +35,7 @@ namespace projects {
       virtual ~KHB();
       
       virtual bool initialize(void) override;
-      static void addParameters(void);
+      void addParameters(void);
       virtual void getParameters(void) override;
       virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) override;
       virtual std::vector<std::array<Real, 3> > getV0(
