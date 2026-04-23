@@ -68,7 +68,7 @@ namespace spatial_cell {
 
       // Set velocity meshes
       for (uint popID=0; popID<populations.size(); ++popID) {
-         const species::Species& spec =*getObjectWrapper().particleSpecies[popID];
+         const species::Species& spec =getObjectWrapper().particleSpecies[popID];
          populations[popID].vmesh->initialize(spec.velocityMesh);
          populations[popID].velocityBlockMinValue = spec.sparseMinValue;
          populations[popID].N_blocks = 0;
@@ -698,7 +698,7 @@ namespace spatial_cell {
     * @param popID ID of the particle species.*/
    void SpatialCell::updateSparseMinValue(const uint popID) {
 
-      species::Species& population =*getObjectWrapper().particleSpecies[popID];
+      species::Species& population =getObjectWrapper().particleSpecies[popID];
 
       if ( population.sparseDynamicAlgorithm == 1 || population.sparseDynamicAlgorithm == 2 ) {
          // Linear algorithm for the minValue: y=kx+b
