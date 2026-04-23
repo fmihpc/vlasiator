@@ -457,7 +457,6 @@ namespace SBC {
  */
    void Inflow::generateTemplateCells(creal t) {
       for (uint i = 0; i < 6; i++) {
-        std::cout << "GENTEMPLATECELL" << std::endl;
          if (facesToProcess[i]) {
             generateTemplateCell(templateCells[i], templateB[i], i, t);
          }
