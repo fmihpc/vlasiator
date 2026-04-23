@@ -230,7 +230,7 @@ namespace projects {
       logFile << "(PROJECT): Loaded particle populations are:" << endl;
 
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-         const species::Species& spec =*getObjectWrapper().particleSpecies[popID];
+         const species::Species& spec =getObjectWrapper().particleSpecies[popID];
          logFile << "Population #" << popID << endl;
          logFile << "\t name             : '" << spec.name << "'" << endl;
          logFile << "\t charge           : '" << spec.charge << "'" << endl;

@@ -105,7 +105,7 @@ namespace projects {
       creal scaledVy1 = this->Vy[1] * rely;
       creal scaledVz1 = this->Vz[1] * relz;
 
-      const Real mass = getObjectWrapper().particleSpecies[popID]->mass;
+      const Real mass = getObjectWrapper().particleSpecies[popID].mass;
       const Real initRho0 = this->rhoRnd[0];
       const Real initRho1 = this->rhoRnd[1];
       const Real initT0x = this->Tx[0];
@@ -180,7 +180,7 @@ namespace projects {
       creal scaledVy1 = this->Vy[1] * rely;
       creal scaledVz1 = this->Vz[1] * relz;
 
-      const Real mass = getObjectWrapper().particleSpecies[popID]->mass;
+      const Real mass = getObjectWrapper().particleSpecies[popID].mass;
       const Real initRho0 = this->rhoRnd[0];
       const Real initRho1 = this->rhoRnd[1];
       const Real initT0x = this->Tx[0];

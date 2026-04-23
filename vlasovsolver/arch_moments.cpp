@@ -85,8 +85,8 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
          continue;
       }
 
-      const Real mass = getObjectWrapper().particleSpecies[popID]->mass;
-      const Real charge = getObjectWrapper().particleSpecies[popID]->charge;
+      const Real mass = getObjectWrapper().particleSpecies[popID].mass;
+      const Real charge = getObjectWrapper().particleSpecies[popID].charge;
 
       // Temporary array for storing moments
       Real array[nMom1] = {0};
@@ -135,7 +135,7 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
          continue;
       }
 
-      const Real mass = getObjectWrapper().particleSpecies[popID]->mass;
+      const Real mass = getObjectWrapper().particleSpecies[popID].mass;
 
       // Temporary array for storing moments
       Real array[nMom2] = {0};
@@ -234,8 +234,8 @@ void calculateMoments_R(
             }
             continue;
          }
-         const Real mass = getObjectWrapper().particleSpecies[popID]->mass;
-         const Real charge = getObjectWrapper().particleSpecies[popID]->charge;
+         const Real mass = getObjectWrapper().particleSpecies[popID].mass;
+         const Real charge = getObjectWrapper().particleSpecies[popID].charge;
 
          // Temporary array where the moments for this species are accumulated
          Real array[nMom1] = {0};
@@ -300,7 +300,7 @@ void calculateMoments_R(
          if (nBlocks == 0) {
             continue;
          }
-         const Real mass = getObjectWrapper().particleSpecies[popID]->mass;
+         const Real mass = getObjectWrapper().particleSpecies[popID].mass;
 
          // Temporary array where species' contribution to 2nd moments is accumulated
          Real array[nMom2] = {0};
@@ -401,8 +401,8 @@ void calculateMoments_V(
             continue;
          }
 
-         const Real mass = getObjectWrapper().particleSpecies[popID]->mass;
-         const Real charge = getObjectWrapper().particleSpecies[popID]->charge;
+         const Real mass = getObjectWrapper().particleSpecies[popID].mass;
+         const Real charge = getObjectWrapper().particleSpecies[popID].charge;
 
          // Temporary array for storing moments
          Real array[nMom1] = {0};
@@ -469,8 +469,8 @@ void calculateMoments_V(
             continue;
          }
 
-         const Real mass = getObjectWrapper().particleSpecies[popID]->mass;
-         const Real charge = getObjectWrapper().particleSpecies[popID]->charge;
+         const Real mass = getObjectWrapper().particleSpecies[popID].mass;
+         const Real charge = getObjectWrapper().particleSpecies[popID].charge;
 
          // Temporary array where moments are stored
          Real array[nMom2] = {0};

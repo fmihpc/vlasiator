@@ -65,7 +65,7 @@ namespace SBC {
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-         const std::string& pop = getObjectWrapper().particleSpecies[i]->name;
+         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
          CopysphereSpeciesParameters* sP=new CopysphereSpeciesParameters();
 
          this->speciesParams.push_back(sP);
@@ -90,7 +90,7 @@ namespace SBC {
 
       //TODO Needs to be updated for the new handling
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-        const std::string& pop = getObjectWrapper().particleSpecies[i]->name;
+        const std::string& pop = getObjectWrapper().particleSpecies[i].name;
         CopysphereSpeciesParameters sP;
 
         //Readparameters::get(pop + "_copysphere.rho", sP.rho);
@@ -757,7 +757,7 @@ namespace SBC {
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          templateCell.clear(popID,false); //clear, do not de-allocate memory
          const CopysphereSpeciesParameters& sP = *this->speciesParams[popID];
-         const Real mass = getObjectWrapper().particleSpecies[popID]->mass;
+         const Real mass = getObjectWrapper().particleSpecies[popID].mass;
          initRho = sP.rho;
          initT = sP.T;
          initV0X = sP.V0[0];

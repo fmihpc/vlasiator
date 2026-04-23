@@ -52,7 +52,7 @@ namespace SBC {
                           this->tInterval,0.0); // 0 = re-calculate every time
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-         const std::string& pop = getObjectWrapper().particleSpecies[i]->name;
+         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
           
          InflowSpeciesParameters* sP=new InflowSpeciesParameters();
 
@@ -120,7 +120,7 @@ namespace SBC {
          Bx = buffer[5];
          By = buffer[6];
          Bz = buffer[7];
-         const Real mass = getObjectWrapper().particleSpecies[popID]->mass;
+         const Real mass = getObjectWrapper().particleSpecies[popID].mass;
 
          // Find list of blocks to initialize.
          const uint nRequested = SBC::findMaxwellianBlocksToInitialize(popID,templateCell, initRho, initT, initV0X, initV0Y, initV0Z);

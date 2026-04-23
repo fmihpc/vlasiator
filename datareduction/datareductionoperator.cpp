@@ -525,7 +525,7 @@ namespace DRO {
 
    // Blocks
    Blocks::Blocks(cuint _popID): DataReductionOperator(),popID(_popID) {
-      popName=getObjectWrapper().particleSpecies[popID]->name;
+      popName=getObjectWrapper().particleSpecies[popID].name;
    }
    Blocks::~Blocks() { }
 
@@ -585,7 +585,7 @@ namespace DRO {
    // Split into VariablePTensorDiagonal (11, 22, 33)
    // and VariablePTensorOffDiagonal (23, 13, 12)
    VariablePTensorDiagonal::VariablePTensorDiagonal(cuint _popID): DataReductionOperator(),popID(_popID) {
-      popName = getObjectWrapper().particleSpecies[popID]->name;
+      popName = getObjectWrapper().particleSpecies[popID].name;
    }
    VariablePTensorDiagonal::~VariablePTensorDiagonal() { }
 
@@ -628,9 +628,9 @@ namespace DRO {
                                              lsum[2] += block_data[cellIndex(i,j,k)] * (VZ - averageVZ) * (VZ - averageVZ) * DV3;
                                           }, sum);
 
-         PTensor[0] = sum[0] * getObjectWrapper().particleSpecies[popID]->mass;
-         PTensor[1] = sum[1] * getObjectWrapper().particleSpecies[popID]->mass;
-         PTensor[2] = sum[2] * getObjectWrapper().particleSpecies[popID]->mass;
+         PTensor[0] = sum[0] * getObjectWrapper().particleSpecies[popID].mass;
+         PTensor[1] = sum[1] * getObjectWrapper().particleSpecies[popID].mass;
+         PTensor[2] = sum[2] * getObjectWrapper().particleSpecies[popID].mass;
       }
 
       const char* ptr = reinterpret_cast<const char*>(&PTensor);
@@ -649,7 +649,7 @@ namespace DRO {
    }
 
    VariablePTensorOffDiagonal::VariablePTensorOffDiagonal(cuint _popID): DataReductionOperator(),popID(_popID) {
-      popName = getObjectWrapper().particleSpecies[popID]->name;
+      popName = getObjectWrapper().particleSpecies[popID].name;
    }
    VariablePTensorOffDiagonal::~VariablePTensorOffDiagonal() { }
 
@@ -691,9 +691,9 @@ namespace DRO {
                                              lsum[2] += block_data[cellIndex(i,j,k)] * (VY - averageVY) * (VZ - averageVZ) * DV3;
                                           }, sum);
 
-         PTensor[0] = sum[0] * getObjectWrapper().particleSpecies[popID]->mass;
-         PTensor[1] = sum[1] * getObjectWrapper().particleSpecies[popID]->mass;
-         PTensor[2] = sum[2] * getObjectWrapper().particleSpecies[popID]->mass;
+         PTensor[0] = sum[0] * getObjectWrapper().particleSpecies[popID].mass;
+         PTensor[1] = sum[1] * getObjectWrapper().particleSpecies[popID].mass;
+         PTensor[2] = sum[2] * getObjectWrapper().particleSpecies[popID].mass;
 
       }
       const char* ptr = reinterpret_cast<const char*>(&PTensor);
@@ -719,8 +719,8 @@ namespace DRO {
    //Calculates rho thermal or rho non-thermal
    static void rhoNonthermalCalculation( const SpatialCell * cell, const bool calculateNonthermal, cuint popID, Real & rho ) {
       creal HALF = 0.5;
-      creal thermalRadius = getObjectWrapper().particleSpecies[popID]->thermalRadius;
-      const std::array<Real, 3> thermalV = getObjectWrapper().particleSpecies[popID]->thermalV;
+      creal thermalRadius = getObjectWrapper().particleSpecies[popID].thermalRadius;
+      const std::array<Real, 3> thermalV = getObjectWrapper().particleSpecies[popID].thermalV;
 
       #ifdef USE_GPU
       const vmesh::VelocityBlockContainer* VBC = cell->dev_get_velocity_blocks(popID);
@@ -773,8 +773,8 @@ namespace DRO {
 
    static void VNonthermalCalculation( const SpatialCell * cell, const bool calculateNonthermal, cuint popID, Real * V ) {
       creal HALF = 0.5;
-      const std::array<Real, 3> thermalV = getObjectWrapper().particleSpecies[popID]->thermalV;
-      creal thermalRadius = getObjectWrapper().particleSpecies[popID]->thermalRadius;
+      const std::array<Real, 3> thermalV = getObjectWrapper().particleSpecies[popID].thermalV;
+      creal thermalRadius = getObjectWrapper().particleSpecies[popID].thermalRadius;
 
       // Make sure the V is initialized
       V[0] = 0;
@@ -854,8 +854,8 @@ namespace DRO {
                                                       cuint popID,
                                                       Real * PTensor ) {
       creal HALF = 0.5;
-      const std::array<Real, 3> thermalV = getObjectWrapper().particleSpecies[popID]->thermalV;
-      creal thermalRadius = getObjectWrapper().particleSpecies[popID]->thermalRadius;
+      const std::array<Real, 3> thermalV = getObjectWrapper().particleSpecies[popID].thermalV;
+      creal thermalRadius = getObjectWrapper().particleSpecies[popID].thermalRadius;
 
       #ifdef USE_GPU
       const vmesh::VelocityBlockContainer* VBC = cell->dev_get_velocity_blocks(popID);
@@ -903,9 +903,9 @@ namespace DRO {
                                              };
                                           }, sum);
 
-         PTensor[0] = sum[0] * getObjectWrapper().particleSpecies[popID]->mass;
-         PTensor[1] = sum[1] * getObjectWrapper().particleSpecies[popID]->mass;
-         PTensor[2] = sum[2] * getObjectWrapper().particleSpecies[popID]->mass;
+         PTensor[0] = sum[0] * getObjectWrapper().particleSpecies[popID].mass;
+         PTensor[1] = sum[1] * getObjectWrapper().particleSpecies[popID].mass;
+         PTensor[2] = sum[2] * getObjectWrapper().particleSpecies[popID].mass;
 
       }
       return;
@@ -919,8 +919,8 @@ namespace DRO {
                                                          cuint popID,
                                                          Real * PTensor ) {
       creal HALF = 0.5;
-      const std::array<Real, 3> thermalV = getObjectWrapper().particleSpecies[popID]->thermalV;
-      creal thermalRadius = getObjectWrapper().particleSpecies[popID]->thermalRadius;
+      const std::array<Real, 3> thermalV = getObjectWrapper().particleSpecies[popID].thermalV;
+      creal thermalRadius = getObjectWrapper().particleSpecies[popID].thermalRadius;
 
       #ifdef USE_GPU
       const vmesh::VelocityBlockContainer* VBC = cell->dev_get_velocity_blocks(popID);
@@ -968,9 +968,9 @@ namespace DRO {
                                              };
                                           }, sum);
 
-         PTensor[0] = sum[0] * getObjectWrapper().particleSpecies[popID]->mass;
-         PTensor[1] = sum[1] * getObjectWrapper().particleSpecies[popID]->mass;
-         PTensor[2] = sum[2] * getObjectWrapper().particleSpecies[popID]->mass;
+         PTensor[0] = sum[0] * getObjectWrapper().particleSpecies[popID].mass;
+         PTensor[1] = sum[1] * getObjectWrapper().particleSpecies[popID].mass;
+         PTensor[2] = sum[2] * getObjectWrapper().particleSpecies[popID].mass;
 
       }
       return;
@@ -982,8 +982,8 @@ namespace DRO {
 
    // Rho nonthermal:
    VariableRhoNonthermal::VariableRhoNonthermal(cuint _popID): DataReductionOperator(),popID(_popID) {
-      popName = getObjectWrapper().particleSpecies[popID]->name;
-      doSkip = (getObjectWrapper().particleSpecies[popID]->thermalRadius == 0.0) ? true : false;
+      popName = getObjectWrapper().particleSpecies[popID].name;
+      doSkip = (getObjectWrapper().particleSpecies[popID].thermalRadius == 0.0) ? true : false;
    }
    VariableRhoNonthermal::~VariableRhoNonthermal() { }
 
@@ -1011,8 +1011,8 @@ namespace DRO {
 
    // Rho thermal:
    VariableRhoThermal::VariableRhoThermal(cuint _popID): DataReductionOperator(),popID(_popID) {
-      popName = getObjectWrapper().particleSpecies[popID]->name;
-      doSkip = (getObjectWrapper().particleSpecies[popID]->thermalRadius == 0.0) ? true : false;
+      popName = getObjectWrapper().particleSpecies[popID].name;
+      doSkip = (getObjectWrapper().particleSpecies[popID].thermalRadius == 0.0) ? true : false;
    }
    VariableRhoThermal::~VariableRhoThermal() { }
 
@@ -1040,8 +1040,8 @@ namespace DRO {
 
    // v nonthermal:
    VariableVNonthermal::VariableVNonthermal(cuint _popID): DataReductionOperator(),popID(_popID) {
-      popName = getObjectWrapper().particleSpecies[popID]->name;
-      doSkip = (getObjectWrapper().particleSpecies[popID]->thermalRadius == 0.0) ? true : false;
+      popName = getObjectWrapper().particleSpecies[popID].name;
+      doSkip = (getObjectWrapper().particleSpecies[popID].thermalRadius == 0.0) ? true : false;
    }
    VariableVNonthermal::~VariableVNonthermal() { }
 
@@ -1074,8 +1074,8 @@ namespace DRO {
 
    //v thermal:
    VariableVThermal::VariableVThermal(cuint _popID): DataReductionOperator(),popID(_popID) {
-      popName = getObjectWrapper().particleSpecies[popID]->name;
-      doSkip = (getObjectWrapper().particleSpecies[popID]->thermalRadius == 0.0) ? true : false;
+      popName = getObjectWrapper().particleSpecies[popID].name;
+      doSkip = (getObjectWrapper().particleSpecies[popID].thermalRadius == 0.0) ? true : false;
    }
    VariableVThermal::~VariableVThermal() { }
 
@@ -1113,8 +1113,8 @@ namespace DRO {
    // Split into VariablePTensorNonthermalDiagonal (11, 22, 33)
    // and VariablePTensorNonthermalOffDiagonal (23, 13, 12)
    VariablePTensorNonthermalDiagonal::VariablePTensorNonthermalDiagonal(cuint _popID): DataReductionOperator(),popID(_popID) {
-      popName = getObjectWrapper().particleSpecies[popID]->name;
-      doSkip = (getObjectWrapper().particleSpecies[popID]->thermalRadius == 0.0) ? true : false;
+      popName = getObjectWrapper().particleSpecies[popID].name;
+      doSkip = (getObjectWrapper().particleSpecies[popID].thermalRadius == 0.0) ? true : false;
    }
    VariablePTensorNonthermalDiagonal::~VariablePTensorNonthermalDiagonal() { }
 
@@ -1161,8 +1161,8 @@ namespace DRO {
    // Split into VariablePTensorThermalDiagonal (11, 22, 33)
    // and VariablePTensorThermalOffDiagonal (23, 13, 12)
    VariablePTensorThermalDiagonal::VariablePTensorThermalDiagonal(cuint _popID): DataReductionOperator(),popID(_popID) {
-      popName = getObjectWrapper().particleSpecies[popID]->name;
-      doSkip = (getObjectWrapper().particleSpecies[popID]->thermalRadius == 0.0) ? true : false;
+      popName = getObjectWrapper().particleSpecies[popID].name;
+      doSkip = (getObjectWrapper().particleSpecies[popID].thermalRadius == 0.0) ? true : false;
    }
    VariablePTensorThermalDiagonal::~VariablePTensorThermalDiagonal() { }
 
@@ -1203,8 +1203,8 @@ namespace DRO {
    }
 
    VariablePTensorNonthermalOffDiagonal::VariablePTensorNonthermalOffDiagonal(cuint _popID): DataReductionOperator(),popID(_popID) {
-      popName = getObjectWrapper().particleSpecies[popID]->name;
-      doSkip = (getObjectWrapper().particleSpecies[popID]->thermalRadius == 0.0) ? true : false;
+      popName = getObjectWrapper().particleSpecies[popID].name;
+      doSkip = (getObjectWrapper().particleSpecies[popID].thermalRadius == 0.0) ? true : false;
    }
    VariablePTensorNonthermalOffDiagonal::~VariablePTensorNonthermalOffDiagonal() { }
 
@@ -1247,8 +1247,8 @@ namespace DRO {
    }
 
    VariablePTensorThermalOffDiagonal::VariablePTensorThermalOffDiagonal(cuint _popID): DataReductionOperator(),popID(_popID) {
-      popName = getObjectWrapper().particleSpecies[popID]->name;
-      doSkip = (getObjectWrapper().particleSpecies[popID]->thermalRadius == 0.0) ? true : false;
+      popName = getObjectWrapper().particleSpecies[popID].name;
+      doSkip = (getObjectWrapper().particleSpecies[popID].thermalRadius == 0.0) ? true : false;
    }
    VariablePTensorThermalOffDiagonal::~VariablePTensorThermalOffDiagonal() { }
 
@@ -1292,7 +1292,7 @@ namespace DRO {
 
 
    VariableEffectiveSparsityThreshold::VariableEffectiveSparsityThreshold(cuint _popID): DataReductionOperator(),popID(_popID) {
-     popName=getObjectWrapper().particleSpecies[popID]->name;
+     popName=getObjectWrapper().particleSpecies[popID].name;
    }
    VariableEffectiveSparsityThreshold::~VariableEffectiveSparsityThreshold() { }
 
@@ -1332,11 +1332,11 @@ namespace DRO {
     * The energy channels are saved in bulk files as PrecipitationCentreEnergy{channel_number}.
     */
    VariablePrecipitationDiffFlux::VariablePrecipitationDiffFlux(cuint _popID): DataReductionOperatorHasParameters(),popID(_popID) {
-      popName = getObjectWrapper().particleSpecies[popID]->name;
-      lossConeAngle = getObjectWrapper().particleSpecies[popID]->precipitationLossConeAngle; // deg
-      emin = getObjectWrapper().particleSpecies[popID]->precipitationEmin;    // already converted to SI
-      emax = getObjectWrapper().particleSpecies[popID]->precipitationEmax;    // already converted to SI
-      nChannels = getObjectWrapper().particleSpecies[popID]->precipitationNChannels; // number of energy channels, logarithmically spaced between emin and emax
+      popName = getObjectWrapper().particleSpecies[popID].name;
+      lossConeAngle = getObjectWrapper().particleSpecies[popID].precipitationLossConeAngle; // deg
+      emin = getObjectWrapper().particleSpecies[popID].precipitationEmin;    // already converted to SI
+      emax = getObjectWrapper().particleSpecies[popID].precipitationEmax;    // already converted to SI
+      nChannels = getObjectWrapper().particleSpecies[popID].precipitationNChannels; // number of energy channels, logarithmically spaced between emin and emax
       for (int i=0; i<nChannels; i++){
          channels.push_back(emin * pow(emax/emin,(Real)i/(nChannels-1)));
       }
@@ -1394,7 +1394,7 @@ namespace DRO {
          Real emaxLocal = emax;
          Real eminLocal = emin;
 
-         const Real mass = getObjectWrapper().particleSpecies[popID]->mass;
+         const Real mass = getObjectWrapper().particleSpecies[popID].mass;
          if (cell->get_number_of_velocity_blocks(popID) != 0)
          arch::parallel_reduce<arch::sum>({WID, WID, WID, (uint)cell->get_number_of_velocity_blocks(popID)},
                                           ARCH_LOOP_LAMBDA (const uint i, const uint j, const uint k, const uint n, Real *lsum )-> void {
@@ -1432,7 +1432,7 @@ namespace DRO {
       // Averaging within each bin and conversion to unit of part. cm-2 s-1 sr-1 ev-1
       for (int i=0; i<nChannels; i++) {
          if (sumWeights[i] != 0) {
-            dataDiffFlux[i] *= 1.0 / (getObjectWrapper().particleSpecies[popID]->mass * sumWeights[i]) * physicalconstants::CHARGE * 1.0e-4;
+            dataDiffFlux[i] *= 1.0 / (getObjectWrapper().particleSpecies[popID].mass * sumWeights[i]) * physicalconstants::CHARGE * 1.0e-4;
          }
       }
 
@@ -1457,7 +1457,7 @@ namespace DRO {
    /*! \brief V-space flatten into 1D mu distribution
     */
    VariableMuSpace::VariableMuSpace(cuint _popID): DataReductionOperatorHasParameters(),popID(_popID) {
-      popName = getObjectWrapper().particleSpecies[popID]->name;
+      popName = getObjectWrapper().particleSpecies[popID].name;
       nBins = Parameters::PADmubins; //Number of bins to build muSpace
    }
    VariableMuSpace::~VariableMuSpace() { }
@@ -1546,10 +1546,10 @@ namespace DRO {
     * The energy channels are saved in bulk files as PrecipitationCentreEnergyLine{channel_number}.
     */
    VariablePrecipitationLineDiffFlux::VariablePrecipitationLineDiffFlux(cuint _popID): DataReductionOperatorHasParameters(),popID(_popID) {
-      popName = getObjectWrapper().particleSpecies[popID]->name;
-      emin = getObjectWrapper().particleSpecies[popID]->precipitationEmin;    // already converted to SI
-      emax = getObjectWrapper().particleSpecies[popID]->precipitationEmax;    // already converted to SI
-      nChannels = getObjectWrapper().particleSpecies[popID]->precipitationNChannels; // number of energy channels, logarithmically spaced between emin and emax
+      popName = getObjectWrapper().particleSpecies[popID].name;
+      emin = getObjectWrapper().particleSpecies[popID].precipitationEmin;    // already converted to SI
+      emax = getObjectWrapper().particleSpecies[popID].precipitationEmax;    // already converted to SI
+      nChannels = getObjectWrapper().particleSpecies[popID].precipitationNChannels; // number of energy channels, logarithmically spaced between emin and emax
       for (int i=0; i<nChannels; i++){
          channels.push_back(emin * pow(emax/emin,(Real)i/(nChannels-1)));
       }
@@ -1604,7 +1604,7 @@ namespace DRO {
          Real B2 = B[2];
          Real emaxLocal = emax;
          Real eminLocal = emin;
-         const Real mass = getObjectWrapper().particleSpecies[popID]->mass;
+         const Real mass = getObjectWrapper().particleSpecies[popID].mass;
 
          if (cell->get_number_of_velocity_blocks(popID) != 0)
          arch::parallel_reduce<arch::sum>({WID, WID, WID, (uint)cell->get_number_of_velocity_blocks(popID)},
@@ -1654,7 +1654,7 @@ namespace DRO {
       // Averaging within each bin and conversion to unit of part. cm-2 s-1 sr-1 ev-1
       for (int i=0; i<nChannels; i++) {
          if (sumWeights[i] != 0) {
-            dataLineDiffFlux[i] *= 1.0 / (getObjectWrapper().particleSpecies[popID]->mass * sumWeights[i]) * physicalconstants::CHARGE * 1.0e-4;
+            dataLineDiffFlux[i] *= 1.0 / (getObjectWrapper().particleSpecies[popID].mass * sumWeights[i]) * physicalconstants::CHARGE * 1.0e-4;
          }
       }
 
@@ -1689,11 +1689,11 @@ namespace DRO {
     *    - EnergyDensityELimit2 (as scalar multiplier of EnergyDensityESW).
     */
    VariableEnergyDensity::VariableEnergyDensity(cuint _popID): DataReductionOperatorHasParameters(),popID(_popID) {
-      popName = getObjectWrapper().particleSpecies[popID]->name;
+      popName = getObjectWrapper().particleSpecies[popID].name;
       // Store internally in SI units
-      solarwindenergy = getObjectWrapper().particleSpecies[popID]->SolarWindEnergy;
-      E1limit = solarwindenergy * getObjectWrapper().particleSpecies[popID]->EnergyDensityLimit1;
-      E2limit = solarwindenergy * getObjectWrapper().particleSpecies[popID]->EnergyDensityLimit2;
+      solarwindenergy = getObjectWrapper().particleSpecies[popID].SolarWindEnergy;
+      E1limit = solarwindenergy * getObjectWrapper().particleSpecies[popID].EnergyDensityLimit1;
+      E2limit = solarwindenergy * getObjectWrapper().particleSpecies[popID].EnergyDensityLimit2;
    }
    VariableEnergyDensity::~VariableEnergyDensity() { }
 
@@ -1719,7 +1719,7 @@ namespace DRO {
          Real sum[3] = {0.0, 0.0, 0.0};
          Real E1limitLocal = E1limit;
          Real E2limitLocal = E2limit;
-         const Real mass = getObjectWrapper().particleSpecies[popID]->mass;
+         const Real mass = getObjectWrapper().particleSpecies[popID].mass;
 
          if (cell->get_number_of_velocity_blocks(popID) != 0)
          arch::parallel_reduce<arch::sum>({WID, WID, WID, (uint)cell->get_number_of_velocity_blocks(popID)},
@@ -1768,8 +1768,8 @@ namespace DRO {
       // Output solar wind energy in eV
       Real swe = solarwindenergy/physicalconstants::CHARGE;
       // Output other bin limits as multipliers
-      Real e1l = getObjectWrapper().particleSpecies[popID]->EnergyDensityLimit1;
-      Real e2l = getObjectWrapper().particleSpecies[popID]->EnergyDensityLimit2;
+      Real e1l = getObjectWrapper().particleSpecies[popID].EnergyDensityLimit1;
+      Real e2l = getObjectWrapper().particleSpecies[popID].EnergyDensityLimit2;
 
       if( vlsvWriter.writeParameter(popName+"_EnergyDensityESW", &swe) == false ) { return false; }
       if( vlsvWriter.writeParameter(popName+"_EnergyDensityELimit1", &e1l) == false ) { return false; }
@@ -1780,7 +1780,7 @@ namespace DRO {
    // Heat flux density vector
    // q_i = m/2 * integral((v - <V>)^2 (v - <V>)_i * f(r,v) dV)
    VariableHeatFluxVector::VariableHeatFluxVector(cuint _popID): DataReductionOperator(),popID(_popID) {
-      popName = getObjectWrapper().particleSpecies[popID]->name;
+      popName = getObjectWrapper().particleSpecies[popID].name;
    }
    VariableHeatFluxVector::~VariableHeatFluxVector() { }
 
@@ -1827,9 +1827,9 @@ namespace DRO {
 	                  lsum[2] += block_data[cellIndex(i,j,k)] * VSQ * (VZ - averageVZ) * DV3;
          }, sum);
 
-         HeatFlux[0] = sum[0] * HALF * getObjectWrapper().particleSpecies[popID]->mass;
-         HeatFlux[1] = sum[1] * HALF * getObjectWrapper().particleSpecies[popID]->mass;
-         HeatFlux[2] = sum[2] * HALF * getObjectWrapper().particleSpecies[popID]->mass;
+         HeatFlux[0] = sum[0] * HALF * getObjectWrapper().particleSpecies[popID].mass;
+         HeatFlux[1] = sum[1] * HALF * getObjectWrapper().particleSpecies[popID].mass;
+         HeatFlux[2] = sum[2] * HALF * getObjectWrapper().particleSpecies[popID].mass;
       }
       const char* ptr = reinterpret_cast<const char*>(&HeatFlux);
       for (uint i = 0; i < 3*sizeof(Real); ++i) buffer[i] = ptr[i];
@@ -1865,7 +1865,7 @@ namespace DRO {
     *              = integral_A[abs(f-g) - g]dv3 / 2n + 1/2
     */
    VariableNonMaxwellianity::VariableNonMaxwellianity(cuint _popID) : DataReductionOperator(), popID(_popID) {
-      popName = getObjectWrapper().particleSpecies[popID]->name;
+      popName = getObjectWrapper().particleSpecies[popID].name;
    }
    VariableNonMaxwellianity::~VariableNonMaxwellianity() {}
 
@@ -1884,7 +1884,7 @@ namespace DRO {
       const Real HALF = 0.5;
 
       // thermal speed in parallel direction
-      const Real V_par_th_sq = 2.0 * physicalconstants::K_B * T_par / getObjectWrapper().particleSpecies[popID]->mass;
+      const Real V_par_th_sq = 2.0 * physicalconstants::K_B * T_par / getObjectWrapper().particleSpecies[popID].mass;
 
       #ifdef USE_GPU
       const vmesh::VelocityBlockContainer* VBC = cell->dev_get_velocity_blocks(popID);
@@ -2046,9 +2046,9 @@ namespace DRO {
           lsum[2] += block_data[cellIndex(i, j, k)] * V_perp2 * V_perp2 * DV3;
          }, sum);
 
-         PTensor[0] = sum[0] * getObjectWrapper().particleSpecies[popID]->mass;
-         PTensor[1] = sum[1] * getObjectWrapper().particleSpecies[popID]->mass;
-         PTensor[2] = sum[2] * getObjectWrapper().particleSpecies[popID]->mass;
+         PTensor[0] = sum[0] * getObjectWrapper().particleSpecies[popID].mass;
+         PTensor[1] = sum[1] * getObjectWrapper().particleSpecies[popID].mass;
+         PTensor[2] = sum[2] * getObjectWrapper().particleSpecies[popID].mass;
       }
       T_par = (PTensor[0]) / (rho * physicalconstants::K_B);
       T_perp = (PTensor[1] + PTensor[2]) / (2.0 * rho * physicalconstants::K_B);

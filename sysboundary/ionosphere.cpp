@@ -2240,7 +2240,7 @@ namespace SBC {
          IonosphereSpeciesParameters *sP=new IonosphereSpeciesParameters();
 
          speciesParams.push_back(sP);
-         const std::string& pop =getObjectWrapper().particleSpecies[i]->name;
+         const std::string& pop =getObjectWrapper().particleSpecies[i].name;
          Readparameters::add<Real>(pop + "_ionosphere.rho", "Number density of the ionosphere (m^-3)", sP->rho,0.0);
          Readparameters::add<Real>(pop + "_ionosphere.T", "Temperature of the ionosphere (K)", sP->T,0.0);
          Readparameters::add<Real>(pop + "_ionosphere.VX0", "Bulk velocity of ionospheric distribution function in X direction (m/s)",sP->V0[0],0.0);
@@ -2313,7 +2313,7 @@ namespace SBC {
       }
       //TODO needs to be updated for the new handling?
       // for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-      //   const std::string& pop = getObjectWrapper().particleSpecies[i]->name;
+      //   const std::string& pop = getObjectWrapper().particleSpecies[i].name;
       //   IonosphereSpeciesParameters sP;
       //
       //   //Readparameters::get(pop + "_ionosphere.rho", sP.rho);
@@ -3157,7 +3157,7 @@ namespace SBC {
                   creal initV0X = vDrift[0];
                   creal initV0Y = vDrift[1];
                   creal initV0Z = vDrift[2];
-                  creal mass = getObjectWrapper().particleSpecies[popID]->mass;
+                  creal mass = getObjectWrapper().particleSpecies[popID].mass;
 
                   // Find list of blocks to initialize.
                   const uint nRequested = SBC::findMaxwellianBlocksToInitialize(popID,cell, initRho, initT, initV0X, initV0Y, initV0Z);
@@ -3254,7 +3254,7 @@ namespace SBC {
                   creal initV0X = vDrift[0];
                   creal initV0Y = vDrift[1];
                   creal initV0Z = vDrift[2];
-                  creal mass = getObjectWrapper().particleSpecies[popID]->mass;
+                  creal mass = getObjectWrapper().particleSpecies[popID].mass;
 
                   // Find list of blocks to initialize.
                   // WARNING: This now only finds blocks based on the outflow population, not including the copied losscone.
@@ -3380,7 +3380,7 @@ namespace SBC {
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          templateCell.clear(popID,false); //clear, do not de-allocate memory
          const IonosphereSpeciesParameters& sP = *this->speciesParams[popID];
-         const Real mass = getObjectWrapper().particleSpecies[popID]->mass;
+         const Real mass = getObjectWrapper().particleSpecies[popID].mass;
          initRho = sP.rho;
          initT = sP.T;
          initV0X = 0;

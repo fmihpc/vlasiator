@@ -97,7 +97,7 @@ namespace projects {
       // const Real z  = cell->parameters[CellParams::ZCRD] + 0.5*cell->parameters[CellParams::DZ];
       cint side = (x < 0.0) ? this->LEFT : this->RIGHT;
 
-      const Real mass = getObjectWrapper().particleSpecies[popID]->mass;
+      const Real mass = getObjectWrapper().particleSpecies[popID].mass;
       Real initRho = this->rho[side];
       Real initT = this->T[side];
       const Real initV0X = this->Vx[side];

@@ -91,7 +91,7 @@ namespace projects {
       ) const {
       //const speciesParameters& sP = this->speciesParams[popID];
 
-      const Real mass = getObjectWrapper().particleSpecies[popID]->mass;
+      const Real mass = getObjectWrapper().particleSpecies[popID].mass;
       Real initRho = this->DENSITY;
       Real initT = this->TEMPERATURE;
       const Real initV0X = this->VX0;
