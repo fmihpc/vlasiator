@@ -67,15 +67,15 @@ namespace SBC {
         sP->faceVlasovScheme={0,0,0,0,0,0};
         Readparameters::add(pop + "_outflow.reapplyFaceUponRestart", "List of faces on which outflow boundary conditions are to be reapplied upon restart ([xyz][+-]).",sP->faceToReapplyUponRestartList);
         //TODO maybe pointless if it is done in getParam?
-        std::function<void(const string)> lambda_fun=[this](const string face){  
-          if(face == "x+") { this->facesToProcess[0] = true;}// sP.facesToSkipVlasov[0] = false; }  This processing has to be done laters
-          if(face == "x-") { this->facesToProcess[1] = true;}// sP.facesToSkipVlasov[1] = false; }
-          if(face == "y+") { this->facesToProcess[2] = true;}// sP.facesToSkipVlasov[2] = false; }
-          if(face == "y-") { this->facesToProcess[3] = true;}// sP.facesToSkipVlasov[3] = false; }
-          if(face == "z+") { this->facesToProcess[4] = true;}// sP.facesToSkipVlasov[4] = false; }
-          if(face == "z-") { this->facesToProcess[5] = true;}// sP.facesToSkipVlasov[5] = false; }
-        };
-        Readparameters::add_each_lambda(pop + "_outflow.face", "List of faces on which outflow boundary conditions are to be applied ([xyz][+-]).",this->faceList,lambda_fun);
+        // std::function<void(const string)> lambda_fun=[this](const string face){  
+        //   if(face == "x+") { this->facesToProcess[0] = true;}// sP.facesToSkipVlasov[0] = false; }  This processing has to be done laters
+        //   if(face == "x-") { this->facesToProcess[1] = true;}// sP.facesToSkipVlasov[1] = false; }
+        //   if(face == "y+") { this->facesToProcess[2] = true;}// sP.facesToSkipVlasov[2] = false; }
+        //   if(face == "y-") { this->facesToProcess[3] = true;}// sP.facesToSkipVlasov[3] = false; }
+        //   if(face == "z+") { this->facesToProcess[4] = true;}// sP.facesToSkipVlasov[4] = false; }
+        //   if(face == "z-") { this->facesToProcess[5] = true;}// sP.facesToSkipVlasov[5] = false; }
+        // };
+        Readparameters::add<vector<string>>(pop + "_outflow.face", "List of faces on which outflow boundary conditions are to be applied ([xyz][+-]).",this->faceList);
         Readparameters::add<string>(pop + "_outflow.vlasovScheme_face_x+", "Scheme to use on the face x+ (Copy, None)", this->vlasovSysBoundarySchemeName[0],"Copy");
         Readparameters::add<string>(pop + "_outflow.vlasovScheme_face_x-", "Scheme to use on the face x- (Copy, None)", this->vlasovSysBoundarySchemeName[1],"Copy");
         Readparameters::add<string>(pop + "_outflow.vlasovScheme_face_y+", "Scheme to use on the face y+ (Copy, None)", this->vlasovSysBoundarySchemeName[2],"Copy");

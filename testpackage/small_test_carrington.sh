@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -t 00:05:00        # Run time (hh:mm:ss)
+#SBATCH -t 01:30:00        # Run time (hh:mm:ss)
 #SBATCH --job-name=ctestpackage
 ##SBATCH -A spacephysics 
 #SBATCH --constraint="carrington"

@@ -148,13 +148,14 @@ std::string Readparameters::configInfo() { return getConfig(run_config_file_name
  * @param allowUnknown true if unregistered options are parsed without error.
  * @return True if input file(s) were parsed successfully.
  */
-void Readparameters::parse(bool main) {
+void Readparameters::parse(bool extras) {
    int rank;
    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
    if (rank == MASTER_RANK) {
       try {
 
          // app->allow_config_extras();
+         app->allow_extras(extras);
          app->parse(argc, argv);
 
 
@@ -217,7 +218,7 @@ if (rank == MASTER_RANK) {
          // string part = " --ParticlePopulations=[proton]";
          // app->parse(parsed_conf + part);
          // app->remove_option(app->get_option("--ParticlePopulations"));
-         app->allow_extras(!main);
+         app->allow_extras(extras);
          // getObjectWrapper().project->addParameters();
          //
 
@@ -253,177 +254,7 @@ if (rank == MASTER_RANK) {
       }
    // }
 }
-// bool Readparameters::parse(const bool needsRunConfig, const bool allowUnknown) {
-//
-//    int rank;
-//    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-//
-//    if (rank == MASTER_RANK) {
-//       // Read options from command line:
-//       PO::store(PO::parse_command_line(argc, argv, *descriptions), *variables);
-//       PO::notify(*variables);
-//       // Read options from environment variables:
-//       PO::store(PO::parse_environment(*descriptions, "MAIN_"), *variables);
-//       PO::notify(*variables);
-//       // Read options from run config file:
-//       if (run_config_file_name.size() > 0) {
-//          ifstream run_config_file(run_config_file_name.c_str(), fstream::in);
-//          if (run_config_file.good()) {
-//             PO::store(PO::parse_config_file(run_config_file, *descriptions, allowUnknown), *variables);
-//             PO::notify(*variables);
-//             run_config_file.close();
-//          } else {
-//             cerr << __FILE__ << ":" << __LINE__ << "Couldn't open or read run config file " + run_config_file_name
-//                  << endl;
-//             MPI_Abort(MPI_COMM_WORLD, 1);
-//          }
-//       }
-//       // Read options from user config file:
-//       if (user_config_file_name.size() > 0) {
-//          ifstream user_config_file(user_config_file_name.c_str(), fstream::in);
-//          if (user_config_file.good()) {
-//             PO::store(PO::parse_config_file(user_config_file, *descriptions, allowUnknown), *variables);
-//             PO::notify(*variables);
-//             user_config_file.close();
-//          } else {
-//             cerr << __FILE__ << ":" << __LINE__ << "Couldn't open or read user config file " + user_config_file_name
-//                  << endl;
-//             MPI_Abort(MPI_COMM_WORLD, 1);
-//          }
-//       }
-//       // Read options from global config file:
-//       if (global_config_file_name.size() > 0) {
-//          ifstream global_config_file(global_config_file_name.c_str(), fstream::in);
-//          if (global_config_file.good()) {
-//             PO::store(PO::parse_config_file(global_config_file, *descriptions, allowUnknown), *variables);
-//             PO::notify(*variables);
-//             global_config_file.close();
-//          } else {
-//             cerr << __FILE__ << ":" << __LINE__ << "Couldn't open or read global config file " +
-//             global_config_file_name
-//                  << endl;
-//             MPI_Abort(MPI_COMM_WORLD, 1);
-//          }
-//       }
-//    }
-//
-//    // Check if the user has specified --version
-//    bool hasVersionOption = versionMessage();
-//    MPI_Bcast(&hasVersionOption, sizeof(bool), MPI_BYTE, 0, MPI_COMM_WORLD);
-//    if (hasVersionOption) {
-//       MPI_Finalize();
-//       exit(0);
-//    }
-//
-//    // Require that there is a run config file.
-//    // There are so many options so it is unlikely that one would like to define
-//    // all on the command line, or only in global/user run files.
-//    bool hasRunConfigFile = (run_config_file_name.size() > 0);
-//    MPI_Bcast(&hasRunConfigFile, sizeof(bool), MPI_BYTE, 0, MPI_COMM_WORLD);
-//    if (needsRunConfig && !hasRunConfigFile && !helpRequested) {
-//       if (rank == MASTER_RANK) {
-//          cout << "Run config file required. Use --help to list all options" << endl;
-//       }
-//       MPI_Finalize();
-//       exit(0);
-//    }
-//
-//    int nOptionsToBroadcast;
-//    int vectorSize;
-//    const int maxStringLength = 1024;
-//    char value[maxStringLength];
-//    char name[maxStringLength];
-//    value[maxStringLength - 1] = '\0';
-//    name[maxStringLength - 1] = '\0';
-//
-//    /*
-//      loop through options and broadcast all options from root rank to the others
-//    Separate bcasts not optimal from performance point of view, but parse is
-//    normally just called a few times so it should not matter.
-//    */
-//
-//    // count number of options not parsed/broadcasted previously
-//    if (rank == MASTER_RANK) {
-//       nOptionsToBroadcast = 0;
-//       for (map<string, bool>::iterator ip = isOptionParsed.begin(); ip != isOptionParsed.end(); ++ip) {
-//          if (!ip->second)
-//             nOptionsToBroadcast++;
-//       }
-//    }
-//
-//    MPI_Bcast(&nOptionsToBroadcast, 1, MPI_INT, 0, MPI_COMM_WORLD);
-//    if (rank == MASTER_RANK) {
-//       // iterate through map and bcast cstrings of key/value pairs not parsed before
-//       for (map<string, string>::iterator p = options.begin(); p != options.end(); ++p) {
-//
-//          if (!isOptionParsed[p->first]) {
-//             strncpy(name, p->first.c_str(), maxStringLength - 1);
-//             strncpy(value, p->second.c_str(), maxStringLength - 1);
-//             MPI_Bcast(name, maxStringLength, MPI_CHAR, 0, MPI_COMM_WORLD);
-//             MPI_Bcast(value, maxStringLength, MPI_CHAR, 0, MPI_COMM_WORLD);
-//             isOptionParsed[p->first] = true;
-//          }
-//       }
-//    } else {
-//       // receive new options
-//       for (int p = 0; p < nOptionsToBroadcast; p++) {
-//          MPI_Bcast(name, maxStringLength, MPI_CHAR, 0, MPI_COMM_WORLD);
-//          MPI_Bcast(value, maxStringLength, MPI_CHAR, 0, MPI_COMM_WORLD);
-//          string sName(name);
-//          string sValue(value);
-//          options[sName] = sValue;
-//       }
-//    }
-//
-//    /*
-//      loop through vector options and broadcast all vector options from root rank
-//    to the others. Separate bcasts not optimal from performance point of view,
-//    but parse is normally just called a few times so it should not matter.
-//    */
-//
-//    // count number of vector options not parsed/broarcasted previously
-//    if (rank == MASTER_RANK) {
-//       nOptionsToBroadcast = 0;
-//       for (map<string, bool>::iterator ip = isVectorOptionParsed.begin(); ip != isVectorOptionParsed.end(); ++ip) {
-//          if (!ip->second)
-//             nOptionsToBroadcast++;
-//       }
-//    }
-//
-//    // root broadcasts its new vector values
-//    MPI_Bcast(&nOptionsToBroadcast, 1, MPI_INT, 0, MPI_COMM_WORLD);
-//    if (rank == MASTER_RANK) {
-//       // iterate through map and bcast cstrings of key/value pairs not parsed before
-//       for (map<string, vector<string>>::iterator p = vectorOptions.begin(); p != vectorOptions.end(); ++p) {
-//          if (!isVectorOptionParsed[p->first]) {
-//             strncpy(name, p->first.c_str(), maxStringLength - 1);
-//             MPI_Bcast(name, maxStringLength, MPI_CHAR, 0, MPI_COMM_WORLD);
-//             vectorSize = vectorOptions[p->first].size();
-//             MPI_Bcast(&vectorSize, 1, MPI_INT, 0, MPI_COMM_WORLD);
-//             for (vector<string>::iterator v = vectorOptions[p->first].begin(); v != vectorOptions[p->first].end();
-//                  ++v) {
-//                strncpy(value, v->c_str(), maxStringLength - 1);
-//                MPI_Bcast(value, maxStringLength, MPI_CHAR, 0, MPI_COMM_WORLD);
-//             }
-//             isVectorOptionParsed[p->first] = true;
-//          }
-//       }
-//    } else {
-//       // others receive new options
-//       for (int p = 0; p < nOptionsToBroadcast; p++) {
-//          MPI_Bcast(name, maxStringLength, MPI_CHAR, 0, MPI_COMM_WORLD);
-//          string sName(name);
-//          MPI_Bcast(&vectorSize, 1, MPI_INT, 0, MPI_COMM_WORLD);
-//          for (int i = 0; i < vectorSize; i++) {
-//             MPI_Bcast(value, maxStringLength, MPI_CHAR, 0, MPI_COMM_WORLD);
-//             string sValue(value);
-//             vectorOptions[sName].push_back(sValue);
-//          }
-//       }
-//    }
-//
-//    return true;
-// }
+
 
 // add names of input files
 void Readparameters::addDefaultParameters() {

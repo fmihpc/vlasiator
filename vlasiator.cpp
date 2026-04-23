@@ -281,8 +281,7 @@ int simulate(int argn,char* args[]) {
     auto app = readparameters.get_app();
     //we have to handle particle species separately because we need the full number of particle species
     //during the population init
-    app->allow_config_extras();
-    readparameters.parse(false);
+    readparameters.parse(true);
     if (!Readparameters::helpRequested){
       //this can be replaced with if parsed type thing that was already there
       app->remove_option(app->get_option("--ParticlePopulations"));
@@ -296,11 +295,11 @@ int simulate(int argn,char* args[]) {
    sysBoundaryContainer.getParameters(); 
    projects::createProject();
    
-  if (myRank==MASTER_RANK) {
-    auto app = readparameters.get_app();
-    app->allow_config_extras();
-  }
-   readparameters.parse(true); // 2nd parsing for specific population parameters
+  // if (myRank==MASTER_RANK) {
+  //   auto app = readparameters.get_app();
+  //   app->allow_config_extras();
+  // }
+   readparameters.parse(false); // 2nd parsing for specific population parameters
                            // 
    P::getParameters();
    readparameters.helpMessage(); // Call after last parse, exits after printing help if help requested
