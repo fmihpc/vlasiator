@@ -89,7 +89,6 @@ namespace projects {
         
          MagnetosphereSpeciesParameters* sP=new MagnetosphereSpeciesParameters();
          const std::string& pop = getObjectWrapper().particleSpeciesRead[i]->name;
-         std::cout <<"added " << pop << std::endl;
          this->speciesParamsRead.push_back(sP);
          RP::add<Real>(pop + "_Magnetosphere.rho", "Tail region number density (m^-3)", sP->rho,0.0);
          RP::add<Real>(pop + "_Magnetosphere.T", "Temperature (K)", sP->T,0.0);
@@ -167,7 +166,7 @@ namespace projects {
               }
 
          } else if (sysBoundaryContainer.existSysBoundary("Ionosphere")) {
-              std::vector<SBC::IonosphereSpeciesParameters*>& speciesParams = SBC::Ionosphere::speciesParams;
+              std::vector<SBC::IonosphereSpeciesParameters*> speciesParams = SBC::Ionosphere::speciesParamsRead;
 
               const string& pop_get = getObjectWrapper().particleSpecies[i].name;
               if (pop_get==pop) {

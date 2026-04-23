@@ -29,6 +29,7 @@
 
 #include "copysphere.h"
 #include "../projects/project.h"
+#include "../projects/Magnetosphere/Magnetosphere.h"
 #include "../projects/projects_common.h"
 #include "../vlasovsolver/vlasovmover.h"
 #include "../fieldsolver/fs_common.h"
@@ -76,12 +77,6 @@ namespace SBC {
          Readparameters::add<Real>(pop + "_copysphere.VY0", "Bulk velocity of copyspheric distribution function in X direction (m/s)", sP->V0[1],0.0); 
          Readparameters::add<Real>(pop + "_copysphere.VZ0", "Bulk velocity of copyspheric distribution function in X direction (m/s)", sP->V0[2],0.0); 
          Readparameters::add<Real>(pop + "_copysphere.fluffiness", "Inertia of boundary smoothing when copying neighbour's moments and velocity distributions (0=completely constant boundaries, 1=neighbours are interpolated immediately).", sP->fluffiness,0);
-      //   if(sP.T == 0) {
-      //       //Readparameters::get(pop + "_Magnetosphere.T", sP.T);
-      //    }
-      //    if(sP.rho == 0) {
-      //       //Readparameters::get(pop + "_Magnetosphere.rho", sP.rho);
-      //    } //see note about this in ionosphere
       }
    }
 
@@ -94,21 +89,15 @@ namespace SBC {
         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
         CopysphereSpeciesParameters* sP=speciesParamsRead[i];
 
-        //Readparameters::get(pop + "_copysphere.rho", sP.rho);
-        //Readparameters::get(pop + "_copysphere.VX0", sP.V0[0]);
-        //Readparameters::get(pop + "_copysphere.VY0", sP.V0[1]);
-        //Readparameters::get(pop + "_copysphere.VZ0", sP.V0[2]);
-        //Readparameters::get(pop + "_copysphere.fluffiness", sP.fluffiness);
-        //Readparameters::get(pop + "_copysphere.T", sP.T);
-
-        // Failsafe, if density or temperature is zero, read from Magnetosphere
-        // (compare the corresponding verbose handling in projects/Magnetosphere/Magnetosphere.cpp)
-        if(sP->T == 0) {
-            //Readparameters::get(pop + "_Magnetosphere.T", sP.T);
-         }
-         if(sP->rho == 0) {
-            //Readparameters::get(pop + "_Magnetosphere.rho", sP.rho);
-         }
+        if (Parameters::projectName=="Magnetosphere") {
+          projects::Magnetosphere* proj=(projects::Magnetosphere*)getObjectWrapper().project;
+          if(sP->T == 0) {
+              sP->T=proj->speciesParamsRead.at(i)->T;
+          }
+          if(sP->rho == 0) {
+              sP->T=proj->speciesParamsRead.at(i)->rho;
+          }
+        }
          speciesParams.push_back(*sP);
          speciesParams.at(i)=*sP;
 

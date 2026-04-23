@@ -32,6 +32,7 @@
 
 #include "ionosphere.h"
 #include "../projects/project.h"
+#include "../projects/Magnetosphere/Magnetosphere.h"
 #include "../projects/projects_common.h"
 #include "../vlasovsolver/vlasovmover.h"
 #include "../fieldsolver/fs_common.h"
@@ -67,7 +68,8 @@ namespace SBC {
 
    SphericalTriGrid ionosphereGrid; /*!< Ionosphere finite element grid */
 
-   std::vector<IonosphereSpeciesParameters*> Ionosphere::speciesParams;
+   std::vector<IonosphereSpeciesParameters> Ionosphere::speciesParams;
+   std::vector<IonosphereSpeciesParameters*> Ionosphere::speciesParamsRead;
 
    // Static ionosphere member variables
    Real Ionosphere::innerRadius;
@@ -2235,12 +2237,12 @@ namespace SBC {
       Readparameters::add<Real>("ionosphere.couplingInterval", "Time interval at which the ionosphere is solved (seconds)", Ionosphere::couplingInterval,0);
 
       // Per-population parameters
-      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
+      for(uint i=0; i< getObjectWrapper().particleSpeciesRead.size(); i++) {
 
          IonosphereSpeciesParameters *sP=new IonosphereSpeciesParameters();
 
-         speciesParams.push_back(sP);
-         const std::string& pop =getObjectWrapper().particleSpecies[i].name;
+         speciesParamsRead.push_back(sP);
+         const std::string& pop =getObjectWrapper().particleSpeciesRead[i]->name;
          Readparameters::add<Real>(pop + "_ionosphere.rho", "Number density of the ionosphere (m^-3)", sP->rho,0.0);
          Readparameters::add<Real>(pop + "_ionosphere.T", "Temperature of the ionosphere (K)", sP->T,0.0);
          Readparameters::add<Real>(pop + "_ionosphere.VX0", "Bulk velocity of ionospheric distribution function in X direction (m/s)",sP->V0[0],0.0);
@@ -2312,27 +2314,20 @@ namespace SBC {
          abort();
       }
       //TODO needs to be updated for the new handling?
-      // for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-      //   const std::string& pop = getObjectWrapper().particleSpecies[i].name;
-      //   IonosphereSpeciesParameters sP;
-      //
-      //   //Readparameters::get(pop + "_ionosphere.rho", sP.rho);
-      //   //Readparameters::get(pop + "_ionosphere.VX0", sP.V0[0]);
-      //   //Readparameters::get(pop + "_ionosphere.VY0", sP.V0[1]);
-      //   //Readparameters::get(pop + "_ionosphere.VZ0", sP.V0[2]);
-      //   //Readparameters::get(pop + "_ionosphere.T", sP.T);
-      //
-      //   // Failsafe, if density or temperature is zero, read from Magnetosphere
-      //   // (compare the corresponding verbose handling in projects/Magnetosphere/Magnetosphere.cpp)
-      //   if(sP.T == 0) {
-      //      //Readparameters::get(pop + "_Magnetosphere.T", sP.T);
-      //   }
-      //   if(sP.rho == 0) {
-      //      //Readparameters::get(pop + "_Magnetosphere.rho", sP.rho);
-      //   }
-      //
-      //   // speciesParams.push_back(sP);
-      // }
+      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
+        IonosphereSpeciesParameters* sP=this->speciesParamsRead.at(i);
+        if (Parameters::projectName=="Magnetosphere") {
+          projects::Magnetosphere* proj=(projects::Magnetosphere*)getObjectWrapper().project;
+          if(sP->T == 0) {
+              sP->T=proj->speciesParamsRead.at(i)->T;
+          }
+          if(sP->rho == 0) {
+              sP->T=proj->speciesParamsRead.at(i)->rho;
+          }
+        }
+        this->speciesParams.push_back(*sP);
+        this->speciesParams.at(i)=*sP;
+      }
    }
 
    void Ionosphere::initSysBoundary(
@@ -3105,8 +3100,8 @@ namespace SBC {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
             case FixedMoments:
-               density = speciesParams[popID]->rho;
-               temperature = speciesParams[popID]->T;
+               density = speciesParams[popID].rho;
+               temperature = speciesParams[popID].T;
                break;
             case AverageAllMoments:// Fall through (handled by if further down)
             case AverageMoments:
@@ -3249,8 +3244,8 @@ namespace SBC {
                   creal RZ = cell.parameters[CellParams::ZCRD] + 0.5*cell.parameters[CellParams::DZ];
 
                   cell.clear(popID,false); // Clear previous velocity space completely, do not de-allocate memory
-                  creal initRho = speciesParams[popID]->rho;
-                  creal initT = speciesParams[popID]->T;
+                  creal initRho = speciesParams[popID].rho;
+                  creal initT = speciesParams[popID].T;
                   creal initV0X = vDrift[0];
                   creal initV0Y = vDrift[1];
                   creal initV0Z = vDrift[2];
@@ -3379,7 +3374,7 @@ namespace SBC {
       // Loop over particle species
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          templateCell.clear(popID,false); //clear, do not de-allocate memory
-         const IonosphereSpeciesParameters& sP = *this->speciesParams[popID];
+         const IonosphereSpeciesParameters& sP = this->speciesParams[popID];
          const Real mass = getObjectWrapper().particleSpecies[popID].mass;
          initRho = sP.rho;
          initT = sP.T;

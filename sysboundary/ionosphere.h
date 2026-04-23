@@ -406,7 +406,8 @@ namespace SBC {
       virtual std::string getName() const override;
       virtual uint getIndex() const override;
       static Real radius; /*!< Radius of the inner simulation boundary */
-      static std::vector<IonosphereSpeciesParameters*> speciesParams;
+      static std::vector<IonosphereSpeciesParameters*> speciesParamsRead;
+      static std::vector<IonosphereSpeciesParameters> speciesParams;
 
       // Parameters of the ionosphere model
       static Real innerRadius; /*!< Radius of the ionosphere model */

@@ -86,12 +86,7 @@ void SysBoundary::addParameters() {
    Readparameters::add("boundaries.periodic_y", "Set the grid periodicity in y-direction. 'yes'(default)/'no'.", this->periodic[1]);
    Readparameters::add("boundaries.periodic_z", "Set the grid periodicity in z-direction. 'yes'(default)/'no'.", this->periodic[2]);
 
-   // call static addParameter functions in all bc's
    SBC::DoNotCompute::addParameters();
-   // SBC::Ionosphere::addParameters();
-   // SBC::Copysphere::addParameters();
-   // SBC::Outflow::addParameters();
-   // SBC::Maxwellian::addParameters();
 }
 
 /*!\brief Get this class' parameters.
@@ -103,19 +98,6 @@ void SysBoundary::addParameters() {
  */
 //Should be renamed to add
 void SysBoundary::getParameters() {
-   // string periodic_x, periodic_y, periodic_z;
-   // for (auto boundary : this->sysBoundaryCondList) {
-   //    std::cout << "BOUNDARY="<< boundary << std::endl;
-   //    if (boundary=="Maxwellian") {
-   //      SBC::Maxwellian::addParameters();
-   //    } else if (boundary =="Outflow"){
-   //      SBC::Outflow::addParameters();
-   //    }
-   // }
-   //Readparameters::get("boundaries.boundary", sysBoundaryCondList);
-   //Readparameters::get("boundaries.periodic_x", periodic_x);
-   //Readparameters::get("boundaries.periodic_y", periodic_y);
-   //Readparameters::get("boundaries.periodic_z", periodic_z);
 
    vector<string>::const_iterator it;
    for (it = sysBoundaryCondList.begin(); it != sysBoundaryCondList.end(); it++) {
@@ -188,9 +170,8 @@ void SysBoundary::initSysBoundaries(Project& project, creal& t) {
    int myRank;
    MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
    vector<string>::const_iterator it;
-   std::cout << "SYSBOUNDARYSIZE="<<sysBoundaries.size() << std::endl;
    for (auto& b : sysBoundaries)  {
-     std::cout << "LOOP INIT=" <<b->getName()<< std::endl;
+     // std::cout << "LOOP INIT=" <<b->getName()<< std::endl;
      this->addSysBoundary(b, project, t);
      b->setPeriodicity(periodic);
    }
