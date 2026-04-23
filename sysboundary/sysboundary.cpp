@@ -101,6 +101,7 @@ void SysBoundary::addParameters() {
  * getParameters for each actually used system boundary condition is called by each
  * SysBoundaryCondition's initialization function.
  */
+//Should be renamed to add
 void SysBoundary::getParameters() {
    // string periodic_x, periodic_y, periodic_z;
    // for (auto boundary : this->sysBoundaryCondList) {
@@ -158,6 +159,7 @@ void SysBoundary::addSysBoundary(SBC::SysBoundaryCondition* bc, Project& project
    stringstream timername;
    timername<<"Initialize system boundary condition "<<bc->getName();
    phiprof::Timer timer {timername.str()};
+   bc->getParameters();
    bc->initSysBoundary(t, project);
    timer.stop();
 

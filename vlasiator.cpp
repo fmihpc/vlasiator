@@ -305,6 +305,7 @@ int simulate(int argn,char* args[]) {
   //   app->allow_config_extras();
   // }
    readparameters.parse(false); // 2nd parsing for specific population parameters
+   std::cout << "READ COMPLETE"<< std::endl;
                            // 
                            //
    readparameters.helpMessage(); // Call after last parse, exits after printing help if help requested

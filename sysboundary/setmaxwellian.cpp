@@ -51,12 +51,12 @@ namespace SBC {
       Readparameters::add<Real>("maxwellian.t_interval", "Time interval in seconds for applying the varying inflow condition.",
                           this->tInterval,0.0); // 0 = re-calculate every time
       // Per-population parameters
-      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
+      for(uint i=0; i< getObjectWrapper().particleSpeciesRead.size(); i++) {
+         const std::string& pop = getObjectWrapper().particleSpeciesRead[i]->name;
           
          InflowSpeciesParameters* sP=new InflowSpeciesParameters();
 
-         this->speciesParams.push_back(sP);
+         this->speciesParamsRead.push_back(sP);
          sP->nParams = 9;
          Readparameters::add<string>(pop + "_maxwellian.file_x+",
                              "Input files for the set Maxwellian inflow parameters on face x+. Data format per line: time "
@@ -89,7 +89,12 @@ namespace SBC {
    }
 
    void Maxwellian::getParameters() {
- 
+
+    for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
+      InflowSpeciesParameters* sP=this->speciesParamsRead.at(i);
+      this->speciesParams.push_back(*sP);
+      this->speciesParams.at(i)=*sP;
+    }
    }
 
    /*!\brief Generate the template cell for the face corresponding to the index passed.

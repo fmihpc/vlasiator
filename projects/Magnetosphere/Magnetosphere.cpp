@@ -85,11 +85,11 @@ namespace projects {
       RP::add<Real>("Magnetosphere.zeroOutDerivativesZ","Zero Out Perpendicular components", this->zeroOutComponents[2],1.0);
 
       // Per-population parameters
-      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
+      for(uint i=0; i< getObjectWrapper().particleSpeciesRead.size(); i++) {
         
          MagnetosphereSpeciesParameters* sP=new MagnetosphereSpeciesParameters();
-         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
-
+         const std::string& pop = getObjectWrapper().particleSpeciesRead[i]->name;
+         std::cout <<"added " << pop << std::endl;
          this->speciesParamsRead.push_back(sP);
          RP::add<Real>(pop + "_Magnetosphere.rho", "Tail region number density (m^-3)", sP->rho,0.0);
          RP::add<Real>(pop + "_Magnetosphere.T", "Temperature (K)", sP->T,0.0);
@@ -149,12 +149,18 @@ namespace projects {
       }
 
       // Per-population parameters
+      std::cout << "here?" << std::endl;
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
+
+          std::cout << "hereloop="<<i << std::endl;
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
-         MagnetosphereSpeciesParameters* sP=this->speciesParams[i];
+         
+          std::cout << "hereloop not printed?="<<i << std::endl;
+         MagnetosphereSpeciesParameters* sP=this->speciesParamsRead[i];
+          std::cout << "hereloop not printed?="<<i << std::endl;
          /** Read inner boundary parameters from either ionospheric or copysphere sysboundary condition */
          if (sysBoundaryContainer.existSysBoundary("Copysphere")) {
-              std::vector<SBC::CopysphereSpeciesParameters*>& speciesParams = SBC::Copysphere::speciesParams;
+              std::vector<SBC::CopysphereSpeciesParameters*> speciesParams = SBC::Copysphere::speciesParamsRead;
 
               const string& pop_get = getObjectWrapper().particleSpecies[i].name;
               if (pop_get==pop) {
@@ -226,7 +232,7 @@ namespace projects {
             }
             sP->ionosphereRho = sP->rho;
          }
-
+         this->speciesParams.push_back(*sP);
       }
 
    }
@@ -464,7 +470,7 @@ namespace projects {
                                        const uint popID,
                                        const uint nRequested
       ) const {
-      const MagnetosphereSpeciesParameters& sP = *this->speciesParams[popID];
+      const MagnetosphereSpeciesParameters& sP = this->speciesParams[popID];
 
       // Fetch spatial cell center coordinates
       const Real x  = cell->parameters[CellParams::XCRD] + 0.5*cell->parameters[CellParams::DX];
@@ -535,7 +541,7 @@ namespace projects {
                                         const uint popID,
                                         Real vx_in, Real vy_in, Real vz_in
       ) const {
-      const MagnetosphereSpeciesParameters& sP = *this->speciesParams[popID];
+      const MagnetosphereSpeciesParameters& sP = this->speciesParams[popID];
 
       // Fetch spatial cell center coordinates
       const Real x  = cell->parameters[CellParams::XCRD] + 0.5*cell->parameters[CellParams::DX];
@@ -575,7 +581,7 @@ namespace projects {
       creal z,
       const uint popID
    ) const {
-      const MagnetosphereSpeciesParameters& sP = *this->speciesParams[popID];
+      const MagnetosphereSpeciesParameters& sP = this->speciesParams[popID];
 
       vector<std::array<Real, 3> > centerPoints;
       std::array<Real, 3> V0 {{sP.V0[0], sP.V0[1], sP.V0[2]}};

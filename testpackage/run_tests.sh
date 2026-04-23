@@ -37,7 +37,7 @@ then
     #automatically obtained from the --version output (this overwrites the reverence_revision variable from a launch script)
     reference_revision=${revision}${solveropts}
     echo "Computing reference results into ${reference_dir}/${reference_revision}"
-    if [[ ! -z $GITHUB_ACTIONS ]]
+    if [[ -v GITHUB_ENV && -z $GITHUB_ENV ]]
     then
        echo "REFERENCE_REVISION=${reference_dir}/${reference_revision}" >> "$GITHUB_ENV"
     fi
@@ -83,10 +83,10 @@ do
 
     # Run the actual simulation
     if [[ ${single_cell[$run]} ]]; then
-    	# $small_run_command $bin --version  > VERSION.txt
+    	$small_run_command $bin --version  > VERSION.txt
 	$small_run_command $bin --run_config=${test_name[$run]}.cfg
     else
-	# $run_command $bin --version  > VERSION.txt
+	$run_command $bin --version  > VERSION.txt
 	$run_command $bin --run_config=${test_name[$run]}.cfg
     fi
 

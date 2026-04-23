@@ -30,7 +30,7 @@ comparison_vlsv[${index}]="fullf.0000000.vlsv fullf.0000001.vlsv fullf.0000002.v
 comparison_phiprof[${index}]="phiprof_0.txt"
 variable_names[${index}]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v proton"
 variable_components[${index}]="0 0 1 2"
-# single_cell[${index}]=1
+single_cell[${index}]=1
 ((index+=1))
 
 # 2  basic multipeak acceleration test (dynamic timestep)
@@ -268,4 +268,4 @@ do
 done
 
 # Alternatively, set tests manually, e.g.
-# run_tests=( 1 )
+# run_tests=( 1 6 9 )

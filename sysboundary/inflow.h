@@ -113,7 +113,8 @@ protected:
    Real tLastApply;
    /*! List of faces on which inflow boundary conditions are to be applied ([xyz][+-]). */
    std::vector<std::string> faceList;
-   std::vector<InflowSpeciesParameters*> speciesParams;
+   std::vector<InflowSpeciesParameters> speciesParams;
+   std::vector<InflowSpeciesParameters*> speciesParamsRead;
    std::vector<std::vector<Real>> loadFile(const char* file, unsigned int nParams);
 
    void loadInputData(const uint popID);

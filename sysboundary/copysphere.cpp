@@ -48,7 +48,8 @@
 
 namespace SBC {
 
-   std::vector<CopysphereSpeciesParameters*> Copysphere::speciesParams;
+   std::vector<CopysphereSpeciesParameters*> Copysphere::speciesParamsRead;
+   std::vector<CopysphereSpeciesParameters> Copysphere::speciesParams;
    Copysphere::Copysphere(): SysBoundaryCondition() {}
 
    Copysphere::~Copysphere() { }
@@ -64,11 +65,11 @@ namespace SBC {
       Readparameters::add<bool>("copysphere.zeroPerB","If 0 (default), normal copysphere behaviour of magnetic field at inner boundary. If 1, keep magnetic field static at the inner boundary",this->zeroPerB,0);
 
       // Per-population parameters
-      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
+      for(uint i=0; i< getObjectWrapper().particleSpeciesRead.size(); i++) {
+         const std::string& pop = getObjectWrapper().particleSpeciesRead[i]->name;
          CopysphereSpeciesParameters* sP=new CopysphereSpeciesParameters();
 
-         this->speciesParams.push_back(sP);
+         this->speciesParamsRead.push_back(sP);
          Readparameters::add<Real>(pop + "_copysphere.rho", "Number density of the copysphere (m^-3)", sP->rho,0.0);
          Readparameters::add<Real>(pop + "_copysphere.T", "Temperature of the copysphere (K)", sP->T,0.0);
          Readparameters::add<Real>(pop + "_copysphere.VX0", "Bulk velocity of copyspheric distribution function in X direction (m/s)", sP->V0[0],0.0);
@@ -91,7 +92,7 @@ namespace SBC {
       //TODO Needs to be updated for the new handling
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
-        CopysphereSpeciesParameters sP;
+        CopysphereSpeciesParameters* sP=speciesParamsRead[i];
 
         //Readparameters::get(pop + "_copysphere.rho", sP.rho);
         //Readparameters::get(pop + "_copysphere.VX0", sP.V0[0]);
@@ -102,12 +103,14 @@ namespace SBC {
 
         // Failsafe, if density or temperature is zero, read from Magnetosphere
         // (compare the corresponding verbose handling in projects/Magnetosphere/Magnetosphere.cpp)
-        if(sP.T == 0) {
+        if(sP->T == 0) {
             //Readparameters::get(pop + "_Magnetosphere.T", sP.T);
          }
-         if(sP.rho == 0) {
+         if(sP->rho == 0) {
             //Readparameters::get(pop + "_Magnetosphere.rho", sP.rho);
          }
+         speciesParams.push_back(*sP);
+         speciesParams.at(i)=*sP;
 
       }
    }
@@ -734,7 +737,7 @@ namespace SBC {
       const uint popID,
       const bool calculate_V_moments
    ) {
-      this->vlasovBoundaryFluffyCopyFromAllCloseNbrs(mpiGrid, cellID, popID, calculate_V_moments, this->speciesParams[popID]->fluffiness);
+      this->vlasovBoundaryFluffyCopyFromAllCloseNbrs(mpiGrid, cellID, popID, calculate_V_moments, this->speciesParams[popID].fluffiness);
    }
 
    /**
@@ -756,7 +759,7 @@ namespace SBC {
       // Loop over particle species
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          templateCell.clear(popID,false); //clear, do not de-allocate memory
-         const CopysphereSpeciesParameters& sP = *this->speciesParams[popID];
+         const CopysphereSpeciesParameters& sP = this->speciesParams[popID];
          const Real mass = getObjectWrapper().particleSpecies[popID].mass;
          initRho = sP.rho;
          initT = sP.T;

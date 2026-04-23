@@ -55,12 +55,12 @@ namespace SBC {
       Readparameters::add<bool>("outflow.reapplyUponRestart", "If 0 (default), keep going with the state existing in the restart file. If 1, calls again applyInitialState. Can be used to change boundary condition behaviour during a run.", this->applyUponRestart,false);
 
       // Per-population parameters
-      for(uint i=0; i < getObjectWrapper().particleSpecies.size(); i++) {
-        const string& pop = getObjectWrapper().particleSpecies[i].name;
+      for(uint i=0; i < getObjectWrapper().particleSpeciesRead.size(); i++) {
+        const string& pop = getObjectWrapper().particleSpeciesRead[i]->name;
         
         OutflowSpeciesParameters* sP = new OutflowSpeciesParameters {{true,true,true,true,true,true},{0,0,0,0,0,0},std::vector<std::string>{""},0.0};
 
-        this->speciesParams.push_back(sP);
+        this->speciesParamsRead.push_back(sP);
         for(int j=0; j<6; j++) {
           sP->facesToSkipVlasov[j] = true;
         }
@@ -93,7 +93,7 @@ namespace SBC {
       // Per-species parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
         // const string& pop = getObjectWrapper().particleSpecies[i].name;
-        OutflowSpeciesParameters* sP=this->speciesParams.at(i);
+        OutflowSpeciesParameters* sP=this->speciesParamsRead.at(i);
 
         // Unless we find out otherwise, we assume that this species will not be treated at any boundary
         // for(int j=0; j<6; j++) {
@@ -122,6 +122,7 @@ namespace SBC {
               abort_mpi("ERROR: " + this->vlasovSysBoundarySchemeName[j] + " is an invalid Outflow Vlasov scheme!");
            }
         }
+        this->speciesParams.push_back(*sP);
 
 
       }
@@ -158,7 +159,7 @@ namespace SBC {
       }
 
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-         OutflowSpeciesParameters& sP = *this->speciesParams[i];
+         OutflowSpeciesParameters& sP = this->speciesParams[i];
          for (it = sP.faceToReapplyUponRestartList.begin();
               it != sP.faceToReapplyUponRestartList.end();
          it++) {
@@ -396,7 +397,7 @@ namespace SBC {
       const bool calculate_V_moments
    ) {
 
-      const OutflowSpeciesParameters& sP = *this->speciesParams[popID];
+      const OutflowSpeciesParameters& sP = this->speciesParams[popID];
       if (mpiGrid[cellID]->sysBoundaryFlag != this->getIndex()) {
          return;
       }
@@ -451,7 +452,7 @@ namespace SBC {
             determineFace(isThisCellOnAFace, mpiGrid, cellID, true);
 
             for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-               const OutflowSpeciesParameters& sP = *this->speciesParams[popID];
+               const OutflowSpeciesParameters& sP = this->speciesParams[popID];
                for(uint i=0; i<6; i++) {
                   if(isThisCellOnAFace[i] && facesToProcess[i] && !sP.facesToSkipVlasov[i]) {
                      switch(sP.faceVlasovScheme[i]) {
@@ -492,7 +493,7 @@ namespace SBC {
             determineFace(isThisCellOnAFace, mpiGrid, cellID, true);
 
             for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-               const OutflowSpeciesParameters& sP = *this->speciesParams[popID];
+               const OutflowSpeciesParameters& sP = this->speciesParams[popID];
                for(uint i=0; i<6; i++) {
                   if(isThisCellOnAFace[i] && facesToProcess[i] && !sP.facesToSkipVlasov[i]) {
                      switch(sP.faceVlasovScheme[i]) {

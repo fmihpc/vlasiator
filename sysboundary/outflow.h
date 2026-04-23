@@ -150,7 +150,8 @@ namespace SBC {
       /*! List of faces on which no fields outflow boundary conditions are to be applied ([xyz][+-]). */
       std::vector<std::string> faceNoFieldsList;
       array<string, 6> vlasovSysBoundarySchemeName;
-      std::vector<OutflowSpeciesParameters*> speciesParams;
+      std::vector<OutflowSpeciesParameters> speciesParams;
+      std::vector<OutflowSpeciesParameters*> speciesParamsRead;
       
       /*! Factor by which to quench the inflowing parts of the velocity distribution function.*/
       Real quenchFactor;
