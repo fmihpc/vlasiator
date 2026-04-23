@@ -661,11 +661,28 @@ Project* createProject() {
 
    MPI_Comm_rank(MPI_COMM_WORLD,&rank);
    Project* rvalue=nullptr;
-    if(Parameters::projectName == "") {
-        cerr << rank << "No project specified! Please set 'project' parameter!" << Parameters::projectName << endl;
-        abort();
-    }
 
+    if (Readparameters::helpRequested) {
+      
+        projects::MultiPeak* multipeak=new projects::MultiPeak();
+
+        projects::Flowthrough* flowthrough=new projects::Flowthrough();
+
+        projects::Magnetosphere* magnetosphere=new projects::Magnetosphere();
+        
+        projects::LossCone* losscone=new projects::LossCone();
+        
+        multipeak->addParameters();
+        losscone->addParameters();
+        magnetosphere->addParameters();
+        flowthrough->addParameters();
+        return nullptr;
+    }
+    else if(Parameters::projectName == "") {
+        cerr << "No project specified! Please set 'project' parameter!" << Parameters::projectName << endl;
+        return nullptr;
+        // abort();
+    }
     if (Parameters::projectName=="MultiPeak") {
         projects::MultiPeak* multipeak=new projects::MultiPeak();
         multipeak->addParameters();

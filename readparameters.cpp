@@ -159,11 +159,13 @@ void Readparameters::parse(bool extras) {
          app->parse(argc, argv);
 
 
-         string conf1 = app->config_to_str();
-         int confsize1 = conf1.size();
+         // string conf1 = app->config_to_str();
+         // int confsize1 = conf1.size();
 
       } catch (const CLI::ParseError& e) {
          app->exit(e);
+         MPI_Finalize();
+         exit(1);
       }
    }
   

@@ -289,7 +289,12 @@ int simulate(int argn,char* args[]) {
       getObjectWrapper().addHelp();
     }
 
-
+   bool hasVersionOption = readparameters.versionMessage();
+   MPI_Bcast(&hasVersionOption, sizeof(bool), MPI_BYTE, 0, MPI_COMM_WORLD);
+   if (hasVersionOption) {
+     MPI_Finalize();
+     exit(0);
+   }
 
    
    sysBoundaryContainer.getParameters(); 
@@ -301,21 +306,17 @@ int simulate(int argn,char* args[]) {
   // }
    readparameters.parse(false); // 2nd parsing for specific population parameters
                            // 
-   P::getParameters();
+                           //
    readparameters.helpMessage(); // Call after last parse, exits after printing help if help requested
    // CLI::Option* opt=readparameters.get_app()->get_subcommand("proton_properties")->get_option("mass");
    // cout << opt->get_description() << endl;
    // cout << "force "<< opt->get_force_callback() << endl;
    // opt->run_callback();
    // cout << "call back run? = "<< opt->get_callback_run() << endl;
-   bool hasVersionOption = readparameters.versionMessage();
-   MPI_Bcast(&hasVersionOption, sizeof(bool), MPI_BYTE, 0, MPI_COMM_WORLD);
-   if (hasVersionOption) {
-     MPI_Finalize();
-     exit(0);
-   }
+
    
 
+   P::getParameters();
 
    Project* project = getObjectWrapper().project;
 

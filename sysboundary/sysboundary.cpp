@@ -38,6 +38,7 @@
 #include "setmaxwellian.h"
 #include "sysboundary.h"
 #include "../fieldsolver/gridGlue.hpp"
+#include "../readparameters.h"
 
 using namespace std;
 using namespace spatial_cell;
@@ -117,25 +118,25 @@ void SysBoundary::getParameters() {
 
    vector<string>::const_iterator it;
    for (it = sysBoundaryCondList.begin(); it != sysBoundaryCondList.end(); it++) {
-      if (*it == "Outflow" || *it == "outflow") {
+      if (*it == "Outflow" || *it == "outflow" or Readparameters::helpRequested ) {
          SBC::Outflow* bc = new SBC::Outflow();
          bc->addParameters();
          sysBoundaries.push_back(bc);
          indexToSysBoundary[bc->getIndex()] = bc;
       }
-      if (*it == "Maxwellian" || *it == "maxwellian") {
+      if (*it == "Maxwellian" || *it == "maxwellian" or Readparameters::helpRequested ) {
          SBC::Maxwellian* bc = new SBC::Maxwellian();
          bc->addParameters();
          sysBoundaries.push_back(bc);
          indexToSysBoundary[bc->getIndex()] = bc;
       }
-      if (*it == "Copysphere" || *it == "copysphere") {
+      if (*it == "Copysphere" || *it == "copysphere" or Readparameters::helpRequested ) {
          SBC::Copysphere* bc = new SBC::Copysphere();
          bc->addParameters();
          sysBoundaries.push_back(bc);
          indexToSysBoundary[bc->getIndex()] = bc;
       }
-      if (*it == "Ionosphere" || *it == "ionosphere") {
+      if (*it == "Ionosphere" || *it == "ionosphere" or Readparameters::helpRequested ) {
          SBC::Ionosphere* bc = new SBC::Ionosphere();
          bc->addParameters();
          sysBoundaries.push_back(bc);
@@ -157,7 +158,6 @@ void SysBoundary::addSysBoundary(SBC::SysBoundaryCondition* bc, Project& project
    stringstream timername;
    timername<<"Initialize system boundary condition "<<bc->getName();
    phiprof::Timer timer {timername.str()};
-   std::cout << "INITING SYSBOUNDARY"<<bc->getName() << std::endl;
    bc->initSysBoundary(t, project);
    timer.stop();
 
