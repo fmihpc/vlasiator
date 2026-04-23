@@ -90,7 +90,7 @@ namespace projects {
          MagnetosphereSpeciesParameters* sP=new MagnetosphereSpeciesParameters();
          const std::string& pop = getObjectWrapper().particleSpecies[i]->name;
 
-         this->speciesParams.push_back(sP);
+         this->speciesParamsRead.push_back(sP);
          RP::add<Real>(pop + "_Magnetosphere.rho", "Tail region number density (m^-3)", sP->rho,0.0);
          RP::add<Real>(pop + "_Magnetosphere.T", "Temperature (K)", sP->T,0.0);
          RP::add<Real>(pop + "_Magnetosphere.VX0", "Initial bulk velocity in x-direction", sP->V0[0],0.0);

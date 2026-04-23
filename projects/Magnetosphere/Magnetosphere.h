@@ -103,7 +103,8 @@ namespace projects {
       Real dipoleInflowB[3];
       Real zeroOutComponents[3]; //0->x,1->y,2->z
 
-      std::vector<MagnetosphereSpeciesParameters*> speciesParams;
+      std::vector<MagnetosphereSpeciesParameters*> speciesParamsRead;
+      std::vector<MagnetosphereSpeciesParameters> speciesParams;
    }; // class Magnetosphere
 } // namespace projects
 

@@ -47,9 +47,9 @@ void ObjectWrapper::initpop(std::string pop) {
    species::Species* newSpecies = new species::Species();
    newSpecies->name=pop;
    newSpecies->velocityMesh = meshsize;
-   this->particleSpecies.push_back(newSpecies);
+   this->particleSpeciesRead.push_back(newSpecies);
 
-   auto species_i = this->particleSpecies.size();
+   auto species_i = this->particleSpeciesRead.size();
    // species::Species* newSpecies = &(this->particleSpecies.at(species_i - 1));
    vmesh::getMeshWrapper()->velocityMeshesCreation->push_back(newVMeshinit);
 // std::cout << "TEST2" << std::endl;
@@ -174,9 +174,9 @@ bool ObjectWrapper::getPopulationParameters() {
    typedef Readparameters RP;
 
    // Particle population parameters
-   for (unsigned int i = 0; i < getObjectWrapper().particleSpecies.size(); i++) {
+   for (unsigned int i = 0; i < getObjectWrapper().particleSpeciesRead.size(); i++) {
 
-      species::Species& species =*getObjectWrapper().particleSpecies[i];
+      species::Species& species =*getObjectWrapper().particleSpeciesRead[i];
       vmesh::MeshParameters& vMesh = *vmesh::getMeshWrapper()->velocityMeshesCreation->at(i);
       const std::string& pop = species.name;
 
@@ -289,6 +289,7 @@ bool ObjectWrapper::getPopulationParameters() {
       // Convert from eV to SI units
       species.precipitationEmin = species.precipitationEmin * physicalconstants::CHARGE;
       species.precipitationEmax = species.precipitationEmax * physicalconstants::CHARGE;
+      getObjectWrapper().particleSpecies.push_back(species);
 
 
    }

@@ -45,7 +45,8 @@ namespace projects {
 struct ObjectWrapper {
    ObjectWrapper() { }
 
-   std::vector<species::Species*> particleSpecies;           /**< Parameters for all particle species.*/
+   std::vector<species::Species> particleSpecies;           /**< Parameters for all particle species.*/
+   std::vector<species::Species*> particleSpeciesRead;           /**< Parameters for all particle species.*/
    projects::Project*                    project;           /**< Simulated project.*/
    SysBoundary sysBoundaryContainer;                        /**< Container for sysboundaries.*/
 
