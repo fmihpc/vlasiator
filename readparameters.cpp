@@ -157,8 +157,6 @@ void Readparameters::parse(bool extras) {
          // app->allow_config_extras();
          app->allow_extras(extras);
          app->parse(argc, argv);
-
-
          // string conf1 = app->config_to_str();
          // int confsize1 = conf1.size();
 

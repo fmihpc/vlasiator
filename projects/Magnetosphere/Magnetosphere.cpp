@@ -149,15 +149,9 @@ namespace projects {
       }
 
       // Per-population parameters
-      std::cout << "here?" << std::endl;
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-
-          std::cout << "hereloop="<<i << std::endl;
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
-         
-          std::cout << "hereloop not printed?="<<i << std::endl;
          MagnetosphereSpeciesParameters* sP=this->speciesParamsRead[i];
-          std::cout << "hereloop not printed?="<<i << std::endl;
          /** Read inner boundary parameters from either ionospheric or copysphere sysboundary condition */
          if (sysBoundaryContainer.existSysBoundary("Copysphere")) {
               std::vector<SBC::CopysphereSpeciesParameters*> speciesParams = SBC::Copysphere::speciesParamsRead;
