@@ -73,7 +73,7 @@ namespace projects {
 
          this->speciesParams.push_back(sP);
          // auto sP=&this->speciesParams.at(i); 
-         const std::string& pop = getObjectWrapper().particleSpecies[i]->name;
+         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
          RP::add(pop + "_Flowthrough.rho", "Number density (m^-3)", sP->rho);
          RP::add<Real>(pop + "_Flowthrough.rhoBase", "Background number density (m^-3)", sP->rhoBase,0.0);
          RP::add(pop + "_Flowthrough.T", "Temperature (K)", sP->T);
@@ -156,7 +156,7 @@ namespace projects {
       ) const {
       const FlowthroughSpeciesParameters& sP = *speciesParams[popID];
 
-      const Real mass = getObjectWrapper().particleSpecies[popID]->mass;
+      const Real mass = getObjectWrapper().particleSpecies[popID].mass;
       Real initRho = this->getCorrectNumberDensity(cell, popID);
       Real initT = sP.T;
       const Real initV0X = sP.V0[0];
@@ -215,7 +215,7 @@ namespace projects {
                                         Real vx_in, Real vy_in, Real vz_in
       ) const {
       const FlowthroughSpeciesParameters& sP = *speciesParams[popID];
-      const Real mass = getObjectWrapper().particleSpecies[popID]->mass;
+      const Real mass = getObjectWrapper().particleSpecies[popID].mass;
       Real initRho = this->getCorrectNumberDensity(cell, popID);
       Real initT = sP.T;
       const Real initV0X = sP.V0[0];

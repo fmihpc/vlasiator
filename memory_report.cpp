@@ -71,7 +71,7 @@ void report_cell_and_block_counts(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::
    }
    logFile << "] blocks ";
    for(int pop=0; pop<popCount; pop++) {
-      logFile << getObjectWrapper().particleSpecies[pop]->name << " [ ";
+      logFile << getObjectWrapper().particleSpecies[pop].name << " [ ";
       for(int level = 0; level <= maxRefLevel; level++) {
          logFile << globalCounts[maxRefLevel+1 + level*popCount + pop] << " ";
       }

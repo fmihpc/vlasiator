@@ -419,7 +419,7 @@ namespace spatial_cell {
 
       // Evaluate velocity halo for local content blocks
       if (velocity_block_with_content_list_size>0) {
-         const int addWidthV = getObjectWrapper().particleSpecies[popID]->sparseBlockAddWidthV;
+         const int addWidthV = getObjectWrapper().particleSpecies[popID].sparseBlockAddWidthV;
          if (addWidthV!=1) {
             std::cerr<<"Warning! "<<__FILE__<<":"<<__LINE__<<" Halo extent is not 1, unsupported size."<<std::endl;
          }
@@ -1145,7 +1145,7 @@ namespace spatial_cell {
          }
          return;
       } else {
-         populations[popID].velocityBlockMinValue = getObjectWrapper().particleSpecies[popID]->sparseMinValue;
+         populations[popID].velocityBlockMinValue = getObjectWrapper().particleSpecies[popID].sparseMinValue;
          return;
       }
    }

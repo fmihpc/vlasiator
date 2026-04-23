@@ -86,7 +86,7 @@ namespace projects {
       const Real dy = cell->parameters[CellParams::DY];
       const Real z  = cell->parameters[CellParams::ZCRD];
       const Real dz = cell->parameters[CellParams::DZ];
-      const Real mass = getObjectWrapper().particleSpecies[popID]->mass;
+      const Real mass = getObjectWrapper().particleSpecies[popID].mass;
       Real initRho = this->DENSITY;
 
       // NOTE: This fill function does not have a GPU-supported version.

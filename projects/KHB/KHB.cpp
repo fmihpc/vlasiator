@@ -154,7 +154,7 @@ namespace projects {
       const Real y  = cell->parameters[CellParams::YCRD] + 0.5*cell->parameters[CellParams::DY];
       const Real z  = cell->parameters[CellParams::ZCRD] + 0.5*cell->parameters[CellParams::DZ];
 
-      const Real mass = getObjectWrapper().particleSpecies[popID]->mass;
+      const Real mass = getObjectWrapper().particleSpecies[popID].mass;
       Real initRho = profile(this->rho[this->BOTTOM], this->rho[this->TOP], x);
       std::array<Real, 3> initV0 = this->getV0(x, y, z, popID)[0];
       const Real initV0X = initV0[0];
@@ -217,7 +217,7 @@ namespace projects {
       const Real y  = cell->parameters[CellParams::YCRD] + 0.5*cell->parameters[CellParams::DY];
       const Real z  = cell->parameters[CellParams::ZCRD] + 0.5*cell->parameters[CellParams::DZ];
 
-      const Real mass = getObjectWrapper().particleSpecies[popID]->mass;
+      const Real mass = getObjectWrapper().particleSpecies[popID].mass;
       Real initRho = profile(this->rho[this->BOTTOM], this->rho[this->TOP], x);
       std::array<Real, 3> initV0 = this->getV0(x, y, z, popID)[0];
       const Real initV0X = initV0[0];

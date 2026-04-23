@@ -53,7 +53,7 @@ namespace projects {
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
         FirehoseSpeciesParameters *sP=new FirehoseSpeciesParameters();
          this->speciesParams.push_back(sP);
-         const std::string& pop = getObjectWrapper().particleSpecies[i]->name;
+         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
          RP::add(pop + "_Firehose.rho1", "Number density, first peak (m^-3)", sP->rho[0]);
          RP::add(pop + "_Firehose.rho2", "Number density, second peak (m^-3)", sP->rho[1]);
          RP::add(pop + "_Firehose.Tx1", "Temperature x, first peak (K)", sP->Tx[0]);
@@ -89,7 +89,7 @@ namespace projects {
       // const Real y  = cell->parameters[CellParams::YCRD] + 0.5*cell->parameters[CellParams::DY];
       // const Real z  = cell->parameters[CellParams::ZCRD] + 0.5*cell->parameters[CellParams::DZ];
 
-      const Real mass = getObjectWrapper().particleSpecies[popID]->mass;
+      const Real mass = getObjectWrapper().particleSpecies[popID].mass;
       Real initRho = sP.rho[0];
       Real initTx = sP.Tx[0];
       Real initTy = sP.Ty[0];

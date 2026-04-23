@@ -98,7 +98,7 @@ namespace projects {
       const Real y  = cell->parameters[CellParams::YCRD] + 0.5*cell->parameters[CellParams::DY];
       const Real z  = cell->parameters[CellParams::ZCRD] + 0.5*cell->parameters[CellParams::DZ];
 
-      const Real mass = getObjectWrapper().particleSpecies[popID]->mass;
+      const Real mass = getObjectWrapper().particleSpecies[popID].mass;
       Real initRho = this->DENSITY;
       Real initT = this->TEMPERATURE;
 
@@ -156,7 +156,7 @@ namespace projects {
       const Real y  = cell->parameters[CellParams::YCRD] + 0.5*cell->parameters[CellParams::DY];
       const Real z  = cell->parameters[CellParams::ZCRD] + 0.5*cell->parameters[CellParams::DZ];
 
-      const Real mass = getObjectWrapper().particleSpecies[popID]->mass;
+      const Real mass = getObjectWrapper().particleSpecies[popID].mass;
       Real initRho = this->DENSITY;
       Real initT = this->TEMPERATURE;
 

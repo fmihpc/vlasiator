@@ -1559,7 +1559,7 @@ __host__ bool gpu_acc_map_1d(
          string message = "Some target blocks in acceleration are going to be less than ";
          message += std::to_string(Parameters::bailout_velocity_space_wall_margin);
          message += " blocks away from the current velocity space walls for population ";
-         message += getObjectWrapper().particleSpecies[popID]->name;
+         message += getObjectWrapper().particleSpecies[popID].name;
          message += " at CellID ";
          message += std::to_string((uint)SC->parameters[CellParams::CELLID]);
          message += ". Consider expanding velocity space for that population.";
@@ -1569,7 +1569,7 @@ __host__ bool gpu_acc_map_1d(
       if ((GET_POINTER(gpuMemoryManager, vmesh::LocalID, host_resizeSuccess))[cellOffset] != 0) {
          string message = "Recapacitation of added velocity blocks vector for population ";
          message += " blocks away from the current velocity space walls for population ";
-         message += getObjectWrapper().particleSpecies[popID]->name;
+         message += getObjectWrapper().particleSpecies[popID].name;
          message += " at CellID ";
          message += std::to_string((uint)SC->parameters[CellParams::CELLID]);
          message += " failed. This should not happen.";

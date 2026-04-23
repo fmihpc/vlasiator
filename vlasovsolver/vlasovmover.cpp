@@ -312,7 +312,7 @@ void calculateSpatialTranslation(
 
    // Translate all particle species
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-      string profName = "translate "+getObjectWrapper().particleSpecies[popID]->name;
+      string profName = "translate "+getObjectWrapper().particleSpecies[popID].name;
       phiprof::Timer timer {profName};
       SpatialCell::setCommunicatedSpecies(popID);
       if (P::vlasovSolverGhostTranslate && (P::amrMaxSpatialRefLevel > 0) ) {

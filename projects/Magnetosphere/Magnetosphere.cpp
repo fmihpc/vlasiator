@@ -88,7 +88,7 @@ namespace projects {
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
         
          MagnetosphereSpeciesParameters* sP=new MagnetosphereSpeciesParameters();
-         const std::string& pop = getObjectWrapper().particleSpecies[i]->name;
+         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
 
          this->speciesParams.push_back(sP);
          RP::add<Real>(pop + "_Magnetosphere.rho", "Tail region number density (m^-3)", sP->rho,0.0);
@@ -150,13 +150,13 @@ namespace projects {
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-         const std::string& pop = getObjectWrapper().particleSpecies[i]->name;
+         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
          MagnetosphereSpeciesParameters* sP=this->speciesParams[i];
          /** Read inner boundary parameters from either ionospheric or copysphere sysboundary condition */
          if (sysBoundaryContainer.existSysBoundary("Copysphere")) {
               std::vector<SBC::CopysphereSpeciesParameters*>& speciesParams = SBC::Copysphere::speciesParams;
 
-              const string& pop_get = getObjectWrapper().particleSpecies[i]->name;
+              const string& pop_get = getObjectWrapper().particleSpecies[i].name;
               if (pop_get==pop) {
                 sP->ionosphereT=speciesParams[i]->T;
                 sP->ionosphereRho=speciesParams[i]->rho;
@@ -169,7 +169,7 @@ namespace projects {
          } else if (sysBoundaryContainer.existSysBoundary("Ionosphere")) {
               std::vector<SBC::IonosphereSpeciesParameters*>& speciesParams = SBC::Ionosphere::speciesParams;
 
-              const string& pop_get = getObjectWrapper().particleSpecies[i]->name;
+              const string& pop_get = getObjectWrapper().particleSpecies[i].name;
               if (pop_get==pop) {
                 sP->ionosphereT=speciesParams[i]->T;
                 sP->ionosphereRho=speciesParams[i]->rho;
@@ -471,7 +471,7 @@ namespace projects {
       const Real y  = cell->parameters[CellParams::YCRD] + 0.5*cell->parameters[CellParams::DY];
       const Real z  = cell->parameters[CellParams::ZCRD] + 0.5*cell->parameters[CellParams::DZ];
 
-      const Real mass = getObjectWrapper().particleSpecies[popID]->mass;
+      const Real mass = getObjectWrapper().particleSpecies[popID].mass;
       Real initRho = sP.rho;
       Real initT = sP.T;
       // getV0() includes tapering
@@ -542,7 +542,7 @@ namespace projects {
       const Real y  = cell->parameters[CellParams::YCRD] + 0.5*cell->parameters[CellParams::DY];
       const Real z  = cell->parameters[CellParams::ZCRD] + 0.5*cell->parameters[CellParams::DZ];
 
-      const Real mass = getObjectWrapper().particleSpecies[popID]->mass;
+      const Real mass = getObjectWrapper().particleSpecies[popID].mass;
       Real initRho = sP.rho;
       Real initT = sP.T;
       // getV0() includes tapering

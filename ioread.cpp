@@ -388,7 +388,7 @@ bool _readBlockData(
    uint64_t byteSize;
    list<pair<string,string> > avgAttribs;
    bool success=true;
-   const string popName = getObjectWrapper().particleSpecies[popID]->name;
+   const string popName = getObjectWrapper().particleSpecies[popID].name;
    const string tagName = "BLOCKIDS";
 
    avgAttribs.push_back(make_pair("mesh",spatMeshName));
@@ -506,7 +506,7 @@ bool readBlockData(
    uint64_t* offsetArray = new uint64_t[N_processes];
 
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-      const string& popName = getObjectWrapper().particleSpecies[popID]->name;
+      const string& popName = getObjectWrapper().particleSpecies[popID].name;
 
       // Create a cellID remapping lambda that can renumber our velocity space, should it's size have changed.
       // By default, this is a no-op that keeps the blockIDs untouched.
@@ -522,7 +522,7 @@ bool readBlockData(
          success = false;
       }
 
-      const size_t meshID = getObjectWrapper().particleSpecies[popID]->velocityMesh;
+      const size_t meshID = getObjectWrapper().particleSpecies[popID].velocityMesh;
       const vmesh::MeshParameters& ourMeshParams = vmesh::getMeshWrapper()->velocityMeshes->at(meshID);
       if(fileMeshBBox[0] != ourMeshParams.gridLength[0] ||
             fileMeshBBox[1] != ourMeshParams.gridLength[1] ||
