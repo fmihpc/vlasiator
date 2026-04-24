@@ -59,12 +59,12 @@ namespace projects {
       RP::add<Real>("Alfven.A_mag", "Amplitude of the magnetic perturbation", this->A_MAG,0.1);
 
       // Per-population parameters
-      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
+      for(uint i=0; i< getObjectWrapper().particleSpeciesRead.size(); i++) {
+         const std::string& pop = getObjectWrapper().particleSpeciesRead[i].name;
 
          AlfvenSpeciesParameters* sP=new AlfvenSpeciesParameters();
          
-         this->speciesParams.push_back(sP);
+         this->speciesParamsRead.push_back(sP);
          RP::add<Real>(pop + "_Alfven.rho", "Number density (m^-3)", sP->rho,10.e8);
          RP::add<Real>(pop + "_Alfven.Temperature", "Temperature (K)", sP->T,0.86456498092);
          RP::add<Real>(pop + "_Alfven.A_vel", "Amplitude of the velocity perturbation", sP->A_VEL,0.1);
@@ -73,34 +73,16 @@ namespace projects {
    }
 
    void Alfven::getParameters(){
-
-      typedef Readparameters RP;
-      //RP::get("Alfven.B0", this->B0);
-      //RP::get("Alfven.Bx_guiding", this->Bx_guiding);
-      //RP::get("Alfven.By_guiding", this->By_guiding);
-      //RP::get("Alfven.Bz_guiding", this->Bz_guiding);
-      //RP::get("Alfven.Wavelength", this->WAVELENGTH);
-      //RP::get("Alfven.A_mag", this->A_MAG);
-
-      // Per-population parameters
-      // for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-      //    const std::string& pop = getObjectWrapper().particleSpecies[i].name;
-      //
-      //    AlfvenSpeciesParameters sP;
-      //
-      //    //RP::get(pop + "_Alfven.rho", sP.rho);
-      //    //RP::get(pop + "_Alfven.Temperature",sP.T);
-      //    //RP::get(pop + "_Alfven.A_vel", sP.A_VEL);
-      //
-      //    speciesParams.push_back(sP);
-      // }
+      for(uint i=0; i< getObjectWrapper().particleSpeciesRead.size(); i++) {
+        this->speciesParams.push_back(*this->speciesParamsRead.at(i));
+      }
    }
 
    Realf Alfven::fillPhaseSpace(spatial_cell::SpatialCell *cell,
                                        const uint popID,
                                        const uint nRequested
       ) const {
-      const AlfvenSpeciesParameters& sP = *this->speciesParams[popID];
+      const AlfvenSpeciesParameters& sP = this->speciesParams[popID];
 
       // Fetch spatial cell center coordinates
       const Real x  = cell->parameters[CellParams::XCRD] + 0.5*cell->parameters[CellParams::DX];
