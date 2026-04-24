@@ -36,7 +36,7 @@
 
 using namespace spatial_cell;
 
-Real projects::LossCone::rndRho, projects::LossCone::rndVel[3];
+Real projects::LossCone::rndRho, projects::LossCone::rndVel[3], projects::LossCone::rndB[3];
 
 
 namespace projects {
@@ -49,6 +49,9 @@ namespace projects {
       RP::add("LossCone.BX0", "Background field value (T)", 1.0e-9);
       RP::add("LossCone.BY0", "Background field value (T)", 2.0e-9);
       RP::add("LossCone.BZ0", "Background field value (T)", 3.0e-9);
+      RP::add("LossCone.magXPertAbsAmp", "Amplitude of the magnetic perturbation along x", 1.0e-9);
+      RP::add("LossCone.magYPertAbsAmp", "Amplitude of the magnetic perturbation along y", 1.0e-9);
+      RP::add("LossCone.magZPertAbsAmp", "Amplitude of the magnetic perturbation along z", 1.0e-9);
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
@@ -74,6 +77,9 @@ namespace projects {
       RP::get("LossCone.BX0", this->BX0);
       RP::get("LossCone.BY0", this->BY0);
       RP::get("LossCone.BZ0", this->BZ0);
+      RP::get("LossCone.magXPertAbsAmp", this->magXPertAbsAmp);
+      RP::get("LossCone.magYPertAbsAmp", this->magYPertAbsAmp);
+      RP::get("LossCone.magZPertAbsAmp", this->magZPertAbsAmp);
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
@@ -209,9 +215,14 @@ namespace projects {
       setRandomCellSeed(cell,rndState);
 
       this->rndRho=getRandomNumber(rndState);
+
       this->rndVel[0]=getRandomNumber(rndState);
       this->rndVel[1]=getRandomNumber(rndState);
       this->rndVel[2]=getRandomNumber(rndState);
+
+      this->rndB[0]=getRandomNumber(rndState);
+      this->rndB[1]=getRandomNumber(rndState);
+      this->rndB[2]=getRandomNumber(rndState);
    }
 
    void LossCone::setProjectBField(
@@ -226,6 +237,22 @@ namespace projects {
                          this->BZ0);
 
       setBackgroundField(bgField, bgb, technical, fsgrid);
+
+      if(!P::isRestart) {
+         // local copies for lambda capture
+         const auto rndBx = this->magXPertAbsAmp * (0.5-this->rndB[0]);
+         const auto rndBy = this->magXPertAbsAmp * (0.5-this->rndB[1]);
+         const auto rndBz = this->magXPertAbsAmp * (0.5-this->rndB[2]);
+
+         fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                             phiprof::initializeTimer("setProjectBField"), technical,
+                             [=](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+            auto& cell = perb[stencil.ooo()];
+            cell[fsgrids::bfield::PERBX] = rndBx;
+            cell[fsgrids::bfield::PERBY] = rndBy;
+            cell[fsgrids::bfield::PERBZ] = rndBz;
+         });
+      }
    }
 
    std::vector<std::array<Real, 3> > LossCone::getV0(

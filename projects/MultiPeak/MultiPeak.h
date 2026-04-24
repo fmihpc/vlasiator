@@ -61,27 +61,35 @@ namespace projects {
       virtual bool initialize(void) override;
       static void addParameters(void);
       virtual void getParameters(void) override;
-      virtual void setProjectBField(fsgrids::perbspan perb,
-                                    fsgrids::bgbspan bgb,
-                                    fsgrids::technicalspan technical, FieldSolverGrid& fsgrid) override;
+      virtual void setProjectBField(
+         fsgrids::perbspan perb,
+         fsgrids::bgbspan bgb,
+         fsgrids::technicalspan technical, FieldSolverGrid& fsgrid
+      ) override;
 
       std::vector<MultiPeakSpeciesParameters> speciesParams;
 
-      virtual Realf fillPhaseSpace(spatial_cell::SpatialCell* cell, const uint popID,
+      virtual Realf fillPhaseSpace(spatial_cell::SpatialCell* cell,
+                                   const uint popID,
                                    const uint nRequested) const override;
-      virtual Realf probePhaseSpace(spatial_cell::SpatialCell* cell, const uint popID, Real vx_in, Real vy_in,
-                                    Real vz_in) const override;
+      virtual Realf probePhaseSpace(spatial_cell::SpatialCell* cell,
+                                    const uint popID,
+                                    Real vx_in, Real vy_in, Real vz_in
+                                   ) const override;
 
       virtual void calcCellParameters(spatial_cell::SpatialCell* cell, creal& t) override;
       virtual std::vector<std::array<Real, 3>> getV0(creal x, creal y, creal z, const uint popID) const override;
-      static Real rhoRnd; //static as it has to be threadprivate
-      #pragma omp threadprivate(rhoRnd)       
+      static Real rhoRnd, rndB[3]; //static as it has to be threadprivate
+      #pragma omp threadprivate(rhoRnd, rndB)
       Real Bx;
       Real By;
       Real Bz;
       Real dBx;
       Real dBy;
       Real dBz;
+      Real magXPertAbsAmp;
+      Real magYPertAbsAmp;
+      Real magZPertAbsAmp;
       Real lambda;
 
       enum densitymodel {

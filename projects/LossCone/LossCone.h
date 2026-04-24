@@ -46,13 +46,15 @@ namespace projects {
    public:
       LossCone();
       virtual ~LossCone();
-      
+
       virtual bool initialize(void) override;
       static void addParameters(void);
       virtual void getParameters(void) override;
-      virtual void setProjectBField(fsgrids::perbspan perb,
-                                    fsgrids::bgbspan bgb,
-                                    fsgrids::technicalspan technical, FieldSolverGrid& fsgrid) override;
+      virtual void setProjectBField(
+         fsgrids::perbspan perb,
+         fsgrids::bgbspan bgb,
+         fsgrids::technicalspan technical, FieldSolverGrid& fsgrid
+      ) override;
       virtual std::vector<std::array<Real, 3> > getV0(
          creal x,
          creal y,
@@ -67,15 +69,18 @@ namespace projects {
                                     const uint popID,
                                     Real vx_in, Real vy_in, Real vz_in) const override;
       virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) override;
-      
+
       Real BX0;
       Real BY0;
       Real BZ0;
+      Real magXPertAbsAmp;
+      Real magYPertAbsAmp;
+      Real magZPertAbsAmp;
       uint seed;
       std::vector<LossConeSpeciesParameters> speciesParams;
 
-      static Real rndRho, rndVel[3];
-      #pragma omp threadprivate(rndRho,rndVel)
+      static Real rndRho, rndVel[3], rndB[3];
+      #pragma omp threadprivate(rndRho,rndVel,rndB)
    } ; // class LossCone
 } // namespace projects
 #endif

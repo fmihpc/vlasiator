@@ -44,11 +44,15 @@ namespace projects {
       static void addParameters(void);
       virtual void getParameters(void) override;
       /*! set background field, should set it for all cells */
-      virtual void setProjectBField(fsgrids::perbspan perb,
-                                    fsgrids::bgbspan bgb,
-                                    fsgrids::technicalspan technical, FieldSolverGrid& fsgrid) override;
+      virtual void setProjectBField(
+         fsgrids::perbspan perb,
+         fsgrids::bgbspan bgb,
+         fsgrids::technicalspan technical,
+         FieldSolverGrid& fsgrid
+      ) override;
 
-      virtual Realf fillPhaseSpace(spatial_cell::SpatialCell* cell, const uint popID,
+      virtual Realf fillPhaseSpace(spatial_cell::SpatialCell* cell,
+                                   const uint popID,
                                    const uint nRequested) const override;
       virtual void calcCellParameters(spatial_cell::SpatialCell* cell, creal& t) override;
 

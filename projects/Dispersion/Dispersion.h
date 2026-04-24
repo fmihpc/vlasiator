@@ -49,25 +49,33 @@ namespace projects {
       virtual bool initialize(void) override;
       static void addParameters(void);
       virtual void getParameters(void) override;
-      virtual void setProjectBField(fsgrids::perbspan perb,
-                                    fsgrids::bgbspan bgb,
-                                    fsgrids::technicalspan technical, FieldSolverGrid& fsgrid) override;
-      virtual void hook(cuint& stage, const dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                        fsgrids::perbspan perb,
-                        fsgrids::technicalspan technical, FieldSolverGrid& fsgrid) const override;
-      virtual Realf fillPhaseSpace(spatial_cell::SpatialCell* cell, const uint popID,
-                                   const uint nRequested) const override;
+      virtual void setProjectBField(
+         fsgrids::perbspan perb, fsgrids::bgbspan bgb,
+         fsgrids::technicalspan technical, FieldSolverGrid& fsgrid
+      ) override;
+      virtual void hook(
+         cuint& stage,
+         const dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+         fsgrids::perbspan perb, fsgrids::technicalspan technical, FieldSolverGrid& fsgrid
+      ) const override;
+      virtual Realf fillPhaseSpace(
+         spatial_cell::SpatialCell* cell, const uint popID,
+         const uint nRequested
+      ) const override;
       virtual void calcCellParameters(spatial_cell::SpatialCell* cell, creal& t) override;
 
       Real B0;
+      Real magXPertAbsAmp;
+      Real magYPertAbsAmp;
+      Real magZPertAbsAmp;
       Real angleXY;
       Real angleXZ;
       Real maxwCutoff;
       std::vector<DispersionSpeciesParameters> speciesParams;
       uint seed;
-      
-      static Real rndRho, rndVel[3];
-      #pragma omp threadprivate(rndRho,rndVel)
+
+      static Real rndRho, rndVel[3], rndB[3];
+      #pragma omp threadprivate(rndRho,rndVel,rndB)
    } ; // class Dispersion
 } // namespace projects
 

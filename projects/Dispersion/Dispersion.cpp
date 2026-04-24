@@ -34,7 +34,7 @@
 
 #include "Dispersion.h"
 
-Real projects::Dispersion::rndRho, projects::Dispersion::rndVel[3];
+Real projects::Dispersion::rndRho, projects::Dispersion::rndVel[3], projects::Dispersion::rndB[3];
 
 using namespace std;
 using namespace spatial_cell;
@@ -48,20 +48,23 @@ namespace projects {
    void Dispersion::addParameters() {
       typedef Readparameters RP;
       RP::add("Dispersion.B0", "Guide magnetic field strength (T)", 1.0e-9);
+      RP::add("Dispersion.magXPertAbsAmp", "Absolute amplitude of the magnetic perturbation along x (T)", 1.0e-9);
+      RP::add("Dispersion.magYPertAbsAmp", "Absolute amplitude of the magnetic perturbation along y (T)", 1.0e-9);
+      RP::add("Dispersion.magZPertAbsAmp", "Absolute amplitude of the magnetic perturbation along z (T)", 1.0e-9);
       RP::add("Dispersion.maxwCutoff", "Cutoff for the maxwellian distribution", 1e-12);
       RP::add("Dispersion.angleXY", "Orientation of the guide magnetic field with respect to the x-axis in x-y plane (rad)", 0.001);
       RP::add("Dispersion.angleXZ", "Orientation of the guide magnetic field with respect to the x-axis in x-z plane (rad)", 0.001);
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-        const std::string& pop = getObjectWrapper().particleSpecies[i].name;
-        RP::add(pop + "_Dispersion.VX0", "Bulk velocity (m/s)", 0.0);
-        RP::add(pop + "_Dispersion.VY0", "Bulk velocity (m/s)", 0.0);
-        RP::add(pop + "_Dispersion.VZ0", "Bulk velocity (m/s)", 0.0);
-        RP::add(pop + "_Dispersion.rho", "Number density (m^-3)", 1.0e7);
-        RP::add(pop + "_Dispersion.Temperature", "Temperature (K)", 2.0e6);
-        RP::add(pop + "_Dispersion.densityPertRelAmp", "Relative amplitude of the density perturbation", 0.1);
-        RP::add(pop + "_Dispersion.velocityPertAbsAmp", "Absolute amplitude of the velocity perturbation", 1.0e6);
+         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
+         RP::add(pop + "_Dispersion.VX0", "Bulk velocity (m/s)", 0.0);
+         RP::add(pop + "_Dispersion.VY0", "Bulk velocity (m/s)", 0.0);
+         RP::add(pop + "_Dispersion.VZ0", "Bulk velocity (m/s)", 0.0);
+         RP::add(pop + "_Dispersion.rho", "Number density (m^-3)", 1.0e7);
+         RP::add(pop + "_Dispersion.Temperature", "Temperature (K)", 2.0e6);
+         RP::add(pop + "_Dispersion.densityPertRelAmp", "Relative amplitude of the density perturbation", 0.1);
+         RP::add(pop + "_Dispersion.velocityPertAbsAmp", "Absolute amplitude of the velocity perturbation", 1.0e6);
       }
    }
 
@@ -70,6 +73,9 @@ namespace projects {
       typedef Readparameters RP;
       Project::getParameters();
       RP::get("Dispersion.B0", this->B0);
+      RP::get("Dispersion.magXPertAbsAmp", this->magXPertAbsAmp);
+      RP::get("Dispersion.magYPertAbsAmp", this->magYPertAbsAmp);
+      RP::get("Dispersion.magZPertAbsAmp", this->magZPertAbsAmp);
       RP::get("Dispersion.maxwCutoff", this->maxwCutoff);
       RP::get("Dispersion.angleXY", this->angleXY);
       RP::get("Dispersion.angleXZ", this->angleXZ);
@@ -90,10 +96,11 @@ namespace projects {
       }
    }
 
-   void Dispersion::hook(cuint& stage,
-                         const dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                         fsgrids::perbspan perb,
-                         fsgrids::technicalspan technical, FieldSolverGrid &fsgrid
+   void Dispersion::hook(
+      cuint& stage,
+      const dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+      fsgrids::perbspan perb,
+      fsgrids::technicalspan technical, FieldSolverGrid &fsgrid
    ) const {
       /*
       if(hook::END_OF_TIME_STEP == stage) {
@@ -207,16 +214,38 @@ namespace projects {
       this->rndVel[0]=getRandomNumber(rndState);
       this->rndVel[1]=getRandomNumber(rndState);
       this->rndVel[2]=getRandomNumber(rndState);
+
+      this->rndB[0]=getRandomNumber(rndState);
+      this->rndB[1]=getRandomNumber(rndState);
+      this->rndB[2]=getRandomNumber(rndState);
    }
 
-   void Dispersion::setProjectBField(fsgrids::perbspan perb,
-                                     fsgrids::bgbspan bgb,
-                                     fsgrids::technicalspan technical, FieldSolverGrid &fsgrid) {
+   void Dispersion::setProjectBField(
+      fsgrids::perbspan perb,
+      fsgrids::bgbspan bgb,
+      fsgrids::technicalspan technical, FieldSolverGrid &fsgrid
+   ) {
       ConstantField bgField;
       bgField.initialize(this->B0 * cos(this->angleXY) * cos(this->angleXZ),
                          this->B0 * sin(this->angleXY) * cos(this->angleXZ),
                          this->B0 * sin(this->angleXZ));
 
       setBackgroundField(bgField, bgb, technical, fsgrid);
+
+      if(!P::isRestart) {
+         // local copies for lambda capture
+         const auto rndBx = this->magXPertAbsAmp * (0.5-this->rndB[0]);
+         const auto rndBy = this->magXPertAbsAmp * (0.5-this->rndB[1]);
+         const auto rndBz = this->magXPertAbsAmp * (0.5-this->rndB[2]);
+
+         fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                             phiprof::initializeTimer("setProjectBField"), technical,
+                             [=](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+            auto& cell = perb[stencil.ooo()];
+            cell[fsgrids::bfield::PERBX] = rndBx;
+            cell[fsgrids::bfield::PERBY] = rndBy;
+            cell[fsgrids::bfield::PERBZ] = rndBz;
+         });
+      }
    }
 } // namespace projects

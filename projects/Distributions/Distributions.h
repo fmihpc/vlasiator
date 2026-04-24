@@ -32,7 +32,7 @@ namespace projects {
     public:
       Distributions();
       virtual ~Distributions();
-      
+
       virtual bool initialize(void) override;
       static void addParameters(void);
       virtual void getParameters(void) override;
@@ -58,6 +58,7 @@ namespace projects {
 
       Real rho[2];
       Real rhoRnd[2];
+      Real rndB[3];
       Real Tx[2];
       Real Ty[2];
       Real Tz[2];
@@ -70,6 +71,9 @@ namespace projects {
       Real dBx;
       Real dBy;
       Real dBz;
+      Real magXPertAbsAmp;
+      Real magYPertAbsAmp;
+      Real magZPertAbsAmp;
       Real rhoPertAbsAmp[2];
       //          Real Vx1PertAbsAmp;
       //          Real Vy1PertAbsAmp;

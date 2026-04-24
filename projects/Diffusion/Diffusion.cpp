@@ -138,9 +138,12 @@ namespace projects {
 
    void Diffusion::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
 
-   void Diffusion::setProjectBField(fsgrids::perbspan perb,
-                                    fsgrids::bgbspan bgb,
-                                    fsgrids::technicalspan technical, FieldSolverGrid &fsgrid) {
+   void Diffusion::setProjectBField(
+      fsgrids::perbspan perb,
+      fsgrids::bgbspan bgb,
+      fsgrids::technicalspan technical,
+      FieldSolverGrid &fsgrid
+   ) {
       ConstantField bgField;
       bgField.initialize(0,0,this->B0); //bg bx, by,bz
       setBackgroundField(bgField, bgb, technical, fsgrid);

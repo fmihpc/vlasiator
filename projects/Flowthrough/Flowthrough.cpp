@@ -35,8 +35,8 @@
 using namespace std;
 
 
-/** Enumerates spatial density models Flowthrough project supports. 
- * In most cases you want to use 'Maxwellian'. However, test package 
+/** Enumerates spatial density models Flowthrough project supports.
+ * In most cases you want to use 'Maxwellian'. However, test package
  * uses 'SheetMaxwellian'.*/
 
 enum DensityModel {
@@ -52,7 +52,7 @@ static DensityModel densityModel;
 namespace projects {
    Flowthrough::Flowthrough(): TriAxisSearch() { }
    Flowthrough::~Flowthrough() { }
-   
+
    bool Flowthrough::initialize(void) {
       return Project::initialize();
    }
@@ -78,7 +78,7 @@ namespace projects {
          RP::add(pop + "_Flowthrough.VZ0", "Initial bulk velocity in z-direction", 0.0);
       }
    }
-   
+
    void Flowthrough::getParameters(){
       Project::getParameters();
       int myRank;
@@ -145,7 +145,7 @@ namespace projects {
             }
             break;
          case Triangle:
-            if (abs(x) < 0.5*densityWidth) {            
+            if (abs(x) < 0.5*densityWidth) {
                rvalue = 4;
                rvalue *= ( sP.rhoBase + (sP.rho-sP.rhoBase) * (1.-abs(x) / (0.5*densityWidth)));
             } else {
@@ -154,7 +154,7 @@ namespace projects {
             }
             break;
          case Sinewave:
-            if (abs(x) < 0.5*densityWidth) {            
+            if (abs(x) < 0.5*densityWidth) {
                rvalue = 4;
                rvalue *= ( sP.rhoBase + (sP.rho-sP.rhoBase) * (0.5 + 0.5*cos(M_PI * x / (0.5*densityWidth))));
             } else {

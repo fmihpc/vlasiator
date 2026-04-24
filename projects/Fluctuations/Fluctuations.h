@@ -48,26 +48,38 @@ namespace projects {
       virtual bool initialize(void) override;
       static void addParameters(void);
       virtual void getParameters(void) override;
-      virtual void setProjectBField(fsgrids::perbspan perb,
-                                    fsgrids::bgbspan bgb,
-                                    fsgrids::technicalspan technical, FieldSolverGrid& fsgrid) override;
-      virtual std::vector<std::array<Real, 3>> getV0(creal x, creal y, creal z, const uint popID) const override;
+      virtual void setProjectBField(
+         fsgrids::perbspan perb,
+         fsgrids::bgbspan bgb,
+         fsgrids::technicalspan technical, FieldSolverGrid& fsgrid
+      ) override;
+      virtual std::vector<std::array<Real, 3> > getV0(
+         creal x,
+         creal y,
+         creal z,
+         const uint popID
+      ) const override;
 
-      virtual Realf fillPhaseSpace(spatial_cell::SpatialCell* cell, const uint popID,
+      virtual Realf fillPhaseSpace(spatial_cell::SpatialCell* cell,
+                                   const uint popID,
                                    const uint nRequested) const override;
-      virtual Realf probePhaseSpace(spatial_cell::SpatialCell* cell, const uint popID, Real vx_in, Real vy_in,
-                                    Real vz_in) const override;
+      virtual Realf probePhaseSpace(spatial_cell::SpatialCell* cell,
+                                    const uint popID,
+                                    Real vx_in, Real vy_in, Real vz_in) const override;
 
       virtual void calcCellParameters(spatial_cell::SpatialCell* cell, creal& t) override;
 
       Real BX0;
       Real BY0;
       Real BZ0;
+      Real magXPertAbsAmp;
+      Real magYPertAbsAmp;
+      Real magZPertAbsAmp;
       uint seed;
       std::vector<FluctuationsSpeciesParameters> speciesParams;
 
-      static Real rndRho, rndVel[3];
-      #pragma omp threadprivate(rndRho,rndVel)
+      static Real rndRho, rndVel[3], rndB[3];
+      #pragma omp threadprivate(rndRho,rndVel,rndB)
    } ; // class Fluctuations
 } // namespace projects
 #endif

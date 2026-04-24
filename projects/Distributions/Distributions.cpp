@@ -65,6 +65,9 @@ namespace projects {
       RP::add("Distributions.dBx", "Magnetic field x component cosine perturbation amplitude (T)", 0.0);
       RP::add("Distributions.dBy", "Magnetic field y component cosine perturbation amplitude (T)", 0.0);
       RP::add("Distributions.dBz", "Magnetic field z component cosine perturbation amplitude (T)", 0.0);
+      RP::add("Distributions.magXPertAbsAmp", "Absolute amplitude of the random magnetic perturbation along x (T)", 1.0e-9);
+      RP::add("Distributions.magYPertAbsAmp", "Absolute amplitude of the random magnetic perturbation along y (T)", 1.0e-9);
+      RP::add("Distributions.magZPertAbsAmp", "Absolute amplitude of the random magnetic perturbation along z (T)", 1.0e-9);
       RP::add("Distributions.rho1PertAbsAmp", "Absolute amplitude of the density perturbation, first peak", 0.1);
       RP::add("Distributions.rho2PertAbsAmp", "Absolute amplitude of the density perturbation, second peak", 0.1);
 //       RP::add("Distributions.Vx1PertAbsAmp", "Absolute amplitude of the Vx perturbation, first peak", 1.0e6);
@@ -103,6 +106,9 @@ namespace projects {
       RP::get("Distributions.Bx", this->Bx);
       RP::get("Distributions.By", this->By);
       RP::get("Distributions.Bz", this->Bz);
+      RP::get("Distributions.magXPertAbsAmp", this->magXPertAbsAmp);
+      RP::get("Distributions.magYPertAbsAmp", this->magYPertAbsAmp);
+      RP::get("Distributions.magZPertAbsAmp", this->magZPertAbsAmp);
       RP::get("Distributions.rho1PertAbsAmp", this->rhoPertAbsAmp[0]);
       RP::get("Distributions.rho2PertAbsAmp", this->rhoPertAbsAmp[1]);
 //       RP::get("Distributions.Vx1PertAbsAmp", this->Vx1PertAbsAmp);
@@ -241,11 +247,17 @@ namespace projects {
       for (uint i=0; i<2; i++) {
          this->rhoRnd[i] = this->rho[i] + this->rhoPertAbsAmp[i] * (0.5 - getRandomNumber(rndState));
       }
+      for (uint i=0; i<3; i++) {
+         this->rndB[i] = getRandomNumber(rndState);
+      }
    }
 
-   void Distributions::setProjectBField(fsgrids::perbspan perb,
-                                        fsgrids::bgbspan bgb,
-                                        fsgrids::technicalspan technical, FieldSolverGrid &fsgrid) {
+   void Distributions::setProjectBField(
+      fsgrids::perbspan perb,
+      fsgrids::bgbspan bgb,
+      fsgrids::technicalspan technical,
+      FieldSolverGrid &fsgrid
+   ) {
       ConstantField bgField;
       bgField.initialize(this->Bx,
                          this->By,
@@ -259,6 +271,9 @@ namespace projects {
          const auto dBy_l = this->dBy;
          const auto dBz_l = this->dBz;
          const auto lambda_l = this->lambda;
+         const auto rndBx = this->magXPertAbsAmp * (0.5-this->rndB[0]);
+         const auto rndBy = this->magXPertAbsAmp * (0.5-this->rndB[1]);
+         const auto rndBz = this->magXPertAbsAmp * (0.5-this->rndB[2]);
 
          fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
                              phiprof::initializeTimer("setProjectBField-loop"), technical,
@@ -266,9 +281,9 @@ namespace projects {
             const std::array<Real, 3> xyz = coordinates.getPhysicalCoords(stencil.i, stencil.j, stencil.k);
             auto& cell = perb[stencil.ooo()];
 
-            cell[fsgrids::bfield::PERBX] = dBx_l * cos(2.0 * M_PI * xyz[0] / lambda_l);
-            cell[fsgrids::bfield::PERBY] = dBy_l * sin(2.0 * M_PI * xyz[0] / lambda_l);
-            cell[fsgrids::bfield::PERBZ] = dBz_l * cos(2.0 * M_PI * xyz[0] / lambda_l);
+            cell[fsgrids::bfield::PERBX] = dBx_l * cos(2.0 * M_PI * xyz[0] / lambda_l) + rndBx;
+            cell[fsgrids::bfield::PERBY] = dBy_l * sin(2.0 * M_PI * xyz[0] / lambda_l) + rndBy;
+            cell[fsgrids::bfield::PERBZ] = dBz_l * cos(2.0 * M_PI * xyz[0] / lambda_l) + rndBz;
          });
       }
    }
