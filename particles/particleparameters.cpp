@@ -96,7 +96,7 @@ bool ParticleParameters::addParameters() {
    Readparameters::add<std::string>("particles.rho_field_name", "Name of the Density data set in the input files", P::rho_field_name, "rho");
    Readparameters::add<bool>("particles.divide_rhov_by_rho", "Do the input file store rho_v and rho separately?", P::divide_rhov_by_rho, false);
    Readparameters::add<int>("particles.random_seed", "Random seed for particle creation.", P::random_seed,1);
-   Readparameters::add<std::string>("particles.distribution", "Type of distribution function to sample particles from.", P::distribution,
+   Readparameters::add<std::string>("particles.distribution", "Type of distribution function to sample particles from.", P::distribution_name,
          std::string("maxwell"));
    Readparameters::add<Real>("particles.temperature", "Temperature of the particle distribution", P::temperature,1e6);
    Readparameters::add<Real>("particles.particle_vel", "Initial velocity of the particles (in the plasma rest frame)", P::particle_vel,0);
@@ -104,11 +104,11 @@ bool ParticleParameters::addParameters() {
    Readparameters::add<Real>("particles.charge", "Charge of the test particles", P::charge,PhysicalConstantsSI::e);
 
    Readparameters::add<std::string>("particles.boundary_behaviour_x",
-         "What to do with particles that reach the x boundaries (DELETE/REFLECT/PERIODIC)",std::string("DELETE"));
+         "What to do with particles that reach the x boundaries (DELETE/REFLECT/PERIODIC)",P::boundary_behaviour_x_string,std::string("DELETE"));
    Readparameters::add<std::string>("particles.boundary_behaviour_y",
-         "What to do with particles that reach the y boundaries (DELETE/REFLECT/PERIODIC)",std::string("PERIODIC"));
+         "What to do with particles that reach the y boundaries (DELETE/REFLECT/PERIODIC)",P::boundary_behaviour_y,std::string("PERIODIC"));
    Readparameters::add<std::string>("particles.boundary_behaviour_z",
-         "What to do with particles that reach the z boundaries (DELETE/REFLECT/PERIODIC)",std::string("PERIODIC"));
+         "What to do with particles that reach the z boundaries (DELETE/REFLECT/PERIODIC)",P::boundary_behaviour_z,std::string("PERIODIC"));
 
    // Parameters for the precipitation mode
    Readparameters::add<Real>("particles.inner_boundary", "Distance of the inner boundary from the coordinate centre (meters)", P::inner_boundary,
