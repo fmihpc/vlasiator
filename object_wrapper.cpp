@@ -42,22 +42,15 @@ void ObjectWrapper::initpop(std::string pop) {
    newVMeshinit->name = pop;
    size_t meshsize = vmesh::getMeshWrapper()->velocityMeshesCreation->size();
    std::array<Real, 3> thermv = {-500000.0, 0, 0};
-   // species::Species initnewSpecies(pop, "PROTON", 1.0, 1.0, 1e-15, meshsize, 1, false, 0, 0, 0, 1, 1, 0.0, thermv, 5.0,
-                                  // 10.0, 0.0, 0.0, 16, 0.1, 100.0, 10.0);
    species::Species* newSpecies = new species::Species();
    newSpecies->name=pop;
    newSpecies->velocityMesh = meshsize;
    this->particleSpeciesRead.push_back(newSpecies);
 
    auto species_i = this->particleSpeciesRead.size();
-   // species::Species* newSpecies = &(this->particleSpecies.at(species_i - 1));
    vmesh::getMeshWrapper()->velocityMeshesCreation->push_back(newVMeshinit);
-// std::cout << "TEST2" << std::endl;
 
    auto newVMesh = vmesh::getMeshWrapper()->velocityMeshesCreation->at(species_i - 1);
-   // std::cout << "VELMESH SIZE!!=" << newSpecies->velocityMesh << std::endl;
-   // std::cout << (*newSpecies).name << " and " << (*newSpecies).mass_units << " " << species_i - 1 << std::endl;
-
 
    RP::add<Real>(pop + "_properties.charge", "Particle charge, in units of elementary charges (int)", newSpecies->charge,1.0);
    RP::add<string>(pop + "_properties.mass_units",
@@ -96,16 +89,6 @@ void ObjectWrapper::initpop(std::string pop) {
            newSpecies->sparseDynamicBulkValue2,0.0);
 
    // Grid parameters
-
-   // (*newVMesh).meshLimits[0]=0;
-   // (*newVMesh).meshLimits[1]=0;
-   // (*newVMesh).meshLimits[2]=0;
-   // (*newVMesh).meshLimits[3]=0;
-   // (*newVMesh).meshLimits[4]=0;
-   // (*newVMesh).meshLimits[5]=0;
-   // (*newVMesh).gridLength[0]=1;
-   // (*newVMesh).gridLength[1]=1;
-   // newVMesh->gridLength[2]=1;
    RP::add(pop + "_vspace.vx_min", "Minimum value for velocity mesh vx-coordinates.", newVMesh->meshLimits[0]);
    RP::add(pop + "_vspace.vx_max", "Maximum value for velocity mesh vx-coordinates.", newVMesh->meshLimits[1]);
    RP::add(pop + "_vspace.vy_min", "Minimum value for velocity mesh vy-coordinates.", newVMesh->meshLimits[2]);
@@ -154,20 +137,6 @@ void ObjectWrapper::initpop(std::string pop) {
 }
 
 bool ObjectWrapper::addPopulationParameters() {
-   typedef Readparameters RP;
-   //
-   //   std::vector<std::string> popNames=RP::populations;
-   //   if (RP::helpRequested) {
-   //      popNames.push_back(std::string("<population>"));
-   //   } else {
-   //      RP::add("", const std::string &desc, const T &defValue)
-   //   }
-   //
-   //  // Create appropriate subparameters for each population
-   //  for(auto& pop : popNames) {
-   // }
-   //
-   return true;
 }
 
 bool ObjectWrapper::getPopulationParameters() {
