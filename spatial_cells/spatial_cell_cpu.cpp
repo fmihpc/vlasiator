@@ -65,7 +65,7 @@ namespace spatial_cell {
 
       // Set correct number of populations
       populations.resize(getObjectWrapper().particleSpecies.size());
-      
+
       // Set velocity meshes
       for (uint popID=0; popID<populations.size(); ++popID) {
          const species::Species& spec = getObjectWrapper().particleSpecies[popID];
