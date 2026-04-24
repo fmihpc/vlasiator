@@ -85,10 +85,10 @@ namespace projects {
       RP::add<Real>("Magnetosphere.zeroOutDerivativesZ","Zero Out Perpendicular components", this->zeroOutComponents[2],1.0);
 
       // Per-population parameters
-      for(uint i=0; i< getObjectWrapper().particleSpeciesRead.size(); i++) {
+      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
         
          MagnetosphereSpeciesParameters* sP=new MagnetosphereSpeciesParameters();
-         const std::string& pop = getObjectWrapper().particleSpeciesRead[i]->name;
+         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
          this->speciesParamsRead.push_back(sP);
          RP::add<Real>(pop + "_Magnetosphere.rho", "Tail region number density (m^-3)", sP->rho,0.0);
          RP::add<Real>(pop + "_Magnetosphere.T", "Temperature (K)", sP->T,0.0);

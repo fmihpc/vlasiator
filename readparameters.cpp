@@ -153,13 +153,8 @@ void Readparameters::parse(bool extras) {
    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
    if (rank == MASTER_RANK) {
       try {
-
-         // app->allow_config_extras();
          app->allow_extras(extras);
          app->parse(argc, argv);
-         // string conf1 = app->config_to_str();
-         // int confsize1 = conf1.size();
-
       } catch (const CLI::ParseError& e) {
          app->exit(e);
          MPI_Finalize();
@@ -167,91 +162,69 @@ void Readparameters::parse(bool extras) {
       }
    }
   
-   // if (main) {
+    std::string conf;
+    int confsize;
 
-std::string conf;
-int confsize;
+    if (rank == MASTER_RANK) {
+        conf = app->config_to_str();
+        confsize = conf.size();
 
-if (rank == MASTER_RANK) {
-    conf = app->config_to_str();
-    confsize = conf.size();
+    }
 
-}
-
-/* One thread per rank performs MPI calls */
-// #pragma omp master
-// {
-    /* Broadcast size */
     MPI_Bcast(&confsize, 1, MPI_INT,
               MASTER_RANK, MPI_COMM_WORLD);
 
-    /* Non-root ranks allocate space */
     if (rank != MASTER_RANK) {
         conf.resize(confsize);
     }
-
-    /* Broadcast data */
     MPI_Bcast(conf.data(), confsize, MPI_CHAR,
               MASTER_RANK, MPI_COMM_WORLD);
-// }
-// #pragma omp barrier
-      if (rank != MASTER_RANK) {
-         stringstream strs(conf);
-         std::istream_iterator<string> it(strs);
-         std::istream_iterator<string> end;
-         std::string parsed_conf = "";
-         for (it = it; it != end; ++it) {
-            // lists/vectors in the config are parsed to have a space between the items
-            // since strings are parsed with quotes, we can prevent adding " --" to items inside the list
-            // by checking if the first character is an alphabet.
-            if (std::isalpha((*it).at(0))) {
-               parsed_conf.append(" --" + *it);
-            } else {
-               parsed_conf.append(*it);
-            }
-         }
 
-         // std::replace(parsed_conf.begin(), parsed_conf.end(), '"','\0' );
-         parsed_conf.erase(remove(parsed_conf.begin(), parsed_conf.end(), '"'), parsed_conf.end());
-         std::cout << parsed_conf << std::endl;
-         // app->allow_extras();
-         // string part = " --ParticlePopulations=[proton]";
-         // app->parse(parsed_conf + part);
-         // app->remove_option(app->get_option("--ParticlePopulations"));
-         app->allow_extras(extras);
-         // getObjectWrapper().project->addParameters();
-         //
-
-         // projects::createProject();
-
-
-
-
-         // std::cout << "CSTR=" << parsed_conf << std::endl;
-         app->parse(parsed_conf);
-
-         // // getObjectWrapper().project->getParameters();
-         // auto subs = app->get_subcommands();
-         // auto opts1 = app->get_options();
-         // for (auto opt : opts1) {
-         //    std::cout << "OPTION=" << opt->get_name() << std::endl;
-         // }
-         // std::cout << "SUBSSIZE=" << subs.size() << std::endl;
-         // string last_name;
-         // for (auto sub : subs) {
-         //    if (last_name == sub->get_name()) {
-         //       continue;
-         //    }
-         //    auto opts = sub->get_options();
-         //    std::cout << "OPTSIZE=" << opts.size() << std::endl;
-         //    std::cout << sub->get_name() << std::endl;
-         //    for (auto opt : opts) {
-         //       std::cout << "SUBCOM=" << sub->get_name() << "      OPTION=" << opt->get_name() << std::endl;
-         //    }
-         //    last_name = sub->get_name();
-         // }
-         // abort();
+    if (rank != MASTER_RANK) {
+      stringstream strs(conf);
+      std::istream_iterator<string> it(strs);
+      std::istream_iterator<string> end;
+      std::string parsed_conf = "";
+      for (it = it; it != end; ++it) {
+          // lists/vectors in the config are parsed to have a space between the items
+          // since strings are parsed with quotes, we can prevent adding " --" to items inside the list
+          // by checking if the first character is an alphabet.
+          if (std::isalpha((*it).at(0))) {
+            parsed_conf.append(" --" + *it);
+          } else {
+            parsed_conf.append(*it);
+          }
       }
+
+      parsed_conf.erase(remove(parsed_conf.begin(), parsed_conf.end(), '"'), parsed_conf.end());
+      std::cout << parsed_conf << std::endl;
+      app->allow_extras(extras);
+
+      // std::cout << "CSTR=" << parsed_conf << std::endl;
+      app->parse(parsed_conf);
+
+      // // getObjectWrapper().project->getParameters();
+      // auto subs = app->get_subcommands();
+      // auto opts1 = app->get_options();
+      // for (auto opt : opts1) {
+      //    std::cout << "OPTION=" << opt->get_name() << std::endl;
+      // }
+      // std::cout << "SUBSSIZE=" << subs.size() << std::endl;
+      // string last_name;
+      // for (auto sub : subs) {
+      //    if (last_name == sub->get_name()) {
+      //       continue;
+      //    }
+      //    auto opts = sub->get_options();
+      //    std::cout << "OPTSIZE=" << opts.size() << std::endl;
+      //    std::cout << sub->get_name() << std::endl;
+      //    for (auto opt : opts) {
+      //       std::cout << "SUBCOM=" << sub->get_name() << "      OPTION=" << opt->get_name() << std::endl;
+      //    }
+      //    last_name = sub->get_name();
+      // }
+      // abort();
+    }
    // }
 }
 

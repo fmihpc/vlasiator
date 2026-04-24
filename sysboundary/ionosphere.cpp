@@ -2237,25 +2237,17 @@ namespace SBC {
       Readparameters::add<Real>("ionosphere.couplingInterval", "Time interval at which the ionosphere is solved (seconds)", Ionosphere::couplingInterval,0);
 
       // Per-population parameters
-      for(uint i=0; i< getObjectWrapper().particleSpeciesRead.size(); i++) {
+      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
 
          IonosphereSpeciesParameters *sP=new IonosphereSpeciesParameters();
 
          speciesParamsRead.push_back(sP);
-         const std::string& pop =getObjectWrapper().particleSpeciesRead[i]->name;
+         const std::string& pop =getObjectWrapper().particleSpecies[i].name;
          Readparameters::add<Real>(pop + "_ionosphere.rho", "Number density of the ionosphere (m^-3)", sP->rho,0.0);
          Readparameters::add<Real>(pop + "_ionosphere.T", "Temperature of the ionosphere (K)", sP->T,0.0);
          Readparameters::add<Real>(pop + "_ionosphere.VX0", "Bulk velocity of ionospheric distribution function in X direction (m/s)",sP->V0[0],0.0);
          Readparameters::add<Real>(pop + "_ionosphere.VY0", "Bulk velocity of ionospheric distribution function in X direction (m/s)", sP->V0[1],0.0);
          Readparameters::add<Real>(pop + "_ionosphere.VZ0", "Bulk velocity of ionospheric distribution function in X direction (m/s)", sP->V0[2],0.0);
-         // if(sP.T == 0) {
-         //   //Readparameters::get(pop + "_Magnetosphere.T", sP.T);
-         // }
-         // if(sP.rho == 0) {
-         //    //Readparameters::get(pop + "_Magnetosphere.rho", sP.rho);
-         // }
-          //We need a way to set the sP.rho to Magnetosphere rho IF sp.Rho=0, currently that cannot be done because this initializes the population 
-          //Later those values are got from the population specific options when parsing, this is pre-parse
       }
    }
 

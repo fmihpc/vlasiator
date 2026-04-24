@@ -51,8 +51,8 @@ namespace SBC {
       Readparameters::add<Real>("maxwellian.t_interval", "Time interval in seconds for applying the varying inflow condition.",
                           this->tInterval,0.0); // 0 = re-calculate every time
       // Per-population parameters
-      for(uint i=0; i< getObjectWrapper().particleSpeciesRead.size(); i++) {
-         const std::string& pop = getObjectWrapper().particleSpeciesRead[i]->name;
+      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
+         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
           
          InflowSpeciesParameters* sP=new InflowSpeciesParameters();
 

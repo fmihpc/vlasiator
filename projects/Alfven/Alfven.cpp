@@ -59,8 +59,8 @@ namespace projects {
       RP::add<Real>("Alfven.A_mag", "Amplitude of the magnetic perturbation", this->A_MAG,0.1);
 
       // Per-population parameters
-      for(uint i=0; i< getObjectWrapper().particleSpeciesRead.size(); i++) {
-         const std::string& pop = getObjectWrapper().particleSpeciesRead[i].name;
+      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
+         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
 
          AlfvenSpeciesParameters* sP=new AlfvenSpeciesParameters();
          
@@ -73,7 +73,7 @@ namespace projects {
    }
 
    void Alfven::getParameters(){
-      for(uint i=0; i< getObjectWrapper().particleSpeciesRead.size(); i++) {
+      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
         this->speciesParams.push_back(*this->speciesParamsRead.at(i));
       }
    }

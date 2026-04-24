@@ -66,8 +66,8 @@ namespace SBC {
       Readparameters::add<bool>("copysphere.zeroPerB","If 0 (default), normal copysphere behaviour of magnetic field at inner boundary. If 1, keep magnetic field static at the inner boundary",this->zeroPerB,0);
 
       // Per-population parameters
-      for(uint i=0; i< getObjectWrapper().particleSpeciesRead.size(); i++) {
-         const std::string& pop = getObjectWrapper().particleSpeciesRead[i]->name;
+      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
+         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
          CopysphereSpeciesParameters* sP=new CopysphereSpeciesParameters();
 
          this->speciesParamsRead.push_back(sP);

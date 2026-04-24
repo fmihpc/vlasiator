@@ -293,6 +293,15 @@ int simulate(int argn,char* args[]) {
      MPI_Finalize();
      exit(0);
    }
+  //issue: objetwrapper.AddParameters adds the parameters during parse
+  //but the callback works such that those added parameters do not make it to that parse
+  //thus they need to be double parse later,
+  //this means that line below getPopulationParameters do not have the parameters read yet
+  //but having it here would simplify createProject and getParameters and no need to change stuff in spatial cells
+  //momentary fix: triple parse:D
+  //strangely this also seems to only be issue for the non master MPI rnaks
+   readparameters.parse(true);
+   getObjectWrapper().getPopulationParameters();
 
    sysBoundaryContainer.getParameters(); 
    projects::createProject();
@@ -307,7 +316,6 @@ int simulate(int argn,char* args[]) {
 
    // getObjectWrapper().project = project; (Already set in createProject)
 
-   getObjectWrapper().getPopulationParameters();
    // sysBoundaryContainer.getParameters();
    project->getParameters();
 

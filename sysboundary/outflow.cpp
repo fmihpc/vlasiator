@@ -55,8 +55,8 @@ namespace SBC {
       Readparameters::add<bool>("outflow.reapplyUponRestart", "If 0 (default), keep going with the state existing in the restart file. If 1, calls again applyInitialState. Can be used to change boundary condition behaviour during a run.", this->applyUponRestart,false);
 
       // Per-population parameters
-      for(uint i=0; i < getObjectWrapper().particleSpeciesRead.size(); i++) {
-        const string& pop = getObjectWrapper().particleSpeciesRead[i]->name;
+      for(uint i=0; i < getObjectWrapper().particleSpecies.size(); i++) {
+        const string& pop = getObjectWrapper().particleSpecies[i].name;
         
         OutflowSpeciesParameters* sP = new OutflowSpeciesParameters {{true,true,true,true,true,true},{0,0,0,0,0,0},std::vector<std::string>{""},0.0};
 
