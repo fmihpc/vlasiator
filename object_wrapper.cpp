@@ -15,9 +15,6 @@ bool ObjectWrapper::addParameters() {
    //NOTE was this still necessary?
    std::function<void(const std::string)> lambda_fun = [this](std::string s) {
       this->initpop(s);
-      int rank;
-      MPI_Comm_rank(MPI_COMM_WORLD,&rank);
-
    };
    RP::add_each_lambda("ParticlePopulations", "Name of the simulated particle populations (string)", RP::populations,
                        lambda_fun);
@@ -157,13 +154,7 @@ bool ObjectWrapper::getPopulationParameters() {
       }
 
       // Elementary particle parameters
-      // RP::get(pop + "_properties.charge", species.charge);
-
       species.charge *= physicalconstants::CHARGE;
-
-      // RP::get(pop + "_properties.mass", species.mass);
-      // RP::get(pop + "_properties.mass_units", massUnit);
-
       if (species.mass_units == "PROTON") {
          species.mass *= physicalconstants::MASS_PROTON;
       } else if (species.mass_units == "ELECTRON") {
@@ -173,27 +164,7 @@ bool ObjectWrapper::getPopulationParameters() {
          return false;
       }
 
-      // sparsity parameters
-      // RP::get(pop + "_sparse.minValue", species.sparseMinValue);
-      // RP::get(pop + "_sparse.blockAddWidthV", species.sparseBlockAddWidthV);
-      // RP::get(pop + "_sparse.conserve_mass", species.sparse_conserve_mass);
-      // RP::get(pop + "_sparse.dynamicAlgorithm", species.sparseDynamicAlgorithm);
-      // RP::get(pop + "_sparse.dynamicBulkValue1", species.sparseDynamicBulkValue1);
-      // RP::get(pop + "_sparse.dynamicBulkValue2", species.sparseDynamicBulkValue2);
-      // RP::get(pop + "_sparse.dynamicMinValue1", species.sparseDynamicMinValue1);
-      // RP::get(pop + "_sparse.dynamicMinValue2", species.sparseDynamicMinValue2);
-
       // Particle velocity space properties
-      // RP::get(pop + "_vspace.vx_min",vMesh.meshLimits[0]);
-      // RP::get(pop + "_vspace.vx_max",vMesh.meshLimits[1]);
-      // RP::get(pop + "_vspace.vy_min",vMesh.meshLimits[2]);
-      // RP::get(pop + "_vspace.vy_max",vMesh.meshLimits[3]);
-      // RP::get(pop + "_vspace.vz_min",vMesh.meshLimits[4]);
-      // RP::get(pop + "_vspace.vz_max",vMesh.meshLimits[5]);
-      // RP::get(pop + "_vspace.vx_length",vMesh.gridLength[0]);
-      // RP::get(pop + "_vspace.vy_length",vMesh.gridLength[1]);
-      // RP::get(pop + "_vspace.vz_length",vMesh.gridLength[2]);
-      std::cout << vMesh.gridLength[0] << std::endl;
       if (vMesh.gridLength[0] > MAX_BLOCKS_PER_DIM || vMesh.gridLength[1] > MAX_BLOCKS_PER_DIM ||
           vMesh.gridLength[2] > MAX_BLOCKS_PER_DIM) {
 
@@ -231,18 +202,6 @@ bool ObjectWrapper::getPopulationParameters() {
 
       vMesh.blockLength[0] = vMesh.blockLength[1] = vMesh.blockLength[2] = WID;
 
-      ////Get thermal / suprathermal moments parameters
-      ////Readparameters::get(pop + "_thermal.radius", species.thermalRadius);
-      ////Readparameters::get(pop + "_thermal.vx", species.thermalV[0]);
-      ////Readparameters::get(pop + "_thermal.vy", species.thermalV[1]);
-      ////Readparameters::get(pop + "_thermal.vz", species.thermalV[2]);
-      //
-      ////Get energy density parameters
-      ////Readparameters::get(pop + "_energydensity.limit1", species.EnergyDensityLimit1);
-      ////Readparameters::get(pop + "_energydensity.limit2", species.EnergyDensityLimit2);
-      ////Readparameters::get(pop + "_energydensity.solarwindenergy", species.SolarWindEnergy);
-      ////Readparameters::get(pop + "_energydensity.solarwindspeed", species.SolarWindSpeed);
-      //
       const Real EPSILON = 1.e-25;
       if (species.SolarWindEnergy < EPSILON) {
          // Energy stored internally in SI units
@@ -250,12 +209,6 @@ bool ObjectWrapper::getPopulationParameters() {
       } else {
          species.SolarWindEnergy = species.SolarWindEnergy * physicalconstants::CHARGE;
       }
-
-      // // Get precipitation parameters
-      // //Readparameters::get(pop + "_precipitation.nChannels", species.precipitationNChannels);
-      // //Readparameters::get(pop + "_precipitation.emin", species.precipitationEmin);
-      // //Readparameters::get(pop + "_precipitation.emax", species.precipitationEmax);
-      // //Readparameters::get(pop + "_precipitation.lossConeAngle", species.precipitationLossConeAngle);
       // Convert from eV to SI units
       species.precipitationEmin = species.precipitationEmin * physicalconstants::CHARGE;
       species.precipitationEmax = species.precipitationEmax * physicalconstants::CHARGE;
