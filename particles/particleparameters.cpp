@@ -46,6 +46,7 @@ bool P::divide_rhov_by_rho = false;
 
 std::default_random_engine::result_type P::random_seed = 1;
 Distribution* (*P::distribution)(std::default_random_engine&) = NULL;
+std::string distribution_name;
 Real P::temperature = 1e6;
 Real P::particle_vel = 0;
 Real P::mass = PhysicalConstantsSI::mp;
@@ -153,33 +154,14 @@ bool ParticleParameters::addParameters() {
 }
 
 bool ParticleParameters::getParameters() {
-   Readparameters::get("particles.input_filename_pattern",P::input_filename_pattern);
-   Readparameters::get("particles.output_filename_pattern",P::output_filename_pattern);
 
-   Readparameters::get("particles.mode",P::mode);
-
-   Readparameters::get("particles.init_x",P::init_x);
-   Readparameters::get("particles.init_y",P::init_y);
-   Readparameters::get("particles.init_z",P::init_z);
-
-   Readparameters::get("particles.dt",P::dt);
-   Readparameters::get("particles.input_dt", P::input_dt);
-   Readparameters::get("particles.start_time",P::start_time);
-   Readparameters::get("particles.end_time",P::end_time);
-   Readparameters::get("particles.num_particles",P::num_particles);
    if(P::dt == 0 || P::end_time == P::start_time) {
       std::cerr << "Error end_time == start_time! Won't do anything (and will probably crash now)." << std::endl;
       return false;
    }
-   Readparameters::get("particles.V_field_name",P::V_field_name);
-   Readparameters::get("particles.rho_field_name",P::rho_field_name);
-   Readparameters::get("particles.divide_rhov_by_rho",P::divide_rhov_by_rho);
 
-   Readparameters::get("particles.random_seed",P::random_seed);
 
    /* Look up particle distribution generator */
-   std::string distribution_name;
-   Readparameters::get("particles.distribution",distribution_name);
 
    std::map<std::string, Distribution*(*)(std::default_random_engine&)> distribution_lookup;
    distribution_lookup["maxwell"]=&createDistribution<Maxwell_Boltzmann>;
@@ -195,56 +177,32 @@ bool ParticleParameters::getParameters() {
       P::distribution = distribution_lookup[distribution_name];
    }
 
-   Readparameters::get("particles.temperature",P::temperature);
-   Readparameters::get("particles.particle_vel",P::particle_vel);
-
    // Boundaries
    std::map<std::string, Boundary*(*)(int)> boundaryLookup;
    boundaryLookup["DELETE"] = &createBoundary<OpenBoundary>;
    boundaryLookup["REFLECT"] = &createBoundary<ReflectBoundary>;
    boundaryLookup["PERIODIC"] = &createBoundary<PeriodicBoundary>;
-   std::string tempstring;
-   Readparameters::get("particles.boundary_behaviour_x",tempstring);
-   if(boundaryLookup.find(tempstring) == boundaryLookup.end()) {
-      std::cerr << "Error: invalid boundary condition \"" << tempstring << "\" in x-direction" << std::endl;
+
+   if(boundaryLookup.find(boundary_behaviour_x_string) == boundaryLookup.end()) {
+      std::cerr << "Error: invalid boundary condition \"" << boundary_behaviour_x_string << "\" in x-direction" << std::endl;
       exit(0);
    } else {
-      P::boundary_behaviour_x = boundaryLookup[tempstring](0);
+      P::boundary_behaviour_x = boundaryLookup[boundary_behaviour_x_string](0);
    }
-   Readparameters::get("particles.boundary_behaviour_y",tempstring);
-   if(boundaryLookup.find(tempstring) == boundaryLookup.end()) {
-      std::cerr << "Error: invalid boundary condition \"" << tempstring << "\" in y-direction" << std::endl;
+
+   if(boundaryLookup.find(boundary_behaviour_y_string) == boundaryLookup.end()) {
+      std::cerr << "Error: invalid boundary condition \"" << boundary_behaviour_y_string << "\" in y-direction" << std::endl;
       exit(0);
    } else {
-      P::boundary_behaviour_y = boundaryLookup[tempstring](1);
+      P::boundary_behaviour_y = boundaryLookup[boundary_behaviour_y_string](1);
    }
-   Readparameters::get("particles.boundary_behaviour_z",tempstring);
-   if(boundaryLookup.find(tempstring) == boundaryLookup.end()) {
-      std::cerr << "Error: invalid boundary condition \"" << tempstring << "\" in z-direction" << std::endl;
+
+   if(boundaryLookup.find(boundary_behaviour_z_string) == boundaryLookup.end()) {
+      std::cerr << "Error: invalid boundary condition \"" << boundary_behaviour_z_string << "\" in z-direction" << std::endl;
       exit(0);
    } else {
-      P::boundary_behaviour_z = boundaryLookup[tempstring](2);
+      P::boundary_behaviour_z = boundaryLookup[boundary_behaviour_z_string](2);
    }
-
-   Readparameters::get("particles.inner_boundary", P::precip_inner_boundary);
-   Readparameters::get("particles.precipitation_start_x", P::precip_start_x);
-   Readparameters::get("particles.precipitation_stop_x", P::precip_stop_x);
-
-   Readparameters::get("particles.reflect_start_y", P::reflect_start_y);
-   Readparameters::get("particles.reflect_stop_y", P::reflect_stop_y);
-   Readparameters::get("particles.reflect_y_scale", P::reflect_y_scale);
-   Readparameters::get("particles.reflect_x_offset", P::reflect_x_offset);
-   Readparameters::get("particles.reflect_upstream_boundary", P::reflect_upstream_boundary);
-   Readparameters::get("particles.reflect_downstream_boundary", P::reflect_downstream_boundary);
-
-   Readparameters::get("particles.ipshock_inject_x0", P::ipshock_inject_x0);
-   Readparameters::get("particles.ipshock_inject_x1", P::ipshock_inject_x1);
-   Readparameters::get("particles.ipshock_inject_y0", P::ipshock_inject_y0);
-   Readparameters::get("particles.ipshock_inject_y1", P::ipshock_inject_y1);
-   Readparameters::get("particles.ipshock_inject_z0", P::ipshock_inject_z0);
-   Readparameters::get("particles.ipshock_inject_z1", P::ipshock_inject_z1);
-   Readparameters::get("particles.ipshock_transmit", P::ipshock_transmit);
-   Readparameters::get("particles.ipshock_reflect", P::ipshock_reflect);
 
    return true;
 }

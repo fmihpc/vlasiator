@@ -52,6 +52,10 @@ struct ParticleParameters {
    static Boundary* boundary_behaviour_x; /*!< What to do with particles that reach the x boundary */
    static Boundary* boundary_behaviour_y; /*!< What to do with particles that reach the y boundary */
    static Boundary* boundary_behaviour_z; /*!< What to do with particles that reach the z boundary */
+   static std::string boundary_behaviour_x_string; 
+   static std::string boundary_behaviour_y_string; 
+   static std::string boundary_behaviour_z_string; 
+
 
    static Real precip_inner_boundary; /*!< Distance of the inner boundary from the coordinate centre (meters) */
    static Real precip_start_x; /*!< X-Coordinate at which precipitation injection starts (meters) */
@@ -75,6 +79,7 @@ struct ParticleParameters {
 
    static std::default_random_engine::result_type random_seed; /*!< Random seed for particle creation */
    static Distribution* (*distribution)(std::default_random_engine&); /*!< Type of distribution from which to sample the particles */
+   static std::string distribution_name;
    static Real temperature; /*!< Initial particle temperature (for distributions where a temperature is meaningful) */
    static Real particle_vel; /*!< Initial particle velocity (for distributions with a single initial velocity) */
 
