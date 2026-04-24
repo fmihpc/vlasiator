@@ -701,7 +701,11 @@ Project* createProject() {
         projects::LossCone* losscone=new projects::LossCone();
         losscone->addParameters();
         rvalue=losscone;
-
+    } else if (Parameters::projectName=="Alfven") {
+        projects::LossCone* alfven=new projects::LossCone();
+        alfven->addParameters();
+        rvalue=alfven;
+    
     } else {
         cerr << "Unknown project name! = "<<Parameters::projectName << endl;
         abort();
