@@ -1458,7 +1458,6 @@ bool writeGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
    if (writeZoneGlobalIdNumbers(mpiGrid, vlsvWriter, meshName, local_cells, ghost_cells) == false) {
       return false;
    }
-
    // Write domain sizes:
    if (writeDomainSizes(vlsvWriter, meshName, local_cells.size(), ghost_cells.size()) == false) {
       return false;
