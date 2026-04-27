@@ -733,7 +733,7 @@ jobs:
       run: |
         RUN_STRING=$( cat << MORO
         rm -rf libraries library-build testpackage
-        rm -f libraries-carrington.tar.gz testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
+        rm -f libraries-carrington_gcc_openmpi.tar.gz testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
         rm -f *.xml
         MORO
         )
@@ -748,13 +748,13 @@ jobs:
     - name: Fetch libraries
       uses: actions/download-artifact@v5
       with:
-        name: libraries-carrington
+        name: libraries-carrington_gcc_openmpi
     - name: Unpack libraries
-      run: tar -zxf libraries-carrington.tar.gz
+      run: tar -zxf libraries-carrington_gcc_openmpi.tar.gz
     - name: Compile tools
       run: |
         export VLASIATOR_ARCH=carrington_gcc_openmpi
-        srun --constraint "carrington|ukko" --job-name CI_tools_compile --interactive --nodes=1 -n 1 -c 1 --mem=4G -p short -t 0:10:0 bash -c 'module purge; module load GCC/13.2.0; module load OpenMPI/4.1.6-GCC-13.2.0 ; module load PMIx/4.2.6-GCCcore-13.2.0; module load PAPI/7.1.0-GCCcore-13.2.0; module load Boost/1.83.0-GCC-13.2.0; export VLASIATOR_ARCH=carrington_gcc_openmpi; make vlsvextract vlsvdiff fluxfunction'
+        srun --constraint "carrington|ukko" --job-name CI_tools_compile --interactive --nodes=1 -n 1 -c 1 --mem=4G -p short -t 0:10:0 bash -c 'export VLASIATOR_ARCH=carrington_gcc_openmpi ; source modules/${VLASIATOR_ARCH}.sh ; make vlsvextract vlsvdiff fluxfunction'
     - name: Upload tools binaries
       uses: actions/upload-artifact@v4
       with:
@@ -831,7 +831,7 @@ jobs:
       - uses: ursg/gcc-problem-matcher@master
       - name: Compile tools
         run: |
-          srun -C c --job-name CI_tools_HILE-C_compile --interactive --nodes=1 -n 1 -c 1 --mem-per-cpu=2G -t 0:10:0 bash -c 'module load papi; module load cray-pmi; module load libfabric/1.22.0; export VLASIATOR_ARCH=hile_cpu; make vlsvextract vlsvdiff fluxfunction; sleep 10s'
+          srun -C c --job-name CI_tools_HILE-C_compile --interactive --nodes=1 -n 1 -c 1 --mem-per-cpu=2G -t 0:10:0 bash -c 'export VLASIATOR_ARCH=hile_cpu ; source modules/${VLASIATOR_ARCH}.sh ; make vlsvextract vlsvdiff fluxfunction; sleep 10s'
       - name: Upload tools binaries
         uses: actions/upload-artifact@v4
         with:
@@ -915,8 +915,8 @@ jobs:
     - name: Run fluxfunction test
       run: |
         chmod +x $GITHUB_WORKSPACE/fluxfunction
-        srun --job-name fluxtest --constraint "carrington|ukko" -N 1 -c 1 --mem=1G bash -c "module purge; module load GCC/13.2.0; module load OpenMPI/4.1.6-GCC-13.2.0 ; module load PMIx/4.2.6-GCCcore-13.2.0; module load PAPI/7.1.0-GCCcore-13.2.0; module load Boost/1.83.0-GCC-13.2.0; $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_small/bulk.0000001.vlsv equatorial.bin"
-        srun --job-name fluxtest --constraint "carrington|ukko" -N 1 -c 1 --mem=1G bash -c "module purge; module load GCC/13.2.0; module load OpenMPI/4.1.6-GCC-13.2.0 ; module load PMIx/4.2.6-GCCcore-13.2.0; module load PAPI/7.1.0-GCCcore-13.2.0; module load Boost/1.83.0-GCC-13.2.0; $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_polar_small/bulk.0000001.vlsv polar.bin"
+        srun --job-name fluxtest --constraint "carrington|ukko" -N 1 -c 1 --mem=1G bash -c "source modules/carrington_gcc_openmpi.sh ; $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_small/bulk.0000001.vlsv equatorial.bin"
+        srun --job-name fluxtest --constraint "carrington|ukko" -N 1 -c 1 --mem=1G bash -c "source modules/carrington_gcc_openmpi.sh ; $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_polar_small/bulk.0000001.vlsv polar.bin"
         diff -q equatorial.bin /turso/group/spacephysics/vlasiator/testpackage/CI_reference/equatorial.bin || if [ $? -eq 1 ] ; then true; else false; fi
         diff -q polar.bin /turso/group/spacephysics/vlasiator/testpackage/CI_reference/polar.bin || if [ $? -eq 1 ] ; then true; else false; fi
 
@@ -986,8 +986,8 @@ jobs:
     - name: Run fluxfunction test
       run: |
         chmod +x $GITHUB_WORKSPACE/fluxfunction
-        srun -C c --job-name fluxtest --nodes=1 -n 1 -c 1 --mem-per-cpu=2G -t 0:10:0 bash -c 'module load papi; module load cray-pmi; module load libfabric/1.22.0; $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_small/bulk.0000001.vlsv equatorial.bin'
-        srun -C c --job-name fluxtest --nodes=1 -n 1 -c 1 --mem-per-cpu=2G -t 0:10:0 bash -c 'module load papi; module load cray-pmi; module load libfabric/1.22.0; $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_polar_small/bulk.0000001.vlsv polar.bin'
+        srun -C c --job-name fluxtest --nodes=1 -n 1 -c 1 --mem-per-cpu=2G -t 0:10:0 bash -c 'source modules/hile_cpu.sh ; $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_small/bulk.0000001.vlsv equatorial.bin'
+        srun -C c --job-name fluxtest --nodes=1 -n 1 -c 1 --mem-per-cpu=2G -t 0:10:0 bash -c 'source modules/hile_cpu.sh ; $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_polar_small/bulk.0000001.vlsv polar.bin'
         diff -q equatorial.bin /turso/group/spacephysics/vlasiator/testpackage/CI_reference/equatorial.bin || if [ $? -eq 1 ] ; then true; else false; fi
         diff -q polar.bin /turso/group/spacephysics/vlasiator/testpackage/CI_reference/polar.bin || if [ $? -eq 1 ] ; then true; else false; fi
 
@@ -1165,8 +1165,8 @@ jobs:
       uses: actions/download-artifact@v5
       with:
         name: libraries
-    - name: Unpack libraries
-      run: tar --zstd -xf libraries.tar.zstd
+    - name: Unpack libraries-docker
+      run: tar --zstd -xf libraries-docker.tar.zstd
     - name: Download release binary
       uses: actions/download-artifact@v5
       with:
