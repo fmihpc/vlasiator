@@ -71,7 +71,7 @@ LIB_SILO = -lsiloh5
 INC_PAPI =
 LIB_PAPI = -lpapi
 
-LIB_PROFILE = -L$(LIBRARY_PREFIX)/lib -lphiprof -Wl,-rpath=$(LIBRARY_PREFIX)/lib
+LIB_PROFILE = -L$(LIBRARY_PREFIX)/lib/libphiprof.a
 INC_PROFILE = -I$(LIBRARY_PREFIX)/include
 
 INC_VLSV = -I$(LIBRARY_PREFIX)/include
