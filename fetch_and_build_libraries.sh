@@ -32,9 +32,9 @@ fi
 bash ./fetch_libraries.sh ${PLATFORM:1}
 if [[ -f ./modules/${PLATFORM:1}.sh ]]
 then
-   . ./modules/${PLATFORM:1}.sh
+   source modules/${PLATFORM:1}.sh
 fi
-bash ./build_fetched_libraries.sh ${PLATFORM:1}
+source build_fetched_libraries.sh ${PLATFORM:1}
 
 # Clean up build directory
 rm -rf $BUILDDIR
