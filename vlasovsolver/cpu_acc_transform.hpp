@@ -30,7 +30,7 @@
 #include "../spatial_cells/spatial_cell_wrapper.hpp"
 
 Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
-   spatial_cell::SpatialCell* spatial_cell,const uint popID,const Real& dt);
+   const spatial_cell::SpatialCell* spatial_cell,const uint popID,const Real& dt);
 
 void updateAccelerationMaxdt(spatial_cell::SpatialCell* spatial_cell, 
                              const uint popID);

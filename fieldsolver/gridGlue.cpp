@@ -30,6 +30,80 @@ int getNumberOfCellsOnMaxRefLvl(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
    
 }
 
+/*
+Find closest in-domain cell and return the given moment from that cell
+*/
+Real copyMomentFromClosestSimCell(FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                           FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+                           cint i,
+                           cint j,
+                           cint k,
+                           cuint moment) {
+   int distance = numeric_limits<int>::max();
+   vector< array<int,3> > closestCells;
+
+   for (int kk=-2; kk<3; kk++) {
+      for (int jj=-2; jj<3; jj++) {
+         for (int ii=-2; ii<3 ; ii++) {
+            if( technicalGrid.get(i+ii,j+jj,k+kk) // skip invalid cells returning NULL
+               && technicalGrid.get(i+ii,j+jj,k+kk)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY // Copy only from sim domain
+            ) {
+               distance = min(distance, ii*ii + jj*jj + kk*kk);
+            }
+         }
+      }
+   }
+
+   for (int kk=-2; kk<3; kk++) {
+      for (int jj=-2; jj<3; jj++) {
+         for (int ii=-2; ii<3 ; ii++) {
+            if( technicalGrid.get(i+ii,j+jj,k+kk) // skip invalid cells returning NULL
+               && technicalGrid.get(i+ii,j+jj,k+kk)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY // Copy only from sim domain
+            ) {
+               int d = ii*ii + jj*jj + kk*kk;
+               if( d == distance ) {
+                  array<int, 3> cell = {i+ii, j+jj, k+kk};
+                  closestCells.push_back(cell);
+               }
+            }
+         }
+      }
+   }
+
+   if (closestCells.size() == 0) {
+      abort_mpi("No closest cell found!", 1);
+   }
+
+   return momentsGrid.get(closestCells[0][0], closestCells[0][1], closestCells[0][2])->at(fsgrids::moments::RHOM+moment);
+}
+
+/*
+Copy moments from simulation domain to outflow boundaries on fsgrid
+*/
+void copyMomentsToOutflow(FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                           FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
+
+   // Get size of local domain and create swapGrid for filtering
+   const FsGridTools::FsIndex_t* mntDims = &momentsGrid.getLocalSize()[0];
+
+   #pragma omp parallel for collapse(2)
+   for (FsGridTools::FsIndex_t k = 0; k < mntDims[2]; k++){
+      for (FsGridTools::FsIndex_t j = 0; j < mntDims[1]; j++){
+         for (FsGridTools::FsIndex_t i = 0; i < mntDims[0]; i++){
+
+            // Copying only needs to be done for L1/L2 outflow cells
+            if (technicalGrid.get(i, j, k)->sysBoundaryFlag != sysboundarytype::OUTFLOW || technicalGrid.get(i, j, k)->sysBoundaryLayer > 2) {
+               continue;
+            }
+
+            // Set outflow cell to closest in-domain cell values
+            for (int e = 0; e < fsgrids::moments::N_MOMENTS; ++e) {
+               momentsGrid.get(i, j, k)->at(e) = copyMomentFromClosestSimCell(momentsGrid,technicalGrid,i,j,k,e);
+            } 
+         }
+      }
+   }
+}
 
 /*
 Filter moments after feeding them to FsGrid to alleviate the staircase effect caused in AMR runs.
@@ -127,6 +201,10 @@ void filterMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       // i.e. use specialized swap if it exists, fall back on std
       using std::swap;
       swap(momentsGrid, swapGrid);
+      momentsGrid.updateGhostCells();
+
+      // If outflow boundaries exist, filtered moments must be recopied there
+      copyMomentsToOutflow(momentsGrid, technicalGrid);
       momentsGrid.updateGhostCells();
    }
 }

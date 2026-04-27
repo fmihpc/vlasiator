@@ -35,12 +35,12 @@ using namespace spatial_cell;
 
 void calculateAcceleration(
                            dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                           Real dt
+                           const Real dt
 );
 
 void calculateSpatialTranslation(
                                  dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                 Real dt,
+                                 const Real dt,
                                  const bool initializationOrLB);
 
 // Vlasov timestep reduction

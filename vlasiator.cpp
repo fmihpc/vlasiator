@@ -1625,7 +1625,24 @@ std::cerr <<__FILE__<<":"<<__LINE__<<" ("<<myRank <<")\n";
       // Update boundary condition states (time-varying)
       if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration) {
          phiprof::Timer timer {"Update system boundaries (Vlasov pre-translation)"};
-         sysBoundaryContainer.updateState(mpiGrid, perBGrid, BgBGrid, P::t + 0.5 * P::dt);
+         sysBoundaryContainer.updateState(mpiGrid, technicalGrid, perBGrid, BgBGrid, P::t + 0.5 * P::dt);
+
+         // updateState leaves mpiGrid and fsgrid in mismatching states, interpolated moments need to be recalculated
+         // TODO: Check whether updated state is the same as previously so synchronization can be skipped when not needed?
+         calculateInterpolatedVelocityMoments(
+            mpiGrid,
+            CellParams::RHOM,
+            CellParams::VX,
+            CellParams::VY,
+            CellParams::VZ,
+            CellParams::RHOQ,
+            CellParams::P_11,
+            CellParams::P_22,
+            CellParams::P_33,
+            CellParams::P_23,
+            CellParams::P_13,
+            CellParams::P_12
+         );
          timer.stop();
          addTimedBarrier("barrier-boundary-conditions");
       }
@@ -1833,7 +1850,7 @@ std::cerr <<__FILE__<<":"<<__LINE__<<" ("<<myRank <<")\n";
       // Check timestep
       if (P::dt < P::bailout_min_dt) {
          stringstream s;
-         s << "The timestep dt=" << P::dt << " went below bailout.bailout_min_dt (" << to_string(P::bailout_min_dt) << ")." << endl;
+         s << "The timestep dt=" << P::dt << " went below bailout.min_dt (" << to_string(P::bailout_min_dt) << ")." << endl;
          bailout(true, s.str(), __FILE__, __LINE__);
       }
       //Move forward in time

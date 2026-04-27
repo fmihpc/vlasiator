@@ -32,7 +32,7 @@ using namespace std;
 /*
   Compute parabolic reconstruction with an explicit scheme
 */
-static inline void compute_ppm_coeff(const Vec * const values, face_estimate_order order, uint k, Vec a[3], const Realf threshold)
+static inline void compute_ppm_coeff(const Vec * const values, const face_estimate_order order,const uint k, Vec a[3], const Realf threshold)
 {
    Vec m_face; /*left face value*/
    Vec p_face; /*right face value*/

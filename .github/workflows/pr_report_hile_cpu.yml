@@ -1,0 +1,47 @@
+name: Report-HILE-C
+on:
+  workflow_run:
+    workflows: [Github-CI]
+    types: [completed]
+
+permissions:
+  checks: write
+
+jobs:
+  testpackage_report_HILE-C:
+    runs-on: ubuntu-latest
+    steps:
+      - name: download testpackage output
+        # Note we are downloading an artifact from a
+        # *different* workflow here.
+        uses: ursg/action-download-artifact@v2
+        with:
+          name: testpackage-output-HILE-C
+          workflow: ${{ github.event.workflow.id }}
+          run_id: ${{ github.event.workflow_run.id }}
+      - name: unpack and process pr output
+        id: unpack
+        run: |
+          tar -xzvf testpackage-output-HILE-C.tar.gz
+          cat testpackage_output_variables.txt >> $GITHUB_OUTPUT
+          # Limit Report filesize, as github only allows 64k PR reports
+          truncate --size='<60K' testpackage_check_description.txt
+      - name: Generate PR check report
+        uses: ursg/checks-action@v1.6.0
+        if: always()
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          sha: ${{github.event.workflow_run.head_sha}}
+          name: Testpackage HILE-C result
+          conclusion: ${{ steps.unpack.outputs.conclusion }}
+          output: |
+            {"title": "Testpackage HILE-C result", "summary":"${{ steps.unpack.outputs.summary }}"}
+          output_text_description_file: testpackage_check_description.txt
+
+     ## No need to bother with JUnit reports if the check runs work
+     #- name: Build test report
+     #  uses: mikepenz/action-junit-report@v3
+     #  with:
+     #    report_paths: 'testpackage_output_junit*.xml'
+     #    detailed_summary: true
+     #    include_passed: true

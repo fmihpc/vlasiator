@@ -65,20 +65,21 @@ CC_BRAND_VERSION = 12.6-GCC-13.2.0
 MPT_BRAND = OpenMPI
 MPT_VERSION = 4.1.6
 
-VLASIATOR_LIBRARY_PREFIX = /proj/group/spacephysics/libraries
-VLASIATOR_LIBRARY_PATH = $(VLASIATOR_LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/libraries-ukkogpu
+
+VLASIATOR_LIBRARY_PATH = $(CURDIR)/libraries-ukkogpu
+
 # Both ukko-dgx and ukko-a100 use the same modules and libraries
 
-LIB_PROFILE = -L$(VLASIATOR_LIBRARY_PATH)/lib -Xlinker=-rpath=$(VLASIATOR_LIBRARY_PATH)/lib -lphiprof
+LIB_PROFILE = -L$(VLASIATOR_LIBRARY_PATH)/lib -lphiprof
 INC_PROFILE = -I$(VLASIATOR_LIBRARY_PATH)/include
 
-LIB_VLSV = -L$(VLASIATOR_LIBRARY_PATH)/lib -Xlinker=-rpath=$(VLASIATOR_LIBRARY_PATH)/lib -lvlsv
+LIB_VLSV = -L$(VLASIATOR_LIBRARY_PATH)/lib -lvlsv
 INC_VLSV = -I$(VLASIATOR_LIBRARY_PATH)/include
 
-LIB_BOOST = -L$(VLASIATOR_LIBRARY_PATH)/lib -Xlinker=-rpath=$(VLASIATOR_LIBRARY_PATH)/lib -lboost_program_options
+LIB_BOOST = -L$(VLASIATOR_LIBRARY_PATH)/lib  -lboost_program_options
 INC_BOOST = -isystem $(VLASIATOR_LIBRARY_PATH)/include
 
-LIB_ZOLTAN = -L$(VLASIATOR_LIBRARY_PATH)/lib -Xlinker=-rpath=$(VLASIATOR_LIBRARY_PATH)/lib -lzoltan
+LIB_ZOLTAN = -L$(VLASIATOR_LIBRARY_PATH)/lib -lzoltan
 INC_ZOLTAN = -isystem $(VLASIATOR_LIBRARY_PATH)/include
 
 LIB_PAPI = -lpapi

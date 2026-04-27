@@ -1,7 +1,7 @@
 #Kostis Laptop
 #Compiler & Linker
-CMP = mpic++
-LNK = mpic++
+CMP = mpic++ -ggdb -g3
+LNK = mpic++ -ggdb -g3
 
 
 #======== Vectorization ==========
@@ -30,11 +30,7 @@ testpackage: CXXFLAGS = -g -ggdb -O2 -fopenmp -funroll-loops -std=c++20 -fabi-ve
 CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE -DPAPI_MEM
 MATHFLAGS = -ffast-math -fno-finite-math-only
 testpackage: MATHFLAGS = -fno-unsafe-math-optimizations
-LDFLAGS = -L $(HOME)/lib
-LIB_MPI = -lgomp -lpapi 
-
-
-
+LIB_MPI = -lgomp -lpapi
 
 #================PAPI==================
 #Add PAPI_MEM define to use papi to report memory consumption?
@@ -48,16 +44,8 @@ testpackage: CXXFLAGS +=  -DPAPI_MEM
 CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 
-#======== Allocator =========
-#Use TBB malloc
-
-
-PAPI_FLAG =
-
-
 #======== Libraries ===========
-
-LIBRARY_PREFIX = $(HOME)
+LIBRARY_PREFIX = /home/kstppd/software/vlasiator_libs
 
 INC_BOOST = -I/usr/include/boost/
 LIB_BOOST = -L/usr/lib/x86_64-linux-gnu/ -lboost_program_options
@@ -71,14 +59,17 @@ LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv -lvlsv
 INC_SILO = -I$(LIBRARY_PREFIX)/include
 LIB_SILO = -L$(LIBRARY_PREFIX)/lib -lsilo
 
-INC_PAPI = -I$(LIBRARY_PREFIX)/papi-5.4.3/src
-LIB_PAPI = -L$(LIBRARY_PREFIX)/papi-5.4.3/src -lpapi
+INC_DCCRG = -I./submodules/dccrg
+INC_FSGRID = -I./submodules/fsgrid
 
-INC_JEMALLOC = -I$(LIBRARY_PREFIX)/libraries/jemalloc
-LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/libraries/jemalloc/lib -ljemalloc
+INC_PAPI = -I$(LIBRARY_PREFIX)/include
+LIB_PAPI = -L$(LIBRARY_PREFIX)/lib/ -lpapi
 
-LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/lib -lphiprof
-INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/include
+INC_JEMALLOC = -I$(LIBRARY_PREFIX)/jemalloc/include
+LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/jemalloc/lib -ljemalloc
+
+LIB_PROFILE = -L$(LIBRARY_PREFIX)/lib -lphiprof
+INC_PROFILE = -I$(LIBRARY_PREFIX)/include
 
 INC_VECTORCLASS = -isystem ./submodules/vectorclass/ -isystem ./submodules/vectorclass-addon/vector3d/
 INC_EIGEN = -isystem ./submodules/eigen/
