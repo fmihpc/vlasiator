@@ -6,10 +6,12 @@ WORKSPACE=`pwd`
 
 if [[ z$VLASIATOR_ARCH != "z" ]]; then
    PLATFORM=-$VLASIATOR_ARCH
-else if [[ z$1 != "z" ]]; then
-   PLATFORM=-$1
 else
-   PLATFORM=""
+   if [[ z$1 != "z" ]]; then
+      PLATFORM=-$1
+   else
+      PLATFORM=""
+   fi
 fi
 echo "Using platform $PLATFORM"
 
