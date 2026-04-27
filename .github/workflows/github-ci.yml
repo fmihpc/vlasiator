@@ -324,7 +324,7 @@ jobs:
     - name: Compile vlasiator (Testpackage build)
       run: |
         export VLASIATOR_ARCH=carrington_gcc_openmpi
-        srun --constraint "carrington|ukko" --job-name CI_tp_compile --interactive --nodes=1 -n 1 -c 16 --mem=40G -p short -t 0:10:0 bash -c 'export VLASIATOR_ARCH=carrington_gcc_openmpi; source modules/${VLASIATOR_ARCH}.sh ; make -j 16 testpackage; sleep 10s'
+        srun --constraint "carrington|ukko" --job-name CI_tp_compile --interactive --nodes=1 -n 1 -c 16 --mem=40G -p short -t 0:10:0 bash -c 'export VLASIATOR_ARCH=carrington_gcc_openmpi; bash modules/${VLASIATOR_ARCH}.sh ; make -j 16 testpackage; sleep 10s'
     - name: Make sure the output binary is visible in lustre
       uses: nick-fields/retry@v3
       with:

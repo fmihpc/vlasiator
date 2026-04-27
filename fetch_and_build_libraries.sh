@@ -32,7 +32,7 @@ fi
 bash ./fetch_libraries.sh ${PLATFORM:1}
 if [[ -f ./modules/${PLATFORM:1}.sh ]]
 then
-   bash ./modules/${PLATFORM:1}.sh
+   . ./modules/${PLATFORM:1}.sh
 fi
 bash ./build_fetched_libraries.sh ${PLATFORM:1}
 
