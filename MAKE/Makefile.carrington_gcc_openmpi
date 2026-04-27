@@ -90,7 +90,7 @@ testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 MPT_BRAND = OpenMPI
 MPT_VERSION = 4.1.6
 
-LIBRARY_PREFIX = $(CURDIR)/libraries-carrington
+LIBRARY_PREFIX = $(CURDIR)/libraries-carrington_gcc_openmpi
 
 #compiled libraries mostly in modules
 LIB_PROFILE = -L$(LIBRARY_PREFIX)/lib -lphiprof -lgfortran -Wl,-rpath=$(LIBRARY_PREFIX)/lib
