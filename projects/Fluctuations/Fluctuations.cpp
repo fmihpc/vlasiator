@@ -36,7 +36,7 @@
 
 using namespace spatial_cell;
 
-Real projects::Fluctuations::rndRho, projects::Fluctuations::rndVel[3], projects::Fluctuations::rndB[3];
+Real projects::Fluctuations::rndRho, projects::Fluctuations::rndVel[3];
 
 
 namespace projects {
@@ -188,10 +188,6 @@ namespace projects {
       this->rndVel[0]=getRandomNumber(rndState);
       this->rndVel[1]=getRandomNumber(rndState);
       this->rndVel[2]=getRandomNumber(rndState);
-
-      this->rndB[0]=getRandomNumber(rndState);
-      this->rndB[1]=getRandomNumber(rndState);
-      this->rndB[2]=getRandomNumber(rndState);
    }
 
    void Fluctuations::setProjectBField(
@@ -208,17 +204,27 @@ namespace projects {
 
       if(!P::isRestart) {
          // local copies for lambda capture
-         const auto rndBx = this->magXPertAbsAmp * (0.5-this->rndB[0]);
-         const auto rndBy = this->magXPertAbsAmp * (0.5-this->rndB[1]);
-         const auto rndBz = this->magXPertAbsAmp * (0.5-this->rndB[2]);
+         const auto magXPertAbsAmp_l = this->magXPertAbsAmp;
+         const auto magYPertAbsAmp_l = this->magYPertAbsAmp;
+         const auto magZPertAbsAmp_l = this->magZPertAbsAmp;
+         const auto seed = this->seed;
 
          fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
                              phiprof::initializeTimer("setProjectBField"), technical,
                              [=](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
             auto& cell = perb[stencil.ooo()];
-            cell[fsgrids::bfield::PERBX] = rndBx;
-            cell[fsgrids::bfield::PERBY] = rndBy;
-            cell[fsgrids::bfield::PERBZ] = rndBz;
+
+            const auto seedmodifier = coordinates.globalIDFromLocalCoordinates(stencil.i, stencil.j, stencil.k);
+            std::default_random_engine rndState_l;
+            rndState_l.seed(seed+seedmodifier);
+            Real rndBuffer[3];
+            rndBuffer[0] = std::uniform_real_distribution<>(-0.5,0.5)(rndState_l);
+            rndBuffer[1] = std::uniform_real_distribution<>(-0.5,0.5)(rndState_l);
+            rndBuffer[2] = std::uniform_real_distribution<>(-0.5,0.5)(rndState_l);
+
+            cell[fsgrids::bfield::PERBX] = magXPertAbsAmp_l * rndBuffer[0];
+            cell[fsgrids::bfield::PERBY] = magYPertAbsAmp_l * rndBuffer[1];
+            cell[fsgrids::bfield::PERBZ] = magZPertAbsAmp_l * rndBuffer[2];
          });
       }
    }

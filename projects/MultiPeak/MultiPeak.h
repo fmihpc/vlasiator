@@ -79,8 +79,11 @@ namespace projects {
 
       virtual void calcCellParameters(spatial_cell::SpatialCell* cell, creal& t) override;
       virtual std::vector<std::array<Real, 3>> getV0(creal x, creal y, creal z, const uint popID) const override;
-      static Real rhoRnd, rndB[3]; //static as it has to be threadprivate
-      #pragma omp threadprivate(rhoRnd, rndB)
+
+      uint seed;
+
+      static Real rhoRnd; //static as it has to be threadprivate
+      #pragma omp threadprivate(rhoRnd)
       Real Bx;
       Real By;
       Real Bz;

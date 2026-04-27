@@ -74,8 +74,8 @@ namespace projects {
       std::vector<DispersionSpeciesParameters> speciesParams;
       uint seed;
 
-      static Real rndRho, rndVel[3], rndB[3];
-      #pragma omp threadprivate(rndRho,rndVel,rndB)
+      static Real rndRho, rndVel[3];
+      #pragma omp threadprivate(rndRho,rndVel)
    } ; // class Dispersion
 } // namespace projects
 

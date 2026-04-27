@@ -78,8 +78,8 @@ namespace projects {
       uint seed;
       std::vector<FluctuationsSpeciesParameters> speciesParams;
 
-      static Real rndRho, rndVel[3], rndB[3];
-      #pragma omp threadprivate(rndRho,rndVel,rndB)
+      static Real rndRho, rndVel[3];
+      #pragma omp threadprivate(rndRho,rndVel)
    } ; // class Fluctuations
 } // namespace projects
 #endif

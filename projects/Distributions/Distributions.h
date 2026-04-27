@@ -56,9 +56,9 @@ namespace projects {
                                                       const uint popID
                                                      ) const override;
 
+      uint seed;
       Real rho[2];
       Real rhoRnd[2];
-      Real rndB[3];
       Real Tx[2];
       Real Ty[2];
       Real Tz[2];
