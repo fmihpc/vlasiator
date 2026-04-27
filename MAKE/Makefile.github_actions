@@ -71,8 +71,8 @@ LIB_SILO = -lsiloh5
 INC_PAPI =
 LIB_PAPI = -lpapi
 
-LIB_PROFILE = -I $(LIBRARY_PREFIX)/include ${GITHUB_WORKSPACE}/libraries/lib/libphiprof.a
-INC_PROFILE =
+LIB_PROFILE = -L$(LIBRARY_PREFIX)/lib
+INC_PROFILE = -I$(LIBRARY_PREFIX)/include
 
 INC_VLSV = -I$(LIBRARY_PREFIX)/include
 LIB_VLSV = -L$(LIBRARY_PREFIX)/lib -lvlsv -Wl,-rpath=$(LIBRARY_PREFIX)/lib
