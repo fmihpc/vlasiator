@@ -71,6 +71,9 @@ LIB_SILO = -lsiloh5
 INC_PAPI =
 LIB_PAPI = -lpapi
 
+LIB_PROFILE = -L$(CURDIR)/submodules/phiprof/lib -lphiprof  -Wl,-rpath=$(CURDIR)/vlasiator/submodules/phiprof/lib
+LIB_VLSV = -L$(CURDIR)/submodules/vlsv/ -lvlsv -Wl,-rpath=$(CURDIR)/vlasiator/submodules/vlsv
+
 
 # Works without but as an example: arch-specific INCLUDE paths be like this:
 INC_DCCRG = -I${GITHUB_WORKSPACE}/submodules/dccrg

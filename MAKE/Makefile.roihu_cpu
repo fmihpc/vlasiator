@@ -70,6 +70,10 @@ LIB_BOOST = -lboost_program_options
 
 # compiled libraries
 
+LIB_PROFILE = -L./submodules/phiprof/lib/ -lphiprof -Wl,-rpath=$(CURDIR)/submodules/phiprof/lib
+LIB_VLSV = -L./submodules/vlsv/ -lvlsv -Wl,-rpath=$(CURDIR)/vlasiator/submodules/vlsv
+
+
 INC_ZOLTAN = -I$(LIBRARY_PREFIX)/include
 LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/lib -lzoltan -Wl,-rpath=$(LIBRARY_PREFIX)/lib
 
