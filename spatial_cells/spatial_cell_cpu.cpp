@@ -326,7 +326,7 @@ namespace spatial_cell {
    bool SpatialCell::compute_block_has_content(const vmesh::GlobalID& blockLID,const uint popID, const int timeclass) const {
       debug_population_check(popID);
       #ifdef DEBUG_SPATIAL_CELL
-      const vmesh::GlobalID blockGID = get_population(popId, timeclass).vmesh->getGlobalID(blockLID);
+      const vmesh::GlobalID blockGID = get_population(popID, timeclass).vmesh->getGlobalID(blockLID);
       if (blockGID == invalid_global_id()) {
          std::cerr << "ERROR, popID " << popID << " found invalid GID " << blockGID << " for LID  "<< blockLID;
          std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
