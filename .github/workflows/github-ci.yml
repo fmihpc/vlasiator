@@ -66,6 +66,7 @@ jobs:
           path: libraries-docker.tar.zstd
           retention-days: 5
           if-no-files-found: error
+
   build_libraries_hile-g:
     # Build libraries for hile-g
     # (to be used in any subsequent compilation and run jobs on hile-g)
@@ -76,7 +77,7 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v4
       - name: Run library build script
-        run: srun --interactive -C g -J build_libs_hile-g -n 1 -c 16 bash -c "export MPICH_GPU_SUPPORT_ENABLED=1;module load papi; module load rocm/6.3.4; module load cray-pmi;module load craype-accel-amd-gfx90a;module load libfabric/1.22.0; ./fetch_and_build_libraries.sh hile_gpu"
+        run: srun --interactive -C g -J build_libs_hile-g -n 1 -c 16 bash -c "source modules/hile_gpu.sh ; ./fetch_and_build_libraries.sh hile_gpu"
       - name: Build libraries tar
         run: tar -zcf libraries-hile_gpu.tar.gz libraries-hile_gpu/
       - name: Upload libraries as artifact
@@ -422,7 +423,7 @@ jobs:
       - uses: ursg/gcc-problem-matcher@master
       - name: Compile vlasiator (Testpackage build w/ HIP)
         run: |
-          srun -C g --job-name CI_tp_G_compile --interactive --nodes=1 -n 1 -c 16 --mem-per-cpu=2G -t 0:20:0 bash -c 'module load papi; module load rocm/6.3.4; module load cray-pmi; module load craype-accel-amd-gfx90a; module load libfabric/1.22.0; export MPICH_GPU_SUPPORT_ENABLED=1; export VLASIATOR_ARCH=hile_gpu; make -j 16 testpackage; sleep 10s'
+          srun -C g --job-name CI_tp_G_compile --interactive --nodes=1 -n 1 -c 16 --mem-per-cpu=2G -t 0:20:0 bash -c 'export VLASIATOR_ARCH=hile_gpu ; source modules/${VLASIATOR_ARCH}.sh ; make -j 16 testpackage; sleep 10s'
       - name: Make sure the output binary is visible in lustre
         uses: nick-fields/retry@v3
         with:
@@ -471,7 +472,7 @@ jobs:
       - name: Compile vlasiator (Release, debug build w/ HIP)
         run: |
           # srun -C g --job-name CI_debug_G_compile --interactive --nodes=1 -n 1 -c 16 --mem-per-cpu=2G -t 0:20:0 bash -c 'module load papi; module load rocm/6.2.0; module load cray-pmi; module load craype-accel-amd-gfx90a; module load libfabric/1.22.0; export MPICH_GPU_SUPPORT_ENABLED=1; export VLASIATOR_ARCH=hile_gpu; make COMPFLAGS="-DDEBUG_VLASIATOR -DDEBUG_SOLVERS -DDEBUG_IONOSPHERE -DDEBUG_SPATIAL_CELL -DDEBUG_VMESH -DDEBUG_VBC -DDEBUG_ACC " -j 16; sleep 10s'
-          srun -C g --job-name CI_debug_G_compile --interactive --nodes=1 -n 1 -c 16 --mem-per-cpu=2G -t 0:20:0 bash -c 'module load papi; module load rocm/6.3.4; module load cray-pmi; module load craype-accel-amd-gfx90a; module load libfabric/1.22.0; export MPICH_GPU_SUPPORT_ENABLED=1; export VLASIATOR_ARCH=hile_gpu; make -j 16; sleep 10s'
+          srun -C g --job-name CI_debug_G_compile --interactive --nodes=1 -n 1 -c 16 --mem-per-cpu=2G -t 0:20:0 bash -c 'export VLASIATOR_ARCH=hile_gpu ; source modules/${VLASIATOR_ARCH}.sh ; make -j 16; sleep 10s'
       - name: Make sure the output binary is visible in lustre
         uses: nick-fields/retry@v3
         with:
@@ -512,7 +513,7 @@ jobs:
       - uses: ursg/gcc-problem-matcher@master
       - name: Compile vlasiator (Testpackage build w/ HIP)
         run: |
-          srun -C c --job-name CI_tp_C_compile --interactive --nodes=1 -n 1 -c 16 --mem-per-cpu=2G -t 0:20:0 bash -c 'module load papi; module load cray-pmi; module load libfabric/1.22.0; export VLASIATOR_ARCH=hile_cpu; make -j 16 testpackage; sleep 10s'
+          srun -C c --job-name CI_tp_C_compile --interactive --nodes=1 -n 1 -c 16 --mem-per-cpu=2G -t 0:20:0 bash -c 'export VLASIATOR_ARCH=hile_cpu ; source modules/${VLASIATOR_ARCH}.sh ; make -j 16 testpackage; sleep 10s'
       - name: Make sure the output binary is visible in lustre
         uses: nick-fields/retry@v3
         with:
@@ -555,7 +556,7 @@ jobs:
       - name: Compile vlasiator (Release, debug build w/ HIP)
         run: |
           # srun -C c --job-name CI_debug_C_compile --interactive --nodes=1 -n 1 -c 16 --mem-per-cpu=2G -t 0:20:0 bash -c 'module load papi; module load cray-pmi; module load libfabric/1.22.0; export VLASIATOR_ARCH=hile_cpu; make COMPFLAGS="-DDEBUG_VLASIATOR -DDEBUG_SOLVERS -DDEBUG_IONOSPHERE -DDEBUG_SPATIAL_CELL -DDEBUG_VMESH -DDEBUG_VBC -DDEBUG_ACC " -j 16; sleep 10s'
-          srun -C c --job-name CI_debug_C_compile --interactive --nodes=1 -n 1 -c 16 --mem-per-cpu=2G -t 0:20:0 bash -c 'module load papi; module load cray-pmi; module load libfabric/1.22.0; export VLASIATOR_ARCH=hile_cpu; make -j 16; sleep 10s'
+          srun -C c --job-name CI_debug_C_compile --interactive --nodes=1 -n 1 -c 16 --mem-per-cpu=2G -t 0:20:0 bash -c 'export VLASIATOR_ARCH=hile_cpu ; source modules/${VLASIATOR_ARCH}.sh ; make -j 16; sleep 10s'
       - name: Make sure the output binary is visible in lustre
         uses: nick-fields/retry@v3
         with:
@@ -864,9 +865,9 @@ jobs:
     - name: Fetch libraries
       uses: actions/download-artifact@v5
       with:
-        name: libraries-carrington
+        name: libraries-carrington_gcc_openmpi
     - name: Unpack libraries
-      run: tar -zxf libraries-carrington.tar.gz
+      run: tar -zxf libraries-carrington_gcc_openmpi.tar.gz
     - name: Run testpackage
       id: run
       run: |

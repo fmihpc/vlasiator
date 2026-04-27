@@ -12,7 +12,6 @@ FLAGS += -Wno-cast-function-type
 INC_FSGRID=-I../../submodules/fsgrid/
 INC_DCCRG=-I../../submodules/dccrg/
 INC_EIGEN = -isystem ../../submodules/eigen/
-
 # Default makefile target: only build the test binaries, don't run anything
 # (in particular, nothing that would require python)
 default: main differentialFlux sigmaProfiles
