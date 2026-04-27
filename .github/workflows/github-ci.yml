@@ -58,17 +58,17 @@ jobs:
       - name: Run library build script
         run: ./fetch_and_build_libraries.sh
       - name: Build libraries tar
-        run: tar --zstd -cf libraries.tar.zstd libraries/
+        run: tar --zstd -cf libraries-docker.tar.zstd libraries-docker/
       - name: Upload libraries as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: libraries
-          path: libraries.tar.zstd
+          name: libraries-docker
+          path: libraries-docker.tar.zstd
           retention-days: 5
           if-no-files-found: error
   build_libraries_hile-g:
-    # Build libraries for the current version of the docker image
-    # (to be used in any subsequent compilation and run jobs on said image)
+    # Build libraries for hile-g
+    # (to be used in any subsequent compilation and run jobs on hile-g)
     runs-on: hile
    #  if: false
 
@@ -192,7 +192,7 @@ jobs:
       with:
         name: libraries
     - name: Unpack libraries
-      run: tar --zstd -xf libraries.tar.zstd
+      run: tar --zstd -xf libraries-docker.tar.zstd
     - uses: ursg/gcc-problem-matcher@master
     - name: Compile vlasiator (Release build)
       run: |
@@ -221,7 +221,7 @@ jobs:
       with:
         name: libraries
     - name: Unpack libraries
-      run: tar --zstd -xf libraries.tar.zstd
+      run: tar --zstd -xf libraries-docker.tar.zstd
     - uses: ursg/gcc-problem-matcher@master
     - name: Compile vlasiator (Release build)
       run: |
@@ -250,7 +250,7 @@ jobs:
       with:
         name: libraries
     - name: Unpack libraries
-      run: tar --zstd -xf libraries.tar.zstd
+      run: tar --zstd -xf libraries-docker.tar.zstd
     - uses: ursg/gcc-problem-matcher@master
     - name: Compile vlasiator (Release build)
       run: |
@@ -279,7 +279,7 @@ jobs:
       with:
         name: libraries
     - name: Unpack libraries
-      run: tar --zstd -xf libraries.tar.zstd
+      run: tar --zstd -xf libraries-docker.tar.zstd
     - uses: ursg/gcc-problem-matcher@master
     - name: Compile vlasiator (Release, debug build)
       run: |
@@ -303,7 +303,7 @@ jobs:
       run: |
         RUN_STRING=$( cat << MORO
         rm -rf libraries library-build testpackage
-        rm -f libraries.tar.zst testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
+        rm -f libraries-carrington.tar.gz testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
         rm -f *.xml
         MORO
         )
@@ -355,7 +355,7 @@ jobs:
         run: |
           RUN_STRING=$( cat << MORO
           rm -rf libraries library-build testpackage
-          rm -f libraries.tar.zst testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
+          rm -f libraries-ukkogpu.tar.gz testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
           rm -f *.xml
           MORO
           )
@@ -402,7 +402,7 @@ jobs:
         run: |
           RUN_STRING=$( cat << MORO
           rm -rf libraries library-build testpackage
-          rm -f libraries.tar.zst testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
+          rm -f libraries-hile_gpu.tar.gz testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
           rm -f *.xml
           MORO
           )
@@ -449,7 +449,7 @@ jobs:
         run: |
           RUN_STRING=$( cat << MORO
           rm -rf libraries library-build testpackage
-          rm -f libraries.tar.zst testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
+          rm -f libraries-hile_gpu.tar.gz testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
           rm -f *.xml
           MORO
           )
@@ -489,6 +489,7 @@ jobs:
   build_TP_HILE-C:
     # Build Vlasiator with testpackage flags, on the HILE cluster using
     # its CPUs
+    # NOTE doesn't fetch and unpack libraries at the moment
     runs-on: hile
    #  if: false
 
@@ -497,7 +498,7 @@ jobs:
         run: |
           RUN_STRING=$( cat << MORO
           rm -rf libraries library-build testpackage
-          rm -f libraries.tar.zst testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
+          rm -f libraries-hile_cpu.tar.gz testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
           rm -f *.xml
           MORO
           )
@@ -530,6 +531,7 @@ jobs:
   build_prod_HILE-C:
     # Build Vlasiator with production flags and all the debug flags enabled, on the HILE cluster using
     # its CPUs
+    # NOTE doesn't fetch and unpack libraries at the moment
     runs-on: hile
    #  if: false
 
@@ -538,7 +540,7 @@ jobs:
         run: |
           RUN_STRING=$( cat << MORO
           rm -rf libraries library-build testpackage
-          rm -f libraries.tar.zst testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
+          rm -f libraries-hile_cpu.tar.gz testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
           rm -f *.xml
           MORO
           )
@@ -579,7 +581,7 @@ jobs:
         run: |
           RUN_STRING=$( cat << MORO
           rm -rf libraries library-build testpackage
-          rm -f libraries.tar.zst testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
+          rm -f libraries-ukkogpu.tar.gz testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
           rm -f *.xml
           MORO
           )
@@ -626,7 +628,7 @@ jobs:
         run: |
           RUN_STRING=$( cat << MORO
           rm -rf libraries library-build testpackage
-          rm -f libraries.tar.zst testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
+          rm -f libraries-ukkogpu.tar.gz testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
           rm -f *.xml
           MORO
           )
@@ -730,7 +732,7 @@ jobs:
       run: |
         RUN_STRING=$( cat << MORO
         rm -rf libraries library-build testpackage
-        rm -f libraries.tar.zstd testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
+        rm -f libraries-carrington.tar.gz testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
         rm -f *.xml
         MORO
         )
@@ -772,7 +774,7 @@ jobs:
       run: |
         RUN_STRING=$( cat << MORO
         rm -rf libraries library-build testpackage
-        rm -f libraries.tar.zstd testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
+        rm -f libraries-ukkogpu.tar.gz testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
         rm -f *.xml
         MORO
         )
@@ -805,6 +807,7 @@ jobs:
 
   build_tools_HILE-C:
     # Build vlsvdiff and vlsvextract for testpackage use
+    # NOTE is lacking libraries at the moment
     runs-on: hile
    #  if: false
 
@@ -813,7 +816,7 @@ jobs:
         run: |
           RUN_STRING=$( cat << MORO
           rm -rf libraries library-build testpackage
-          rm -f libraries.tar.zst testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
+          rm -f libraries-hile_cpu.tar.gz testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
           rm -f *.xml
           MORO
           )
