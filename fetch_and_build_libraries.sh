@@ -4,8 +4,8 @@ set -e   # Abort on error
 
 WORKSPACE=`pwd`
 
-if [[ z$1 != "z" ]]; then
-   PLATFORM=-$1
+if [[ z$VLASIATOR_ARCH != "z" ]]; then
+   PLATFORM=-$VLASIATOR_ARCH
 else
    PLATFORM=""
 fi
@@ -17,12 +17,17 @@ if [[ $PLATFORM == "-hile_cpu" || $PLATFORM=="-hile_cpu" ]]; then
    mkdir -p library-build
    BUILDDIR=library-build
 else
-   BUILDDIR=`mktemp -d "${TMPDIR:-/tmp}/vlasiator-library-build-XXXXX"`
+   if [[ $PLATFORM == "-roihu_cpu" ]]; then
+      BUILDDIR=`mktemp -d "/scratch/project_2001659/pfaukemp/vlasiator-library-build-XXXXX"`
+   else
+      BUILDDIR=`mktemp -d "${TMPDIR:-/tmp}/vlasiator-library-build-XXXXX"`
+   fi
    ln -s $BUILDDIR library-build
 fi
 
-bash ./fetch_libraries.sh $1
-bash ./build_fetched_libraries.sh $1
+bash ./fetch_libraries.sh ${PLATFORM:1}
+bash ./modules/${PLATFORM:1}.sh
+bash ./build_fetched_libraries.sh ${PLATFORM:1}
 
 # Clean up build directory
 rm -rf $BUILDDIR
