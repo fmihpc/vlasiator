@@ -114,14 +114,14 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v4
       - name: Run library build script
-        run: srun --interactive --constraint "carrington|ukko" -J build_libs -n 1 -c 64 bash -c "module purge; module load GCC/13.2.0; module load OpenMPI/4.1.6-GCC-13.2.0 ; module load PMIx/4.2.6-GCCcore-13.2.0; module load PAPI/7.1.0-GCCcore-13.2.0; module load Boost/1.83.0-GCC-13.2.0; ./fetch_and_build_libraries.sh carrington"
+        run: srun --interactive --constraint "carrington|ukko" -J build_libs -n 1 -c 64 bash -c "./fetch_and_build_libraries.sh"
       - name: Build libraries tar
-        run: tar -zcf libraries-carrington.tar.gz libraries-carrington/
+        run: tar -zcf libraries-carrington_gcc_openmpi.tar.gz libraries-carrington_gcc_openmpi/
       - name: Upload libraries as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: libraries-carrington
-          path: libraries-carrington.tar.gz
+          name: libraries-carrington_gcc_openmpi
+          path: libraries-carrington_gcc_openmpi.tar.gz
           retention-days: 5
           if-no-files-found: error
 
@@ -190,7 +190,7 @@ jobs:
     - name: Download libraries
       uses: actions/download-artifact@v5
       with:
-        name: libraries
+        name: libraries-docker
     - name: Unpack libraries
       run: tar --zstd -xf libraries-docker.tar.zstd
     - uses: ursg/gcc-problem-matcher@master
@@ -219,7 +219,7 @@ jobs:
     - name: Download libraries
       uses: actions/download-artifact@v5
       with:
-        name: libraries
+        name: libraries-docker
     - name: Unpack libraries
       run: tar --zstd -xf libraries-docker.tar.zstd
     - uses: ursg/gcc-problem-matcher@master
@@ -248,7 +248,7 @@ jobs:
     - name: Download libraries
       uses: actions/download-artifact@v5
       with:
-        name: libraries
+        name: libraries-docker
     - name: Unpack libraries
       run: tar --zstd -xf libraries-docker.tar.zstd
     - uses: ursg/gcc-problem-matcher@master
@@ -277,7 +277,7 @@ jobs:
     - name: Download libraries
       uses: actions/download-artifact@v5
       with:
-        name: libraries
+        name: libraries-docker
     - name: Unpack libraries
       run: tar --zstd -xf libraries-docker.tar.zstd
     - uses: ursg/gcc-problem-matcher@master
@@ -303,7 +303,7 @@ jobs:
       run: |
         RUN_STRING=$( cat << MORO
         rm -rf libraries library-build testpackage
-        rm -f libraries-carrington.tar.gz testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
+        rm -f libraries-carrington_gcc_openmpi.tar.gz testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
         rm -f *.xml
         MORO
         )
@@ -317,14 +317,14 @@ jobs:
     - name: Fetch libraries
       uses: actions/download-artifact@v5
       with:
-        name: libraries-carrington
+        name: libraries-carrington_gcc_openmpi
     - name: Unpack libraries
-      run: tar -zxf libraries-carrington.tar.gz
+      run: tar -zxf libraries-carrington_gcc_openmpi.tar.gz
     - uses: ursg/gcc-problem-matcher@master
     - name: Compile vlasiator (Testpackage build)
       run: |
         export VLASIATOR_ARCH=carrington_gcc_openmpi
-        srun --constraint "carrington|ukko" --job-name CI_tp_compile --interactive --nodes=1 -n 1 -c 16 --mem=40G -p short -t 0:10:0 bash -c 'module purge; module load GCC/13.2.0; module load OpenMPI/4.1.6-GCC-13.2.0 ; module load PMIx/4.2.6-GCCcore-13.2.0; module load PAPI/7.1.0-GCCcore-13.2.0; module load Boost/1.83.0-GCC-13.2.0; export VLASIATOR_ARCH=carrington_gcc_openmpi; make -j 16 testpackage; sleep 10s'
+        srun --constraint "carrington|ukko" --job-name CI_tp_compile --interactive --nodes=1 -n 1 -c 16 --mem=40G -p short -t 0:10:0 bash -c 'export VLASIATOR_ARCH=carrington_gcc_openmpi; source modules/${VLASIATOR_ARCH}.sh ; make -j 16 testpackage; sleep 10s'
     - name: Make sure the output binary is visible in lustre
       uses: nick-fields/retry@v3
       with:
