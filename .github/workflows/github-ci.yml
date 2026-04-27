@@ -1164,8 +1164,8 @@ jobs:
     - name: Download libraries
       uses: actions/download-artifact@v5
       with:
-        name: libraries
-    - name: Unpack libraries-docker
+        name: libraries-docker
+    - name: Unpack libraries
       run: tar --zstd -xf libraries-docker.tar.zstd
     - name: Download release binary
       uses: actions/download-artifact@v5
