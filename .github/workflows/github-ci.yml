@@ -1078,9 +1078,9 @@ jobs:
     - name: Download libraries
       uses: actions/download-artifact@v5
       with:
-        name: libraries
+        name: libraries-docker
     - name: Unpack libraries
-      run: tar --zstd -xf libraries.tar.zstd
+      run: tar --zstd -xf libraries-docker.tar.zstd
     - name: Compile ionosphereSolverTests
       run: |
         cd mini-apps/ionosphereSolverTests/
