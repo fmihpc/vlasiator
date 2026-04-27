@@ -367,7 +367,7 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
 extern std::array<setOfPencils,3> DimensionPencils;
 
 // Ghost translation cell lists (no interim comms)
-void prepareGhostTranslationCellLists(const const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+void prepareGhostTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                       const std::vector<CellID>& localPropagatedCells, 
                                        std::map<uint,std::unordered_set<CellID>>& ghostTranslate_source,
                                       std::map<uint,std::unordered_set<CellID>>& ghostTranslate_active,
