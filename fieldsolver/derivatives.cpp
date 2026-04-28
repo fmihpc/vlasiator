@@ -27,6 +27,321 @@
 #include "fs_limiters.h"
 #include <Eigen/Geometry>
 
+void computeMomentsDerivatives(
+   cint i,
+   cint j,
+   cint k,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+   const bool atSysBoundary
+) {
+   std::array<Real, fsgrids::dmoments::N_DMOMENTS> * dMoments = dMomentsGrid.get(i,j,k);
+
+   // Get boundary flag for the cell:
+   cuint sysBoundaryFlag  = technicalGrid.get(i,j,k)->sysBoundaryFlag;
+   cuint sysBoundaryLayer = technicalGrid.get(i,j,k)->sysBoundaryLayer;
+
+   // Constants for electron pressure derivatives, see also ldz_gradpe.cpp
+   // Calculate anchor point constants: First the pressure, then a derived constant.
+   Real Pe_anchor = Parameters::electronTemperature * Parameters::electronDensity * physicalconstants::K_B;
+   Real Pe_const = Pe_anchor * pow(Parameters::electronDensity, -Parameters::electronPTindex);
+
+   std::array<Real, fsgrids::moments::N_MOMENTS> * leftMoments = NULL;
+   std::array<Real, fsgrids::bfield::N_BFIELD> * leftPerB = NULL;
+   std::array<Real, fsgrids::moments::N_MOMENTS> * centMoments = momentsGrid.get(i,j,k);
+   #ifdef DEBUG_SOLVERS
+   if (centMoments->at(fsgrids::moments::RHOM) <= 0) {
+      std::cerr << __FILE__ << ":" << __LINE__
+         << (centMoments->at(fsgrids::moments::RHOM) < 0 ? " Negative" : " Zero") << " density in spatial cell at (" << i << " " << j << " " << k << ")"
+         << std::endl;
+      abort();
+   }
+   #endif
+   std::array<Real, fsgrids::moments::N_MOMENTS> * rghtMoments = NULL;
+   std::array<Real, fsgrids::bfield::N_BFIELD>  * rghtPerB = NULL;
+   std::array<Real, fsgrids::bfield::N_BFIELD>  * botLeft = NULL;
+   std::array<Real, fsgrids::bfield::N_BFIELD>  * botRght = NULL;
+   std::array<Real, fsgrids::bfield::N_BFIELD>  * topLeft = NULL;
+   std::array<Real, fsgrids::bfield::N_BFIELD>  * topRght = NULL;
+
+   // Calculate x-derivatives (is not TVD for AMR mesh):
+   leftMoments = momentsGrid.get(i-1,j,k);
+   rghtMoments = momentsGrid.get(i+1,j,k);
+   if(leftMoments == NULL) {
+      leftMoments = centMoments;
+   }
+   if(rghtMoments == NULL) {
+      rghtMoments = centMoments;
+   }
+   #ifdef DEBUG_SOLVERS
+   if (leftMoments->at(fsgrids::moments::RHOM) <= 0) {
+      std::cerr << __FILE__ << ":" << __LINE__
+         << (leftMoments->at(fsgrids::moments::RHOM) < 0 ? " Negative" : " Zero") << " density in spatial cell " //<< leftNbrID
+         << std::endl;
+      abort();
+   }
+   if (rghtMoments->at(fsgrids::moments::RHOM) <= 0) {
+      std::cerr << __FILE__ << ":" << __LINE__
+         << (rghtMoments->at(fsgrids::moments::RHOM) < 0 ? " Negative" : " Zero") << " density in spatial cell " //<< rightNbrID
+         << std::endl;
+      abort();
+   }
+   #endif
+
+   if(P::fieldSolverFiniteDifferencingAtBoundaries && (atSysBoundary)) {
+      dMoments->at(fsgrids::dmoments::drhomdx) = (rghtMoments->at(fsgrids::moments::RHOM)-leftMoments->at(fsgrids::moments::RHOM))/2;
+      dMoments->at(fsgrids::dmoments::drhoqdx) = (rghtMoments->at(fsgrids::moments::RHOQ)-leftMoments->at(fsgrids::moments::RHOQ))/2;
+      dMoments->at(fsgrids::dmoments::dp11dx) = (rghtMoments->at(fsgrids::moments::P_11)-leftMoments->at(fsgrids::moments::P_11))/2;
+      dMoments->at(fsgrids::dmoments::dp22dx) = (rghtMoments->at(fsgrids::moments::P_22)-leftMoments->at(fsgrids::moments::P_22))/2;
+      dMoments->at(fsgrids::dmoments::dp33dx) = (rghtMoments->at(fsgrids::moments::P_33)-leftMoments->at(fsgrids::moments::P_33))/2;
+      dMoments->at(fsgrids::dmoments::dVxdx)  = (rghtMoments->at(fsgrids::moments::VX)-leftMoments->at(fsgrids::moments::VX))/2;
+      dMoments->at(fsgrids::dmoments::dVydx)  = (rghtMoments->at(fsgrids::moments::VY)-leftMoments->at(fsgrids::moments::VY))/2;
+      dMoments->at(fsgrids::dmoments::dVzdx)  = (rghtMoments->at(fsgrids::moments::VZ)-leftMoments->at(fsgrids::moments::VZ))/2;
+   } else {
+      dMoments->at(fsgrids::dmoments::drhomdx) = limiter(leftMoments->at(fsgrids::moments::RHOM),centMoments->at(fsgrids::moments::RHOM),rghtMoments->at(fsgrids::moments::RHOM));
+      dMoments->at(fsgrids::dmoments::drhoqdx) = limiter(leftMoments->at(fsgrids::moments::RHOQ),centMoments->at(fsgrids::moments::RHOQ),rghtMoments->at(fsgrids::moments::RHOQ));
+      dMoments->at(fsgrids::dmoments::dp11dx) = limiter(leftMoments->at(fsgrids::moments::P_11),centMoments->at(fsgrids::moments::P_11),rghtMoments->at(fsgrids::moments::P_11));
+      dMoments->at(fsgrids::dmoments::dp22dx) = limiter(leftMoments->at(fsgrids::moments::P_22),centMoments->at(fsgrids::moments::P_22),rghtMoments->at(fsgrids::moments::P_22));
+      dMoments->at(fsgrids::dmoments::dp33dx) = limiter(leftMoments->at(fsgrids::moments::P_33),centMoments->at(fsgrids::moments::P_33),rghtMoments->at(fsgrids::moments::P_33));
+      dMoments->at(fsgrids::dmoments::dVxdx)  = limiter(leftMoments->at(fsgrids::moments::VX), centMoments->at(fsgrids::moments::VX), rghtMoments->at(fsgrids::moments::VX));
+      dMoments->at(fsgrids::dmoments::dVydx)  = limiter(leftMoments->at(fsgrids::moments::VY), centMoments->at(fsgrids::moments::VY), rghtMoments->at(fsgrids::moments::VY));
+      dMoments->at(fsgrids::dmoments::dVzdx)  = limiter(leftMoments->at(fsgrids::moments::VZ), centMoments->at(fsgrids::moments::VZ), rghtMoments->at(fsgrids::moments::VZ));
+   }
+
+   // pres_e = const * np.power(rho_e, index)
+   dMoments->at(fsgrids::dmoments::dPedx) = Pe_const * limiter(pow(leftMoments->at(fsgrids::moments::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex),pow(centMoments->at(fsgrids::moments::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex),pow(rghtMoments->at(fsgrids::moments::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex));
+
+   // Calculate y-derivatives (is not TVD for AMR mesh):
+   leftMoments = momentsGrid.get(i,j-1,k);
+   rghtMoments = momentsGrid.get(i,j+1,k);
+   if(leftMoments == NULL) {
+      leftMoments = centMoments;
+   }
+   if(rghtMoments == NULL) {
+      rghtMoments = centMoments;
+   }
+
+   if(P::fieldSolverFiniteDifferencingAtBoundaries && (atSysBoundary)) {
+      dMoments->at(fsgrids::dmoments::drhomdy) = (rghtMoments->at(fsgrids::moments::RHOM)-leftMoments->at(fsgrids::moments::RHOM))/2;
+      dMoments->at(fsgrids::dmoments::drhoqdy) = (rghtMoments->at(fsgrids::moments::RHOQ)-leftMoments->at(fsgrids::moments::RHOQ))/2;
+      dMoments->at(fsgrids::dmoments::dp11dy) = (rghtMoments->at(fsgrids::moments::P_11)-leftMoments->at(fsgrids::moments::P_11))/2;
+      dMoments->at(fsgrids::dmoments::dp22dy) = (rghtMoments->at(fsgrids::moments::P_22)-leftMoments->at(fsgrids::moments::P_22))/2;
+      dMoments->at(fsgrids::dmoments::dp33dy) = (rghtMoments->at(fsgrids::moments::P_33)-leftMoments->at(fsgrids::moments::P_33))/2;
+      dMoments->at(fsgrids::dmoments::dVxdy)  = (rghtMoments->at(fsgrids::moments::VX)-leftMoments->at(fsgrids::moments::VX))/2;
+      dMoments->at(fsgrids::dmoments::dVydy)  = (rghtMoments->at(fsgrids::moments::VY)-leftMoments->at(fsgrids::moments::VY))/2;
+      dMoments->at(fsgrids::dmoments::dVzdy)  = (rghtMoments->at(fsgrids::moments::VZ)-leftMoments->at(fsgrids::moments::VZ))/2;
+   } else {
+      dMoments->at(fsgrids::dmoments::drhomdy) = limiter(leftMoments->at(fsgrids::moments::RHOM),centMoments->at(fsgrids::moments::RHOM),rghtMoments->at(fsgrids::moments::RHOM));
+      dMoments->at(fsgrids::dmoments::drhoqdy) = limiter(leftMoments->at(fsgrids::moments::RHOQ),centMoments->at(fsgrids::moments::RHOQ),rghtMoments->at(fsgrids::moments::RHOQ));
+      dMoments->at(fsgrids::dmoments::dp11dy) = limiter(leftMoments->at(fsgrids::moments::P_11),centMoments->at(fsgrids::moments::P_11),rghtMoments->at(fsgrids::moments::P_11));
+      dMoments->at(fsgrids::dmoments::dp22dy) = limiter(leftMoments->at(fsgrids::moments::P_22),centMoments->at(fsgrids::moments::P_22),rghtMoments->at(fsgrids::moments::P_22));
+      dMoments->at(fsgrids::dmoments::dp33dy) = limiter(leftMoments->at(fsgrids::moments::P_33),centMoments->at(fsgrids::moments::P_33),rghtMoments->at(fsgrids::moments::P_33));
+      dMoments->at(fsgrids::dmoments::dVxdy)  = limiter(leftMoments->at(fsgrids::moments::VX), centMoments->at(fsgrids::moments::VX), rghtMoments->at(fsgrids::moments::VX));
+      dMoments->at(fsgrids::dmoments::dVydy)  = limiter(leftMoments->at(fsgrids::moments::VY), centMoments->at(fsgrids::moments::VY), rghtMoments->at(fsgrids::moments::VY));
+      dMoments->at(fsgrids::dmoments::dVzdy)  = limiter(leftMoments->at(fsgrids::moments::VZ), centMoments->at(fsgrids::moments::VZ), rghtMoments->at(fsgrids::moments::VZ));
+   }
+
+   // pres_e = const * np.power(rho_e, index)
+   dMoments->at(fsgrids::dmoments::dPedy) = Pe_const * limiter(pow(leftMoments->at(fsgrids::moments::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex),pow(centMoments->at(fsgrids::moments::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex),pow(rghtMoments->at(fsgrids::moments::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex));
+
+   // Calculate z-derivatives (is not TVD for AMR mesh):
+   leftMoments = momentsGrid.get(i,j,k-1);
+   rghtMoments = momentsGrid.get(i,j,k+1);
+   if(leftMoments == NULL) {
+      leftMoments = centMoments;
+   }
+   if(rghtMoments == NULL) {
+      rghtMoments = centMoments;
+   }
+
+   if(P::fieldSolverFiniteDifferencingAtBoundaries && (atSysBoundary)) {
+      dMoments->at(fsgrids::dmoments::drhomdz) = (rghtMoments->at(fsgrids::moments::RHOM)-leftMoments->at(fsgrids::moments::RHOM))/2;
+      dMoments->at(fsgrids::dmoments::drhoqdz) = (rghtMoments->at(fsgrids::moments::RHOQ)-leftMoments->at(fsgrids::moments::RHOQ))/2;
+      dMoments->at(fsgrids::dmoments::dp11dz) = (rghtMoments->at(fsgrids::moments::P_11)-leftMoments->at(fsgrids::moments::P_11))/2;
+      dMoments->at(fsgrids::dmoments::dp22dz) = (rghtMoments->at(fsgrids::moments::P_22)-leftMoments->at(fsgrids::moments::P_22))/2;
+      dMoments->at(fsgrids::dmoments::dp33dz) = (rghtMoments->at(fsgrids::moments::P_33)-leftMoments->at(fsgrids::moments::P_33))/2;
+      dMoments->at(fsgrids::dmoments::dVxdz)  = (rghtMoments->at(fsgrids::moments::VX)-leftMoments->at(fsgrids::moments::VX))/2;
+      dMoments->at(fsgrids::dmoments::dVydz)  = (rghtMoments->at(fsgrids::moments::VY)-leftMoments->at(fsgrids::moments::VY))/2;
+      dMoments->at(fsgrids::dmoments::dVzdz)  = (rghtMoments->at(fsgrids::moments::VZ)-leftMoments->at(fsgrids::moments::VZ))/2;
+   } else {
+      dMoments->at(fsgrids::dmoments::drhomdz) = limiter(leftMoments->at(fsgrids::moments::RHOM),centMoments->at(fsgrids::moments::RHOM),rghtMoments->at(fsgrids::moments::RHOM));
+      dMoments->at(fsgrids::dmoments::drhoqdz) = limiter(leftMoments->at(fsgrids::moments::RHOQ),centMoments->at(fsgrids::moments::RHOQ),rghtMoments->at(fsgrids::moments::RHOQ));
+      dMoments->at(fsgrids::dmoments::dp11dz) = limiter(leftMoments->at(fsgrids::moments::P_11),centMoments->at(fsgrids::moments::P_11),rghtMoments->at(fsgrids::moments::P_11));
+      dMoments->at(fsgrids::dmoments::dp22dz) = limiter(leftMoments->at(fsgrids::moments::P_22),centMoments->at(fsgrids::moments::P_22),rghtMoments->at(fsgrids::moments::P_22));
+      dMoments->at(fsgrids::dmoments::dp33dz) = limiter(leftMoments->at(fsgrids::moments::P_33),centMoments->at(fsgrids::moments::P_33),rghtMoments->at(fsgrids::moments::P_33));
+      dMoments->at(fsgrids::dmoments::dVxdz)  = limiter(leftMoments->at(fsgrids::moments::VX), centMoments->at(fsgrids::moments::VX), rghtMoments->at(fsgrids::moments::VX));
+      dMoments->at(fsgrids::dmoments::dVydz)  = limiter(leftMoments->at(fsgrids::moments::VY), centMoments->at(fsgrids::moments::VY), rghtMoments->at(fsgrids::moments::VY));
+      dMoments->at(fsgrids::dmoments::dVzdz)  = limiter(leftMoments->at(fsgrids::moments::VZ), centMoments->at(fsgrids::moments::VZ), rghtMoments->at(fsgrids::moments::VZ));
+   }
+
+   // pres_e = const * np.power(rho_e, index)
+   dMoments->at(fsgrids::dmoments::dPedz) = Pe_const * limiter(pow(leftMoments->at(fsgrids::moments::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex),pow(centMoments->at(fsgrids::moments::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex),pow(rghtMoments->at(fsgrids::moments::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex));
+
+}
+
+void computePerbDerivatives(
+   cint i,
+   cint j,
+   cint k,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+   const bool dontCompute2ndDerivatives,
+   const bool atSysBoundary,
+   SysBoundary& sysBoundaries
+) {
+   std::array<Real, fsgrids::dperb::N_DPERB> * dPerB = dPerBGrid.get(i,j,k);
+
+   // Get boundary flag for the cell:
+   cuint sysBoundaryFlag  = technicalGrid.get(i,j,k)->sysBoundaryFlag;
+   cuint sysBoundaryLayer = technicalGrid.get(i,j,k)->sysBoundaryLayer;
+
+
+   std::array<Real, fsgrids::moments::N_MOMENTS> * leftMoments = NULL;
+   std::array<Real, fsgrids::bfield::N_BFIELD> * leftPerB = NULL;
+   std::array<Real, fsgrids::bfield::N_BFIELD> * centPerB = perBGrid.get(i,j,k);
+   #ifdef DEBUG_SOLVERS
+   if (centMoments->at(fsgrids::moments::RHOM) <= 0) {
+      std::cerr << __FILE__ << ":" << __LINE__
+         << (centMoments->at(fsgrids::moments::RHOM) < 0 ? " Negative" : " Zero") << " density in spatial cell at (" << i << " " << j << " " << k << ")"
+         << std::endl;
+      abort();
+   }
+   #endif
+   std::array<Real, fsgrids::bfield::N_BFIELD>  * rghtPerB = NULL;
+   std::array<Real, fsgrids::bfield::N_BFIELD>  * botLeft = NULL;
+   std::array<Real, fsgrids::bfield::N_BFIELD>  * botRght = NULL;
+   std::array<Real, fsgrids::bfield::N_BFIELD>  * topLeft = NULL;
+   std::array<Real, fsgrids::bfield::N_BFIELD>  * topRght = NULL;
+
+   // Calculate x-derivatives (is not TVD for AMR mesh):
+   leftPerB = perBGrid.get(i-1,j,k);
+   rghtPerB = perBGrid.get(i+1,j,k);
+   if(leftPerB == NULL) {
+      leftPerB = centPerB;
+   }
+   if(rghtPerB == NULL) {
+      rghtPerB = centPerB;
+   }
+   #ifdef DEBUG_SOLVERS
+   if (leftMoments->at(fsgrids::moments::RHOM) <= 0) {
+      std::cerr << __FILE__ << ":" << __LINE__
+         << (leftMoments->at(fsgrids::moments::RHOM) < 0 ? " Negative" : " Zero") << " density in spatial cell " //<< leftNbrID
+         << std::endl;
+      abort();
+   }
+   if (rghtMoments->at(fsgrids::moments::RHOM) <= 0) {
+      std::cerr << __FILE__ << ":" << __LINE__
+         << (rghtMoments->at(fsgrids::moments::RHOM) < 0 ? " Negative" : " Zero") << " density in spatial cell " //<< rightNbrID
+         << std::endl;
+      abort();
+   }
+   #endif
+
+   if(P::fieldSolverFiniteDifferencingAtBoundaries && (atSysBoundary)) {
+      dPerB->at(fsgrids::dperb::dPERBydx)  = (rghtPerB->at(fsgrids::bfield::PERBY)-leftPerB->at(fsgrids::bfield::PERBY))/2;
+      dPerB->at(fsgrids::dperb::dPERBzdx)  = (rghtPerB->at(fsgrids::bfield::PERBZ)-leftPerB->at(fsgrids::bfield::PERBZ))/2;
+   } else {
+      dPerB->at(fsgrids::dperb::dPERBydx)  = limiter(leftPerB->at(fsgrids::bfield::PERBY),centPerB->at(fsgrids::bfield::PERBY),rghtPerB->at(fsgrids::bfield::PERBY));
+      dPerB->at(fsgrids::dperb::dPERBzdx)  = limiter(leftPerB->at(fsgrids::bfield::PERBZ),centPerB->at(fsgrids::bfield::PERBZ),rghtPerB->at(fsgrids::bfield::PERBZ));
+   }
+
+   if (dontCompute2ndDerivatives) {
+      dPerB->at(fsgrids::dperb::dPERBydxx) = 0.0;
+      dPerB->at(fsgrids::dperb::dPERBzdxx) = 0.0;
+   } else {
+      dPerB->at(fsgrids::dperb::dPERBydxx) = leftPerB->at(fsgrids::bfield::PERBY) + rghtPerB->at(fsgrids::bfield::PERBY) - 2.0*centPerB->at(fsgrids::bfield::PERBY);
+      dPerB->at(fsgrids::dperb::dPERBzdxx) = leftPerB->at(fsgrids::bfield::PERBZ) + rghtPerB->at(fsgrids::bfield::PERBZ) - 2.0*centPerB->at(fsgrids::bfield::PERBZ);
+   }
+
+   // Calculate y-derivatives (is not TVD for AMR mesh):
+   leftPerB = perBGrid.get(i,j-1,k);
+   rghtPerB = perBGrid.get(i,j+1,k);
+   if(leftPerB == NULL) {
+      leftPerB = centPerB;
+   }
+   if(rghtPerB == NULL) {
+      rghtPerB = centPerB;
+   }
+
+   if(P::fieldSolverFiniteDifferencingAtBoundaries && (atSysBoundary)) {
+      dPerB->at(fsgrids::dperb::dPERBxdy)  = (rghtPerB->at(fsgrids::bfield::PERBX)-leftPerB->at(fsgrids::bfield::PERBX))/2;
+      dPerB->at(fsgrids::dperb::dPERBzdy)  = (rghtPerB->at(fsgrids::bfield::PERBZ)-leftPerB->at(fsgrids::bfield::PERBZ))/2;
+   } else {
+      dPerB->at(fsgrids::dperb::dPERBxdy)  = limiter(leftPerB->at(fsgrids::bfield::PERBX),centPerB->at(fsgrids::bfield::PERBX),rghtPerB->at(fsgrids::bfield::PERBX));
+      dPerB->at(fsgrids::dperb::dPERBzdy)  = limiter(leftPerB->at(fsgrids::bfield::PERBZ),centPerB->at(fsgrids::bfield::PERBZ),rghtPerB->at(fsgrids::bfield::PERBZ));
+   }
+
+   if (dontCompute2ndDerivatives) {
+      dPerB->at(fsgrids::dperb::dPERBxdyy) = 0.0;
+      dPerB->at(fsgrids::dperb::dPERBzdyy) = 0.0;
+   } else {
+      dPerB->at(fsgrids::dperb::dPERBxdyy) = leftPerB->at(fsgrids::bfield::PERBX) + rghtPerB->at(fsgrids::bfield::PERBX) - 2.0*centPerB->at(fsgrids::bfield::PERBX);
+      dPerB->at(fsgrids::dperb::dPERBzdyy) = leftPerB->at(fsgrids::bfield::PERBZ) + rghtPerB->at(fsgrids::bfield::PERBZ) - 2.0*centPerB->at(fsgrids::bfield::PERBZ);
+   }
+
+   // Calculate z-derivatives (is not TVD for AMR mesh):
+   leftPerB = perBGrid.get(i,j,k-1);
+   rghtPerB = perBGrid.get(i,j,k+1);
+   if(leftPerB == NULL) {
+      leftPerB = centPerB;
+   }
+   if(rghtPerB == NULL) {
+      rghtPerB = centPerB;
+   }
+
+   if(P::fieldSolverFiniteDifferencingAtBoundaries && (atSysBoundary)) {
+      dPerB->at(fsgrids::dperb::dPERBxdz)  = (rghtPerB->at(fsgrids::bfield::PERBX)-leftPerB->at(fsgrids::bfield::PERBX))/2;
+      dPerB->at(fsgrids::dperb::dPERBydz)  = (rghtPerB->at(fsgrids::bfield::PERBY)-leftPerB->at(fsgrids::bfield::PERBY))/2;
+   } else {
+      dPerB->at(fsgrids::dperb::dPERBxdz)  = limiter(leftPerB->at(fsgrids::bfield::PERBX),centPerB->at(fsgrids::bfield::PERBX),rghtPerB->at(fsgrids::bfield::PERBX));
+      dPerB->at(fsgrids::dperb::dPERBydz)  = limiter(leftPerB->at(fsgrids::bfield::PERBY),centPerB->at(fsgrids::bfield::PERBY),rghtPerB->at(fsgrids::bfield::PERBY));
+   }
+
+   if (dontCompute2ndDerivatives) {
+      dPerB->at(fsgrids::dperb::dPERBxdzz) = 0.0;
+      dPerB->at(fsgrids::dperb::dPERBydzz) = 0.0;
+   } else {
+      dPerB->at(fsgrids::dperb::dPERBxdzz) = leftPerB->at(fsgrids::bfield::PERBX) + rghtPerB->at(fsgrids::bfield::PERBX) - 2.0*centPerB->at(fsgrids::bfield::PERBX);
+      dPerB->at(fsgrids::dperb::dPERBydzz) = leftPerB->at(fsgrids::bfield::PERBY) + rghtPerB->at(fsgrids::bfield::PERBY) - 2.0*centPerB->at(fsgrids::bfield::PERBY);
+   }
+
+   if (dontCompute2ndDerivatives) {
+      dPerB->at(fsgrids::dperb::dPERBxdyz) = 0.0;
+      dPerB->at(fsgrids::dperb::dPERBydxz) = 0.0;
+      dPerB->at(fsgrids::dperb::dPERBzdxy) = 0.0;
+   } else {
+      // Calculate xy mixed derivatives:
+      if (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+         botLeft = perBGrid.get(i-1,j-1,k);
+         botRght = perBGrid.get(i+1,j-1,k);
+         topLeft = perBGrid.get(i-1,j+1,k);
+         topRght = perBGrid.get(i+1,j+1,k);
+         dPerB->at(fsgrids::dperb::dPERBzdxy) = FOURTH * (botLeft->at(fsgrids::bfield::PERBZ) + topRght->at(fsgrids::bfield::PERBZ) - botRght->at(fsgrids::bfield::PERBZ) - topLeft->at(fsgrids::bfield::PERBZ));
+      }
+
+      // Calculate xz mixed derivatives:
+      if (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+         botLeft = perBGrid.get(i-1,j,k-1);
+         botRght = perBGrid.get(i+1,j,k-1);
+         topLeft = perBGrid.get(i-1,j,k+1);
+         topRght = perBGrid.get(i+1,j,k+1);
+         dPerB->at(fsgrids::dperb::dPERBydxz) = FOURTH * (botLeft->at(fsgrids::bfield::PERBY) + topRght->at(fsgrids::bfield::PERBY) - botRght->at(fsgrids::bfield::PERBY) - topLeft->at(fsgrids::bfield::PERBY));
+      }
+
+      // Calculate yz mixed derivatives:
+      if (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+         botLeft = perBGrid.get(i,j-1,k-1);
+         botRght = perBGrid.get(i,j+1,k-1);
+         topLeft = perBGrid.get(i,j-1,k+1);
+         topRght = perBGrid.get(i,j+1,k+1);
+         dPerB->at(fsgrids::dperb::dPERBxdyz) = FOURTH * (botLeft->at(fsgrids::bfield::PERBX) + topRght->at(fsgrids::bfield::PERBX) - botRght->at(fsgrids::bfield::PERBX) - topLeft->at(fsgrids::bfield::PERBX));
+      }
+   }
+}
+
+
 /*! \brief Low-level spatial derivatives calculation.
  *
  * For the cell with ID cellID calculate the spatial derivatives or apply the derivative boundary conditions defined in project.h.
@@ -60,250 +375,22 @@ void calculateDerivatives(
    SysBoundary& sysBoundaries,
    const bool calculateMoments
 ) {
-   std::array<Real, fsgrids::dperb::N_DPERB> * dPerB = dPerBGrid.get(i,j,k);
-   std::array<Real, fsgrids::dmoments::N_DMOMENTS> * dMoments = dMomentsGrid.get(i,j,k);
-
    // Get boundary flag for the cell:
    cuint sysBoundaryFlag  = technicalGrid.get(i,j,k)->sysBoundaryFlag;
    cuint sysBoundaryLayer = technicalGrid.get(i,j,k)->sysBoundaryLayer;
 
-   // Constants for electron pressure derivatives, see also ldz_gradpe.cpp
-   // Calculate anchor point constants: First the pressure, then a derived constant.
-   Real Pe_anchor = Parameters::electronTemperature * Parameters::electronDensity * physicalconstants::K_B;
-   Real Pe_const = Pe_anchor * pow(Parameters::electronDensity, -Parameters::electronPTindex);
+   const bool atSysBoundary = sysBoundaryLayer == 1 || (sysBoundaryLayer == 2 && sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY);
+   const bool dontCompute2ndDerivatives = Parameters::ohmHallTerm < 2 || sysBoundaryLayer == 1;
 
-   std::array<Real, fsgrids::moments::N_MOMENTS> * leftMoments = NULL;
-   std::array<Real, fsgrids::bfield::N_BFIELD> * leftPerB = NULL;
-   std::array<Real, fsgrids::moments::N_MOMENTS> * centMoments = momentsGrid.get(i,j,k);
-   std::array<Real, fsgrids::bfield::N_BFIELD> * centPerB = perBGrid.get(i,j,k);
-   #ifdef DEBUG_SOLVERS
-   if (centMoments->at(fsgrids::moments::RHOM) <= 0) {
-      std::cerr << __FILE__ << ":" << __LINE__
-         << (centMoments->at(fsgrids::moments::RHOM) < 0 ? " Negative" : " Zero") << " density in spatial cell at (" << i << " " << j << " " << k << ")"
-         << std::endl;
-      abort();
+   if (calculateMoments) {
+      computeMomentsDerivatives(i, j, k, momentsGrid, dMomentsGrid, technicalGrid, atSysBoundary);
    }
-   #endif
-   std::array<Real, fsgrids::moments::N_MOMENTS> * rghtMoments = NULL;
-   std::array<Real, fsgrids::bfield::N_BFIELD>  * rghtPerB = NULL;
-   std::array<Real, fsgrids::bfield::N_BFIELD>  * botLeft = NULL;
-   std::array<Real, fsgrids::bfield::N_BFIELD>  * botRght = NULL;
-   std::array<Real, fsgrids::bfield::N_BFIELD>  * topLeft = NULL;
-   std::array<Real, fsgrids::bfield::N_BFIELD>  * topRght = NULL;
+   computePerbDerivatives(i, j, k, perBGrid, dPerBGrid, technicalGrid, dontCompute2ndDerivatives, atSysBoundary, sysBoundaries);
 
-   // Calculate x-derivatives (is not TVD for AMR mesh):
-   leftPerB = perBGrid.get(i-1,j,k);
-   rghtPerB = perBGrid.get(i+1,j,k);
-   leftMoments = momentsGrid.get(i-1,j,k);
-   rghtMoments = momentsGrid.get(i+1,j,k);
-   if(leftPerB == NULL) {
-      leftPerB = centPerB;
-      leftMoments = centMoments;
-   }
-   if(rghtPerB == NULL) {
-      rghtPerB = centPerB;
-      rghtMoments = centMoments;
-   }
-   #ifdef DEBUG_SOLVERS
-   if (leftMoments->at(fsgrids::moments::RHOM) <= 0) {
-      std::cerr << __FILE__ << ":" << __LINE__
-         << (leftMoments->at(fsgrids::moments::RHOM) < 0 ? " Negative" : " Zero") << " density in spatial cell " //<< leftNbrID
-         << std::endl;
-      abort();
-   }
-   if (rghtMoments->at(fsgrids::moments::RHOM) <= 0) {
-      std::cerr << __FILE__ << ":" << __LINE__
-         << (rghtMoments->at(fsgrids::moments::RHOM) < 0 ? " Negative" : " Zero") << " density in spatial cell " //<< rightNbrID
-         << std::endl;
-      abort();
-   }
-   #endif
-
-   if(P::fieldSolverFiniteDifferencingAtBoundaries && (sysBoundaryLayer == 1 || (sysBoundaryLayer == 2 && sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY))) {
-      if(calculateMoments) {
-         dMoments->at(fsgrids::dmoments::drhomdx) = (rghtMoments->at(fsgrids::moments::RHOM)-leftMoments->at(fsgrids::moments::RHOM))/2;
-         dMoments->at(fsgrids::dmoments::drhoqdx) = (rghtMoments->at(fsgrids::moments::RHOQ)-leftMoments->at(fsgrids::moments::RHOQ))/2;
-         dMoments->at(fsgrids::dmoments::dp11dx) = (rghtMoments->at(fsgrids::moments::P_11)-leftMoments->at(fsgrids::moments::P_11))/2;
-         dMoments->at(fsgrids::dmoments::dp22dx) = (rghtMoments->at(fsgrids::moments::P_22)-leftMoments->at(fsgrids::moments::P_22))/2;
-         dMoments->at(fsgrids::dmoments::dp33dx) = (rghtMoments->at(fsgrids::moments::P_33)-leftMoments->at(fsgrids::moments::P_33))/2;
-         dMoments->at(fsgrids::dmoments::dVxdx)  = (rghtMoments->at(fsgrids::moments::VX)-leftMoments->at(fsgrids::moments::VX))/2;
-         dMoments->at(fsgrids::dmoments::dVydx)  = (rghtMoments->at(fsgrids::moments::VY)-leftMoments->at(fsgrids::moments::VY))/2;
-         dMoments->at(fsgrids::dmoments::dVzdx)  = (rghtMoments->at(fsgrids::moments::VZ)-leftMoments->at(fsgrids::moments::VZ))/2;
-      }
-      dPerB->at(fsgrids::dperb::dPERBydx)  = (rghtPerB->at(fsgrids::bfield::PERBY)-leftPerB->at(fsgrids::bfield::PERBY))/2;
-      dPerB->at(fsgrids::dperb::dPERBzdx)  = (rghtPerB->at(fsgrids::bfield::PERBZ)-leftPerB->at(fsgrids::bfield::PERBZ))/2;
-   } else {
-      if(calculateMoments) {
-         dMoments->at(fsgrids::dmoments::drhomdx) = limiter(leftMoments->at(fsgrids::moments::RHOM),centMoments->at(fsgrids::moments::RHOM),rghtMoments->at(fsgrids::moments::RHOM));
-         dMoments->at(fsgrids::dmoments::drhoqdx) = limiter(leftMoments->at(fsgrids::moments::RHOQ),centMoments->at(fsgrids::moments::RHOQ),rghtMoments->at(fsgrids::moments::RHOQ));
-         dMoments->at(fsgrids::dmoments::dp11dx) = limiter(leftMoments->at(fsgrids::moments::P_11),centMoments->at(fsgrids::moments::P_11),rghtMoments->at(fsgrids::moments::P_11));
-         dMoments->at(fsgrids::dmoments::dp22dx) = limiter(leftMoments->at(fsgrids::moments::P_22),centMoments->at(fsgrids::moments::P_22),rghtMoments->at(fsgrids::moments::P_22));
-         dMoments->at(fsgrids::dmoments::dp33dx) = limiter(leftMoments->at(fsgrids::moments::P_33),centMoments->at(fsgrids::moments::P_33),rghtMoments->at(fsgrids::moments::P_33));
-         dMoments->at(fsgrids::dmoments::dVxdx)  = limiter(leftMoments->at(fsgrids::moments::VX), centMoments->at(fsgrids::moments::VX), rghtMoments->at(fsgrids::moments::VX));
-         dMoments->at(fsgrids::dmoments::dVydx)  = limiter(leftMoments->at(fsgrids::moments::VY), centMoments->at(fsgrids::moments::VY), rghtMoments->at(fsgrids::moments::VY));
-         dMoments->at(fsgrids::dmoments::dVzdx)  = limiter(leftMoments->at(fsgrids::moments::VZ), centMoments->at(fsgrids::moments::VZ), rghtMoments->at(fsgrids::moments::VZ));
-      }
-      dPerB->at(fsgrids::dperb::dPERBydx)  = limiter(leftPerB->at(fsgrids::bfield::PERBY),centPerB->at(fsgrids::bfield::PERBY),rghtPerB->at(fsgrids::bfield::PERBY));
-      dPerB->at(fsgrids::dperb::dPERBzdx)  = limiter(leftPerB->at(fsgrids::bfield::PERBZ),centPerB->at(fsgrids::bfield::PERBZ),rghtPerB->at(fsgrids::bfield::PERBZ));
-   }
-
-   if(calculateMoments) {
-      // pres_e = const * np.power(rho_e, index)
-      dMoments->at(fsgrids::dmoments::dPedx) = Pe_const * limiter(pow(leftMoments->at(fsgrids::moments::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex),pow(centMoments->at(fsgrids::moments::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex),pow(rghtMoments->at(fsgrids::moments::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex));
-   }
-
-   if (Parameters::ohmHallTerm < 2 || sysBoundaryLayer == 1) {
-      dPerB->at(fsgrids::dperb::dPERBydxx) = 0.0;
-      dPerB->at(fsgrids::dperb::dPERBzdxx) = 0.0;
-   } else {
-      dPerB->at(fsgrids::dperb::dPERBydxx) = leftPerB->at(fsgrids::bfield::PERBY) + rghtPerB->at(fsgrids::bfield::PERBY) - 2.0*centPerB->at(fsgrids::bfield::PERBY);
-      dPerB->at(fsgrids::dperb::dPERBzdxx) = leftPerB->at(fsgrids::bfield::PERBZ) + rghtPerB->at(fsgrids::bfield::PERBZ) - 2.0*centPerB->at(fsgrids::bfield::PERBZ);
-   }
-
-   // Calculate y-derivatives (is not TVD for AMR mesh):
-   leftPerB = perBGrid.get(i,j-1,k);
-   rghtPerB = perBGrid.get(i,j+1,k);
-   leftMoments = momentsGrid.get(i,j-1,k);
-   rghtMoments = momentsGrid.get(i,j+1,k);
-   if(leftPerB == NULL) {
-      leftPerB = centPerB;
-      leftMoments = centMoments;
-   }
-   if(rghtPerB == NULL) {
-      rghtPerB = centPerB;
-      rghtMoments = centMoments;
-   }
-
-   if(P::fieldSolverFiniteDifferencingAtBoundaries && (sysBoundaryLayer == 1 || (sysBoundaryLayer == 2 && sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY))) {
-      if(calculateMoments) {
-         dMoments->at(fsgrids::dmoments::drhomdy) = (rghtMoments->at(fsgrids::moments::RHOM)-leftMoments->at(fsgrids::moments::RHOM))/2;
-         dMoments->at(fsgrids::dmoments::drhoqdy) = (rghtMoments->at(fsgrids::moments::RHOQ)-leftMoments->at(fsgrids::moments::RHOQ))/2;
-         dMoments->at(fsgrids::dmoments::dp11dy) = (rghtMoments->at(fsgrids::moments::P_11)-leftMoments->at(fsgrids::moments::P_11))/2;
-         dMoments->at(fsgrids::dmoments::dp22dy) = (rghtMoments->at(fsgrids::moments::P_22)-leftMoments->at(fsgrids::moments::P_22))/2;
-         dMoments->at(fsgrids::dmoments::dp33dy) = (rghtMoments->at(fsgrids::moments::P_33)-leftMoments->at(fsgrids::moments::P_33))/2;
-         dMoments->at(fsgrids::dmoments::dVxdy)  = (rghtMoments->at(fsgrids::moments::VX)-leftMoments->at(fsgrids::moments::VX))/2;
-         dMoments->at(fsgrids::dmoments::dVydy)  = (rghtMoments->at(fsgrids::moments::VY)-leftMoments->at(fsgrids::moments::VY))/2;
-         dMoments->at(fsgrids::dmoments::dVzdy)  = (rghtMoments->at(fsgrids::moments::VZ)-leftMoments->at(fsgrids::moments::VZ))/2;
-      }
-      dPerB->at(fsgrids::dperb::dPERBxdy)  = (rghtPerB->at(fsgrids::bfield::PERBX)-leftPerB->at(fsgrids::bfield::PERBX))/2;
-      dPerB->at(fsgrids::dperb::dPERBzdy)  = (rghtPerB->at(fsgrids::bfield::PERBZ)-leftPerB->at(fsgrids::bfield::PERBZ))/2;
-   } else {
-      if(calculateMoments) {
-         dMoments->at(fsgrids::dmoments::drhomdy) = limiter(leftMoments->at(fsgrids::moments::RHOM),centMoments->at(fsgrids::moments::RHOM),rghtMoments->at(fsgrids::moments::RHOM));
-         dMoments->at(fsgrids::dmoments::drhoqdy) = limiter(leftMoments->at(fsgrids::moments::RHOQ),centMoments->at(fsgrids::moments::RHOQ),rghtMoments->at(fsgrids::moments::RHOQ));
-         dMoments->at(fsgrids::dmoments::dp11dy) = limiter(leftMoments->at(fsgrids::moments::P_11),centMoments->at(fsgrids::moments::P_11),rghtMoments->at(fsgrids::moments::P_11));
-         dMoments->at(fsgrids::dmoments::dp22dy) = limiter(leftMoments->at(fsgrids::moments::P_22),centMoments->at(fsgrids::moments::P_22),rghtMoments->at(fsgrids::moments::P_22));
-         dMoments->at(fsgrids::dmoments::dp33dy) = limiter(leftMoments->at(fsgrids::moments::P_33),centMoments->at(fsgrids::moments::P_33),rghtMoments->at(fsgrids::moments::P_33));
-         dMoments->at(fsgrids::dmoments::dVxdy)  = limiter(leftMoments->at(fsgrids::moments::VX), centMoments->at(fsgrids::moments::VX), rghtMoments->at(fsgrids::moments::VX));
-         dMoments->at(fsgrids::dmoments::dVydy)  = limiter(leftMoments->at(fsgrids::moments::VY), centMoments->at(fsgrids::moments::VY), rghtMoments->at(fsgrids::moments::VY));
-         dMoments->at(fsgrids::dmoments::dVzdy)  = limiter(leftMoments->at(fsgrids::moments::VZ), centMoments->at(fsgrids::moments::VZ), rghtMoments->at(fsgrids::moments::VZ));
-      }
-      dPerB->at(fsgrids::dperb::dPERBxdy)  = limiter(leftPerB->at(fsgrids::bfield::PERBX),centPerB->at(fsgrids::bfield::PERBX),rghtPerB->at(fsgrids::bfield::PERBX));
-      dPerB->at(fsgrids::dperb::dPERBzdy)  = limiter(leftPerB->at(fsgrids::bfield::PERBZ),centPerB->at(fsgrids::bfield::PERBZ),rghtPerB->at(fsgrids::bfield::PERBZ));
-   }
-
-   // pres_e = const * np.power(rho_e, index)
-   dMoments->at(fsgrids::dmoments::dPedy) = Pe_const * limiter(pow(leftMoments->at(fsgrids::moments::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex),pow(centMoments->at(fsgrids::moments::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex),pow(rghtMoments->at(fsgrids::moments::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex));
-   if (Parameters::ohmHallTerm < 2 || sysBoundaryLayer == 1) {
-      dPerB->at(fsgrids::dperb::dPERBxdyy) = 0.0;
-      dPerB->at(fsgrids::dperb::dPERBzdyy) = 0.0;
-   } else {
-      dPerB->at(fsgrids::dperb::dPERBxdyy) = leftPerB->at(fsgrids::bfield::PERBX) + rghtPerB->at(fsgrids::bfield::PERBX) - 2.0*centPerB->at(fsgrids::bfield::PERBX);
-      dPerB->at(fsgrids::dperb::dPERBzdyy) = leftPerB->at(fsgrids::bfield::PERBZ) + rghtPerB->at(fsgrids::bfield::PERBZ) - 2.0*centPerB->at(fsgrids::bfield::PERBZ);
-   }
-
-   // Calculate z-derivatives (is not TVD for AMR mesh):
-   leftPerB = perBGrid.get(i,j,k-1);
-   rghtPerB = perBGrid.get(i,j,k+1);
-   leftMoments = momentsGrid.get(i,j,k-1);
-   rghtMoments = momentsGrid.get(i,j,k+1);
-   if(leftPerB == NULL) {
-      leftPerB = centPerB;
-      leftMoments = centMoments;
-   }
-   if(rghtPerB == NULL) {
-      rghtPerB = centPerB;
-      rghtMoments = centMoments;
-   }
-
-   if(P::fieldSolverFiniteDifferencingAtBoundaries && (sysBoundaryLayer == 1 || (sysBoundaryLayer == 2 && sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY))) {
-      if(calculateMoments) {
-         dMoments->at(fsgrids::dmoments::drhomdz) = (rghtMoments->at(fsgrids::moments::RHOM)-leftMoments->at(fsgrids::moments::RHOM))/2;
-         dMoments->at(fsgrids::dmoments::drhoqdz) = (rghtMoments->at(fsgrids::moments::RHOQ)-leftMoments->at(fsgrids::moments::RHOQ))/2;
-         dMoments->at(fsgrids::dmoments::dp11dz) = (rghtMoments->at(fsgrids::moments::P_11)-leftMoments->at(fsgrids::moments::P_11))/2;
-         dMoments->at(fsgrids::dmoments::dp22dz) = (rghtMoments->at(fsgrids::moments::P_22)-leftMoments->at(fsgrids::moments::P_22))/2;
-         dMoments->at(fsgrids::dmoments::dp33dz) = (rghtMoments->at(fsgrids::moments::P_33)-leftMoments->at(fsgrids::moments::P_33))/2;
-         dMoments->at(fsgrids::dmoments::dVxdz)  = (rghtMoments->at(fsgrids::moments::VX)-leftMoments->at(fsgrids::moments::VX))/2;
-         dMoments->at(fsgrids::dmoments::dVydz)  = (rghtMoments->at(fsgrids::moments::VY)-leftMoments->at(fsgrids::moments::VY))/2;
-         dMoments->at(fsgrids::dmoments::dVzdz)  = (rghtMoments->at(fsgrids::moments::VZ)-leftMoments->at(fsgrids::moments::VZ))/2;
-      }
-      dPerB->at(fsgrids::dperb::dPERBxdz)  = (rghtPerB->at(fsgrids::bfield::PERBX)-leftPerB->at(fsgrids::bfield::PERBX))/2;
-      dPerB->at(fsgrids::dperb::dPERBydz)  = (rghtPerB->at(fsgrids::bfield::PERBY)-leftPerB->at(fsgrids::bfield::PERBY))/2;
-   } else {
-      if(calculateMoments) {
-         dMoments->at(fsgrids::dmoments::drhomdz) = limiter(leftMoments->at(fsgrids::moments::RHOM),centMoments->at(fsgrids::moments::RHOM),rghtMoments->at(fsgrids::moments::RHOM));
-         dMoments->at(fsgrids::dmoments::drhoqdz) = limiter(leftMoments->at(fsgrids::moments::RHOQ),centMoments->at(fsgrids::moments::RHOQ),rghtMoments->at(fsgrids::moments::RHOQ));
-         dMoments->at(fsgrids::dmoments::dp11dz) = limiter(leftMoments->at(fsgrids::moments::P_11),centMoments->at(fsgrids::moments::P_11),rghtMoments->at(fsgrids::moments::P_11));
-         dMoments->at(fsgrids::dmoments::dp22dz) = limiter(leftMoments->at(fsgrids::moments::P_22),centMoments->at(fsgrids::moments::P_22),rghtMoments->at(fsgrids::moments::P_22));
-         dMoments->at(fsgrids::dmoments::dp33dz) = limiter(leftMoments->at(fsgrids::moments::P_33),centMoments->at(fsgrids::moments::P_33),rghtMoments->at(fsgrids::moments::P_33));
-         dMoments->at(fsgrids::dmoments::dVxdz)  = limiter(leftMoments->at(fsgrids::moments::VX), centMoments->at(fsgrids::moments::VX), rghtMoments->at(fsgrids::moments::VX));
-         dMoments->at(fsgrids::dmoments::dVydz)  = limiter(leftMoments->at(fsgrids::moments::VY), centMoments->at(fsgrids::moments::VY), rghtMoments->at(fsgrids::moments::VY));
-         dMoments->at(fsgrids::dmoments::dVzdz)  = limiter(leftMoments->at(fsgrids::moments::VZ), centMoments->at(fsgrids::moments::VZ), rghtMoments->at(fsgrids::moments::VZ));
-      }
-      dPerB->at(fsgrids::dperb::dPERBxdz)  = limiter(leftPerB->at(fsgrids::bfield::PERBX),centPerB->at(fsgrids::bfield::PERBX),rghtPerB->at(fsgrids::bfield::PERBX));
-      dPerB->at(fsgrids::dperb::dPERBydz)  = limiter(leftPerB->at(fsgrids::bfield::PERBY),centPerB->at(fsgrids::bfield::PERBY),rghtPerB->at(fsgrids::bfield::PERBY));
-   }
-
-   if(calculateMoments) {
-      // pres_e = const * np.power(rho_e, index)
-      dMoments->at(fsgrids::dmoments::dPedz) = Pe_const * limiter(pow(leftMoments->at(fsgrids::moments::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex),pow(centMoments->at(fsgrids::moments::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex),pow(rghtMoments->at(fsgrids::moments::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex));
-   }
-
-   if (Parameters::ohmHallTerm < 2 || sysBoundaryLayer == 1) {
-      dPerB->at(fsgrids::dperb::dPERBxdzz) = 0.0;
-      dPerB->at(fsgrids::dperb::dPERBydzz) = 0.0;
-   } else {
-      dPerB->at(fsgrids::dperb::dPERBxdzz) = leftPerB->at(fsgrids::bfield::PERBX) + rghtPerB->at(fsgrids::bfield::PERBX) - 2.0*centPerB->at(fsgrids::bfield::PERBX);
-      dPerB->at(fsgrids::dperb::dPERBydzz) = leftPerB->at(fsgrids::bfield::PERBY) + rghtPerB->at(fsgrids::bfield::PERBY) - 2.0*centPerB->at(fsgrids::bfield::PERBY);
-   }
-
-   if (Parameters::ohmHallTerm < 2 || sysBoundaryLayer == 1) {
-      dPerB->at(fsgrids::dperb::dPERBxdyz) = 0.0;
-      dPerB->at(fsgrids::dperb::dPERBydxz) = 0.0;
-      dPerB->at(fsgrids::dperb::dPERBzdxy) = 0.0;
-   } else {
-      // Calculate xy mixed derivatives:
-      if (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-         botLeft = perBGrid.get(i-1,j-1,k);
-         botRght = perBGrid.get(i+1,j-1,k);
-         topLeft = perBGrid.get(i-1,j+1,k);
-         topRght = perBGrid.get(i+1,j+1,k);
-         dPerB->at(fsgrids::dperb::dPERBzdxy) = FOURTH * (botLeft->at(fsgrids::bfield::PERBZ) + topRght->at(fsgrids::bfield::PERBZ) - botRght->at(fsgrids::bfield::PERBZ) - topLeft->at(fsgrids::bfield::PERBZ));
-      } else {
-         SBC::SysBoundaryCondition::setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, 3);
-      }
-
-      // Calculate xz mixed derivatives:
-      if (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-         botLeft = perBGrid.get(i-1,j,k-1);
-         botRght = perBGrid.get(i+1,j,k-1);
-         topLeft = perBGrid.get(i-1,j,k+1);
-         topRght = perBGrid.get(i+1,j,k+1);
-         dPerB->at(fsgrids::dperb::dPERBydxz) = FOURTH * (botLeft->at(fsgrids::bfield::PERBY) + topRght->at(fsgrids::bfield::PERBY) - botRght->at(fsgrids::bfield::PERBY) - topLeft->at(fsgrids::bfield::PERBY));
-      } else {
-         SBC::SysBoundaryCondition::setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, 4);
-      }
-
-      // Calculate yz mixed derivatives:
-      if (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-         botLeft = perBGrid.get(i,j-1,k-1);
-         botRght = perBGrid.get(i,j+1,k-1);
-         topLeft = perBGrid.get(i,j-1,k+1);
-         topRght = perBGrid.get(i,j+1,k+1);
-         dPerB->at(fsgrids::dperb::dPERBxdyz) = FOURTH * (botLeft->at(fsgrids::bfield::PERBX) + topRght->at(fsgrids::bfield::PERBX) - botRght->at(fsgrids::bfield::PERBX) - topLeft->at(fsgrids::bfield::PERBX));
-      } else {
-         SBC::SysBoundaryCondition::setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, 5);
-      }
+   if (sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
+      SBC::SysBoundaryCondition::setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, 3);
+      SBC::SysBoundaryCondition::setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, 4);
+      SBC::SysBoundaryCondition::setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, 5);
    }
 }
 
@@ -697,7 +784,13 @@ void calculateCurvatureSimple(
  */
 [[maybe_unused]] static std::array<Real, 3> getPerBVol(SpatialCell* cell)
 {
-   return std::array<Real, 3> { {cell->parameters[CellParams::PERBXVOL], cell->parameters[CellParams::PERBYVOL], cell->parameters[CellParams::PERBZVOL]} };
+   return std::array<Real, 3> {
+      {
+         cell->parameters[CellParams::PERBXVOL],
+         cell->parameters[CellParams::PERBYVOL],
+         cell->parameters[CellParams::PERBZVOL]
+      }
+   };
 }
 
 /*! \brief Returns volumetric B of cell
@@ -705,12 +798,12 @@ void calculateCurvatureSimple(
  */
 static std::array<Real, 3> getBVol(SpatialCell* cell)
 {
-   return std::array<Real, 3> { 
+   return std::array<Real, 3> {
       {
-         cell->parameters[CellParams::BGBXVOL] + cell->parameters[CellParams::PERBXVOL], 
-         cell->parameters[CellParams::BGBYVOL] + cell->parameters[CellParams::PERBYVOL], 
+         cell->parameters[CellParams::BGBXVOL] + cell->parameters[CellParams::PERBXVOL],
+         cell->parameters[CellParams::BGBYVOL] + cell->parameters[CellParams::PERBYVOL],
          cell->parameters[CellParams::BGBZVOL] + cell->parameters[CellParams::PERBZVOL]
-      } 
+      }
    };
 }
 
@@ -720,11 +813,11 @@ static std::array<Real, 3> getBVol(SpatialCell* cell)
 static std::array<Real, 3> getMomentumDensity(SpatialCell* cell)
 {
    Real rho = cell->parameters[CellParams::RHOM];
-   return std::array<Real, 3> { 
+   return std::array<Real, 3> {
       {
-         rho * cell->parameters[CellParams::VX], 
-         rho * cell->parameters[CellParams::VY], 
-         rho * cell->parameters[CellParams::VZ]} 
+         rho * cell->parameters[CellParams::VX],
+         rho * cell->parameters[CellParams::VY],
+         rho * cell->parameters[CellParams::VZ]}
    };
 }
 
@@ -753,7 +846,7 @@ static Real calculateAnisotropy(const Eigen::Matrix3d& rot, const std::array<Rea
       {P[5], P[1], P[3]},
       {P[4], P[3], P[2]},
    };
-   
+
    Eigen::Matrix3d transposerot = rot.transpose();
    Eigen::Matrix3d Pprime = rot * Ptensor * transposerot;
 
@@ -799,7 +892,7 @@ void calculateScaledDeltas(
       if (myV < EPS) {
          maxV = std::max(maxV,otherV);
       }
-      
+
       Real maxRho = std::max(myRho, otherRho);
       if (maxRho > EPS) {
          dRho = std::max(fabs(myRho - otherRho) / maxRho, dRho);
@@ -817,7 +910,7 @@ void calculateScaledDeltas(
          dB = std::max(sqrt(deltaBsq) / maxB, dB);
       }
    }
-   
+
    Real alpha {0.0};
    alpha = std::max(alpha, dRho * P::alphaDRhoWeight);
    alpha = std::max(alpha, dU * P::alphaDUWeight);
@@ -925,8 +1018,6 @@ void calculateScaledDeltasSimple(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
       }
       computeTimer.stop(N_cells,"Spatial Cells");
    }
-
-   
 
    gradientsTimer.stop(N_cells,"Spatial Cells");
 }
