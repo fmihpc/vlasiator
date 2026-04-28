@@ -1562,6 +1562,12 @@ std::cerr <<__FILE__<<":"<<__LINE__<<" ("<<myRank <<")\n";
       //   -> do the acc shuffle for all cells to begin with
       std::vector<Real> newTimeclassDts = std::vector<Real>(P::maxTimeclass+1);
       if(P::dynamicTimestep  && P::tstep > P::tstep_min && P::fractionalTimestep == 0) {
+         if (P::maxTimeclass > 0) {
+            if(myRank == MASTER_RANK){
+               cerr << __FILE__ << ":" << __LINE__ << " Dynamic timestepping not implemented for timeclasses " << endl;
+            }
+            doabort();
+         }
          std::cout << "Computing new dts\n";
          computeNewTimeStep(mpiGrid, technicalGrid, newDt, dtIsChanged, newTimeclassDts);
          // if (P::vlasovSolverGhostTranslate) {
