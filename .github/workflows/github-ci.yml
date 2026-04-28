@@ -796,7 +796,7 @@ jobs:
     - name: Compile tools
       run: |
           export VLASIATOR_ARCH=ukko_dgx
-      srun --constraint="ukko" -p gpu --job-name CI_tools_compile --interactive --nodes=1 -n 1 -c 1 --mem-per-cpu=2G -t 0:10:0 bash -c 'export VLASIATOR_ARCH=ukko_dgx ; source modules/modules.sh ; make vlsvextract vlsvdiff; sleep 10s'
+          srun --constraint="ukko" -p gpu --job-name CI_tools_compile --interactive --nodes=1 -n 1 -c 1 --mem-per-cpu=2G -t 0:10:0 bash -c 'export VLASIATOR_ARCH=ukko_dgx ; source modules/modules.sh ; make vlsvextract vlsvdiff; sleep 10s'
     - name: Upload tools binaries
       uses: actions/upload-artifact@v4
       with:
