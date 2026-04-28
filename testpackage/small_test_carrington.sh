@@ -27,13 +27,8 @@ diffbin="/turso/group/spacephysics/vlasiator/testpackage/vlsvdiff_DP_carrington"
 #reference_revision="CI_reference"
 reference_revision="current"
 
-module purge
-module load GCC/13.2.0
-module load OpenMPI/4.1.6-GCC-13.2.0
-module load PMIx/4.2.6-GCCcore-13.2.0
-module load PAPI/7.1.0-GCCcore-13.2.0
-module load Boost/1.83.0-GCC-13.2.0
-#module load xthi
+source ../modules/carrington_gcc_openmpi.sh
+
 export UCX_NET_DEVICES=eth5 # This is important for multi-node performance!
 
 #Carrington has 2 x 16 cores per node, plus hyperthreading

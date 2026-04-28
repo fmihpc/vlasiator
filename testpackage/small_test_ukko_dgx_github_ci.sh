@@ -28,7 +28,7 @@ diffbin="$GITHUB_WORKSPACE/vlsvdiff_DP"
 
 export UCX_NET_DEVICES=eth0
 ulimit -c unlimited
-module purge; ml OpenMPI/4.1.6.withucx-GCC-13.2.0 PAPI/7.1.0-GCCcore-13.2.0 CUDA/12.6.0
+source ${GITHUB_WORKSPACE}/modules/ukko_dgx.sh
 
 nodes=$SLURM_NNODES
 t=$SLURM_CPUS_PER_TASK # used by TP script
