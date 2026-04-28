@@ -76,7 +76,7 @@ jobs:
       run: |
         chmod +x $GITHUB_WORKSPACE/vlasiator
         cd testpackage
-        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/libraries/lib
+        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/libraries-ukkogpu/lib
         # Fudge the run script
         sed -i 's/\/proj\/USERNAME\/BINARYNAME/$GITHUB_WORKSPACE\/vlasiator/' ./small_test_ukko_dgx.sh
         sed -i 's/create_verification_files=0/create_verification_files=1/' ./small_test_ukko_dgx.sh
