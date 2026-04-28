@@ -26,6 +26,9 @@ FLAGS =
 #VECL=4
 #VECL=8
 
+# Roihu has OpenMPI 5 so this needs to be activated
+COMPFLAGS += -DVLASIATOR_ALLOW_MCA_OMPIO
+
 #GNU flags:
 CXXFLAGS += -g -O3 -fopenmp -funroll-loops -std=c++20 -W -Wall -Wno-unused -fabi-version=0 -march=native -mfma -fpermissive
 testpackage: CXXFLAGS = -g -ggdb -O2 -fopenmp -funroll-loops -std=c++20 -fabi-version=0 -mfma -fpermissive -march=native
