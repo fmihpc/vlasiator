@@ -668,13 +668,6 @@ int simulate(int argn,char* args[]) {
       exit(1);
    }
 
-   if (P::maxTimeclass > 0 && P::amrMaxSpatialRefLevel == 0) {
-      // if we are using timeclasses, we need to use AMR
-      cerr << "(MAIN) Warning: Using timeclasses requires AMR, please turn AMR on. exiting..." << endl;
-      logFile << "(MAIN) Warning: Using timeclasses requires AMR, please turn AMR on. exiting..." << endl;
-      exit(1);
-   }
-
    // Verify correct handling of floating point exceptions
    // see https://github.com/fmihpc/vlasiator/pull/845
    {
