@@ -313,7 +313,7 @@ namespace spatial_cell {
 
       //neighbor_ptrs is empty, so we adjust only based on local velocity space.
       std::vector<SpatialCell*> neighbor_ptrs;
-      update_velocity_block_content_lists(popID);
+      update_velocity_block_content_lists(popID, timeclass);
       adjust_velocity_blocks(neighbor_ptrs,popID,doDeleteEmpty,timeclass);
    }
 
