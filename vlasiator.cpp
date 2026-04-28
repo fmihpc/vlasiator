@@ -1566,7 +1566,7 @@ std::cerr <<__FILE__<<":"<<__LINE__<<" ("<<myRank <<")\n";
             if(myRank == MASTER_RANK){
                cerr << __FILE__ << ":" << __LINE__ << " Dynamic timestepping not implemented for timeclasses " << endl;
             }
-            doabort();
+            abort();
          }
          std::cout << "Computing new dts\n";
          computeNewTimeStep(mpiGrid, technicalGrid, newDt, dtIsChanged, newTimeclassDts);

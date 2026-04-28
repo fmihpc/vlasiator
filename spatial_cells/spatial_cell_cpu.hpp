@@ -567,6 +567,8 @@ namespace spatial_cell {
 
    inline void SpatialCell::set_population(const Population& pop, cuint popID, const int timeclass=-1) {
       this->get_population(popID, timeclass) = pop;
+      // this->set_velocity_mesh_ghost(popID, timeclass);
+      // this->set_velocity_blocks_ghost(popID, timeclass); 
    }
    inline void SpatialCell::scale_population(creal factor, cuint popID, const int timeclass=-1) {
       (this->get_population(popID, timeclass)).Scale(factor);
