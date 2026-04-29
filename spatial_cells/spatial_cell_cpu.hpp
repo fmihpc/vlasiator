@@ -779,9 +779,9 @@ namespace spatial_cell {
       debug_population_check(popID);
       assert(timeclass != src_timeclass);
       delete this->ghostPopulations[{popID,timeclass}].vmesh;
-      std::cout << __FILE__ <<":" <<__LINE__ << "\n";
+      // std::cout << __FILE__ <<":" <<__LINE__ << "\n";
       vmesh::VelocityMesh* newVmesh = new vmesh::VelocityMesh(*this->get_velocity_mesh(popID, src_timeclass));
-      std::cout <<"A new vmesh appeared, with meshID " << newVmesh->getMesh() << " at "<< this->get_cellid() << "\n";
+      // std::cout <<"A new vmesh appeared, with meshID " << newVmesh->getMesh() << " at "<< this->get_cellid() << "\n";
       this->ghostPopulations[{popID,timeclass}].vmesh = newVmesh;
       // this->ghostPopulations[{popID,timeclass}].vmesh = vmesh::VelocityMesh(*this->populations[popID].vmesh);
       int vmsum = 0;
@@ -789,9 +789,9 @@ namespace spatial_cell {
          vmsum += it;
       }
 
-      // #ifdef DEBUG_SPATIAL_CELL
+      #ifdef DEBUG_SPATIAL_CELL
       std::cout << "Copy-constructed ghostPopulations[{"<<popID<<","<<timeclass<<"}].vmesh (idsum " << vmsum <<"); " << &this->ghostPopulations[{popID,timeclass}].vmesh<< " from initial at " << &this->populations[popID].vmesh <<"\n";
-      // #endif
+      #endif
    }
 
    inline void SpatialCell::set_velocity_blocks_ghost(const size_t& popID, const int timeclass, const int src_timeclass = -1) {
@@ -801,7 +801,7 @@ namespace spatial_cell {
       vmesh::VelocityBlockContainer* newBlockContainer = new vmesh::VelocityBlockContainer(*this->get_velocity_blocks(popID, src_timeclass));
       // this->ghostPopulations[{popID,timeclass}].blockContainer = this->get_velocity_blocks(popID, src_timeclass);
       this->ghostPopulations[{popID,timeclass}].blockContainer = newBlockContainer;
-      // #ifdef DEBUG_SPATIAL_CELL
+      #ifdef DEBUG_SPATIAL_CELL
       int blocksum = 0;
       for (vmesh::LocalID block_i=0; block_i<this->ghostPopulations[{popID,timeclass}].blockContainer->size(); ++block_i) {
          const vmesh::GlobalID block = (this->ghostPopulations[{popID,timeclass}].vmesh)->getGlobalID(block_i);
@@ -809,7 +809,7 @@ namespace spatial_cell {
       }
 
       std::cout << "Copy-constructed ghostPopulations[{"<<popID<<","<<timeclass<<"}].blockContainer to " << &this->ghostPopulations[{popID,timeclass}].blockContainer<< " (blockidsum " << blocksum << ")  from initial at " << &this->populations[popID].blockContainer << ", new size " << this->ghostPopulations[{popID,timeclass}].blockContainer->size() << "; old size:" << this->ghostPopulations[{popID,timeclass}].blockContainer->size() << "\n";
-      // #endif
+      #endif
    }
 
    inline vmesh::VelocityMesh* SpatialCell::get_velocity_mesh_ghost(const size_t& popID, const int timeclass) {
