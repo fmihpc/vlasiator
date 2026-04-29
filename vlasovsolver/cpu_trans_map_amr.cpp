@@ -270,7 +270,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
    for (auto bd: mpiGrid[16]->get_velocity_blocks(popID,timeclass)->getDataVector_raw()){
       sum+=bd;
    }
-   std::cerr << dimension <<" cell 16 tc "<< timeclass<< " pre-trans sum " << sum << " with " << mpiGrid[16]->get_velocity_blocks(popID)->size() <<" blocks\n";
+   // std::cerr << dimension <<" cell 16 tc "<< timeclass<< " pre-trans sum " << sum << " with " << mpiGrid[16]->get_velocity_blocks(popID)->size() <<" blocks\n";
 
 
    // init cellid_transpose (moved here to take advantage of the omp parallel region)
@@ -627,7 +627,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
    for (auto bd: mpiGrid[16]->get_velocity_blocks(popID, timeclass)->getDataVector_raw()){
       sum+=bd;
    }
-   std::cerr << "cell 16 tc "<< timeclass <<" post-trans sum " << sum << " with " << mpiGrid[16]->get_velocity_blocks(popID)->size() <<" blocks\n";
+   // std::cerr << "cell 16 tc "<< timeclass <<" post-trans sum " << sum << " with " << mpiGrid[16]->get_velocity_blocks(popID)->size() <<" blocks\n";
    return true;
 }
 
