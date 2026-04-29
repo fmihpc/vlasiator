@@ -270,7 +270,7 @@ void prepareGhostTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cart
    activex.clear();
    activey.clear();
    activez.clear();
-   std::cerr << __FILE__<<":"<<__LINE__<<" "<< myRank<<"\n";
+   // std::cerr << __FILE__<<":"<<__LINE__<<" "<< myRank<<"\n";
 
 
    // return if there's no cells to start with
@@ -281,7 +281,7 @@ void prepareGhostTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cart
    
 
       std::vector<CellID> foundCells;
-      std::cerr << __FILE__<<":"<<__LINE__<<" "<< myRank<<"\n";
+      // std::cerr << __FILE__<<":"<<__LINE__<<" "<< myRank<<"\n";
 
       // Cell lists include:
       // 1) Any local (translated) non-sysboundary cells
@@ -345,7 +345,7 @@ void prepareGhostTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cart
       /** Now use y-translation source cells as starting points
           and evaluate x-direction
       */
-      std::cerr << __FILE__<<":"<<__LINE__<<" "<< myRank<<"\n";
+      // std::cerr << __FILE__<<":"<<__LINE__<<" "<< myRank<<"\n";
 
       phiprof::Timer ghostXTimer {"prepare ghost translation X lists"};
       dimension = 0;
@@ -388,7 +388,7 @@ void prepareGhostTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cart
       /** Now use x-translation source cells as starting points
           and evaluate z-direction
       */
-      std::cerr << __FILE__<<":"<<__LINE__<<" "<< myRank<<"\n";
+      // std::cerr << __FILE__<<":"<<__LINE__<<" "<< myRank<<"\n";
 
       phiprof::Timer ghostZTimer {"prepare ghost translation Z lists"};
       dimension = 2;
@@ -404,7 +404,7 @@ void prepareGhostTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cart
          if (!do_translate_cell(ccell) || !ccell->has_timeclass(tc)) {
             continue;
          }
-                  std::cerr << __FILE__<<":"<<__LINE__<<" "<< myRank<< " c"<<c << " timeclass " << tc <<"\n";
+                  // std::cerr << __FILE__<<":"<<__LINE__<<" "<< myRank<< " c"<<c << " timeclass " << tc <<"\n";
          activez.insert(c);
          // Update as sources only non-sysb cells
          if (mpiGrid[c]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
@@ -530,7 +530,7 @@ void prepareGhostTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cart
       logFile << globalCountsF.at(2*fc+dim) << " ";
    }
    logFile << "]" << endl << flush;
-   std::cerr << __FILE__<<":"<<__LINE__<<" "<< myRank<<"\n";
+   // std::cerr << __FILE__<<":"<<__LINE__<<" "<< myRank<<"\n";
 
    return;
 }
@@ -1144,7 +1144,7 @@ void buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_
    x = coordinates[ix];
    y = coordinates[iy];
 
-   std::cerr << __FILE__ <<":"<<__LINE__<<" calling addPencil\n";
+   // std::cerr << __FILE__ <<":"<<__LINE__<<" calling addPencil\n";
    pencils.addPencil(ids, x, y, periodic, path, timeclass);
    return;
 }
@@ -1630,7 +1630,7 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
       MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
    }
-   std::cerr<< __FILE__<<":"<<__LINE__<<"\n";
+   // std::cerr<< __FILE__<<":"<<__LINE__<<"\n";
    switch (dimension) {
       case 0:
          if (P::xcells_ini == 1) {
@@ -1651,7 +1651,7 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
          std::cerr<<"Error in dimension: __FILE__:__LINE__"<<std::endl;
          abort();
    }
-std::cerr<< __FILE__<<":"<<__LINE__<<"\n";
+// std::cerr<< __FILE__<<":"<<__LINE__<<"\n";
    const vector<CellID>& localCells = getLocalCells();
    vector<CellID> propagatedCells;
    vector<vector<CellID>> tc_propagatedCells;
@@ -1673,9 +1673,9 @@ std::cerr<< __FILE__<<":"<<__LINE__<<"\n";
             std::cerr<<"Error in dimension: __FILE__:__LINE__"<<std::endl;
             abort();
       }
-      std::cerr<< __FILE__<<":"<<__LINE__<<"\n";
+      // std::cerr<< __FILE__<<":"<<__LINE__<<"\n";
       if (P::currentMaxTimeclass >= 0) {
-         std::cerr<< __FILE__<<":"<<__LINE__<<"\n";
+         // std::cerr<< __FILE__<<":"<<__LINE__<<"\n";
          for (int i = 0; i <= P::currentMaxTimeclass; ++i){
             tc_propagatedCells.push_back(vector<CellID>());
             switch (dimension) {
@@ -1710,7 +1710,7 @@ std::cerr<< __FILE__<<":"<<__LINE__<<"\n";
       }
    }
 
-   std::cerr<< __FILE__<<":"<<__LINE__<<"\n";
+   // std::cerr<< __FILE__<<":"<<__LINE__<<"\n";
 
    phiprof::Timer getSeedIdsTimer {"getSeedIds"};
    vector<std::pair<int,CellID>> seedIds;
@@ -1785,7 +1785,7 @@ std::cerr<< __FILE__<<":"<<__LINE__<<"\n";
             ibeg = thread_pencils.ids.begin() + thread_pencils.idsStart[i];
             iend = ibeg + thread_pencils.lengthOfPencils[i];
             std::vector<CellID> pencilIds(ibeg, iend);
-            std::cerr << __FILE__ <<":"<<__LINE__<<" calling addPencil\n";
+            // std::cerr << __FILE__ <<":"<<__LINE__<<" calling addPencil\n";
             DimensionPencils[dimension].addPencil(pencilIds,thread_pencils.x[i],thread_pencils.y[i],thread_pencils.periodic[i],thread_pencils.path[i], thread_pencils.timeclasses[i]);
          }
       }
@@ -1801,7 +1801,7 @@ std::cerr<< __FILE__<<":"<<__LINE__<<"\n";
    // This function contains threading.
    check_ghost_cells(mpiGrid,DimensionPencils[dimension],dimension);
    checkGhostCellsTimer.stop();
-   std::cerr << __FILE__ <<":"<<__LINE__<<" returned from check_ghost_cells for dim "<<dimension <<"\n";
+   // std::cerr << __FILE__ <<":"<<__LINE__<<" returned from check_ghost_cells for dim "<<dimension <<"\n";
 
 
    phiprof::Timer findSourceRatiosTimer {"Find_source_cells_ratios_dz"};
