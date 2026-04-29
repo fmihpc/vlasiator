@@ -1085,7 +1085,7 @@ int simulate(int argn,char* args[]) {
       P::systemWritePath.pop_back();
       P::systemWriteFsGrid.pop_back();
    }
-   cerr<< __FILE__<<":"<<__LINE__<<"\n";
+   
    // For the MPI-rank based timeclasses. Implement to CellParams if cell-based.
    // Move to params.
 
@@ -1094,7 +1094,7 @@ int simulate(int argn,char* args[]) {
       //compute new dt
       phiprof::Timer computeDtimer {"compute-dt"};
       computeNewTimeStep(mpiGrid, technicalGrid, newDt, dtIsChanged, P::timeclassDt);
-      cerr<< __FILE__<<":"<<__LINE__<<"\n";
+      
       if (P::dynamicTimestep == true && dtIsChanged == true) {
          // Only actually update the timestep if dynamicTimestep is on
          P::dt=newDt;
@@ -1108,7 +1108,7 @@ int simulate(int argn,char* args[]) {
          }
          std::cout << endl;
       }
-      std::cerr <<__FILE__<<":"<<__LINE__<<" Calling balanceLoad\n";
+      // std::cerr <<__FILE__<<":"<<__LINE__<<" Calling balanceLoad\n";
       balanceLoad(mpiGrid, sysBoundaryContainer, technicalGrid);
       
       computeDtimer.stop();
@@ -1127,7 +1127,7 @@ int simulate(int argn,char* args[]) {
       propagateHalfTimer.stop();
 
       updatePreviousVMoments(mpiGrid, true);
-      std::cerr <<__FILE__<<":"<<__LINE__<<" ("<<myRank <<") Calling balanceLoad\n";
+      // std::cerr <<__FILE__<<":"<<__LINE__<<" ("<<myRank <<") Calling balanceLoad\n";
 
       // Apply boundary conditions
       if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration ) {
@@ -1136,7 +1136,7 @@ int simulate(int argn,char* args[]) {
          updateBoundariesTimer.stop();
          addTimedBarrier("barrier-boundary-conditions");
       }
-      std::cerr <<__FILE__<<":"<<__LINE__<<" ("<<myRank <<")\n";
+      // std::cerr <<__FILE__<<":"<<__LINE__<<" ("<<myRank <<")\n";
       // Also update all moments. They won't be transmitted to FSgrid until the field solver is called, though.
       phiprof::Timer computeMomentsTimer {"Compute interp moments"};
       std::cout << "for initial interpolated moments\n";
@@ -1159,7 +1159,7 @@ int simulate(int argn,char* args[]) {
 
       computeMomentsTimer.stop();
    }
-std::cerr <<__FILE__<<":"<<__LINE__<<" ("<<myRank <<")\n";
+// std::cerr <<__FILE__<<":"<<__LINE__<<" ("<<myRank <<")\n";
    initTimer.stop();
 
    // ***********************************
@@ -1476,7 +1476,7 @@ std::cerr <<__FILE__<<":"<<__LINE__<<" ("<<myRank <<")\n";
          break;
       }
 
-      std::cout << "main loop at" << __FILE__ << " " << __LINE__ << " " << P::tstep << " " << P::fractionalTimestep << std::endl;
+      // std::cout << "main loop at" << __FILE__ << " " << __LINE__ << " " << P::tstep << " " << P::fractionalTimestep << std::endl;
 
       //Re-loadbalance if needed
       //TODO - add LB measure and do LB if it exceeds threshold
