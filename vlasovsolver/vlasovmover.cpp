@@ -760,13 +760,13 @@ vector<AccelerationPayload>& setAccelerationTimeGhosts(vector<AccelerationPayloa
    int tcToPropagate = spatial_cell->get_tc();
 
    if(spatial_cell->get_timeclass_turn_v()){
-      AccelerationPayload payload = {spatial_cell->get_tc(),spatial_cell,dt,0};
+      AccelerationPayload payload = {spatial_cell->get_tc(),spatial_cell,dt,popID};
       outvec.push_back(payload);
    }
 
    bool addPayload = false;
    for(auto i : spatial_cell->get_all_ghosts()) {
-      AccelerationPayload payload = {tcToPropagate, spatial_cell, dt, 0};
+      AccelerationPayload payload = {tcToPropagate, spatial_cell, dt, popID};
          // Example: On tc-0 cell, tc-1 ghosts requested ghosts of tc-0
          /*               |0--1/4-2/4-3/4-4/4-5/4-6/4--|
          tc-1 after-acc   |----x-------x-------x-------|
@@ -782,14 +782,14 @@ vector<AccelerationPayload>& setAccelerationTimeGhosts(vector<AccelerationPayloa
       if(tc_d > 0) {
          // std::cerr << __FILE__ << ":"<<__LINE__ << " cell " << (int)spatial_cell->parameters[CellParams::CELLID] <<" native with " << spatial_cell->get_velocity_blocks(popID)->size() <<" blocks\n";
          if (!P::tc_leapfrog_init) {
-            spatial_cell->set_population(spatial_cell->get_population(popID,spatial_cell->get_tc()),popID,i);
+            spatial_cell->set_ghost_population(spatial_cell->get_population(popID,spatial_cell->get_tc()),popID,i);
             // std::cerr << __FILE__ << ":"<<__LINE__ << " c " << spatial_cell->parameters[CellParams::CELLID] << " pop pointers: " << &spatial_cell->get_population(popID,spatial_cell->get_tc()) << ", tc" << i << ": " << &spatial_cell->get_population(popID,i)<< "\n";
             // std::cerr << __FILE__ << ":"<<__LINE__ << " c " << (int)spatial_cell->parameters[CellParams::CELLID] << " " << i << "tc with " << spatial_cell->get_velocity_blocks(popID,i)->size() <<" blocks\n";
             payload.dt = dt/pow(2,tc_d);
             outvec.push_back(payload);
          }
          else if (spatial_cell->get_timeclass_turn_v()) {
-            spatial_cell->set_population(spatial_cell->get_population(popID,spatial_cell->get_tc()),popID,i);
+            spatial_cell->set_ghost_population(spatial_cell->get_population(popID,spatial_cell->get_tc()),popID,i);
             // std::cerr << __FILE__ << ":"<<__LINE__<< " c " << (int)spatial_cell->parameters[CellParams::CELLID] << " pop pointers: " << &spatial_cell->get_population(popID,spatial_cell->get_tc()) << ", tc" << i << ": " << &spatial_cell->get_population(popID,i)<< "\n";
             // std::cerr << "c " << spatial_cell->parameters[CellParams::CELLID] <<" " << i << "tc with " << spatial_cell->get_velocity_blocks(popID,i)->size() <<" blocks\n";
             payload.dt = dt/pow(2,tc_d)*1/2;
@@ -800,7 +800,7 @@ vector<AccelerationPayload>& setAccelerationTimeGhosts(vector<AccelerationPayloa
             outvec.push_back(payload);
          }
          else if (spatial_cell->requested_timeclass_copy_ghosts.count(i) && spatial_cell->get_timeclass_turn_v(i)){
-            spatial_cell->set_population(spatial_cell->get_population(popID,spatial_cell->get_tc()),popID,i);
+            spatial_cell->set_ghost_population(spatial_cell->get_population(popID,spatial_cell->get_tc()),popID,i);
             // std::cerr<< __FILE__ << ":"<<__LINE__ << " c " << (int)spatial_cell->parameters[CellParams::CELLID] << " pop pointers: " << &spatial_cell->get_population(popID,spatial_cell->get_tc()) << ", tc" << i << ": " << &spatial_cell->get_population(popID,i)<< "\n";
             // std::cerr << __FILE__ << ":"<<__LINE__ <<" c " << (int)spatial_cell->parameters[CellParams::CELLID] << " " << i << "tc with " << spatial_cell->get_velocity_blocks(popID,i)->size() <<" blocks\n";
 
@@ -831,7 +831,7 @@ vector<AccelerationPayload>& setAccelerationTimeGhosts(vector<AccelerationPayloa
             // if it is slower-tc's turn, we are synced at after-trans state
             // -> Copy state, but needs to acc by half-tc-0-dt ("always init")
             // std::cerr << __FILE__ << ":"<<__LINE__ << " c"<< (int)spatial_cell->parameters[CellParams::CELLID]<<"\n";
-            spatial_cell->set_population(spatial_cell->get_population(popID,spatial_cell->get_tc()),popID,i);
+            spatial_cell->set_ghost_population(spatial_cell->get_population(popID,spatial_cell->get_tc()),popID,i);
             // spatial_cell->set_velocity_mesh_ghost(popID, i);
             // spatial_cell->set_velocity_blocks_ghost(popID, i);
             // spatial_cell->get_population(popID,i).N_blocks = spatial_cell->get_number_of_velocity_blocks(popID, i);
@@ -843,7 +843,7 @@ vector<AccelerationPayload>& setAccelerationTimeGhosts(vector<AccelerationPayloa
             // if it is slower-tc's turn, we are synced at after-trans state
             // -> Copy state, but needs to acc by half-tc-0-dt ("always init")
             // std::cerr << __FILE__ << ":"<<__LINE__ << " c"<< (int)spatial_cell->parameters[CellParams::CELLID]<<"\n";
-            spatial_cell->set_population(spatial_cell->get_population(popID,spatial_cell->get_tc()),popID,i);
+            spatial_cell->set_ghost_population(spatial_cell->get_population(popID,spatial_cell->get_tc()),popID,i);
             // spatial_cell->set_velocity_mesh_ghost(popID, i);
             // spatial_cell->set_velocity_blocks_ghost(popID, i);
             // spatial_cell->get_population(popID,i).N_blocks = spatial_cell->get_number_of_velocity_blocks(popID, i);

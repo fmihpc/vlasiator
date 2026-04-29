@@ -272,7 +272,6 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
    }
    // std::cerr << dimension <<" cell 16 tc "<< timeclass<< " pre-trans sum " << sum << " with " << mpiGrid[16]->get_velocity_blocks(popID)->size() <<" blocks\n";
 
-
    // init cellid_transpose (moved here to take advantage of the omp parallel region)
    // Vectors of pointers to the cell structs
    std::vector<SpatialCell*> allCellsPointer(nAllCells);
@@ -310,7 +309,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
    }
 
    // Get a pointer to the velocity mesh of the first spatial cell
-   const vmesh::VelocityMesh* vmesh = allCellsPointer[0]->get_velocity_mesh(popID);
+   const vmesh::VelocityMesh* vmesh = allCellsPointer[0]->get_velocity_mesh(popID, timeclass);
 
    phiprof::Timer buildBlockListTimer {"trans-amr-buildBlockList"};
    // Get a unique sorted list of blockids that are in any of the

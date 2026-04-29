@@ -281,7 +281,8 @@ namespace spatial_cell {
 
       Population & get_population(const uint popID, const int timeclass);
       const Population & get_population(const uint popID, const int timeclass) const;
-      void set_population(const Population& pop, cuint popID, const int timeclass);
+      void set_population(const Population& pop, cuint popID);
+      void set_ghost_population(const Population& pop, cuint popID, const int timeclass);
       void scale_population(creal factor, cuint popID, const int timeclass);
       void increment_population(const Population& pop, creal factor, cuint popID, const int timeclass);
 
@@ -542,10 +543,6 @@ namespace spatial_cell {
       return populations.size();
    }
 
-   // inline Population & SpatialCell::get_population(const uint popID) {
-   //    return populations[popID];
-   // }
-
    inline Population & SpatialCell::get_population(const uint popID, const int timeclass=-1){
       if (timeclass < 0 || this->parameters[CellParams::TIMECLASS] == timeclass){
          return populations[popID];
@@ -565,11 +562,16 @@ namespace spatial_cell {
       }
    }
 
-   inline void SpatialCell::set_population(const Population& pop, cuint popID, const int timeclass=-1) {
-      this->get_population(popID, timeclass) = pop;
-      // this->set_velocity_mesh_ghost(popID, timeclass);
-      // this->set_velocity_blocks_ghost(popID, timeclass); 
+   inline void SpatialCell::set_population(const Population& pop, cuint popID) {
+      this->populations[popID] = pop;
    }
+
+   inline void SpatialCell::set_ghost_population(const Population& pop, cuint popID, const int timeclass = -1) {
+      ghostPopulations.erase({popID, timeclass});
+      ghostPopulations.emplace(std::pair<cuint, const int>({popID, timeclass}), pop);
+   }
+
+   
    inline void SpatialCell::scale_population(creal factor, cuint popID, const int timeclass=-1) {
       (this->get_population(popID, timeclass)).Scale(factor);
    }
