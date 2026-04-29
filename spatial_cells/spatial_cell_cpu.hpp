@@ -1046,7 +1046,7 @@ namespace spatial_cell {
       int timeclass;
       SpatialCell* cellptr;
       Real dt;
-      int step;
+      // int step; // unused
    } AccelerationPayload;
 
 } // namespaces

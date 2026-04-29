@@ -755,18 +755,19 @@ void calculateAcceleration(const uint popID,const int globalMaxSubcycles,const i
 
 
 /* Get structs (timeclass, SpatialCell*, dt, subcycle step) for acceleration
+   TODO: split function to setting the ghosts and getting the payloads.
 */
-vector<AccelerationPayload>& setAccelerationTimeGhosts(vector<AccelerationPayload>& outvec, SpatialCell* spatial_cell, const uint popID, const Real& dt){
+void setAccelerationTimeGhosts(vector<AccelerationPayload>& outvec, SpatialCell* spatial_cell, const uint popID, const Real& dt){
    int tcToPropagate = spatial_cell->get_tc();
 
    if(spatial_cell->get_timeclass_turn_v()){
-      AccelerationPayload payload = {spatial_cell->get_tc(),spatial_cell,dt,popID};
+      AccelerationPayload payload = {spatial_cell->get_tc(),spatial_cell,dt};
       outvec.push_back(payload);
    }
 
    bool addPayload = false;
    for(auto i : spatial_cell->get_all_ghosts()) {
-      AccelerationPayload payload = {tcToPropagate, spatial_cell, dt, popID};
+      AccelerationPayload payload = {tcToPropagate, spatial_cell, dt};
          // Example: On tc-0 cell, tc-1 ghosts requested ghosts of tc-0
          /*               |0--1/4-2/4-3/4-4/4-5/4-6/4--|
          tc-1 after-acc   |----x-------x-------x-------|
@@ -870,7 +871,6 @@ vector<AccelerationPayload>& setAccelerationTimeGhosts(vector<AccelerationPayloa
          }
       }
    } // for over ghost requests
-   return outvec;
 }
 
 /** Accelerate all particle populations to new time t+dt.
@@ -968,7 +968,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
                            //    cellsToPropagateSet.insert(cells[c]);
                            // }
                            // vector<AccelerationPayload> harvest;
-                           setAccelerationTimeGhosts(propagatePayloads, mpiGrid[cells[c]], 0, dt_cell);
+                           setAccelerationTimeGhosts(propagatePayloads, mpiGrid[cells[c]], popID, dt_cell);
                            // propagatePayloads.insert(propagatePayloads.end(), outvec.begin(),outvec.end());
                
                      }
