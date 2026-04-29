@@ -454,7 +454,8 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
                if(nonEmptyBlocks == 0) {
                   if (blocki == 0){
 
-                  // std::cout << "Empty blocks for pencilI " << pencili << "\n"; }
+                  // std::cout << "Empty blocks for pencilI " << pencili << "\n"; 
+                  }
                   continue;
                }
                
@@ -472,12 +473,14 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
             for (uint pencili : DimensionPencils[dimension].pencilsInBin[currentBin]) {
                if (DimensionPencils[dimension].timeclasses[pencili] != timeclass) {
                   if (blocki == 0){
-                  // std::cout << "Skip pencili " << pencili << " "<< DimensionPencils[dimension].timeclasses[pencili] << " != " << timeclass << "\n"; }
+                  // std::cout << "Skip pencili " << pencili << " "<< DimensionPencils[dimension].timeclasses[pencili] << " != " << timeclass << "\n"; 
+                  }
                   continue;
                }
                else{
                   if (blocki == 0){
-                  // std::cout << "cntd pencili " << pencili << " "<< DimensionPencils[dimension].timeclasses[pencili] << " == " << timeclass << "\n"; }
+                  // std::cout << "cntd pencili " << pencili << " "<< DimensionPencils[dimension].timeclasses[pencili] << " == " << timeclass << "\n";
+                  }
                }
                for (uint targeti = DimensionPencils[dimension].idsStart[pencili]; targeti < DimensionPencils[dimension].idsStart[pencili]+DimensionPencils[dimension].lengthOfPencils[pencili]; ++targeti){
                   // for (CellID target_cell_id: DimensionPencils[dimension].getIds(pencili)){//DimensionPencils[dimension].ids[pencili]) {
