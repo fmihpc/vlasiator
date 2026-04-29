@@ -758,16 +758,13 @@ void calculateAcceleration(const uint popID,const int globalMaxSubcycles,const i
    TODO: split function to setting the ghosts and getting the payloads.
 */
 void setAccelerationTimeGhosts(vector<AccelerationPayload>& outvec, SpatialCell* spatial_cell, const uint popID, const Real& dt){
-   int tcToPropagate = spatial_cell->get_tc();
 
    if(spatial_cell->get_timeclass_turn_v()){
-      AccelerationPayload payload = {spatial_cell->get_tc(),spatial_cell,dt};
-      outvec.push_back(payload);
+      outvec.push_back(AccelerationPayload(spatial_cell->get_tc(),spatial_cell,dt));
    }
 
    bool addPayload = false;
    for(auto i : spatial_cell->get_all_ghosts()) {
-      AccelerationPayload payload = {tcToPropagate, spatial_cell, dt};
          // Example: On tc-0 cell, tc-1 ghosts requested ghosts of tc-0
          /*               |0--1/4-2/4-3/4-4/4-5/4-6/4--|
          tc-1 after-acc   |----x-------x-------x-------|
@@ -779,42 +776,49 @@ void setAccelerationTimeGhosts(vector<AccelerationPayload>& outvec, SpatialCell*
          - o: ghost state
          */
       int tc_d = i-spatial_cell->get_tc();
-      payload.timeclass = i;
       if(tc_d > 0) {
-         // std::cerr << __FILE__ << ":"<<__LINE__ << " cell " << (int)spatial_cell->parameters[CellParams::CELLID] <<" native with " << spatial_cell->get_velocity_blocks(popID)->size() <<" blocks\n";
-         if (!P::tc_leapfrog_init) {
-            spatial_cell->set_ghost_population(spatial_cell->get_population(popID,spatial_cell->get_tc()),popID,i);
-            // std::cerr << __FILE__ << ":"<<__LINE__ << " c " << spatial_cell->parameters[CellParams::CELLID] << " pop pointers: " << &spatial_cell->get_population(popID,spatial_cell->get_tc()) << ", tc" << i << ": " << &spatial_cell->get_population(popID,i)<< "\n";
-            // std::cerr << __FILE__ << ":"<<__LINE__ << " c " << (int)spatial_cell->parameters[CellParams::CELLID] << " " << i << "tc with " << spatial_cell->get_velocity_blocks(popID,i)->size() <<" blocks\n";
-            payload.dt = dt/pow(2,tc_d);
-            outvec.push_back(payload);
-         }
-         else if (spatial_cell->get_timeclass_turn_v()) {
-            spatial_cell->set_ghost_population(spatial_cell->get_population(popID,spatial_cell->get_tc()),popID,i);
-            // std::cerr << __FILE__ << ":"<<__LINE__<< " c " << (int)spatial_cell->parameters[CellParams::CELLID] << " pop pointers: " << &spatial_cell->get_population(popID,spatial_cell->get_tc()) << ", tc" << i << ": " << &spatial_cell->get_population(popID,i)<< "\n";
-            // std::cerr << "c " << spatial_cell->parameters[CellParams::CELLID] <<" " << i << "tc with " << spatial_cell->get_velocity_blocks(popID,i)->size() <<" blocks\n";
-            payload.dt = dt/pow(2,tc_d)*1/2;
-            outvec.push_back(payload);
-         }
-         else if (spatial_cell->get_timeclass_turn_v(i)) {
-            payload.dt = dt/pow(2,tc_d);
-            outvec.push_back(payload);
-         }
-         else if (spatial_cell->requested_timeclass_copy_ghosts.count(i) && spatial_cell->get_timeclass_turn_v(i)){
-            spatial_cell->set_ghost_population(spatial_cell->get_population(popID,spatial_cell->get_tc()),popID,i);
-            // std::cerr<< __FILE__ << ":"<<__LINE__ << " c " << (int)spatial_cell->parameters[CellParams::CELLID] << " pop pointers: " << &spatial_cell->get_population(popID,spatial_cell->get_tc()) << ", tc" << i << ": " << &spatial_cell->get_population(popID,i)<< "\n";
-            // std::cerr << __FILE__ << ":"<<__LINE__ <<" c " << (int)spatial_cell->parameters[CellParams::CELLID] << " " << i << "tc with " << spatial_cell->get_velocity_blocks(popID,i)->size() <<" blocks\n";
+         // Ghosts for finer cadences
+         if (spatial_cell->requested_timeclass_ghosts.count(i) > 0){
+            
+            if (!P::tc_leapfrog_init) {
+               // Leapfrogging not yet initialized - initialize
+               spatial_cell->set_ghost_population(spatial_cell->get_population(popID,spatial_cell->get_tc()),popID,i);
 
-            payload.dt = dt/pow(2,tc_d)*3/2;
-            outvec.push_back(payload);
+               outvec.push_back(AccelerationPayload(i, spatial_cell, dt/pow(2,tc_d)));
+            }
+            else if (spatial_cell->get_timeclass_turn_v()) {
+               // This cell has been natively propagated. We update the ghost population to the current state, and then acc by half the timeclass dt to sync with the finer timeclass leapfrog state.
+               spatial_cell->set_ghost_population(spatial_cell->get_population(popID,spatial_cell->get_tc()),popID,i);
+
+               outvec.push_back(AccelerationPayload(i, spatial_cell, dt/pow(2,tc_d)*1/2));
+            }
+            else if (spatial_cell->get_timeclass_turn_v(i)) {
+               // The finer timeclass is to be propagated, and we do not have a native state to update the VDF from. Just propagate.
+               outvec.push_back(AccelerationPayload(i, spatial_cell, dt/pow(2,tc_d)));
+            }
+            else{
+               //do nothing
+            }
+         }
+         else if(spatial_cell->requested_timeclass_copy_ghosts.count(i) > 0){
+            // Copy ghosts needed, and regular ghosts are not available, so initialize and accelerate those as needed.
+            if (spatial_cell->get_timeclass_turn_v(i)){
+               spatial_cell->set_ghost_population(spatial_cell->get_population(popID,spatial_cell->get_tc()),popID,i);
+
+               outvec.push_back(AccelerationPayload(i, spatial_cell, dt/pow(2,tc_d)*3/2));
+            }
+            else{
+               spatial_cell->set_ghost_population(spatial_cell->get_population(popID,spatial_cell->get_tc()),popID,i);
+
+            }
          }
          else{
-            //do nothing
+             // No ghosts requested from at this timeclass, do nothing
          }
          
       }
       else if (tc_d < 0){
-
+         // Ghosts for coarser cadences.
          // Example: on tc-1 cell, tc-0 ghosts requested from us
          /*                    |0--1/4-2/4-3/4-4/4-5/4-6/4--|
          tc-1      after-acc   |----x-------x---.---x-------|
@@ -827,47 +831,40 @@ void setAccelerationTimeGhosts(vector<AccelerationPayload>& outvec, SpatialCell*
          - x: true state 
          - o: ghost state
          */
-         if (!P::tc_leapfrog_init){
-                           
-            // if it is slower-tc's turn, we are synced at after-trans state
-            // -> Copy state, but needs to acc by half-tc-0-dt ("always init")
-            // std::cerr << __FILE__ << ":"<<__LINE__ << " c"<< (int)spatial_cell->parameters[CellParams::CELLID]<<"\n";
-            spatial_cell->set_ghost_population(spatial_cell->get_population(popID,spatial_cell->get_tc()),popID,i);
-            // spatial_cell->set_velocity_mesh_ghost(popID, i);
-            // spatial_cell->set_velocity_blocks_ghost(popID, i);
-            // spatial_cell->get_population(popID,i).N_blocks = spatial_cell->get_number_of_velocity_blocks(popID, i);
-            payload.dt = dt/pow(2,tc_d);
-            outvec.push_back(payload);
-         }
-         else if (spatial_cell->get_timeclass_turn_v(i) || (P::tstep == 0 && P::fractionalTimestep == 0)) {
-            
-            // if it is slower-tc's turn, we are synced at after-trans state
-            // -> Copy state, but needs to acc by half-tc-0-dt ("always init")
-            // std::cerr << __FILE__ << ":"<<__LINE__ << " c"<< (int)spatial_cell->parameters[CellParams::CELLID]<<"\n";
-            spatial_cell->set_ghost_population(spatial_cell->get_population(popID,spatial_cell->get_tc()),popID,i);
-            // spatial_cell->set_velocity_mesh_ghost(popID, i);
-            // spatial_cell->set_velocity_blocks_ghost(popID, i);
-            // spatial_cell->get_population(popID,i).N_blocks = spatial_cell->get_number_of_velocity_blocks(popID, i);
-            double dtt = 5./4.*dt/pow(2,tc_d);
-            payload.dt = dtt;
-            outvec.push_back(payload);
-            // if (spatial_cell->parameters[CellParams::CELLID]  == 17){
-            //    std::cout << "17c Copy-and-init-nudge from "<< dt << " div by " << pow(2,tc_d) << "\n";
-            //    std::cout << __FILE__<<":"<<__LINE__<< "\t17c Copying and propagating ghost at tc " << spatial_cell->get_tc() + tc_delta << " by dt = " << dtt << " being run at cell " << "\n";
-            // }
-            // else{
-            //    std::cout << __FILE__<<":"<<__LINE__<< "\t Copying and propagating ghost at tc " << spatial_cell->get_tc() + tc_delta << " by dt = " << dtt << " being run at cell " << "\n";
-            // }
-            
+         if (spatial_cell->requested_timeclass_ghosts.count(i) > 0){
 
-            // cpu_accelerate_cell(spatial_cell, popID, map_order, dtt, tc_d);
+            if (!P::tc_leapfrog_init){
+                              
+               // if it is slower-tc's turn, we are synced at after-trans state
+               // -> Copy state, but needs to acc by half-tc-0-dt ("always init")
+               spatial_cell->set_ghost_population(spatial_cell->get_population(popID,spatial_cell->get_tc()),popID,i);
+
+               outvec.push_back(AccelerationPayload(i, spatial_cell,  dt/pow(2,tc_d)));
+            }
+            else if (spatial_cell->get_timeclass_turn_v(i) || (P::tstep == 0 && P::fractionalTimestep == 0)) {
+               
+               // if it is slower-tc's turn, we are synced at after-trans state
+               // -> Copy state, but needs to acc by half-tc-0-dt ("always init")
+               spatial_cell->set_ghost_population(spatial_cell->get_population(popID,spatial_cell->get_tc()),popID,i);
+
+               outvec.push_back(AccelerationPayload(i, spatial_cell,  5./4.*dt/pow(2,tc_d)));
+            }
+            else{ //do nothing
+            }
+         }
+         else if(spatial_cell->requested_timeclass_copy_ghosts.count(i) > 0){
+            // Copy ghosts needed, and regular ghosts are not available, so initialize and accelerate those as needed.
+            if (spatial_cell->get_timeclass_turn_v(i)){
+               spatial_cell->set_ghost_population(spatial_cell->get_population(popID,spatial_cell->get_tc()),popID,i);
+
+               outvec.push_back(AccelerationPayload(i, spatial_cell, dt/pow(2,tc_d)*5/4));
+            }
+            else{
+               spatial_cell->set_ghost_population(spatial_cell->get_population(popID,spatial_cell->get_tc()),popID,i);
+            }
          }
          else{
-            // if (spatial_cell->parameters[CellParams::CELLID]  == 17){
-            //    std::cout << "17c Do-nothing" << "\n";
-            // }
-            // // ghost can just stay put!
-            // std::cout << __FILE__<<":"<<__LINE__<< "\tLeaving ghost as is at tc " << spatial_cell->get_tc() + tc_delta << " by dt = " << dt << " being run at cell " << "\n";
+             // No ghosts requested from at this timeclass, do nothing
          }
       }
    } // for over ghost requests
