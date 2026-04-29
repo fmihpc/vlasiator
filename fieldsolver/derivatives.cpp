@@ -38,7 +38,14 @@ void computeMomentsDerivatives(
 ) {
    using dmo = fsgrids::dmoments;
    using mom = fsgrids::moments;
+
    std::array<Real, dmo::N_DMOMENTS> * dMoments = dMomentsGrid.get(i,j,k);
+
+   auto computeDiff = [](const auto& i, const auto& right, const auto& left) { return 0.5 * (right->at(i) - left->at(i)); };
+
+   auto computeLimiter = [](const auto& i, const auto& right, const auto& left, const auto& center) {
+      return limiter(left->at(i), center->at(i), right->at(i));
+   };
 
    // Get boundary flag for the cell:
    cuint sysBoundaryFlag  = technicalGrid.get(i,j,k)->sysBoundaryFlag;
@@ -48,6 +55,17 @@ void computeMomentsDerivatives(
    // Calculate anchor point constants: First the pressure, then a derived constant.
    const Real Pe_anchor = Parameters::electronTemperature * Parameters::electronDensity * physicalconstants::K_B;
    const Real Pe_const = Pe_anchor * pow(Parameters::electronDensity, -Parameters::electronPTindex);
+   auto computeGradPeLimiter = [=](const auto& right, const auto& left, const auto& center) {
+      // pres_e = const * np.power(rho_e, index)
+      return Pe_const * limiter(pow(left->at(mom::RHOQ)   / physicalconstants::CHARGE, Parameters::electronPTindex),
+                                pow(center->at(mom::RHOQ) / physicalconstants::CHARGE, Parameters::electronPTindex),
+                                pow(right->at(mom::RHOQ)  / physicalconstants::CHARGE, Parameters::electronPTindex));
+   };
+
+   // Unused in this version of the code
+   auto computeGradPeDiff = [=](const auto& right, const auto& left) {
+      return Pe_const * 0.5 * (pow(right->at(mom::RHOQ) / physicalconstants::CHARGE, Parameters::electronPTindex) - pow(left->at(mom::RHOQ) / physicalconstants::CHARGE, Parameters::electronPTindex));
+   };
 
    std::array<Real, mom::N_MOMENTS> * leftMoments = NULL;
    std::array<Real, mom::N_MOMENTS> * centMoments = momentsGrid.get(i,j,k);
@@ -89,28 +107,23 @@ void computeMomentsDerivatives(
    #endif
    }
 
-   if(P::fieldSolverFiniteDifferencingAtBoundaries && (atSysBoundary)) {
-      dMoments->at(dmo::drhomdx) = (rghtMoments->at(mom::RHOM)-leftMoments->at(mom::RHOM))/2;
-      dMoments->at(dmo::drhoqdx) = (rghtMoments->at(mom::RHOQ)-leftMoments->at(mom::RHOQ))/2;
-      dMoments->at(dmo::dp11dx) = (rghtMoments->at(mom::P_11)-leftMoments->at(mom::P_11))/2;
-      dMoments->at(dmo::dp22dx) = (rghtMoments->at(mom::P_22)-leftMoments->at(mom::P_22))/2;
-      dMoments->at(dmo::dp33dx) = (rghtMoments->at(mom::P_33)-leftMoments->at(mom::P_33))/2;
-      dMoments->at(dmo::dVxdx)  = (rghtMoments->at(mom::VX)-leftMoments->at(mom::VX))/2;
-      dMoments->at(dmo::dVydx)  = (rghtMoments->at(mom::VY)-leftMoments->at(mom::VY))/2;
-      dMoments->at(dmo::dVzdx)  = (rghtMoments->at(mom::VZ)-leftMoments->at(mom::VZ))/2;
+   static constexpr std::array moms{mom::RHOM, mom::RHOQ, mom::P_11, mom::P_22, mom::P_33, mom::VX, mom::VY, mom::VZ};
+   static constexpr std::array dmix{dmo::drhomdx, dmo::drhoqdx, dmo::dp11dx, dmo::dp22dx, dmo::dp33dx, dmo::dVxdx, dmo::dVydx, dmo::dVzdx};
+   static constexpr std::array dmiy{dmo::drhomdy, dmo::drhoqdy, dmo::dp11dy, dmo::dp22dy, dmo::dp33dy, dmo::dVxdy, dmo::dVydy, dmo::dVzdy};
+   static constexpr std::array dmiz{dmo::drhomdz, dmo::drhoqdz, dmo::dp11dz, dmo::dp22dz, dmo::dp33dz, dmo::dVxdz, dmo::dVydz, dmo::dVzdz};
+
+   if(P::fieldSolverFiniteDifferencingAtBoundaries && atSysBoundary) {
+      for (size_t i = 0; i < moms.size(); i++) {
+         dMoments->at(dmix[i]) = computeDiff(moms[i], rghtMoments, leftMoments);
+      }
    } else {
-      dMoments->at(dmo::drhomdx) = limiter(leftMoments->at(mom::RHOM),centMoments->at(mom::RHOM),rghtMoments->at(mom::RHOM));
-      dMoments->at(dmo::drhoqdx) = limiter(leftMoments->at(mom::RHOQ),centMoments->at(mom::RHOQ),rghtMoments->at(mom::RHOQ));
-      dMoments->at(dmo::dp11dx) = limiter(leftMoments->at(mom::P_11),centMoments->at(mom::P_11),rghtMoments->at(mom::P_11));
-      dMoments->at(dmo::dp22dx) = limiter(leftMoments->at(mom::P_22),centMoments->at(mom::P_22),rghtMoments->at(mom::P_22));
-      dMoments->at(dmo::dp33dx) = limiter(leftMoments->at(mom::P_33),centMoments->at(mom::P_33),rghtMoments->at(mom::P_33));
-      dMoments->at(dmo::dVxdx)  = limiter(leftMoments->at(mom::VX), centMoments->at(mom::VX), rghtMoments->at(mom::VX));
-      dMoments->at(dmo::dVydx)  = limiter(leftMoments->at(mom::VY), centMoments->at(mom::VY), rghtMoments->at(mom::VY));
-      dMoments->at(dmo::dVzdx)  = limiter(leftMoments->at(mom::VZ), centMoments->at(mom::VZ), rghtMoments->at(mom::VZ));
+      for (size_t i = 0; i < moms.size(); i++) {
+         dMoments->at(dmix[i]) = computeLimiter(moms[i], rghtMoments, leftMoments, centMoments);
+      }
    }
 
    // pres_e = const * np.power(rho_e, index)
-   dMoments->at(dmo::dPedx) = Pe_const * limiter(pow(leftMoments->at(mom::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex),pow(centMoments->at(mom::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex),pow(rghtMoments->at(mom::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex));
+   dMoments->at(dmo::dPedx) = computeGradPeLimiter(rghtMoments, leftMoments, centMoments);
 
    // Calculate y-derivatives (is not TVD for AMR mesh):
    leftMoments = momentsGrid.get(i,j-1,k);
@@ -122,28 +135,18 @@ void computeMomentsDerivatives(
       rghtMoments = centMoments;
    }
 
-   if(P::fieldSolverFiniteDifferencingAtBoundaries && (atSysBoundary)) {
-      dMoments->at(dmo::drhomdy) = (rghtMoments->at(mom::RHOM)-leftMoments->at(mom::RHOM))/2;
-      dMoments->at(dmo::drhoqdy) = (rghtMoments->at(mom::RHOQ)-leftMoments->at(mom::RHOQ))/2;
-      dMoments->at(dmo::dp11dy) = (rghtMoments->at(mom::P_11)-leftMoments->at(mom::P_11))/2;
-      dMoments->at(dmo::dp22dy) = (rghtMoments->at(mom::P_22)-leftMoments->at(mom::P_22))/2;
-      dMoments->at(dmo::dp33dy) = (rghtMoments->at(mom::P_33)-leftMoments->at(mom::P_33))/2;
-      dMoments->at(dmo::dVxdy)  = (rghtMoments->at(mom::VX)-leftMoments->at(mom::VX))/2;
-      dMoments->at(dmo::dVydy)  = (rghtMoments->at(mom::VY)-leftMoments->at(mom::VY))/2;
-      dMoments->at(dmo::dVzdy)  = (rghtMoments->at(mom::VZ)-leftMoments->at(mom::VZ))/2;
+   if(P::fieldSolverFiniteDifferencingAtBoundaries && atSysBoundary) {
+      for (size_t i = 0; i < moms.size(); i++) {
+         dMoments->at(dmiy[i]) = computeDiff(moms[i], rghtMoments, leftMoments);
+      }
    } else {
-      dMoments->at(dmo::drhomdy) = limiter(leftMoments->at(mom::RHOM),centMoments->at(mom::RHOM),rghtMoments->at(mom::RHOM));
-      dMoments->at(dmo::drhoqdy) = limiter(leftMoments->at(mom::RHOQ),centMoments->at(mom::RHOQ),rghtMoments->at(mom::RHOQ));
-      dMoments->at(dmo::dp11dy) = limiter(leftMoments->at(mom::P_11),centMoments->at(mom::P_11),rghtMoments->at(mom::P_11));
-      dMoments->at(dmo::dp22dy) = limiter(leftMoments->at(mom::P_22),centMoments->at(mom::P_22),rghtMoments->at(mom::P_22));
-      dMoments->at(dmo::dp33dy) = limiter(leftMoments->at(mom::P_33),centMoments->at(mom::P_33),rghtMoments->at(mom::P_33));
-      dMoments->at(dmo::dVxdy)  = limiter(leftMoments->at(mom::VX), centMoments->at(mom::VX), rghtMoments->at(mom::VX));
-      dMoments->at(dmo::dVydy)  = limiter(leftMoments->at(mom::VY), centMoments->at(mom::VY), rghtMoments->at(mom::VY));
-      dMoments->at(dmo::dVzdy)  = limiter(leftMoments->at(mom::VZ), centMoments->at(mom::VZ), rghtMoments->at(mom::VZ));
+      for (size_t i = 0; i < moms.size(); i++) {
+         dMoments->at(dmiy[i]) = computeLimiter(moms[i], rghtMoments, leftMoments, centMoments);
+      }
    }
 
    // pres_e = const * np.power(rho_e, index)
-   dMoments->at(dmo::dPedy) = Pe_const * limiter(pow(leftMoments->at(mom::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex),pow(centMoments->at(mom::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex),pow(rghtMoments->at(mom::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex));
+   dMoments->at(dmo::dPedy) = computeGradPeLimiter(rghtMoments, leftMoments, centMoments);
 
    // Calculate z-derivatives (is not TVD for AMR mesh):
    leftMoments = momentsGrid.get(i,j,k-1);
@@ -155,28 +158,18 @@ void computeMomentsDerivatives(
       rghtMoments = centMoments;
    }
 
-   if(P::fieldSolverFiniteDifferencingAtBoundaries && (atSysBoundary)) {
-      dMoments->at(dmo::drhomdz) = (rghtMoments->at(mom::RHOM)-leftMoments->at(mom::RHOM))/2;
-      dMoments->at(dmo::drhoqdz) = (rghtMoments->at(mom::RHOQ)-leftMoments->at(mom::RHOQ))/2;
-      dMoments->at(dmo::dp11dz) = (rghtMoments->at(mom::P_11)-leftMoments->at(mom::P_11))/2;
-      dMoments->at(dmo::dp22dz) = (rghtMoments->at(mom::P_22)-leftMoments->at(mom::P_22))/2;
-      dMoments->at(dmo::dp33dz) = (rghtMoments->at(mom::P_33)-leftMoments->at(mom::P_33))/2;
-      dMoments->at(dmo::dVxdz)  = (rghtMoments->at(mom::VX)-leftMoments->at(mom::VX))/2;
-      dMoments->at(dmo::dVydz)  = (rghtMoments->at(mom::VY)-leftMoments->at(mom::VY))/2;
-      dMoments->at(dmo::dVzdz)  = (rghtMoments->at(mom::VZ)-leftMoments->at(mom::VZ))/2;
+   if(P::fieldSolverFiniteDifferencingAtBoundaries && atSysBoundary) {
+      for (size_t i = 0; i < moms.size(); i++) {
+         dMoments->at(dmiz[i]) = computeDiff(moms[i], rghtMoments, leftMoments);
+      }
    } else {
-      dMoments->at(dmo::drhomdz) = limiter(leftMoments->at(mom::RHOM),centMoments->at(mom::RHOM),rghtMoments->at(mom::RHOM));
-      dMoments->at(dmo::drhoqdz) = limiter(leftMoments->at(mom::RHOQ),centMoments->at(mom::RHOQ),rghtMoments->at(mom::RHOQ));
-      dMoments->at(dmo::dp11dz) = limiter(leftMoments->at(mom::P_11),centMoments->at(mom::P_11),rghtMoments->at(mom::P_11));
-      dMoments->at(dmo::dp22dz) = limiter(leftMoments->at(mom::P_22),centMoments->at(mom::P_22),rghtMoments->at(mom::P_22));
-      dMoments->at(dmo::dp33dz) = limiter(leftMoments->at(mom::P_33),centMoments->at(mom::P_33),rghtMoments->at(mom::P_33));
-      dMoments->at(dmo::dVxdz)  = limiter(leftMoments->at(mom::VX), centMoments->at(mom::VX), rghtMoments->at(mom::VX));
-      dMoments->at(dmo::dVydz)  = limiter(leftMoments->at(mom::VY), centMoments->at(mom::VY), rghtMoments->at(mom::VY));
-      dMoments->at(dmo::dVzdz)  = limiter(leftMoments->at(mom::VZ), centMoments->at(mom::VZ), rghtMoments->at(mom::VZ));
+      for (size_t i = 0; i < moms.size(); i++) {
+         dMoments->at(dmiz[i]) = computeLimiter(moms[i], rghtMoments, leftMoments, centMoments);
+      }
    }
 
    // pres_e = const * np.power(rho_e, index)
-   dMoments->at(dmo::dPedz) = Pe_const * limiter(pow(leftMoments->at(mom::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex),pow(centMoments->at(mom::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex),pow(rghtMoments->at(mom::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex));
+   dMoments->at(dmo::dPedz) = computeGradPeLimiter(rghtMoments, leftMoments, centMoments);
 
 }
 
@@ -195,10 +188,19 @@ void computePerbDerivatives(
    using bfi = fsgrids::bfield;
    std::array<Real, dpb::N_DPERB> * dPerB = dPerBGrid.get(i,j,k);
 
+   auto computeDiff = [](const auto& i, const auto& right, const auto& left) { return 0.5 * (right->at(i) - left->at(i)); };
+
+   auto computeLimiter = [](const auto& i, const auto& right, const auto& left, const auto& center) {
+      return limiter(left->at(i), center->at(i), right->at(i));
+   };
+
+   auto compute2ndDerivative = [](const auto& i, const auto& right, const auto& left, const auto& center) {
+      return left->at(i) + right->at(i) - 2.0 * center->at(i);
+   };
+
    // Get boundary flag for the cell:
    cuint sysBoundaryFlag  = technicalGrid.get(i,j,k)->sysBoundaryFlag;
    cuint sysBoundaryLayer = technicalGrid.get(i,j,k)->sysBoundaryLayer;
-
 
    std::array<Real, fsgrids::moments::N_MOMENTS> * leftMoments = NULL;
    std::array<Real, bfi::N_BFIELD> * leftPerB = NULL;
@@ -234,7 +236,7 @@ void computePerbDerivatives(
    #ifdef DEBUG_SOLVERS
       const auto& lv = leftMoments->at(fsgrids::moments::RHOM);
       if (lv <= 0) {
-         std::cerr << __FILE__ << ":" << __LINE__ << (leftMoments->at(fsgrids::moments::RHOM) < 0 ? " Negative" : " Zero") << " density in spatial cell " << std::endl;
+         std::cerr << __FILE__ << ":" << __LINE__ << (lv < 0 ? " Negative" : " Zero") << " density in spatial cell " << std::endl;
          abort();
       }
       const auto& rv = rghtMoments->at(fsgrids::moments::RHOM);
@@ -245,20 +247,20 @@ void computePerbDerivatives(
    #endif
    }
 
-   if(P::fieldSolverFiniteDifferencingAtBoundaries && (atSysBoundary)) {
-      dPerB->at(dpb::dPERBydx)  = (rghtPerB->at(bfi::PERBY)-leftPerB->at(bfi::PERBY))/2;
-      dPerB->at(dpb::dPERBzdx)  = (rghtPerB->at(bfi::PERBZ)-leftPerB->at(bfi::PERBZ))/2;
+   if(P::fieldSolverFiniteDifferencingAtBoundaries && atSysBoundary) {
+      dPerB->at(dpb::dPERBydx) = computeDiff(bfi::PERBY, rghtPerB, leftPerB);
+      dPerB->at(dpb::dPERBzdx) = computeDiff(bfi::PERBZ, rghtPerB, leftPerB);
    } else {
-      dPerB->at(dpb::dPERBydx)  = limiter(leftPerB->at(bfi::PERBY),centPerB->at(bfi::PERBY),rghtPerB->at(bfi::PERBY));
-      dPerB->at(dpb::dPERBzdx)  = limiter(leftPerB->at(bfi::PERBZ),centPerB->at(bfi::PERBZ),rghtPerB->at(bfi::PERBZ));
+      dPerB->at(dpb::dPERBydx) = computeLimiter(bfi::PERBY, rghtPerB, leftPerB, centPerB);
+      dPerB->at(dpb::dPERBzdx) = computeLimiter(bfi::PERBZ, rghtPerB, leftPerB, centPerB);
    }
 
    if (dontCompute2ndDerivatives) {
       dPerB->at(dpb::dPERBydxx) = 0.0;
       dPerB->at(dpb::dPERBzdxx) = 0.0;
    } else {
-      dPerB->at(dpb::dPERBydxx) = leftPerB->at(bfi::PERBY) + rghtPerB->at(bfi::PERBY) - 2.0*centPerB->at(bfi::PERBY);
-      dPerB->at(dpb::dPERBzdxx) = leftPerB->at(bfi::PERBZ) + rghtPerB->at(bfi::PERBZ) - 2.0*centPerB->at(bfi::PERBZ);
+      dPerB->at(dpb::dPERBydxx) = compute2ndDerivative(bfi::PERBY, rghtPerB, leftPerB, centPerB);
+      dPerB->at(dpb::dPERBzdxx) = compute2ndDerivative(bfi::PERBZ, rghtPerB, leftPerB, centPerB);
    }
 
    // Calculate y-derivatives (is not TVD for AMR mesh):
@@ -271,20 +273,20 @@ void computePerbDerivatives(
       rghtPerB = centPerB;
    }
 
-   if(P::fieldSolverFiniteDifferencingAtBoundaries && (atSysBoundary)) {
-      dPerB->at(dpb::dPERBxdy)  = (rghtPerB->at(bfi::PERBX)-leftPerB->at(bfi::PERBX))/2;
-      dPerB->at(dpb::dPERBzdy)  = (rghtPerB->at(bfi::PERBZ)-leftPerB->at(bfi::PERBZ))/2;
+   if(P::fieldSolverFiniteDifferencingAtBoundaries && atSysBoundary) {
+      dPerB->at(dpb::dPERBxdy) = computeDiff(bfi::PERBX, rghtPerB, leftPerB);
+      dPerB->at(dpb::dPERBzdy) = computeDiff(bfi::PERBZ, rghtPerB, leftPerB);
    } else {
-      dPerB->at(dpb::dPERBxdy)  = limiter(leftPerB->at(bfi::PERBX),centPerB->at(bfi::PERBX),rghtPerB->at(bfi::PERBX));
-      dPerB->at(dpb::dPERBzdy)  = limiter(leftPerB->at(bfi::PERBZ),centPerB->at(bfi::PERBZ),rghtPerB->at(bfi::PERBZ));
+      dPerB->at(dpb::dPERBxdy) = computeLimiter(bfi::PERBX, rghtPerB, leftPerB, centPerB);
+      dPerB->at(dpb::dPERBzdy) = computeLimiter(bfi::PERBZ, rghtPerB, leftPerB, centPerB);
    }
 
    if (dontCompute2ndDerivatives) {
       dPerB->at(dpb::dPERBxdyy) = 0.0;
       dPerB->at(dpb::dPERBzdyy) = 0.0;
    } else {
-      dPerB->at(dpb::dPERBxdyy) = leftPerB->at(bfi::PERBX) + rghtPerB->at(bfi::PERBX) - 2.0*centPerB->at(bfi::PERBX);
-      dPerB->at(dpb::dPERBzdyy) = leftPerB->at(bfi::PERBZ) + rghtPerB->at(bfi::PERBZ) - 2.0*centPerB->at(bfi::PERBZ);
+      dPerB->at(dpb::dPERBxdyy) = compute2ndDerivative(bfi::PERBX, rghtPerB, leftPerB, centPerB);
+      dPerB->at(dpb::dPERBzdyy) = compute2ndDerivative(bfi::PERBZ, rghtPerB, leftPerB, centPerB);
    }
 
    // Calculate z-derivatives (is not TVD for AMR mesh):
@@ -297,20 +299,20 @@ void computePerbDerivatives(
       rghtPerB = centPerB;
    }
 
-   if(P::fieldSolverFiniteDifferencingAtBoundaries && (atSysBoundary)) {
-      dPerB->at(dpb::dPERBxdz)  = (rghtPerB->at(bfi::PERBX)-leftPerB->at(bfi::PERBX))/2;
-      dPerB->at(dpb::dPERBydz)  = (rghtPerB->at(bfi::PERBY)-leftPerB->at(bfi::PERBY))/2;
+   if(P::fieldSolverFiniteDifferencingAtBoundaries && atSysBoundary) {
+      dPerB->at(dpb::dPERBxdz) = computeDiff(bfi::PERBX, rghtPerB, leftPerB);
+      dPerB->at(dpb::dPERBydz) = computeDiff(bfi::PERBY, rghtPerB, leftPerB);
    } else {
-      dPerB->at(dpb::dPERBxdz)  = limiter(leftPerB->at(bfi::PERBX),centPerB->at(bfi::PERBX),rghtPerB->at(bfi::PERBX));
-      dPerB->at(dpb::dPERBydz)  = limiter(leftPerB->at(bfi::PERBY),centPerB->at(bfi::PERBY),rghtPerB->at(bfi::PERBY));
+      dPerB->at(dpb::dPERBxdz) = computeLimiter(bfi::PERBX, rghtPerB, leftPerB, centPerB);
+      dPerB->at(dpb::dPERBydz) = computeLimiter(bfi::PERBY, rghtPerB, leftPerB, centPerB);
    }
 
    if (dontCompute2ndDerivatives) {
       dPerB->at(dpb::dPERBxdzz) = 0.0;
       dPerB->at(dpb::dPERBydzz) = 0.0;
    } else {
-      dPerB->at(dpb::dPERBxdzz) = leftPerB->at(bfi::PERBX) + rghtPerB->at(bfi::PERBX) - 2.0*centPerB->at(bfi::PERBX);
-      dPerB->at(dpb::dPERBydzz) = leftPerB->at(bfi::PERBY) + rghtPerB->at(bfi::PERBY) - 2.0*centPerB->at(bfi::PERBY);
+      dPerB->at(dpb::dPERBxdzz) = compute2ndDerivative(bfi::PERBX, rghtPerB, leftPerB, centPerB);
+      dPerB->at(dpb::dPERBydzz) = compute2ndDerivative(bfi::PERBY, rghtPerB, leftPerB, centPerB);
    }
 
    if (dontCompute2ndDerivatives) {
