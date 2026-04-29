@@ -96,14 +96,14 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v4
       - name: Run library build script
-        run: srun --interactive --constraint="v100" --gres="gpu:V100" -p gpu -J build_libs -n 1 -c 64 bash -c "source modules/ukko_dgx.sh ; ./fetch_and_build_libraries.sh ukkogpu"
+        run: srun --interactive --constraint="v100" --gres="gpu:V100" -p gpu -J build_libs -n 1 -c 64 bash -c "source modules/ukko_dgx.sh ; ./fetch_and_build_libraries.sh ukko_dgx"
       - name: Build libraries tar
-        run: tar -zcf libraries-ukkogpu.tar.gz libraries-ukkogpu/
+        run: tar -zcf libraries-ukko_dgx.tar.gz libraries-ukko_dgx/
       - name: Upload libraries as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: libraries-ukkogpu
-          path: libraries-ukkogpu.tar.gz
+          name: libraries-ukko_dgx
+          path: libraries-ukko_dgx.tar.gz
           retention-days: 5
           if-no-files-found: error
 
@@ -356,7 +356,7 @@ jobs:
         run: |
           RUN_STRING=$( cat << MORO
           rm -rf libraries library-build testpackage
-          rm -f libraries-ukkogpu.tar.gz testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
+          rm -f libraries-ukko_dgx.tar.gz testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
           rm -f *.xml
           MORO
           )
@@ -370,9 +370,9 @@ jobs:
       - name: Fetch libraries
         uses: actions/download-artifact@v5
         with:
-          name: libraries-ukkogpu
+          name: libraries-ukko_dgx
       - name: Unpack libraries
-        run: tar -zxf libraries-ukkogpu.tar.gz
+        run: tar -zxf libraries-ukko_dgx.tar.gz
       - uses: ursg/gcc-problem-matcher@master
       - name: Compile vlasiator (Testpackage build w/ CUDA)
         run: |
@@ -582,7 +582,7 @@ jobs:
         run: |
           RUN_STRING=$( cat << MORO
           rm -rf libraries library-build testpackage
-          rm -f libraries-ukkogpu.tar.gz testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
+          rm -f libraries-ukko_dgx.tar.gz testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
           rm -f *.xml
           MORO
           )
@@ -596,9 +596,9 @@ jobs:
       - name: Fetch libraries
         uses: actions/download-artifact@v5
         with:
-          name: libraries-ukkogpu
+          name: libraries-ukko_dgx
       - name: Unpack libraries
-        run: tar -zxf libraries-ukkogpu.tar.gz
+        run: tar -zxf libraries-ukko_dgx.tar.gz
       - uses: ursg/gcc-problem-matcher@master
       - name: Compile vlasiator (Testpackage build w/ CUDA, debug)
         run: |
@@ -629,7 +629,7 @@ jobs:
         run: |
           RUN_STRING=$( cat << MORO
           rm -rf libraries library-build testpackage
-          rm -f libraries-ukkogpu.tar.gz testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
+          rm -f libraries-ukko_dgx.tar.gz testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
           rm -f *.xml
           MORO
           )
@@ -643,9 +643,9 @@ jobs:
       - name: Fetch libraries
         uses: actions/download-artifact@v5
         with:
-          name: libraries-ukkogpu
+          name: libraries-ukko_dgx
       - name: Unpack libraries
-        run: tar -zxf libraries-ukkogpu.tar.gz
+        run: tar -zxf libraries-ukko_dgx.tar.gz
       - uses: ursg/gcc-problem-matcher@master
       - name: Compile vlasiator (Production build w/ CUDA, debug, WA)
         run: |
@@ -775,7 +775,7 @@ jobs:
       run: |
         RUN_STRING=$( cat << MORO
         rm -rf libraries library-build testpackage
-        rm -f libraries-ukkogpu.tar.gz testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
+        rm -f libraries-ukko_dgx.tar.gz testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
         rm -f *.xml
         MORO
         )
@@ -790,9 +790,9 @@ jobs:
     - name: Fetch libraries
       uses: actions/download-artifact@v5
       with:
-        name: libraries-ukkogpu
+        name: libraries-ukko_dgx
     - name: Unpack libraries
-      run: tar -zxf libraries-ukkogpu.tar.gz
+      run: tar -zxf libraries-ukko_dgx.tar.gz
     - name: Compile tools
       run: |
           export VLASIATOR_ARCH=ukko_dgx
@@ -1013,16 +1013,16 @@ jobs:
   #  - name: Fetch libraries
   #     uses: actions/download-artifact@v5
   #     with:
-  #       name: libraries-ukkogpu
+  #       name: libraries-ukko_dgx
   #   - name: Unpack libraries
-  #     run: tar -zxf libraries-ukkogpu.tar.gz
+  #     run: tar -zxf libraries-ukko_dgx.tar.gz
   #   - name: Run GPU testpackage
   #     id: run
   #     run: |
   #       chmod +x $GITHUB_WORKSPACE/vlasiator
   #       chmod +x $GITHUB_WORKSPACE/vlsv*_DP
   #       cd testpackage
-  #       export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/libraries-ukkogpu/lib
+  #       export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/libraries-ukko_dgx/lib
   #       sbatch -W -o testpackage_run_output.txt ./small_test_ukko_dgx_github_ci.sh
   #       PARSE_OUTPUT_CMD=$( cat << MORO
   #       echo "Job finished, checking output."
