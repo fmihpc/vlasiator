@@ -192,7 +192,7 @@ void initializeGrids(
    if (myRank == MASTER_RANK) {
       logFile << "(INIT): Set initial state." << endl << writeVerbose;
    }
-   std::cout << __FILE__<<":" << __LINE__ <<"\n";
+   // std::cout << __FILE__<<":" << __LINE__ <<"\n";
 
    phiprof::Timer initialStateTimer {"Set initial state"};
 
@@ -203,13 +203,13 @@ void initializeGrids(
    phiprof::Timer initBoundaryTimer {"Initialize system boundary conditions"};
    sysBoundaries.initSysBoundaries(project, P::t_min);
    initBoundaryTimer.stop();
-   std::cout << __FILE__<<":" << __LINE__ <<"\n";
+   // std::cout << __FILE__<<":" << __LINE__ <<"\n";
 
    phiprof::Timer initTransferTimer {"Sysboundaries update"};
 
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_DIMENSIONS);
    mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::SYSBOUNDARIES);
-std::cout << __FILE__<<":" << __LINE__ <<"\n";
+// std::cout << __FILE__<<":" << __LINE__ <<"\n";
    computeCoupling(mpiGrid, cells, technicalGrid);
    initTransferTimer.stop();
 
@@ -302,12 +302,12 @@ std::cout << __FILE__<<":" << __LINE__ <<"\n";
       }
 
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-         std::cerr << __FILE__<<":"<<__LINE__<< " calling adjustVelocityBlocks at t = " 
-         << P::t << ", preparing to receive; len cells = " << cells.size() <<
-         "\n";
+         // std::cerr << __FILE__<<":"<<__LINE__<< " calling adjustVelocityBlocks at t = " 
+         // << P::t << ", preparing to receive; len cells = " << cells.size() <<
+         // "\n";
          for (int timeclass = 0; timeclass <= P::currentMaxTimeclass; timeclass++){
             adjustVelocityBlocks(mpiGrid,cells,true,popID,timeclass);
-            std::cout << __FILE__<<":" << __LINE__ <<" adjusted velocityblocs "<< timeclass<<"\n";
+            // std::cout << __FILE__<<":" << __LINE__ <<" adjusted velocityblocs "<< timeclass<<"\n";
          }
          // set initial LB metric based on number of blocks
          #pragma omp parallel for schedule(static)
@@ -342,7 +342,7 @@ std::cout << __FILE__<<":" << __LINE__ <<"\n";
       }
    }
 
-   std::cout << __FILE__<<":" << __LINE__ <<" about to call balanceLoad\n";
+   // std::cout << __FILE__<<":" << __LINE__ <<" about to call balanceLoad\n";
    // Balance load before we transfer all data below
    phiprof::Timer balanceTimer {"Balance load before transfers"};
 
@@ -354,9 +354,9 @@ std::cout << __FILE__<<":" << __LINE__ <<"\n";
 
    phiprof::Timer fetchNeighbourTimer {"Fetch Neighbour data", {"MPI"}};
    // update complete cell spatial data for full stencil
-   std::cout << __FILE__<<":" << __LINE__ <<" to set spatial data\n";
+   // std::cout << __FILE__<<":" << __LINE__ <<" to set spatial data\n";
    SpatialCell::set_mpi_transfer_type(Transfer::ALL_SPATIAL_DATA);
-   std::cout << __FILE__<<":" << __LINE__ <<" to update remote copies\n";
+   // std::cout << __FILE__<<":" << __LINE__ <<" to update remote copies\n";
    mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::FULL);
    fetchNeighbourTimer.stop();
 
@@ -591,7 +591,7 @@ void transferInParts(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
             cell->set_mpi_transfer_enabled(true);
          }
       }
-      std::cerr << __FILE__<<":"<<__LINE__<<"\n";
+      // std::cerr << __FILE__<<":"<<__LINE__<<"\n";
       for (size_t popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          for (int timeclass = 0; timeclass <= P::currentMaxTimeclass; ++timeclass) {
             // Set active population
@@ -693,12 +693,12 @@ void transferInParts(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
                }
                copyParentsTimer.stop(processed.size(), "Spatial cells");
             }
-            std::cerr << __FILE__<<":"<<__LINE__<<"\n";
+            // std::cerr << __FILE__<<":"<<__LINE__<<"\n";
             memory_purge(); // Purge jemalloc allocator to actually release memory
          } // for-loop over timeclasses
-         std::cerr << __FILE__<<":"<<__LINE__<<"\n";
+         // std::cerr << __FILE__<<":"<<__LINE__<<"\n";
       } // for-loop over populations
-      std::cerr << __FILE__<<":"<<__LINE__<<"\n";
+      // std::cerr << __FILE__<<":"<<__LINE__<<"\n";
    } // for-loop over transfer parts
 
    // Re-enable transfer for received cells
@@ -757,7 +757,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
 
    // recompute coupling of grids after load balance
    computeCoupling(mpiGrid, cells, technicalGrid);
-std::cerr << __FILE__<<":"<<__LINE__<<"\n";
+// std::cerr << __FILE__<<":"<<__LINE__<<"\n";
    // Communicate all spatial data for FULL neighborhood, which
    // includes all data with the exception of dist function data
    SpatialCell::set_mpi_transfer_type(Transfer::ALL_SPATIAL_DATA);
@@ -774,23 +774,23 @@ std::cerr << __FILE__<<":"<<__LINE__<<"\n";
       }
    }
    updateBlocksTimer.stop();
-std::cerr << __FILE__<<":"<<__LINE__<<"\n";
+// std::cerr << __FILE__<<":"<<__LINE__<<"\n";
    // phiprof::Timer updateBoundariesTimer {"update sysboundaries"};
    sysBoundaries.updateSysBoundariesAfterLoadBalance( mpiGrid );
-   std::cerr << __FILE__<<":"<<__LINE__<<"\n";
+   // std::cerr << __FILE__<<":"<<__LINE__<<"\n";
    // updateBoundariesTimer.stop();
 
    // Prepare ghost translation cell lists and build pencils for translation.
    if (doTranslationLists) {
       prepareAMRLists(mpiGrid);
    }
-std::cerr << __FILE__<<":"<<__LINE__<<"\n";
+// std::cerr << __FILE__<<":"<<__LINE__<<"\n";
    // Record ranks of face neighbors for translation remote neighbor contribution
    if (!P::vlasovSolverGhostTranslate) {
       phiprof::Timer timer {"set face neighbor ranks"};
       setFaceNeighborRanks( mpiGrid );
    }
-std::cerr << __FILE__<<":"<<__LINE__<<"\n";
+// std::cerr << __FILE__<<":"<<__LINE__<<"\n";
 #ifdef USE_GPU
    phiprof::Timer gpuReservationsTimer("GPU LB set cell reservations");
    uint gpuMaxBlockCount = 0;
@@ -836,11 +836,11 @@ std::cerr << __FILE__<<":"<<__LINE__<<"\n";
  */
 void prepareAMRLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid)
 {
-         std::cerr << __FILE__<<":" << __LINE__ <<"\n";
+         // std::cerr << __FILE__<<":" << __LINE__ <<"\n";
 
    // AMR translation lists are used also for non-AMR simulations in GPU mode
    if (P::vlasovSolverGhostTranslate) {
-      std::cerr << __FILE__<<":" << __LINE__ <<"\n";
+      // std::cerr << __FILE__<<":" << __LINE__ <<"\n";
       phiprof::Timer ghostTimer {"prepare_ghost_translation_lists"};
 
       // Update (face and other) neighbor information for remote cells on boundary
@@ -849,32 +849,32 @@ void prepareAMRLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
       //const vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(Neighborhoods::VLASOV_SOLVER_GHOST);
       mpiGrid.force_update_cell_neighborhoods(remote_cells);
       updateRemoteNeighborsTimer.stop();
-std::cerr << __FILE__<<":" << __LINE__ <<"\n";
+// std::cerr << __FILE__<<":" << __LINE__ <<"\n";
       phiprof::Timer ghostListsTimer {"update active cell lists for ghost translation"};
       const vector<CellID>& localCells = getLocalCells();
 
       prepareGhostTranslationCellLists(mpiGrid, localCells, ghostTranslate_source, ghostTranslate_active);
-std::cerr << __FILE__<<":" << __LINE__ <<"\n";
+// std::cerr << __FILE__<<":" << __LINE__ <<"\n";
       ghostListsTimer.stop();
 
       phiprof::Timer barrierTimer {"MPI barrier"};
       MPI_Barrier(MPI_COMM_WORLD);
       barrierTimer.stop();
-std::cerr << __FILE__<<":" << __LINE__ <<"\n";
+// std::cerr << __FILE__<<":" << __LINE__ <<"\n";
       ghostTimer.stop();
    }
-      std::cerr << __FILE__<<":" << __LINE__ <<"\n";
+      // std::cerr << __FILE__<<":" << __LINE__ <<"\n";
    int myRank;
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
 
    if (P::maxTimeclass >= 0) {
       const vector<CellID>& localCells = getLocalCells();
-      std::cerr << __FILE__<<":" << __LINE__ <<"\n";
+      // std::cerr << __FILE__<<":" << __LINE__ <<"\n";
       const vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(Neighborhoods::FULL);
       mpiGrid.force_update_cell_neighborhoods(remote_cells);
 
       for(int i = 0; i <= P::maxTimeclass; ++i){
-         std::cerr << myRank << ": prepareAMRLists called for timeclass " << i << "\n";
+         // std::cerr << myRank << ": prepareAMRLists called for timeclass " << i << "\n";
          set<CellID> tc_active_cells_set;
          std::vector<CellID> tc_act_cells;
          if (P::maxTimeclass > 0) {
@@ -885,18 +885,18 @@ std::cerr << __FILE__<<":" << __LINE__ <<"\n";
          }
          timeghost_source[i].clear();
          timeghost_active[i].clear();
-         std::cerr << __FILE__<<":"<<__LINE__<<" "<< myRank<<"\n";
+         // std::cerr << __FILE__<<":"<<__LINE__<<" "<< myRank<<"\n";
 
          prepareGhostTranslationCellLists(mpiGrid, tc_act_cells, timeghost_source[i], timeghost_active[i], i);
-         std::cerr << __FILE__<<":"<<__LINE__<<" "<< myRank << " timeclass i " << i <<"\n";
+         // std::cerr << __FILE__<<":"<<__LINE__<<" "<< myRank << " timeclass i " << i <<"\n";
       MPI_Barrier(MPI_COMM_WORLD);
 
       }
    }
-std::cerr << __FILE__<<":"<<__LINE__<<" "<< myRank << "\n";
+// std::cerr << __FILE__<<":"<<__LINE__<<" "<< myRank << "\n";
    // Prepare cellIDs and pencils for AMR translation
    prepareSeedIdsAndPencils(mpiGrid);
-   std::cerr << __FILE__<<":"<<__LINE__<<" "<< myRank << "\n";
+   // std::cerr << __FILE__<<":"<<__LINE__<<" "<< myRank << "\n";
 }
 
 void getGhostNeighborsforTC(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
@@ -923,7 +923,7 @@ void getGhostNeighborsforTC(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    }
    set<CellID> exactHaloCells = {};
 
-   std::cerr << __FILE__<<":"<<__LINE__<<" "<< myRank << ": getGhostNeighborsforTC\n";
+   // std::cerr << __FILE__<<":"<<__LINE__<<" "<< myRank << ": getGhostNeighborsforTC\n";
    for (const CellID cell : tc_cells) {
       auto neighbors = mpiGrid.get_neighbors_of(cell, Neighborhoods::VLASOV_SOLVER_TIMEGHOST_EXACT_HALO);
       auto& neighborsRef = *neighbors;
@@ -963,7 +963,7 @@ void getGhostNeighborsforTC(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
          }
       }
    }
-   std::cerr << __FILE__<<":"<<__LINE__<<" "<< myRank<<"\n";
+   // std::cerr << __FILE__<<":"<<__LINE__<<" "<< myRank<<"\n";
 
    active_cells = set(tc_cells.begin(),tc_cells.end());
    active_cells.insert(exactHaloCells.begin(),exactHaloCells.end());
@@ -1018,7 +1018,7 @@ void getGhostNeighborsforTC(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
          // std::cerr << "\n";
       }
    }
-      std::cerr << __FILE__<<":"<<__LINE__<<" "<< myRank<<"\n";
+      // std::cerr << __FILE__<<":"<<__LINE__<<" "<< myRank<<"\n";
 
 }
 
@@ -1151,7 +1151,7 @@ void updateRemoteVelocityBlockLists(
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
 
    SpatialCell::setCommunicatedSpecies(popID, timeclass);
-   std::cerr << __FILE__<<":" << __LINE__ << " (" << myRank << ")" << "\n";
+   // std::cerr << __FILE__<<":" << __LINE__ << " (" << myRank << ")" << "\n";
 
    // update velocity block lists For small velocity spaces it is
    // faster to do it in one operation, and not by first sending size,
@@ -1159,18 +1159,18 @@ void updateRemoteVelocityBlockLists(
    phiprof::Timer updateTimer {"Velocity block list update", {"MPI"}};
    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_STAGE1);
    mpiGrid.update_copies_of_remote_neighbors(neighborhood);
-   std::cerr << __FILE__<<":" << __LINE__ << " (" << myRank << ")" <<" timeclass " << timeclass <<"\n";
+   // std::cerr << __FILE__<<":" << __LINE__ << " (" << myRank << ")" <<" timeclass " << timeclass <<"\n";
    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_STAGE2);
-   std::cerr << __FILE__<<":" << __LINE__ << " (" << myRank << ")" <<"\n";
+   // std::cerr << __FILE__<<":" << __LINE__ << " (" << myRank << ")" <<"\n";
 
    mpiGrid.update_copies_of_remote_neighbors(neighborhood);
-   std::cerr << __FILE__<<":" << __LINE__ << " (" << myRank << ")" <<"\n";
+   // std::cerr << __FILE__<<":" << __LINE__ << " (" << myRank << ")" <<"\n";
    updateTimer.stop();
 
    // Prepare spatial cells for receiving velocity block data
    phiprof::Timer receivesTimer {"Preparing receives"};
    const std::vector<uint64_t> incoming_cells = mpiGrid.get_remote_cells_on_process_boundary(neighborhood);
-   std::cerr << __FILE__<<":" << __LINE__ <<"\n";
+   // std::cerr << __FILE__<<":" << __LINE__ <<"\n";
    #pragma omp parallel for
    for (unsigned int i=0; i<incoming_cells.size(); ++i) {
      uint64_t cell_id = incoming_cells[i];
@@ -1194,7 +1194,7 @@ void updateRemoteVelocityBlockLists(
      }
      cell->prepare_to_receive_blocks(popID, timeclass);
    }
-      std::cerr << __FILE__<<":" << __LINE__ <<"\n";
+      // std::cerr << __FILE__<<":" << __LINE__ <<"\n";
 
 
    receivesTimer.stop(incoming_cells.size(), "SpatialCells");
@@ -1903,8 +1903,8 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       neighborhood.push_back(n);
       ss << "("<<n[0]<<","<<n[1]<<","<<n[2]<<")";
       }
-      ss << "\n";
-      std::cerr <<ss.str();
+   ss << "\n";
+   // std::cerr <<ss.str();
    
    /*all possible communication pairs*/
    if( !mpiGrid.add_neighborhood(Neighborhoods::FULL, neighborhood)){
