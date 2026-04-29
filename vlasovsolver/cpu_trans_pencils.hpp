@@ -93,7 +93,7 @@ struct setOfPencils {
 
    void addPencil(std::vector<CellID> idsIn, Real xIn, Real yIn, bool periodicIn, std::vector<uint> pathIn, int timeclass) {
       N++;
-      std::cerr << __FILE__ <<":"<<__LINE__<<" addPencil called \n";
+      // std::cerr << __FILE__ <<":"<<__LINE__<<" addPencil called \n";
 
       // If necessary, add the zero cells to the beginning and end
       if (idsIn.front() != 0) {
@@ -116,11 +116,11 @@ struct setOfPencils {
       periodic.push_back(periodicIn);
       path.push_back(pathIn);
       timeclasses.push_back(timeclass);
-      std::cerr << __FILE__ <<":"<<__LINE__<<" Added " << xIn << " to x = {";
-      for (auto i = x.begin(); i != x.end(); i++){
-         std::cerr << *i << ", ";
-      }
-      std::cerr << "}\n";
+      // std::cerr << __FILE__ <<":"<<__LINE__<<" Added " << xIn << " to x = {";
+      // for (auto i = x.begin(); i != x.end(); i++){
+      //    std::cerr << *i << ", ";
+      // }
+      // std::cerr << "}\n";
    }
 
    void binPencils() {
