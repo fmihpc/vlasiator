@@ -1,0 +1,77 @@
+# -*- mode: makefile -*-
+# GCC
+CMP = nvcc -ccbin mpic++
+LNK = nvcc -ccbin mpic++
+
+# Starting Makefile for the gpu partition of Roihu at CSC
+#
+# Build libraries as ./fetch_and_build_libraries.sh roihu-gpu
+#
+# Recommended modules:
+# module load boost
+# module load papi
+
+#======== Vectorization ==========
+# Set vector backend type for vlasov solvers, sets precision and length. 
+# NOTE this has to have the same precision as the distribution function define (DISTRIBUTION_FP_PRECISION)
+# Options: 
+# AVX:	    VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
+# AVX512:   VEC8D_AGNER, VEC16F_AGNER
+# Fallback: VEC_FALLBACK_GENERIC
+
+VECTORCLASS = VEC_FALLBACK_GENERIC
+
+# GNU flags:
+CXXFLAGS = -g -O3 -x cu -std=c++20 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_90a,code=sm_90a --cudart shared --generate-line-info -line-info -Xcompiler="-fopenmp" -Xcompiler="-fpermissive" -maxrregcount 24 -Wno-deprecated-declarations -diag-suppress 63
+testpackage: CXXFLAGS = -g -O2 -x cu -std=c++20 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_90a,code=sm_90a --cudart shared --generate-line-info -line-info -Xcompiler="-fopenmp" -Xcompiler="-fpermissive" -maxrregcount 24 -Wno-deprecated-declarations -diag-suppress 63
+
+# Tell mpic++ to use nvcc for all compiling
+CMP = OMPI_CXX='nvcc' OMPI_CXXFLAGS='' mpic++
+
+MATHFLAGS = 
+testpackage: MATHFLAGS = -fno-unsafe-math-optimizations
+
+# GCC
+LDFLAGS = -O2 -g 
+LIB_MPI = -lgomp
+
+#======== Allocator =========
+# Use jemalloc instead of system malloc to reduce memory fragmentation? https://github.com/jemalloc/jemalloc
+# Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
+#CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+#testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+
+#======= Compiler and compilation flags =========
+# NOTES on compiler flags:
+# CXXFLAGS is for compiler flags, they are always used
+# MATHFLAGS are for special math etc. flags, these are only applied on solver functions
+# LDFLAGS flags for linker
+
+#-DNO_WRITE_AT_ALL:  Define to disable write at all to 
+#                    avoid memleak (much slower IO)
+#-DMPICH_IGNORE_CXX_SEEK: Ignores some multiple definition 
+#                         errors that come up when using 
+#                         mpi.h in c++ on Cray
+
+CXXFLAGS += -DMPICH_IGNORE_CXX_SEEK
+testpackage: CXXFLAGS += -DMPICH_IGNORE_CXX_SEEK
+
+# BOOST_VERSION = current trilinos version
+# ZOLTAN_VERSION = current trilinos verson
+
+#======== Libraries ===========
+
+# Adjust to where your own libraries/dependencies have been built.
+LIBRARY_PREFIX = libraries-roihu-gpu
+
+# Compiled libraries
+INC_ZOLTAN = -isystem /$(LIBRARY_PREFIX)/include
+LIB_ZOLTAN = -L/$(LIBRARY_PREFIX)/lib -lzoltan
+
+INC_VLSV = -I$(LIBRARY_PREFIX)/include
+LIB_VLSV = -L$(LIBRARY_PREFIX)/lib -lvlsv
+
+INC_PROFILE = -I$(LIBRARY_PREFIX)/include
+LIB_PROFILE = -L$(LIBRARY_PREFIX)/lib -lphiprof -Xlinker=-rpath=$(LIBRARY_PREFIX)/lib
+
+LIB_BOOST = -L$(BOOST_ROOT)/lib -lboost_program_options
