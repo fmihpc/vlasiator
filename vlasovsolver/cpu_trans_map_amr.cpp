@@ -412,12 +412,12 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
                   // const vmesh::LocalID blockLID = srcCell->get_velocity_block_local_id(blockGID,popID, timeclass);
                   const vmesh::LocalID blockLID = velmesh->getLocalID(blockGID);
                   // Store block data pointer for both loading of data and writing back to the cell
-                     if (blocki == 0){
-                        std::cout << "Loading cell " << (int)srcCell->parameters[CellParams::CELLID]<<"\n";
-                        std::cout << "velmesh size = " << velmesh->size() <<"\n"; 
-                        std::cout << "cell tc " << srcCell->get_tc() << ", pencil tc " <<  DimensionPencils[dimension].timeclasses[pencili] << ", tc req count " << srcCell->get_all_ghosts().count(timeclass)<<"\n";
-                        std::cout << "cellBlockData " << cellBlockData.size() << "\n";
-                     }
+                     // if (blocki == 0){
+                     //    std::cout << "Loading cell " << (int)srcCell->parameters[CellParams::CELLID]<<"\n";
+                     //    std::cout << "velmesh size = " << velmesh->size() <<"\n"; 
+                     //    std::cout << "cell tc " << srcCell->get_tc() << ", pencil tc " <<  DimensionPencils[dimension].timeclasses[pencili] << ", tc req count " << srcCell->get_all_ghosts().count(timeclass)<<"\n";
+                     //    std::cout << "cellBlockData " << cellBlockData.size() << "\n";
+                     // }
                   if (blockLID != srcCell->invalid_local_id()) {
                   // if (blockLID != velmesh->invalidLocalID()){
                      // Get data pointer
@@ -454,7 +454,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
                if(nonEmptyBlocks == 0) {
                   if (blocki == 0){
 
-                  std::cout << "Empty blocks for pencilI " << pencili << "\n"; }
+                  // std::cout << "Empty blocks for pencilI " << pencili << "\n"; }
                   continue;
                }
                
@@ -472,12 +472,12 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
             for (uint pencili : DimensionPencils[dimension].pencilsInBin[currentBin]) {
                if (DimensionPencils[dimension].timeclasses[pencili] != timeclass) {
                   if (blocki == 0){
-                  std::cout << "Skip pencili " << pencili << " "<< DimensionPencils[dimension].timeclasses[pencili] << " != " << timeclass << "\n"; }
+                  // std::cout << "Skip pencili " << pencili << " "<< DimensionPencils[dimension].timeclasses[pencili] << " != " << timeclass << "\n"; }
                   continue;
                }
                else{
                   if (blocki == 0){
-                  std::cout << "cntd pencili " << pencili << " "<< DimensionPencils[dimension].timeclasses[pencili] << " == " << timeclass << "\n"; }
+                  // std::cout << "cntd pencili " << pencili << " "<< DimensionPencils[dimension].timeclasses[pencili] << " == " << timeclass << "\n"; }
                }
                for (uint targeti = DimensionPencils[dimension].idsStart[pencili]; targeti < DimensionPencils[dimension].idsStart[pencili]+DimensionPencils[dimension].lengthOfPencils[pencili]; ++targeti){
                   // for (CellID target_cell_id: DimensionPencils[dimension].getIds(pencili)){//DimensionPencils[dimension].ids[pencili]) {
@@ -551,7 +551,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
                         if(blockData && !donotZero){
                            if(blocki == 0)
                            {
-                              std::cout << "pencil at tc " <<timeclass << " zeroing " << target_cell_id << ", " << ((target_cell->get_tc() != timeclass) ? "ghost" : "base") << "\n";
+                              // std::cout << "pencil at tc " <<timeclass << " zeroing " << target_cell_id << ", " << ((target_cell->get_tc() != timeclass) ? "ghost" : "base") << "\n";
                            }
                            // std::cout << blockData << " blockdata," << target_cell->null_block_data.data() <<" \n";
                            // std::cout << target_cell_id << " zeroed blockdata\n";
@@ -595,15 +595,15 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
                Realf** pencilBlockData = cellBlockData.data() + start;
                const Vec* blockDataSource = blockDataBuffer.data() + start*WID3/VECL;
                if (blocki == 0){
-                  std::cout << "Sanity-checking targetratios at tc " << DimensionPencils[dimension].timeclasses[pencili] << "\n";
-                  for (int i = 0; i < L; ++i){
-                     std::cout << penciltargets[i] << " ";
-                  }
-                  std::cout << "\n";
-                  for (int i = 0; i < L; ++i){
-                     std::cout << pencilRatios[i] << " ";
-                  }
-                  std::cout << "\n";
+                  // std::cout << "Sanity-checking targetratios at tc " << DimensionPencils[dimension].timeclasses[pencili] << "\n";
+                  // for (int i = 0; i < L; ++i){
+                  //    std::cout << penciltargets[i] << " ";
+                  // }
+                  // std::cout << "\n";
+                  // for (int i = 0; i < L; ++i){
+                  //    std::cout << pencilRatios[i] << " ";
+                  // }
+                  // std::cout << "\n";
                }
                
                propagatePencil(pencilDZ,
