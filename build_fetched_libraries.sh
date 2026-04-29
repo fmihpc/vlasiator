@@ -47,8 +47,9 @@ elif [[ $PLATFORM == "-leonardo_dcgp_intel" ]]; then
 elif [[ $PLATFORM == "-hile_cpu" || $PLATFORM == "-hile_gpu" || $PLATFORM == "-lumi_2403" ]]; then
    make -j $PARALLEL CCC=CC CC=cc CCFLAGS="-fpic -O2 -std=c++17 -DCLOCK_ID=CLOCK_MONOTONIC -fopenmp" LDFLAGS="-fopenmp"
 elif [[ $PLATFORM == "-lumi_hipcc" ]]; then
-    make -j $PARALLEL CC=hipcc
-    CCFLAGS="-fpic -O2 -std=c++17 -DCLOCK_ID=CLOCK_MONOTONIC -fopenmp" LDFLAGS="-lstdc++ -fopenmp -lgomp -lroctx64 -lroctracer64"
+   make -j $PARALLEL CC=hipcc CCFLAGS="-fpic -O2 -std=c++17 -DCLOCK_ID=CLOCK_MONOTONIC -fopenmp" LDFLAGS="-lstdc++ -fopenmp -lgomp -lroctx64 -lroctracer64"
+elif [[ $PLATFORM == "-roihu_cpu" ]]; then
+   make -j $PARALLEL CCC=mpic++ CCFLAGS="-fpic -O2 -std=c++17 -DCLOCK_ID=CLOCK_MONOTONIC -fopenmp" LDFLAGS="-fopenmp"
 else
    make -j $PARALLEL CCC=mpic++
 fi
