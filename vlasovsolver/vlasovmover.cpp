@@ -289,7 +289,7 @@ void calculateSpatialTranslation(
         creal dt,
         const bool initializationOrLB) {
    typedef Parameters P;
-   std::cerr << std::scientific << "calculateSpatialTranslation at t="<<P::t << "\n";//", for dtfactor="<<dt<<"\n";
+   // std::cerr << std::scientific << "calculateSpatialTranslation at t="<<P::t << "\n";//", for dtfactor="<<dt<<"\n";
    phiprof::Timer semilagTimer {"semilag-trans"};
 
    //double t1 = MPI_Wtime();
@@ -475,7 +475,7 @@ void calculateSpatialTranslation(
          int mod = 1 << (P::currentMaxTimeclass - tc);
          if((P::fractionalTimestep % mod) == 0){
             
-            std::cout << "rank " << myRank << ": " << tc_propagated_cells[tc].size() << " cells: calculateSpatialTranslation tc " << tc << " by dt " << P::timeclassDt[tc] <<"\n";
+            // std::cout << "rank " << myRank << ": " << tc_propagated_cells[tc].size() << " cells: calculateSpatialTranslation tc " << tc << " by dt " << P::timeclassDt[tc] <<"\n";
               if (P::vlasovSolverGhostTranslate && (P::amrMaxSpatialRefLevel > 0) ) {
                // Local translation without interim communication
                // Not yet implemented for non-AMR solver
@@ -670,12 +670,12 @@ void calculateAcceleration(const uint popID,const int globalMaxSubcycles,const i
    // }
    // std::cout << "\n";
    // for (size_t c=0; c<propagatedCells.size(); ++c) {
-      std::cout << "Accelerating payload at fract " << P::fractionalTimestep << ", cells(timeclass,dt,): \n\t";
-   for(auto& payload:acceleratedCells){
+      // std::cout << "Accelerating payload at fract " << P::fractionalTimestep << ", cells(timeclass,dt,): \n\t";
+   // for(auto& payload:acceleratedCells){
       
-      std::cout << payload.cellptr->get_cellid() <<"("<< payload.timeclass << ", " << payload.dt <<") ";
-   }
-   std::cout<<"\n";
+   //    std::cout << payload.cellptr->get_cellid() <<"("<< payload.timeclass << ", " << payload.dt <<") ";
+   // }
+   // std::cout<<"\n";
    for(auto& payload:acceleratedCells){
       
       
@@ -780,18 +780,18 @@ vector<AccelerationPayload>& setAccelerationTimeGhosts(vector<AccelerationPayloa
       int tc_d = i-spatial_cell->get_tc();
       payload.timeclass = i;
       if(tc_d > 0) {
-         std::cerr << __FILE__ << ":"<<__LINE__ << " cell " << (int)spatial_cell->parameters[CellParams::CELLID] <<" native with " << spatial_cell->get_velocity_blocks(popID)->size() <<" blocks\n";
+         // std::cerr << __FILE__ << ":"<<__LINE__ << " cell " << (int)spatial_cell->parameters[CellParams::CELLID] <<" native with " << spatial_cell->get_velocity_blocks(popID)->size() <<" blocks\n";
          if (!P::tc_leapfrog_init) {
             spatial_cell->set_population(spatial_cell->get_population(popID,spatial_cell->get_tc()),popID,i);
-            std::cerr << __FILE__ << ":"<<__LINE__ << " c " << spatial_cell->parameters[CellParams::CELLID] << " pop pointers: " << &spatial_cell->get_population(popID,spatial_cell->get_tc()) << ", tc" << i << ": " << &spatial_cell->get_population(popID,i)<< "\n";
-            std::cerr << __FILE__ << ":"<<__LINE__ << " c " << (int)spatial_cell->parameters[CellParams::CELLID] << " " << i << "tc with " << spatial_cell->get_velocity_blocks(popID,i)->size() <<" blocks\n";
+            // std::cerr << __FILE__ << ":"<<__LINE__ << " c " << spatial_cell->parameters[CellParams::CELLID] << " pop pointers: " << &spatial_cell->get_population(popID,spatial_cell->get_tc()) << ", tc" << i << ": " << &spatial_cell->get_population(popID,i)<< "\n";
+            // std::cerr << __FILE__ << ":"<<__LINE__ << " c " << (int)spatial_cell->parameters[CellParams::CELLID] << " " << i << "tc with " << spatial_cell->get_velocity_blocks(popID,i)->size() <<" blocks\n";
             payload.dt = dt/pow(2,tc_d);
             outvec.push_back(payload);
          }
          else if (spatial_cell->get_timeclass_turn_v()) {
             spatial_cell->set_population(spatial_cell->get_population(popID,spatial_cell->get_tc()),popID,i);
-            std::cerr << __FILE__ << ":"<<__LINE__<< " c " << (int)spatial_cell->parameters[CellParams::CELLID] << " pop pointers: " << &spatial_cell->get_population(popID,spatial_cell->get_tc()) << ", tc" << i << ": " << &spatial_cell->get_population(popID,i)<< "\n";
-            std::cerr << "c " << spatial_cell->parameters[CellParams::CELLID] <<" " << i << "tc with " << spatial_cell->get_velocity_blocks(popID,i)->size() <<" blocks\n";
+            // std::cerr << __FILE__ << ":"<<__LINE__<< " c " << (int)spatial_cell->parameters[CellParams::CELLID] << " pop pointers: " << &spatial_cell->get_population(popID,spatial_cell->get_tc()) << ", tc" << i << ": " << &spatial_cell->get_population(popID,i)<< "\n";
+            // std::cerr << "c " << spatial_cell->parameters[CellParams::CELLID] <<" " << i << "tc with " << spatial_cell->get_velocity_blocks(popID,i)->size() <<" blocks\n";
             payload.dt = dt/pow(2,tc_d)*1/2;
             outvec.push_back(payload);
          }
@@ -801,8 +801,8 @@ vector<AccelerationPayload>& setAccelerationTimeGhosts(vector<AccelerationPayloa
          }
          else if (spatial_cell->requested_timeclass_copy_ghosts.count(i) && spatial_cell->get_timeclass_turn_v(i)){
             spatial_cell->set_population(spatial_cell->get_population(popID,spatial_cell->get_tc()),popID,i);
-            std::cerr<< __FILE__ << ":"<<__LINE__ << " c " << (int)spatial_cell->parameters[CellParams::CELLID] << " pop pointers: " << &spatial_cell->get_population(popID,spatial_cell->get_tc()) << ", tc" << i << ": " << &spatial_cell->get_population(popID,i)<< "\n";
-            std::cerr << __FILE__ << ":"<<__LINE__ <<" c " << (int)spatial_cell->parameters[CellParams::CELLID] << " " << i << "tc with " << spatial_cell->get_velocity_blocks(popID,i)->size() <<" blocks\n";
+            // std::cerr<< __FILE__ << ":"<<__LINE__ << " c " << (int)spatial_cell->parameters[CellParams::CELLID] << " pop pointers: " << &spatial_cell->get_population(popID,spatial_cell->get_tc()) << ", tc" << i << ": " << &spatial_cell->get_population(popID,i)<< "\n";
+            // std::cerr << __FILE__ << ":"<<__LINE__ <<" c " << (int)spatial_cell->parameters[CellParams::CELLID] << " " << i << "tc with " << spatial_cell->get_velocity_blocks(popID,i)->size() <<" blocks\n";
 
             payload.dt = dt/pow(2,tc_d)*3/2;
             outvec.push_back(payload);
@@ -830,7 +830,7 @@ vector<AccelerationPayload>& setAccelerationTimeGhosts(vector<AccelerationPayloa
                            
             // if it is slower-tc's turn, we are synced at after-trans state
             // -> Copy state, but needs to acc by half-tc-0-dt ("always init")
-            std::cerr << __FILE__ << ":"<<__LINE__ << " c"<< (int)spatial_cell->parameters[CellParams::CELLID]<<"\n";
+            // std::cerr << __FILE__ << ":"<<__LINE__ << " c"<< (int)spatial_cell->parameters[CellParams::CELLID]<<"\n";
             spatial_cell->set_population(spatial_cell->get_population(popID,spatial_cell->get_tc()),popID,i);
             // spatial_cell->set_velocity_mesh_ghost(popID, i);
             // spatial_cell->set_velocity_blocks_ghost(popID, i);
@@ -842,7 +842,7 @@ vector<AccelerationPayload>& setAccelerationTimeGhosts(vector<AccelerationPayloa
             
             // if it is slower-tc's turn, we are synced at after-trans state
             // -> Copy state, but needs to acc by half-tc-0-dt ("always init")
-            std::cerr << __FILE__ << ":"<<__LINE__ << " c"<< (int)spatial_cell->parameters[CellParams::CELLID]<<"\n";
+            // std::cerr << __FILE__ << ":"<<__LINE__ << " c"<< (int)spatial_cell->parameters[CellParams::CELLID]<<"\n";
             spatial_cell->set_population(spatial_cell->get_population(popID,spatial_cell->get_tc()),popID,i);
             // spatial_cell->set_velocity_mesh_ghost(popID, i);
             // spatial_cell->set_velocity_blocks_ghost(popID, i);
@@ -886,7 +886,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
    vector<CellID> cellsToPropagateVector;
    int myRank;
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-   std::cout << "-----------------calculateAcceleration at t="<<P::t << ", for dtfactor="<<dt<<"\n";
+   // std::cout << "-----------------calculateAcceleration at t="<<P::t << ", for dtfactor="<<dt<<"\n";
    if (dt == 0.0 && (P::tstep > 0 || P::fractionalTimestep > 0)) {
 
       // Even if acceleration is turned off we need to adjust velocity blocks
@@ -996,7 +996,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
          for(auto& payload : propagatePayloads){
             //
             //update max subcycles for all cells in this process - population-specific
-            std::cerr << __FILE__ <<":"<<__LINE__<<" "<<myRank <<" : cell " << payload.cellptr->parameters[CellParams::CELLID] << " acc dt " << payload.cellptr->get_max_v_dt(popID) << "; payload.dt " << payload.dt << " maxSubcycles " << maxSubcycles << "\n";
+            // std::cerr << __FILE__ <<":"<<__LINE__<<" "<<myRank <<" : cell " << payload.cellptr->parameters[CellParams::CELLID] << " acc dt " << payload.cellptr->get_max_v_dt(popID) << "; payload.dt " << payload.dt << " maxSubcycles " << maxSubcycles << "\n";
             maxSubcycles = max(getAccelerationSubcycles(payload.cellptr->get_max_v_dt(popID), payload.dt), maxSubcycles);
             spatial_cell::Population& pop = payload.cellptr->get_population(popID,payload.timeclass);
             pop.ACCSUBCYCLES = getAccelerationSubcycles(payload.cellptr->get_max_v_dt(popID), payload.dt);
@@ -1012,9 +1012,9 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 #endif         
 
          // Compute global maximum for number of subcycles
-         std::cerr << __FILE__ <<":"<<__LINE__<<" " <<myRank <<": maxSubcycles = " << maxSubcycles <<"\n";
+         // std::cerr << __FILE__ <<":"<<__LINE__<<" " <<myRank <<": maxSubcycles = " << maxSubcycles <<"\n";
          MPI_Allreduce(&maxSubcycles, &globalMaxSubcycles, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
-         std::cerr << __FILE__ <<":"<<__LINE__<<" " <<myRank <<": globalMaxSubcycles = " << globalMaxSubcycles <<"\n";
+         // std::cerr << __FILE__ <<":"<<__LINE__<<" " <<myRank <<": globalMaxSubcycles = " << globalMaxSubcycles <<"\n";
          // propagatedCells = std::vector<CellID>(cellsToPropagateSet.begin(),cellsToPropagateSet.end());
          std::vector<CellID> propagatedCells = std::vector<CellID>(); // so that it compiles, REMOVE
          
@@ -1034,7 +1034,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
                propagatePayloads.swap(temp);
             }
             // Accelerate population over one subcycle step
-            std::cout << "--------------------- an ACC subcycle " << step << " ------------------\n";
+            // std::cout << "--------------------- an ACC subcycle " << step << " ------------------\n";
             calculateAcceleration(popID,globalMaxSubcycles,step,mpiGrid,propagatePayloads,dt);
             for(auto& payload:propagatePayloads){
                cellsToPropagateSet.insert(payload.cellptr->get_cellid());
@@ -1055,7 +1055,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 
    } //else
 
-   std::cout << "---------------------------- ACC finished --------------------\n";
+   // std::cout << "---------------------------- ACC finished --------------------\n";
 
    
    //converting cellsToPropagateSet to vector
@@ -1066,7 +1066,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
    // Recalculate "_V" velocity moments
    calculateMoments_V(mpiGrid,cellsToPropagateVector,true,(dt==0));
 
-   std::cerr << "calculated V moments...\n";
+   // std::cerr << "calculated V moments...\n";
 
    // Set CellParams::MAXVDT to be the minimum dt of all per-species values
    #pragma omp parallel for
@@ -1086,7 +1086,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
             // cout << "maxvdt \n";
          }
    }
-   std::cerr << "reaches end of accel top level\n";
+   // std::cerr << "reaches end of accel top level\n";
 
 }
 
