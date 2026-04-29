@@ -73,11 +73,11 @@ LIB_BOOST = -lboost_program_options
 
 # compiled libraries
 
-INC_PROFILE = $(LIBRARY_PREFIX)/include
+INC_PROFILE = -I$(LIBRARY_PREFIX)/include
 LIB_PROFILE = -L$(LIBRARY_PREFIX)/lib -lphiprof -Wl,-rpath=$(LIBRARY_PREFIX)/lib
 
-INC_VLSV = $(LIBRARY_PREFIX)/include
-LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv -lvlsv -Wl,-rpath= $(LIBRARY_PREFIX)lib
+INC_VLSV = -I$(LIBRARY_PREFIX)/include
+LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv -lvlsv -Wl,-rpath=$(LIBRARY_PREFIX)lib
 
 INC_ZOLTAN = -I$(LIBRARY_PREFIX)/include
 LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/lib -lzoltan -Wl,-rpath=$(LIBRARY_PREFIX)/lib
