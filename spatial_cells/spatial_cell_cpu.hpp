@@ -443,7 +443,7 @@ namespace spatial_cell {
       #endif
    }
    inline void SpatialCell::debug_population_check(const uint popID, const vmesh::LocalID blockLID, const int timeclass = -1) const {
-      debug_population_check(popID);
+      debug_population_check(popID,blockLID, timeclass);
       #ifdef DEBUG_SPATIAL_CELL
       if (blockLID >= this->get_velocity_blocks(popID, timeclass)->size()) {
          std::cerr << "ERROR, block LID out of bounds, blockContainer->size() " << populations[popID].blockContainer->size() << " in ";
@@ -454,17 +454,17 @@ namespace spatial_cell {
    }
 
    inline vmesh::GlobalID SpatialCell::find_velocity_block(vmesh::GlobalID cellIndices[3],const uint popID, const int timeclass = -1) {
-      debug_population_check(popID);
+      debug_population_check(popID, timeclass);
       return this->get_velocity_mesh(popID, timeclass)->findBlock(cellIndices);
    }
 
    inline Realf* SpatialCell::get_data(const uint popID, const int timeclass = -1) {
-      debug_population_check(popID);
+      debug_population_check(popID, timeclass);
       return this->get_velocity_blocks(popID, timeclass)->getData();
    }
 
    inline const Realf* SpatialCell::get_data(const uint popID, const int timeclass = -1) const {
-      debug_population_check(popID);
+      debug_population_check(popID, timeclass);
       return this->get_velocity_blocks(popID, timeclass)->getData();
    }
 
@@ -477,7 +477,7 @@ namespace spatial_cell {
    }
 
    inline const Realf* SpatialCell::get_data(const vmesh::LocalID& blockLID,const uint popID, const int timeclass = -1) const {
-      debug_population_check(popID,blockLID);
+      debug_population_check(popID,blockLID, timeclass);
       if (blockLID == vmesh::VelocityMesh::invalidLocalID()) {
          return null_block_data.data();
       }
@@ -485,22 +485,22 @@ namespace spatial_cell {
    }
 
    inline Real* SpatialCell::get_block_parameters(const uint popID, const int timeclass = -1) {
-      debug_population_check(popID);
+      debug_population_check(popID,timeclass);
       return this->get_velocity_blocks(popID, timeclass)->getParameters();
    }
 
    inline const Real* SpatialCell::get_block_parameters(const uint popID, const int timeclass = -1) const {
-      debug_population_check(popID);
+      debug_population_check(popID,timeclass);
       return this->get_velocity_blocks(popID, timeclass)->getParameters();
    }
 
    inline Real* SpatialCell::get_block_parameters(const vmesh::LocalID& blockLID, const uint popID, const int timeclass = -1) {
-      debug_population_check(popID,blockLID);
+      debug_population_check(popID,blockLID, timeclass);
       return this->get_velocity_blocks(popID, timeclass)->getParameters(blockLID);
    }
 
    inline const Real* SpatialCell::get_block_parameters(const vmesh::LocalID& blockLID, const uint popID, const int timeclass = -1) const {
-      debug_population_check(popID,blockLID);
+      debug_population_check(popID,blockLID, timeclass);
       return this->get_velocity_blocks(popID, timeclass)->getParameters(blockLID);
    }
 
@@ -513,14 +513,19 @@ namespace spatial_cell {
    }
 
    inline vmesh::LocalID SpatialCell::get_number_of_velocity_blocks(const uint popID, const int timeclass=-1) const {
-      debug_population_check(popID);
+      debug_population_check(popID, timeclass);
       return this->get_velocity_blocks(popID, timeclass)->size();
    }
 
+   /** Get the total number of velocity blocks in the time ghosts of this cell, for a given population.
+     * @return Number of blocks in ghost populations for popID*/
    inline vmesh::LocalID SpatialCell::get_number_of_velocity_blocks_ghost(const uint popID) const {
       debug_population_check(popID);
       vmesh::LocalID sum = 0;
       for (int tc : this->requested_timeclass_ghosts) {
+         sum += ghostPopulations.at({popID,tc}).blockContainer->size();
+      }
+      for (int tc : this->requested_timeclass_copy_ghosts) {
          sum += ghostPopulations.at({popID,tc}).blockContainer->size();
       }
       return sum;
