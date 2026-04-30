@@ -206,7 +206,7 @@ void calculateSpatialGhostTranslation(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const vector<CellID>& local_propagated_cells,
    vector<uint>& nPencils,
-   creal dt,
+   const creal dt,
    const uint popID,
    Real &time
    ) {
@@ -395,7 +395,7 @@ void calculateSpatialTranslation(
  * @param popID ID of the accelerated particle species.
 */
 
-uint getAccelerationSubcycles(SpatialCell* spatial_cell, Real dt, const uint popID)
+uint getAccelerationSubcycles(const SpatialCell* spatial_cell, const Real dt, const uint popID)
 {
    return max( convert<uint>(ceil(dt / spatial_cell->get_max_v_dt(popID))), 1u);
 }
@@ -479,7 +479,7 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
  * @param mpiGrid Parallel grid library.
  * @param dt Time step.*/
 void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                           Real dt
+                           const Real dt
                           ) {
    typedef Parameters P;
    const vector<CellID>& cells = getLocalCells();

@@ -16,7 +16,7 @@
 create_verification_files=0
 
 # folder for all reference data
-reference_dir="/wrk-kappa/group/spacephysics/vlasiator/testpackage"
+reference_dir="/turso/group/spacephysics/vlasiator/testpackage/"
 #cd $SLURM_SUBMIT_DIR
 #cd $reference_dir # don't run on /proj
 

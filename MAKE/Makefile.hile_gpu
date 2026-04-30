@@ -67,8 +67,10 @@ testpackage: CXXFLAGS +=  -DPAPI_MEM
 LIBRARY_PREFIX = /turso/group/spacephysics/vlasiator/libraries/libraries-hile_gpu
 
 # System boost
-LIB_BOOST = -L$(VLASIATOR_LIBRARY_PATH)/lib  -lboost_program_options
-INC_BOOST = -isystem $(VLASIATOR_LIBRARY_PATH)/include
+# LIB_BOOST = -L$(VLASIATOR_LIBRARY_PATH)/lib  -lboost_program_options
+# INC_BOOST = -isystem $(VLASIATOR_LIBRARY_PATH)/include
+
+LIB_BOOST = -lboost_program_options -L/usr/lib64 -Wl,-rpath=/usr/lib64
 
 # Compiled libraries
 INC_ZOLTAN = -isystem $(LIBRARY_PREFIX)/include

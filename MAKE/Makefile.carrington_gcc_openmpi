@@ -14,9 +14,10 @@
 # module load OpenMPI/4.1.6-GCC-13.2.0
 # module load PMIx/4.2.6-GCCcore-13.2.0
 # module load PAPI/7.1.0-GCCcore-13.2.0
+# module load Boost/1.83.0-GCC-13.2.0
 
 # Oneliner for command line:
-# module purge; module load GCC/13.2.0; module load OpenMPI/4.1.6-GCC-13.2.0 ; module load PMIx/4.2.6-GCCcore-13.2.0; module load PAPI/7.1.0-GCCcore-13.2.0
+# module purge; module load GCC/13.2.0; module load OpenMPI/4.1.6-GCC-13.2.0 ; module load PMIx/4.2.6-GCCcore-13.2.0; module load PAPI/7.1.0-GCCcore-13.2.0; module load Boost/1.83.0-GCC-13.2.0
 #
 # There might be some libefa errors but they are benign.
 # (Benign = pleasant and kind; not harmful or severe. dictionary.cambridge.org)
@@ -92,7 +93,7 @@ MPT_VERSION = 4.1.6
 LIBRARY_PREFIX = $(CURDIR)/libraries-carrington
 
 #compiled libraries mostly in modules
-LIB_PROFILE = -L$(LIBRARY_PREFIX)/lib -lphiprof -lgfortran
+LIB_PROFILE = -L$(LIBRARY_PREFIX)/lib -lphiprof -lgfortran -Wl,-rpath=$(LIBRARY_PREFIX)/lib
 INC_PROFILE = -isystem $(LIBRARY_PREFIX)/include
 
 LIB_VLSV = -L$(LIBRARY_PREFIX)/lib -lvlsv

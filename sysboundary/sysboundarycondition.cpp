@@ -60,8 +60,8 @@ namespace SBC {
     */
    void SysBoundaryCondition::determineFace(
       bool* isThisCellOnAFace,
-      creal x, creal y, creal z,
-      creal dx, creal dy, creal dz,
+      const creal x,const creal y,const creal z,
+      const creal dx,const creal dy,const creal dz,
       const bool excludeSlicesAndPeriodicDimensions //=false (default)
    ) {
       for(uint i=0; i<6; i++) {
@@ -116,7 +116,7 @@ namespace SBC {
    void SysBoundaryCondition::determineFace(
       std::array<bool, 6> &isThisCellOnAFace,
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      CellID id,
+      const CellID id,
       const bool excludeSlicesAndPeriodicDimensions //=false (default)
    ) {
       isThisCellOnAFace.fill(false);
@@ -362,7 +362,7 @@ namespace SBC {
     */
    void SysBoundaryCondition::vlasovBoundaryFluffyCopyFromAllCloseNbrs(
       dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      const CellID& cellID,const uint popID,const bool copy_V_moments, creal fluffiness
+      const CellID& cellID,const uint popID,const bool copy_V_moments,const creal fluffiness
    ) {
       const vector<CellID>& closeCells = getAllCloseNonsysboundaryCells(cellID);
       
@@ -380,7 +380,7 @@ namespace SBC {
     * \param copy_V_moments which set of moments to copy (_V or _R)
     */
    void SysBoundaryCondition::copyCellData(
-            SpatialCell* from,
+            const SpatialCell* const from,
             SpatialCell* to,
             const bool copyMomentsOnly,
             const uint popID,
@@ -444,11 +444,11 @@ namespace SBC {
     * \param fluffiness Factor to replace data with from 0.0 (default, do nothing) to 1.0 (replace all destination data with source data)
     */
    void averageCellData(
-         dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+         const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          const vector<CellID> cellList,
          SpatialCell *to,
          const uint popID,
-         creal fluffiness /* default =0.0*/
+         const creal fluffiness /* default =0.0*/
    ) {
       const size_t numberOfCells = cellList.size();
       creal factor = fluffiness / convert<Real>(numberOfCells);
@@ -470,7 +470,7 @@ namespace SBC {
     * \retval success Returns true if the operation is successful
     */
    bool SysBoundaryCondition::updateSysBoundaryConditionsAfterLoadBalance(
-      dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const vector<CellID> & local_cells_on_boundary
    ) {
       // Loop over cellids

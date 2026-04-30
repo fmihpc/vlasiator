@@ -28,8 +28,8 @@
 void loadColumnBlockData(
    const vmesh::VelocityMesh* vmesh,
    vmesh::VelocityBlockContainer* blockContainer,
-   vmesh::GlobalID* blocks,
-   vmesh::LocalID n_blocks,
+   const vmesh::GlobalID* blocks,
+   const vmesh::LocalID n_blocks,
    const int dimension,
    Vec* __restrict__ values) {
    // first set the 0 values for the two empty blocks 

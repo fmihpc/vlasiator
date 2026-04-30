@@ -168,7 +168,7 @@ namespace SBC {
             continue;
          }
 
-         creal* const cellParams = &(mpiGrid[cells[i]]->parameters[0]);
+         const creal* const cellParams = &(mpiGrid[cells[i]]->parameters[0]);
          creal dx = cellParams[CellParams::DX];
          creal dy = cellParams[CellParams::DY];
          creal dz = cellParams[CellParams::DZ];

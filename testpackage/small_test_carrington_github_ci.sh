@@ -1,13 +1,15 @@
 #!/bin/bash
 #SBATCH -t 01:30:00        # Run time (hh:mm:ss)
 #SBATCH --job-name=CI_testpackage
-#SBATCH --constraint ukko
+#SBATCH --constraint="carrington"
 #SBATCH -p short
 #SBATCH --exclusive
 #SBATCH --nodes=1
 #SBATCH -c 4                 # CPU cores per task
 #SBATCH -n 16                  # number of tasks
-##SBATCH --mem-per-cpu=5G
+#SBATCH --mail-type=FAIL
+#SBATCH --mail-user=ci-emails.946c413b11d28e58c3a9bfb73173246b.show-sender@streams.zulipchat.com
+#SBATCH --mem-per-cpu=5G
 ##SBATCH -x carrington-[801-808]
 
 # If 1, the reference vlsv files are generated
@@ -15,7 +17,7 @@
 create_verification_files=0
 
 # folder for all reference data
-reference_dir="/proj/group/spacephysics/vlasiator_testpackage/"
+reference_dir="/turso/group/spacephysics/vlasiator/testpackage/"
 cd $SLURM_SUBMIT_DIR
 #cd $reference_dir # don't run on /proj
 
@@ -32,7 +34,7 @@ module load PMIx/4.2.6-GCCcore-13.2.0
 module load PAPI/7.1.0-GCCcore-13.2.0
 module load Boost/1.83.0-GCC-13.2.0
 #module load xthi
-export UCX_NET_DEVICES=eth0 # This is important for multi-node performance!
+export UCX_NET_DEVICES=eth4,eth5,mlx5_0:1 # This is important for multi-node performance!
 
 # send JOB ID to output usable by CI eg to scancel this job
 echo "SLURM_JOB_ID=$SLURM_JOB_ID" >> $GITHUB_OUTPUT

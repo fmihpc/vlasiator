@@ -64,7 +64,7 @@ void updateAccelerationMaxdt(
 */
 
 Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
-        SpatialCell* spatial_cell,
+        const SpatialCell* spatial_cell,
         const uint popID,
         const Real& dt) {
    // total field
