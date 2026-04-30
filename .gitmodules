@@ -5,7 +5,7 @@
 [submodule "submodules/dccrg"]
 	path = submodules/dccrg
 	url = https://github.com/alhom/dccrg.git
-	branch = vlasiator-version
+	branch = vlasiator_version_dummy
 
 [submodule "submodules/eigen"]
 	path = submodules/eigen
