@@ -184,7 +184,7 @@ namespace spatial_cell {
     **/
    void SpatialCell::adjust_velocity_blocks(const std::vector<SpatialCell*>& spatial_neighbors,
                                             const uint popID,bool doDeleteEmptyBlocks, const int timeclass) {
-      debug_population_check(popID);
+      debug_ghostpopulation_check(popID, timeclass);
 
       //  This set contains all those cellids which have neighbors in any
       //  of the 6-dimensions Actually, we would only need to add
@@ -309,7 +309,7 @@ namespace spatial_cell {
    }
 
    void SpatialCell::adjustSingleCellVelocityBlocks(const uint popID, bool doDeleteEmpty, const int timeclass) {
-      debug_population_check(popID);
+      debug_ghostpopulation_check(popID, timeclass);
 
       //neighbor_ptrs is empty, so we adjust only based on local velocity space.
       std::vector<SpatialCell*> neighbor_ptrs;
@@ -324,8 +324,8 @@ namespace spatial_cell {
     Also returns false if given block doesn't exist or is an error block.
     */
    bool SpatialCell::compute_block_has_content(const vmesh::LocalID& blockLID,const uint popID, const int timeclass) const {
-      debug_population_check(popID);
       #ifdef DEBUG_SPATIAL_CELL
+      debug_population_blockLID_check(popID, blockLID, timeclass);
       const vmesh::GlobalID blockGID = get_population(popID, timeclass).vmesh->getGlobalID(blockLID);
       if (blockGID == invalid_global_id()) {
          std::cerr << "ERROR, popID " << popID << " found invalid GID " << blockGID << " for LID  "<< blockLID;
@@ -855,7 +855,7 @@ namespace spatial_cell {
    /** Update the two lists containing blocks with content, and blocks without content.
     * @see adjustVelocityBlocks */
    void SpatialCell::update_velocity_block_content_lists(const uint popID, const int timeclass) {
-      debug_population_check(popID);
+      debug_ghostpopulation_check(popID, timeclass);
       velocity_block_with_content_list->clear();
       velocity_block_with_no_content_list->clear();
 
