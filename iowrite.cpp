@@ -481,7 +481,7 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
             bufferOffset += arrayElements*WID3*sizeof(Realf);
          }
          #else
-         char* arrayToWrite = reinterpret_cast<char*>(SC->get_data(popID));
+         char* arrayToWrite = reinterpret_cast<char*>(SC->get_data(popID, timeclass));
          #endif
          vlsvWriter.addMultiwriteUnit(arrayToWrite, arrayElements);
 

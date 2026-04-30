@@ -339,7 +339,7 @@ namespace spatial_cell {
       }
 
       bool has_content = false;
-      const Real velocity_block_min_value = getVelocityBlockMinValue(popID);
+      const Real velocity_block_min_value = getVelocityBlockMinValue(popID, timeclass);
 
       const Realf* block_data = get_data(blockLID, popID, timeclass);
       for (unsigned int i=0; i<WID3; ++i) {
@@ -748,8 +748,8 @@ namespace spatial_cell {
     * of a velocity block for the block to be considered to have content.
     * @param popID ID of the particle species.
     * @return Sparse min value for this species.*/
-   Real SpatialCell::getVelocityBlockMinValue(const uint popID) const {
-      return populations[popID].velocityBlockMinValue;
+   Real SpatialCell::getVelocityBlockMinValue(const uint popID, const int timeclass) const {
+      return this->get_population(popID, timeclass).velocityBlockMinValue;
    }
 
    /** Prepares this spatial cell to receive the velocity grid over MPI.

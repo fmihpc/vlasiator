@@ -380,7 +380,7 @@ namespace spatial_cell {
       static void set_mpi_transfer_direction(const int dimension);
       void set_mpi_transfer_enabled(bool transferEnabled);
       void updateSparseMinValue(const uint popID, const int timeclass =-1);
-      Real getVelocityBlockMinValue(const uint popID) const;
+      Real getVelocityBlockMinValue(const uint popID, const int timeclass = -1) const;
 
       // Member variables //
       std::array<Real, vderivatives::N_V_DERIVATIVES> derivativesV;           /**< Derivatives of V for vorticity AMR.*/
