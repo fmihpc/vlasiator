@@ -1179,9 +1179,16 @@ void updateRemoteVelocityBlockLists(
    // Prepare spatial cells for receiving velocity block data
    phiprof::Timer receivesTimer {"Preparing receives"};
    const std::vector<uint64_t> incoming_cells = mpiGrid.get_remote_cells_on_process_boundary(neighborhood);
-   // std::cerr << __FILE__<<":" << __LINE__ <<"\n";
+
+#ifdef USE_GPU
+   // TODO: using #pragma omp parallel for sometimes causes a deadlock somewhere
+   // inside this loop on GPUs. Underlying cause yet to be identified.
+   for (unsigned int i=0; i<incoming_cells.size(); ++i)
+#else
    #pragma omp parallel for
-   for (unsigned int i=0; i<incoming_cells.size(); ++i) {
+   for (unsigned int i=0; i<incoming_cells.size(); ++i)
+#endif
+   {
      uint64_t cell_id = incoming_cells[i];
      SpatialCell* cell = mpiGrid[cell_id];
      if (cell == NULL) {
