@@ -227,10 +227,10 @@ void findNeighborhoodCells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
    int myRank;
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
 
-   std::cerr << __FILE__<<":"<<__LINE__<<" "<< myRank<< " c"<<startingCellID << " neighb"  << neighborhood <<"\n";
+   // std::cerr << __FILE__<<":"<<__LINE__<<" "<< myRank<< " c"<<startingCellID << " neighb"  << neighborhood <<"\n";
 
    const auto* NbrPairs = mpiGrid.get_neighbors_of(startingCellID, neighborhood);
-      std::cerr << __FILE__<<":"<<__LINE__<<" "<< myRank<< " c"<<startingCellID << " neighb"  << neighborhood <<"\n";
+      // std::cerr << __FILE__<<":"<<__LINE__<<" "<< myRank<< " c"<<startingCellID << " neighb"  << neighborhood <<"\n";
 
    // Verified 9th July 2024: current get_neighbors_of() returns unique cells, only once per cell, in correct order.
    for (const auto& nbrPair : *NbrPairs) {

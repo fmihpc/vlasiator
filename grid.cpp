@@ -931,9 +931,9 @@ void getGhostNeighborsforTC(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
       auto neighbors = mpiGrid.get_neighbors_of(cell, Neighborhoods::VLASOV_SOLVER_TIMEGHOST_EXACT_HALO);
       auto& neighborsRef = *neighbors;
       auto neighborsRemote = mpiGrid.get_remote_neighbors_of(cell, Neighborhoods::VLASOV_SOLVER_TIMEGHOST_EXACT_HALO);
-      auto outerNeighbors = mpiGrid.get_neighbors_of(cell, Neighborhoods::VLASOV_SOLVER_TIMEGHOST_OUTER_HALO);
+      auto outerNeighbors = mpiGrid.get_neighbors_of(cell, Neighborhoods::VLASOV_SOLVER_TIMEGHOST_HALODIFF);
       auto& outerNeighborsRef = *outerNeighbors;
-      auto outerNeighborsRemote = mpiGrid.get_remote_neighbors_of(cell, Neighborhoods::VLASOV_SOLVER_TIMEGHOST_OUTER_HALO);
+      auto outerNeighborsRemote = mpiGrid.get_remote_neighbors_of(cell, Neighborhoods::VLASOV_SOLVER_TIMEGHOST_HALODIFF);
 
 
       // get_neighbours_of returns a pointer to a vector of pairs, and each pairs' first element is the CellID
@@ -955,7 +955,7 @@ void getGhostNeighborsforTC(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
             // std::cerr << __FILE__<<":"<<__LINE__<<" "<< myRank<< ": cid " << cell << " looking for " << (outerNeighborsRef)[i].first <<"\n";
 
          if (mpiGrid[(outerNeighborsRef)[i].first]->parameters[CellParams::TIMECLASS] != timeclass) {
-            if (std::count(neighborsRef.begin(), neighborsRef.end(), (outerNeighborsRef)[i]) > 0) {
+            if (std::count(neighborsRef.begin(), neighborsRef.end(), (outerNeighborsRef)[i]) > 0) { // should be unnecessary with the halodiff
                continue;
             }
             mpiGrid[(outerNeighborsRef)[i].first]->requested_timeclass_copy_ghosts.insert(timeclass);
@@ -964,7 +964,7 @@ void getGhostNeighborsforTC(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
       }
       for (size_t i=0; i<outerNeighborsRemote.size(); ++i) {
          if (mpiGrid[(outerNeighborsRemote)[i]]->parameters[CellParams::TIMECLASS] != timeclass) {
-            if (std::count(neighborsRemote.begin(), neighborsRemote.end(), (outerNeighborsRemote)[i]) > 0) {
+            if (std::count(neighborsRemote.begin(), neighborsRemote.end(), (outerNeighborsRemote)[i]) > 0) { // should be unnecessary with the halodiff
                continue;
             }
             mpiGrid[outerNeighborsRemote[i]]->requested_timeclass_copy_ghosts.insert(timeclass);
@@ -1670,7 +1670,7 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
          all_neighborhoods.emplace(it);
       }
       if (!mpiGrid.add_neighborhood(Neighborhoods::VLASOV_SOLVER_TIMEGHOST_EXACT_HALO, std::vector<neigh_t>(neighborhood.begin(), neighborhood.end()))){
-         std::cerr << "Failed to add neighborhood Neighborhoods::VLASOV_SOLVER_GHOST \n";
+         std::cerr << "Failed to add neighborhood Neighborhoods::VLASOV_SOLVER_TIMEGHOST_EXACT_HALO_NEIGHBORHOOD_ID \n";
          abort();
       }
 
@@ -1689,7 +1689,7 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
                   if ((dz+n[2]==0) && (dy+n[1]==0) && (dx+n[0]==0)) {
                      continue;
                   }
-                   neighborhood_outer.insert({{dx, dy, dz}});
+                   neighborhood_outer.insert({{dx+n[0], dy+n[1], dz+n[2]}});
                }
             }
          }
@@ -1708,10 +1708,10 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       std::set<neigh_t> neighborhood_diff;
       std::set_difference(neighborhood_outer.begin(), neighborhood_outer.end(), neighborhood.begin(), neighborhood.end(), std::inserter(neighborhood_diff, neighborhood_diff.begin()));
 
-      // if (!mpiGrid.add_neighborhood(Neighborhoods::VLASOV_SOLVER_TIMEGHOST_HALODIFF, std::vector<neigh_t>(neighborhood_diff.begin(), neighborhood_diff.end()))){
-      //    std::cerr << "Failed to add neighborhood VLASOV_SOLVER_TIMEGHOST_HALODIFF_NEIGHBORHOOD_ID \n";
-      //    abort();
-      // }
+      if (!mpiGrid.add_neighborhood(Neighborhoods::VLASOV_SOLVER_TIMEGHOST_HALODIFF, std::vector<neigh_t>(neighborhood_diff.begin(), neighborhood_diff.end()))){
+         std::cerr << "Failed to add neighborhood VLASOV_SOLVER_TIMEGHOST_HALODIFF_NEIGHBORHOOD_ID \n";
+         abort();
+      }
    }
 
 
