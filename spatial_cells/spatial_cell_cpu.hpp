@@ -469,7 +469,7 @@ namespace spatial_cell {
    }
 
    inline Realf* SpatialCell::get_data(const vmesh::LocalID& blockLID,const uint popID, const int timeclass = -1) {
-      debug_population_check(popID,timeclass, blockLID);
+      debug_population_check(popID, blockLID, timeclass);
       if (blockLID == vmesh::VelocityMesh::invalidLocalID()) {
          return null_block_data.data();
       }
@@ -494,12 +494,12 @@ namespace spatial_cell {
       return this->get_velocity_blocks(popID, timeclass)->getParameters();
    }
 
-   inline Real* SpatialCell::get_block_parameters(const vmesh::LocalID& blockLID,const uint popID, const int timeclass = -1) {
+   inline Real* SpatialCell::get_block_parameters(const vmesh::LocalID& blockLID, const uint popID, const int timeclass = -1) {
       debug_population_check(popID,blockLID);
       return this->get_velocity_blocks(popID, timeclass)->getParameters(blockLID);
    }
 
-   inline const Real* SpatialCell::get_block_parameters(const vmesh::LocalID& blockLID,const uint popID, const int timeclass = -1) const {
+   inline const Real* SpatialCell::get_block_parameters(const vmesh::LocalID& blockLID, const uint popID, const int timeclass = -1) const {
       debug_population_check(popID,blockLID);
       return this->get_velocity_blocks(popID, timeclass)->getParameters(blockLID);
    }

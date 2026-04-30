@@ -323,7 +323,7 @@ namespace spatial_cell {
     sense in given block.
     Also returns false if given block doesn't exist or is an error block.
     */
-   bool SpatialCell::compute_block_has_content(const vmesh::GlobalID& blockLID,const uint popID, const int timeclass) const {
+   bool SpatialCell::compute_block_has_content(const vmesh::LocalID& blockLID,const uint popID, const int timeclass) const {
       debug_population_check(popID);
       #ifdef DEBUG_SPATIAL_CELL
       const vmesh::GlobalID blockGID = get_population(popID, timeclass).vmesh->getGlobalID(blockLID);
