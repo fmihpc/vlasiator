@@ -277,6 +277,7 @@ namespace spatial_cell {
       vmesh::LocalID get_number_of_all_velocity_blocks() const;
       int get_number_of_populations() const;
       void debug_population_check(const uint popID) const;
+      void debug_population_check(const uint popID, const int timeclass) const;
       void debug_population_check(const uint popID, const vmesh::LocalID blockLID, const int timeclass) const;
 
       Population & get_population(const uint popID, const int timeclass);
@@ -442,8 +443,20 @@ namespace spatial_cell {
       }
       #endif
    }
+
+   inline void SpatialCell::debug_population_check(const uint popID, const int timeclass) const {
+      debug_population_check(popID);
+      #ifdef DEBUG_SPATIAL_CELL
+      if (this->ghostPopulations.find({popID, timeclass}) == ghostPopulations.end()) {
+         std::cerr << "ERROR, popID " << popID << " with timeclass " << timeclass << " not found in ghostPopulations in ";
+         std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
+         exit(1);
+      }
+      #endif
+   }
+
    inline void SpatialCell::debug_population_check(const uint popID, const vmesh::LocalID blockLID, const int timeclass = -1) const {
-      debug_population_check(popID,blockLID, timeclass);
+      debug_population_check(popID, timeclass);
       #ifdef DEBUG_SPATIAL_CELL
       if (blockLID >= this->get_velocity_blocks(popID, timeclass)->size()) {
          std::cerr << "ERROR, block LID out of bounds, blockContainer->size() " << populations[popID].blockContainer->size() << " in ";
