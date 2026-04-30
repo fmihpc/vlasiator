@@ -335,8 +335,9 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
             vmesh::VelocityBlockContainer* velblocksghost = SC->get_velocity_blocks_ghost(popID, timeclass);
             // std::cerr << timeclass << " preparing to write at c="<< cells[cell] << " with " << velblocksghost.size() << "blocks\n";
 
-            totalBlocks+=velblocksghost->size();
-            blocksPerCell.push_back(velblocksghost->size());
+            totalBlocks+=SC->get_number_of_velocity_blocks(popID, timeclass);
+            blocksPerCell.push_back(SC->get_number_of_velocity_blocks(popID, timeclass));
+            std::cerr << timeclass << " cell " << cells[cell] << " has " << SC->get_number_of_velocity_blocks(popID, timeclass) << " vs " << velblocksghost->size() <<  std::endl;
          // }
          // else{
             // vmesh::VelocityBlockContainer<vmesh::LocalID>* velblocksghost = &emptyvmesh;
@@ -344,6 +345,7 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
             // blocksPerCell.push_back(0);
          // }
       }
+      std::cerr << "timeclass " << timeclass << " total ghost blocks to write: " << totalBlocks << std::endl;
 
 
       attribs.clear();
@@ -408,16 +410,17 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
             SpatialCell* SC = mpiGrid[cells[i]];
             vmesh::VelocityMesh* velmeshghost = SC->get_velocity_mesh_ghost(popID, timeclass);
             vmesh::VelocityBlockContainer* velblocksghost = SC->get_velocity_blocks_ghost(popID, timeclass);
+            const vmesh::LocalID nBlocks = SC->get_number_of_velocity_blocks(popID, timeclass);
             #ifdef USE_GPU
             const vmesh::GlobalID *GIDlist = SC->get_velocity_grid(popID);
             CHK_ERR( gpuMemcpy(&velocityBlockIds[blockIndex], GIDlist, nBlocks*sizeof(vmesh::GlobalID), gpuMemcpyDeviceToHost));
             #else
             int blocksum = 0;
-            for (vmesh::LocalID block_i=0; block_i<velblocksghost->size(); ++block_i) {
-               const vmesh::GlobalID block = velmeshghost->getGlobalID(block_i);
+            for (vmesh::LocalID block_i=0; block_i<nBlocks; ++block_i) {
+               const vmesh::GlobalID block = SC->get_velocity_block_global_id(block_i, popID, timeclass);
                velocityBlockIds_g[blockIndex+block_i] = block;
             }
-            blockIndex += velblocksghost->size();
+            blockIndex += nBlocks;
 
             #endif
          }
