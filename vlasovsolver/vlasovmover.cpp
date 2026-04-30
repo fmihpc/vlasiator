@@ -263,7 +263,7 @@ void calculateSpatialGhostTranslation(
    phiprof::Timer postBarrierTimer {"MPI barrier-post-trans"};
    MPI_Barrier(MPI_COMM_WORLD);
    postBarrierTimer.stop();
-   
+
    for(CellID c : local_propagated_cells)
    {
       // if (c == 16) std::cout << c << " at TIME_R " << mpiGrid[c]->parameters[CellParams::TIME_R] << " + " << dt <<"\n";
@@ -346,7 +346,6 @@ void calculateSpatialTranslation(
       }
    }
 
-   
    phiprof::Timer computeTimer {"compute_cell_lists"};
    if (!P::vlasovSolverGhostTranslate) {
       remoteTargetCellsx = mpiGrid.get_remote_cells_on_process_boundary(Neighborhoods::VLASOV_SOLVER_TARGET_X);
@@ -376,7 +375,6 @@ void calculateSpatialTranslation(
    //          tc_propagated_cell_sets[i].insert(localCells[c]);
    //    }
    // }
-
 
    // TC propagation lists, TODO move out of here somewhere sensible and less often called
    if (P::maxTimeclass > 0) {
@@ -469,14 +467,13 @@ void calculateSpatialTranslation(
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
       string profName = "translate "+getObjectWrapper().particleSpecies[popID].name;
       phiprof::Timer timer {profName};
-      SpatialCell::setCommunicatedSpecies(popID);
+      //SpatialCell::setCommunicatedSpecies(popID);
       for(int tc = 0; tc <= P::currentMaxTimeclass; tc++){
-         
+         SpatialCell::setCommunicatedSpecies(popID,tc);
          int mod = 1 << (P::currentMaxTimeclass - tc);
          if((P::fractionalTimestep % mod) == 0){
-            
             // std::cout << "rank " << myRank << ": " << tc_propagated_cells[tc].size() << " cells: calculateSpatialTranslation tc " << tc << " by dt " << P::timeclassDt[tc] <<"\n";
-              if (P::vlasovSolverGhostTranslate && (P::amrMaxSpatialRefLevel > 0) ) {
+            if (P::vlasovSolverGhostTranslate && (P::amrMaxSpatialRefLevel > 0) ) {
                // Local translation without interim communication
                // Not yet implemented for non-AMR solver
                calculateSpatialGhostTranslation(
@@ -541,7 +538,6 @@ void calculateSpatialTranslation(
 
    // This loop saves the _R-moments before updating into a previous buffer so they can be used for interpolating
    // for timeclasses.
-
    for (int tc=0; tc <= P::currentMaxTimeclass; tc++) {
       int mod = 1 << (P::currentMaxTimeclass - tc);
       if ((P::fractionalTimestep % mod) == 0) {
@@ -634,7 +630,7 @@ void calculateAcceleration(const uint popID,const int globalMaxSubcycles,const i
                            const std::vector<AccelerationPayload> acceleratedCells,
                            const Real& dt, const int tc = -1) {
    // Set active population
-   SpatialCell::setCommunicatedSpecies(popID);
+   SpatialCell::setCommunicatedSpecies(popID,tc);
 
    // Calculate velocity moments, these are needed to
    // calculate the transforms used in the accelerations.

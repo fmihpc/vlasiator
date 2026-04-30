@@ -41,10 +41,10 @@ namespace spatial_cell {
       }
 
       // int computeId {phiprof::initializeTimer("Compute with_content_list")};
-#pragma omp parallel
+      #pragma omp parallel
       {
          // phiprof::Timer timer {computeId};
-#pragma omp for schedule(dynamic)
+         #pragma omp for schedule(dynamic)
          for (uint i=0; i<cells.size(); ++i) {
             mpiGrid[cells[i]]->updateSparseMinValue(popID, timeclass);
             mpiGrid[cells[i]]->update_velocity_block_content_lists(popID, timeclass);

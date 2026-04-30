@@ -359,7 +359,7 @@ namespace spatial_cell {
       void prepare_to_receive_blocks(const uint popID, const int timeclass=-1);
       bool shrink_to_fit();
       size_t size(const uint popID, const int timeclass) const;
-      void remove_velocity_block(const vmesh::GlobalID& block,const uint popID, const int timeclass);      
+      void remove_velocity_block(const vmesh::GlobalID& block,const uint popID, const int timeclass);
       vmesh::VelocityMesh* get_velocity_mesh(const size_t& popID, const int timeclass);
       const vmesh::VelocityMesh* get_velocity_mesh(const size_t& popID, const int timeclass) const;
       vmesh::VelocityBlockContainer* get_velocity_blocks(const size_t& popID, const int timeclass = -1);
@@ -448,8 +448,16 @@ namespace spatial_cell {
       #ifdef DEBUG_SPATIAL_CELL
       debug_population_check(popID);
       if (timeclass != -1){
+         // This is a time ghost
          if (this->ghostPopulations.find({popID, timeclass}) == ghostPopulations.end()) {
             std::cerr << "ERROR, popID " << popID << " with timeclass " << timeclass << " not found in ghostPopulations in ";
+            std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
+            exit(1);
+         }
+      } else {
+         // This is an actual population
+         if (popID >= populations.size()) {
+            std::cerr << "ERROR, popID " << popID << " not found in populations in ";
             std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
             exit(1);
          }
@@ -457,12 +465,12 @@ namespace spatial_cell {
       #endif
    }
 
-   inline void SpatialCell::debug_population_blockLID_check(const uint popID, const vmesh::LocalID blockLID, const int timeclass = -1) const {
+   inline void SpatialCell::debug_population_blockLID_check(const uint popID, const vmesh::LocalID blockLID, const int timeclass) const {
       #ifdef DEBUG_SPATIAL_CELL
       debug_ghostpopulation_check(popID, timeclass);
-      
+
       if (blockLID >= this->get_velocity_blocks(popID, timeclass)->size()) {
-         std::cerr << "ERROR, block LID out of bounds, blockContainer->size() " << populations[popID].blockContainer->size() << " in ";
+         std::cerr << "ERROR, block LID " << blockLID << " out of bounds in cell " << this->parameters[CellParams::CELLID] << ", blockContainer->size() " << populations[popID].blockContainer->size() << " in ";
          std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
          exit(1);
       }
@@ -656,12 +664,12 @@ namespace spatial_cell {
    }
 
    inline vmesh::GlobalID SpatialCell::get_velocity_block_global_id(const vmesh::LocalID& blockLID,const uint popID, const int timeclass=-1) const {
-      debug_population_check(popID);
+      debug_ghostpopulation_check(popID, timeclass);
       return this->get_velocity_mesh(popID, timeclass)->getGlobalID(blockLID);
    }
 
    inline vmesh::LocalID SpatialCell::get_velocity_block_local_id(const vmesh::GlobalID& blockGID,const uint popID, const int timeclass = -1) const {
-      debug_population_check(popID);
+      debug_ghostpopulation_check(popID, timeclass);
       return this->get_velocity_mesh(popID, timeclass)->getLocalID(blockGID);
    }
 
@@ -748,7 +756,7 @@ namespace spatial_cell {
     Returns the number of given velocity blocks that exist.
     */
    inline size_t SpatialCell::count(const vmesh::GlobalID& block,const uint popID, const int timeclass = -1) const {
-      debug_population_check(popID);
+      debug_ghostpopulation_check(popID, timeclass);
       return this->get_velocity_mesh(popID,timeclass)->count(block);
    }
 
@@ -756,12 +764,12 @@ namespace spatial_cell {
     Returns the number of existing velocity blocks.
     */
    inline size_t SpatialCell::size(const uint popID, const int timeclass = -1) const {
-      debug_population_check(popID);
+      debug_ghostpopulation_check(popID, timeclass);
       return get_velocity_mesh(popID,timeclass)->size();
    }
 
    inline vmesh::VelocityMesh* SpatialCell::get_velocity_mesh(const size_t& popID, const int timeclass = -1) {
-      debug_population_check(popID);
+      debug_ghostpopulation_check(popID, timeclass);
       if (timeclass < 0 || this->parameters[CellParams::TIMECLASS] == timeclass) {
          // std::cout << "regular vmesh\n";
          return this->populations[popID].vmesh;
@@ -772,34 +780,34 @@ namespace spatial_cell {
    }
 
    inline const vmesh::VelocityMesh* SpatialCell::get_velocity_mesh(const size_t& popID, const int timeclass = -1) const {
-      debug_population_check(popID);
+      debug_ghostpopulation_check(popID, timeclass);
       if (timeclass < 0 || this->parameters[CellParams::TIMECLASS] == timeclass) {
          return this->populations[popID].vmesh;
       } else {
          return this->ghostPopulations.at({popID,timeclass}).vmesh;
       }
-   }   
+   }
 
    inline vmesh::VelocityBlockContainer* SpatialCell::get_velocity_blocks(const size_t& popID, const int timeclass) {
-      debug_population_check(popID);
+      debug_ghostpopulation_check(popID, timeclass);
       if (timeclass < 0 || this->parameters[CellParams::TIMECLASS] == timeclass) {
          return this->populations[popID].blockContainer;
       } else {
          return this->ghostPopulations.at({popID,timeclass}).blockContainer;
-      }   
+      }
    }
 
    inline const vmesh::VelocityBlockContainer* SpatialCell::get_velocity_blocks(const size_t& popID, const int timeclass) const {
-      debug_population_check(popID);
+      debug_ghostpopulation_check(popID, timeclass);
       if (timeclass < 0 || this->parameters[CellParams::TIMECLASS] == timeclass) {
          return this->populations[popID].blockContainer;
       } else {
          return this->ghostPopulations.at({popID,timeclass}).blockContainer;
-      }   
+      }
    }
 
    inline void SpatialCell::set_velocity_mesh_ghost(const size_t& popID, const int timeclass, const int src_timeclass = -1) {
-      debug_population_check(popID);
+      debug_ghostpopulation_check(popID, timeclass);
       assert(timeclass != src_timeclass);
       delete this->ghostPopulations[{popID,timeclass}].vmesh;
       // std::cout << __FILE__ <<":" <<__LINE__ << "\n";
