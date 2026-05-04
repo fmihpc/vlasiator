@@ -102,15 +102,12 @@ void MultiPeak::getParameters() {
       std::vector<size_t> vecSizes{sP->Tx.size(), sP->Ty.size(),  sP->Tz.size(), sP->Vx.size(), sP->Vy.size(),
                                    sP->Vz.size(), sP->rho.size(), sP->rhoPertAbsAmp.size()
       };
-      int p=0;
       for (size_t vecSize : vecSizes) {
          if (sP->numberOfPeaks != vecSize) {
             std::cerr << "Invalid number of " << pop << "_MultiPeak parameters, n=" << sP->numberOfPeaks
                       << " but found an input of vector length=" << vecSize << std::endl;
-            std::cout << "p="<<p << "val=" << sP->Tx.at(0) <<std::endl;
             abort();
          }
-         p+=1;
       }
       speciesParams.push_back(*sP);
    }
