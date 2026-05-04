@@ -152,14 +152,14 @@ bool cellTimeclassIsCorrect(SpatialCell* cell) {
       cellDt = cell->parameters[CellParams::MAXRDT];
    }
 
-   std::cerr << "comparing celldt " << cellDt << " and timeclassdt " << P::timeclassDt[cell->parameters[CellParams::TIMECLASS]] << " for cell " << cell->get_cellid() << std::endl;
-   std::cerr << "their ratio: " << cellDt / P::timeclassDt[cell->parameters[CellParams::TIMECLASS]] << std::endl;
+   //std::cerr << "comparing celldt " << cellDt << " and timeclassdt " << P::timeclassDt[cell->parameters[CellParams::TIMECLASS]] << " for cell " << cell->get_cellid() << std::endl;
+   //std::cerr << "their ratio: " << cellDt / P::timeclassDt[cell->parameters[CellParams::TIMECLASS]] << std::endl;
    if (cellDt > P::timeclassDt[cell->parameters[CellParams::TIMECLASS]]) {
-      std::cerr << "cell timeclass is correct" << std::endl;
+      //std::cerr << "cell timeclass is correct" << std::endl;
       return true;
    } else {
-      std::cerr << "bad cell found!" << std::endl;
-      std::cerr << "cells sysboundaryflag and sysboundarylayer: " << cell->sysBoundaryFlag << ", " << cell->sysBoundaryLayer << std::endl;
+      //std::cerr << "bad cell found!" << std::endl;
+      //std::cerr << "cells sysboundaryflag and sysboundarylayer: " << cell->sysBoundaryFlag << ", " << cell->sysBoundaryLayer << std::endl;
       return false;
    }
 }
@@ -259,7 +259,7 @@ void assingCellTimeclasses(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
       } else {
          cellMaxDt = cell->parameters[CellParams::MAXRDT];
       }
-      std::cerr << "cellMaxDt for cell " << *cell_id << " is " << cellMaxDt << std::endl;
+      //std::cerr << "cellMaxDt for cell " << *cell_id << " is " << cellMaxDt << std::endl;
       assignCellTimeclass(cell, cellMaxDt);
    }
 }
@@ -297,8 +297,8 @@ void increaseTimeclass(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiG
       SpatialCell* spatialCell = mpiGrid[cell];
       if (spatialCell->parameters[CellParams::TIMECLASS] != P::currentMaxTimeclass) {
          // If the cell is not at the maximum timeclass, we can increase it
-         std::cerr << "Increasing timeclass for cell " << cell << " with tc " << spatialCell->parameters[CellParams::TIMECLASS] << " by one"<< "\n";
-         std::cerr << "current max timeclass is " << P::currentMaxTimeclass << "\n";
+         //std::cerr << "Increasing timeclass for cell " << cell << " with tc " << spatialCell->parameters[CellParams::TIMECLASS] << " by one"<< "\n";
+         //std::cerr << "current max timeclass is " << P::currentMaxTimeclass << "\n";
          spatialCell->parameters[CellParams::TIMECLASS] += 1;
          spatialCell->parameters[CellParams::TIMECLASSDT] = spatialCell->get_tc_dt();
       } else {
@@ -321,23 +321,23 @@ void increaseTimeclass(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiG
       }
    }
 
-   std::cerr << "calling prepareAMRLists after increasing timeclass\n";
-   std::cerr << "current max timeclass is " << P::currentMaxTimeclass << "\n";
+   //std::cerr << "calling prepareAMRLists after increasing timeclass\n";
+   //std::cerr << "current max timeclass is " << P::currentMaxTimeclass << "\n";
    // this might be overkill, but for initial testing
    prepareAMRLists(mpiGrid);
    calculateAcceleration(mpiGrid, 0.0);
 
 
    auto lCells = getLocalCells();
-   std::cerr << "timeclass increase done, now cells have following ghost distributions:\n";
+  // std::cerr << "timeclass increase done, now cells have following ghost distributions:\n";
    for (size_t c=0; c<lCells.size(); ++c) {
       const CellID cell = lCells[c];
       SpatialCell* spatialCell = mpiGrid[cell];
-      std::cerr << "cell " << cell << " has timeclass " << spatialCell->parameters[CellParams::TIMECLASS] << " and ghost distribution: ";
+      //std::cerr << "cell " << cell << " has timeclass " << spatialCell->parameters[CellParams::TIMECLASS] << " and ghost distribution: ";
       for (auto& ghost : spatialCell->requested_timeclass_ghosts) {
-         std::cerr << ghost << " ";
+         //std::cerr << ghost << " ";
       }
-      std::cerr << "\n";
+      //std::cerr << "\n";
 
    }
 
@@ -489,7 +489,7 @@ void calculateGlobalTcVariables(Real fsdt, Real globalMaxDt) {
 
    if (timeclassRange < P::initialMaxTimeclass) {
       // TODO figure this out if needed
-      std::cerr << "timeclassrange (" << (timeclassRange) << ") bigger than initialmaxtimeclass (" << P::initialMaxTimeclass << "), aborting" << std::endl;
+      //std::cerr << "timeclassrange (" << (timeclassRange) << ") bigger than initialmaxtimeclass (" << P::initialMaxTimeclass << "), aborting" << std::endl;
       //abort();
    }
 
@@ -1269,7 +1269,7 @@ int simulate(int argn,char* args[]) {
       P::systemWriteFsGrid.pop_back();
    }
 
-   std::cerr << "calculating timesteps" << std::endl;
+   //std::cerr << "calculating timesteps" << std::endl;
 
    P::tc_leapfrog_init = false; // not used
    if (P::isRestart == false) {
@@ -1314,23 +1314,23 @@ int simulate(int argn,char* args[]) {
          SpatialCell* cell = mpiGrid[*cell_id];
          // std::cerr << "timeclass and tcdt of cell " << cell->get_cellid() << ": " << cell->parameters[CellParams::TIMECLASS] << ", " << cell->parameters[CellParams::TIMECLASSDT] << std::endl;
       }
-      std::cerr << __FILE__ << " " << __LINE__ << std::endl;
+      //std::cerr << __FILE__ << " " << __LINE__ << std::endl;
       computeDtimer.stop();
 
       balanceLoad(mpiGrid, sysBoundaryContainer, technicalGrid);
       
-      std::cerr << __FILE__ << " " << __LINE__ << std::endl;
+      //std::cerr << __FILE__ << " " << __LINE__ << std::endl;
 
       auto lCells = getLocalCells();
-      std::cerr << "checking cell ghost distributions:\n";
+      //std::cerr << "checking cell ghost distributions:\n";
       for (size_t c=0; c<lCells.size(); ++c) {
          const CellID cell = lCells[c];
          SpatialCell* spatialCell = mpiGrid[cell];
-         std::cerr << "cell " << cell << " has timeclass " << spatialCell->parameters[CellParams::TIMECLASS] << " and ghost distribution: ";
+         //std::cerr << "cell " << cell << " has timeclass " << spatialCell->parameters[CellParams::TIMECLASS] << " and ghost distribution: ";
          for (auto& ghost : spatialCell->requested_timeclass_ghosts) {
-            std::cerr << ghost << " ";
+            //std::cerr << ghost << " ";
          }
-         std::cerr << "\n";
+         //std::cerr << "\n";
 
       }
 
@@ -1345,7 +1345,7 @@ int simulate(int argn,char* args[]) {
       }
       P::tc_leapfrog_init = true;
 
-      std::cerr << __FILE__ << " " << __LINE__ << std::endl;
+      //std::cerr << __FILE__ << " " << __LINE__ << std::endl;
 
       propagateHalfTimer.stop();
 
