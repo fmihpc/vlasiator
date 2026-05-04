@@ -639,7 +639,7 @@ void calculateAcceleration(const uint popID,const int globalMaxSubcycles,const i
    // Calculated moments are stored in the "_V" variables.
    std::set<CellID> propagatedSet = {}; // Find the unique cells from the payload vector
    std::map<int,set<CellID>> tcPropagatedSets;
-   for (int timeclass = 0; timeclass <= P::maxTimeclass; ++timeclass){
+   for (int timeclass = 0; timeclass <= P::currentMaxTimeclass; ++timeclass){
       tcPropagatedSets[timeclass] = {};
    }
    for(auto& payload:acceleratedCells){
@@ -743,7 +743,7 @@ void calculateAcceleration(const uint popID,const int globalMaxSubcycles,const i
       timeclasses_handled.insert(payload.timeclass);
    }
    // for (auto timeclass : timeclasses_handled){
-   for (int timeclass = 0; timeclass <= P::maxTimeclass; timeclass++){ // Filter to necessary tcs - adjustVelocityBlocks comms need COMM-WORLD yet
+   for (int timeclass = 0; timeclass <= P::currentMaxTimeclass; timeclass++){ // Filter to necessary tcs - adjustVelocityBlocks comms need COMM-WORLD yet
    if(step < (globalMaxSubcycles - 1))
       {
          adjustVelocityBlocks(mpiGrid, std::vector<CellID>(tcPropagatedSets[timeclass].begin(),tcPropagatedSets[timeclass].end()), false, popID, timeclass);
@@ -902,7 +902,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 // std::cerr << __FILE__<<":"<<__LINE__<< " calling adjustVelocityBlocks at t = " 
 //          << P::t << ", preparing to receive; len cells = " << cells.size() <<
 //          "\n";
-         for (int tc = 0; tc <= P::maxTimeclass; tc++){ // Filter to necessary tcs
+         for (int tc = 0; tc <= P::currentMaxTimeclass; tc++){ // Filter to necessary tcs
             adjustVelocityBlocks(mpiGrid, cells, true, popID, tc);
          }
       }
@@ -939,38 +939,6 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
          // Ghost cells (spatial cells at the boundary of the simulation
          // volume) do not need to be propagated:
          // vector<CellID> propagatedCells;
-
-            const vmesh::VelocityMesh* vmesh = SC->get_velocity_mesh(popID);
-            // disregard boundary cells, in preparation for acceleration
-            if (  (SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) ||
-                  // Include inflow-Maxwellian
-                  (P::vlasovAccelerateMaxwellianBoundaries && (SC->sysBoundaryFlag == sysboundarytype::MAXWELLIAN)) ) {
-                     if (vmesh->size() != 0){   //do not propagate spatial cells with no blocks
-                           // if(SC->get_all_ghosts().size() > 0) {
-                           //    std::cerr << myRank <<": CellID " << cells[c] << " requested timeghosts: ";
-                           //    for (auto i : SC->get_all_ghosts()){
-                           //       std::cerr << i << " ";
-                           //       if (SC->get_timeclass_turn_v(i)){
-                           //          propagatedCells.push_back(cells[c]);
-                           //          cellsToPropagateSet.insert(cells[c]);
-                           //       }
-                           //    }
-                           //    std::cerr << "\n";
-                           // }
-                           
-                           // if ( SC->get_timeclass_turn_v() == true){ // propagate only if it is the cell's turn)
-                           //    propagatedCells.push_back(cells[c]);
-                           //    cellsToPropagateSet.insert(cells[c]);
-                           // }
-                           // vector<AccelerationPayload> harvest;
-                           setAccelerationTimeGhosts(propagatePayloads, mpiGrid[cells[c]], popID, dt_cell);
-                           // propagatePayloads.insert(propagatePayloads.end(), outvec.begin(),outvec.end());
-               
-                     }
-                     //prepare for acceleration, updates max dt for each cell, it
-                     //needs to be set to something sensible for _all_ cells, even if
-                     //they are not propagated
-                     updateAccelerationMaxdt(SC, popID);
 
 
          if (!accelerateSpecificCells) {
@@ -1149,7 +1117,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 //          << P::t << ", preparing to receive; len cells = " << cells.size() <<
 //          "\n";        
          // for(auto tc:timeclasses_handled){
-         for (int tc = 0; tc <= P::maxTimeclass; tc++){ // Filter to necessary tcs - adjustVelocityBlocks comms need COMM-WORLD yet
+         for (int tc = 0; tc <= P::currentMaxTimeclass; tc++){ // Filter to necessary tcs - adjustVelocityBlocks comms need COMM-WORLD yet
             adjustVelocityBlocks(mpiGrid, cells, true, popID, tc);
          }
       } // for-loop over particle species
@@ -1192,6 +1160,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
    // std::cerr << "reaches end of accel top level\n";
 
 }
+
 
 
 /*--------------------------------------------------

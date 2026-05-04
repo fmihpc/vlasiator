@@ -2139,7 +2139,7 @@ bool writeRestart(
    //Updated newly adjusted velocity block lists on remote cells, and
    //prepare to receive block data
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID){
-      for(int timeclass = 0; timeclass <= P::maxTimeclass; ++timeclass){
+      for(int timeclass = 0; timeclass <= P::currentMaxTimeclass; ++timeclass){
          std::cerr<<__FILE__<<":"<<__LINE__<<"\n";
         updateRemoteVelocityBlockLists(mpiGrid,popID,Neighborhoods::DIST_FUNC,timeclass);
       }

@@ -125,7 +125,7 @@ void initializeGrids(
       // One extra layer for translation of ghost cells
       neighborhood_size++;
    }
-   if (P::maxTimeclass > 0) {
+   if (P::initialMaxTimeclass > 0) {
        neighborhood_size = max(neighborhood_size, 4+P::timeclassOuterHaloExtent+P::timeclassExactHaloExtent);
    }
 
@@ -771,7 +771,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    //new partition, re/initialize blocklists of remote cells.
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
       if (P::vlasovSolverGhostTranslate) {
-         for(int timeclass=0; timeclass<=P::maxTimeclass;++timeclass)
+         for(int timeclass=0; timeclass<=P::currentMaxTimeclass;++timeclass)
             updateRemoteVelocityBlockLists(mpiGrid,popID,Neighborhoods::VLASOV_SOLVER_GHOST,timeclass);
       } else {
          updateRemoteVelocityBlockLists(mpiGrid,popID, Neighborhoods::DIST_FUNC, -1);
@@ -871,17 +871,17 @@ void prepareAMRLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
    int myRank;
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
 
-   if (P::maxTimeclass >= 0) {
+   if (P::currentMaxTimeclass >= 0) {
       const vector<CellID>& localCells = getLocalCells();
       // std::cerr << __FILE__<<":" << __LINE__ <<"\n";
       const vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(Neighborhoods::FULL);
       mpiGrid.force_update_cell_neighborhoods(remote_cells);
 
-      for(int i = 0; i <= P::maxTimeclass; ++i){
+      for(int i = 0; i <= P::currentMaxTimeclass; ++i){
          // std::cerr << myRank << ": prepareAMRLists called for timeclass " << i << "\n";
          set<CellID> tc_active_cells_set;
          std::vector<CellID> tc_act_cells;
-         if (P::maxTimeclass > 0) {
+         if (P::currentMaxTimeclass > 0) {
             getGhostNeighborsforTC(mpiGrid, localCells, tc_active_cells_set, i);
             tc_act_cells = std::vector<CellID>(tc_active_cells_set.begin(),tc_active_cells_set.end());
          } else {
@@ -1084,7 +1084,7 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
    // prepare to receive full block data for all cells (irrespective of list of cells to adjust)
    if (doPrepareToReceiveBlocks) {
       if (P::vlasovSolverGhostTranslate) { // TODO add timeclasses for remote
-         if(P::maxTimeclass > 0){
+         if(P::currentMaxTimeclass > 0){
             updateRemoteVelocityBlockLists(mpiGrid,popID,Neighborhoods::VLASOV_SOLVER_GHOST, timeclass);
          }
          else{
@@ -2054,7 +2054,7 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
    // Update as ghost cell refLevels may have changed
    technicalGrid.updateGhostCells();
    for (size_t popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-      for(int timeclass=0;timeclass<P::maxTimeclass; ++timeclass)
+      for(int timeclass=0;timeclass<P::currentMaxTimeclass; ++timeclass)
          updateRemoteVelocityBlockLists(mpiGrid, popID, Neighborhoods::NEAREST,timeclass);
    }
 

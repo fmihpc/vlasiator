@@ -233,7 +233,7 @@ void assignCellTimeclass(SpatialCell* cell, const double cellDt) {
    double dtdiff = int(log2((cellDt * P::timeclassDtModifier)/baseTcDt));
    int cellTimeClass = max(0.0,(P::currentMaxTimeclass - P::timeclassBuffer) - max(0.0, dtdiff));
 
-   std::cout << "assigning tc " << cellTimeClass << " for cell " << cell->get_cellid() << " with tcdt " << P::timeclassDt[cellTimeClass] << std::endl;
+   //std::cout << "assigning tc " << cellTimeClass << " for cell " << cell->get_cellid() << " with tcdt " << P::timeclassDt[cellTimeClass] << std::endl;
 
    cell->parameters[CellParams::TIMECLASS] = cellTimeClass;
    cell->parameters[CellParams::TIMECLASSDT] = cell->get_tc_dt();
@@ -689,7 +689,7 @@ void initiateAllCellTimeclasses(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
    } else if (P::tc_test_type == 8) {
 
       // normal operation except cells are assigned with a modifier to cellwise dt limit
-      std::cout << "dt modifier: " << P::timeclassDtModifier << std::endl;
+      //std::cout << "dt modifier: " << P::timeclassDtModifier << std::endl;
       assingCellTimeclasses(mpiGrid);         
 
    } else {
@@ -1302,11 +1302,11 @@ int simulate(int argn,char* args[]) {
       initiateAllCellTimeclasses(mpiGrid);
 
       if(myRank == MASTER_RANK){
-         std::cout << "timeclass dts = ";
+         //std::cout << "timeclass dts = ";
          for(int i = 0; i <= P::currentMaxTimeclass; ++i){
-            std::cout << i <<": "<<P::timeclassDt[i] << "s, ";
+            //std::cout << i <<": "<<P::timeclassDt[i] << "s, ";
          }
-         std::cout << endl;
+         //std::cout << endl;
       }
 
       for (vector<CellID>::const_iterator cell_id=cells.begin(); cell_id!=cells.end(); ++cell_id) {
@@ -1362,7 +1362,7 @@ int simulate(int argn,char* args[]) {
       // std::cerr <<__FILE__<<":"<<__LINE__<<" ("<<myRank <<")\n";
       // Also update all moments. They won't be transmitted to FSgrid until the field solver is called, though.
       phiprof::Timer computeMomentsTimer {"Compute interp moments"};
-      std::cout << "for initial interpolated moments\n";
+      //std::cout << "for initial interpolated moments\n";
       calculateInterpolatedVelocityMoments(
          mpiGrid,
          CellParams::RHOM,
@@ -1447,13 +1447,13 @@ int simulate(int argn,char* args[]) {
          P::t-P::dt <= P::t_max+DT_EPSILON &&
          wallTimeRestartCounter <= P::exitAfterRestarts) {
 
-      std::cout << "start of main simulation loop, below dt, timeclassDts, currentmaxtimeclass" << std::endl;
-      std::cout << P::dt << std::endl;
+      //std::cout << "start of main simulation loop, below dt, timeclassDts, currentmaxtimeclass" << std::endl;
+      //std::cout << P::dt << std::endl;
       for (auto i: P::timeclassDt) {
-         std::cout << i << " ";
+         //std::cout << i << " ";
       }
-      std::cout << endl;
-      std::cout << P::currentMaxTimeclass << std::endl;
+      //std::cout << endl;
+      //std::cout << P::currentMaxTimeclass << std::endl;
       
       addTimedBarrier("barrier-loop-start");
       
@@ -1809,31 +1809,31 @@ int simulate(int argn,char* args[]) {
 
       // }
 
-      for (auto c: cells) {
+      // for (auto c: cells) {
 
-         std::cout << "\n";
-         std::cout << "Cell " << c << " has timeclass " << mpiGrid[c]->parameters[CellParams::TIMECLASS] << std::endl;
-         std::cout << "sysboundaryflag: " << mpiGrid[c]->sysBoundaryFlag << std::endl;
-         std::cout << "regular vspace size: " << mpiGrid[c]->get_velocity_mesh(0)->size() << std::endl;
-         std::cout << "its requested timeclass ghosts: " << std::endl;
-         for (int req: mpiGrid[c]->requested_timeclass_ghosts) {
-            std::cout << req << " " << std::endl;
-            std::cout << "vspace size of that requested: " << mpiGrid[c]->get_velocity_mesh(0, req)->size() << std::endl;
-         }
+         // std::cout << "\n";
+         // std::cout << "Cell " << c << " has timeclass " << mpiGrid[c]->parameters[CellParams::TIMECLASS] << std::endl;
+         // std::cout << "sysboundaryflag: " << mpiGrid[c]->sysBoundaryFlag << std::endl;
+         // std::cout << "regular vspace size: " << mpiGrid[c]->get_velocity_mesh(0)->size() << std::endl;
+         // std::cout << "its requested timeclass ghosts: " << std::endl;
+         // for (int req: mpiGrid[c]->requested_timeclass_ghosts) {
+         //    std::cout << req << " " << std::endl;
+         //    std::cout << "vspace size of that requested: " << mpiGrid[c]->get_velocity_mesh(0, req)->size() << std::endl;
+         // }
 
-         std::cout << "its requested timeclass copy ghosts: " << std::endl;
-         for (int req: mpiGrid[c]->requested_timeclass_copy_ghosts) {
-            std::cout << req << " " << std::endl;
-         }
+         // std::cout << "its requested timeclass copy ghosts: " << std::endl;
+         // for (int req: mpiGrid[c]->requested_timeclass_copy_ghosts) {
+         //    std::cout << req << " " << std::endl;
+         // }
 
-         std::cout << "maxdt in v and r: " << mpiGrid[c]->parameters[CellParams::MAXVDT] << ", " << mpiGrid[c]->parameters[CellParams::MAXRDT] << std::endl;
-         std::cout << "is not sysboundary cell: " << (mpiGrid[c]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) << std::endl;
-         std::cout << "timeclassExactHaloExtent: " << P::timeclassExactHaloExtent << std::endl;
-         std::cout << "size of timeghost exact neighborhood:" << mpiGrid.get_neighbors_of(c, VLASOV_SOLVER_TIMEGHOST_EXACT_HALO_NEIGHBORHOOD_ID)->size() << std::endl;
+      //    std::cout << "maxdt in v and r: " << mpiGrid[c]->parameters[CellParams::MAXVDT] << ", " << mpiGrid[c]->parameters[CellParams::MAXRDT] << std::endl;
+      //    std::cout << "is not sysboundary cell: " << (mpiGrid[c]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) << std::endl;
+      //    std::cout << "timeclassExactHaloExtent: " << P::timeclassExactHaloExtent << std::endl;
+      //    std::cout << "size of timeghost exact neighborhood:" << mpiGrid.get_neighbors_of(c, VLASOV_SOLVER_TIMEGHOST_EXACT_HALO_NEIGHBORHOOD_ID)->size() << std::endl;
 
 
-         std::cout << "\n";
-      }
+      //    std::cout << "\n";
+      // }
 
       // std::vector<Real> newTimeclassDts = std::vector<Real>(P::initialMaxTimeclass+1);
 
@@ -1877,10 +1877,10 @@ int simulate(int argn,char* args[]) {
          handleChangingofDt(dtMaxGlobal, dtIsChanged, newDt);
          // checks if dt is good
 
-         std::cout << "doing dynamic timestep checks" << std::endl;
+         //std::cout << "doing dynamic timestep checks" << std::endl;
          auto timestepvector = computeNewTimeStep(mpiGrid, technicalGrid, dtMaxLocal, dtMaxGlobal, dtMinMaxLocal, dtMinMaxGlobal);
-         std::cout << "global minimun timestep is " << timestepvector.at(1) << std::endl;
-         std::cout << "ratio of global minimum and smallest tcdt: " << timestepvector.at(1) / P::timeclassDt[P::currentMaxTimeclass - P::timeclassBuffer] << std::endl;
+         //std::cout << "global minimun timestep is " << timestepvector.at(1) << std::endl;
+         //std::cout << "ratio of global minimum and smallest tcdt: " << timestepvector.at(1) / P::timeclassDt[P::currentMaxTimeclass - P::timeclassBuffer] << std::endl;
 
          std::vector<Real> placeholder1(3), placeholder2(3);
 
@@ -1900,11 +1900,11 @@ int simulate(int argn,char* args[]) {
 
          if (badTcCells.size() != 0) {
 
-            std::cout << badTcCells.size() << " bad cells found:" << std::endl;
+            //std::cout << badTcCells.size() << " bad cells found:" << std::endl;
             logFile << "\nBAD CELLS FOUND, FRACTIMESTEP = " << P::fractionalTimestep << "\n" << std::endl;
 
             for (auto c: badTcCells) {
-               std::cout << mpiGrid[c]->get_cellid() << std::endl;
+               //std::cout << mpiGrid[c]->get_cellid() << std::endl;
             }
 
             if (P::staticTimeclasses) {
@@ -1914,7 +1914,7 @@ int simulate(int argn,char* args[]) {
 
             if (P::fractionalTimestep == 0) {
 
-               std::cout << "recomputing all timeclasses as fractimestep is 0" << std::endl;
+               //std::cout << "recomputing all timeclasses as fractimestep is 0" << std::endl;
                logFile << "\nrecomputing all timeclasses as fractimestep is 0\n" << std::endl;
 
                // step back all cells in acceleration space
@@ -1942,11 +1942,11 @@ int simulate(int argn,char* args[]) {
                assingCellTimeclasses(mpiGrid);         
 
                if(myRank == MASTER_RANK){
-                  std::cout << "timeclass dts = ";
+                  //std::cout << "timeclass dts = ";
                   for(int i = 0; i <= P::currentMaxTimeclass; ++i){
-                     std::cout << i <<": "<<P::timeclassDt[i] << "s, ";
+                     //std::cout << i <<": "<<P::timeclassDt[i] << "s, ";
                   }
-                  std::cout << endl;
+                  //std::cout << endl;
                }
 
                // restep cells
@@ -1955,7 +1955,7 @@ int simulate(int argn,char* args[]) {
 
             } else {
                aCellHadTimeclassChanged = true;
-               std::cout << "increasing timeclasses of bad cells" << std::endl;
+               //std::cout << "increasing timeclasses of bad cells" << std::endl;
                logFile << "\nincreasing timeclasses of bad cells\n" << std::endl;
 
                //rolling back
@@ -1971,7 +1971,7 @@ int simulate(int argn,char* args[]) {
             }
 
          } else {
-            std::cout << "all cells pass check" << std::endl;
+            //std::cout << "all cells pass check" << std::endl;
          }
 
       }
@@ -1984,7 +1984,7 @@ int simulate(int argn,char* args[]) {
          //if we upgraded a cell timeclass, we do some stuff on the next 0th fractional timestep
 
          aCellHadTimeclassChanged = false;
-         std::cout << "recomputing all timeclasses as fractimestep is 0, and we increased a cell timeclass on the previous full timestep." << std::endl;
+         //std::cout << "recomputing all timeclasses as fractimestep is 0, and we increased a cell timeclass on the previous full timestep." << std::endl;
 
          // step back all cells in acceleration space
          calculateAcceleration(mpiGrid, -0.5);
@@ -2011,11 +2011,11 @@ int simulate(int argn,char* args[]) {
          assingCellTimeclasses(mpiGrid);         
 
          if(myRank == MASTER_RANK){
-            std::cout << "timeclass dts = ";
+            //std::cout << "timeclass dts = ";
             for(int i = 0; i <= P::currentMaxTimeclass; ++i){
-               std::cout << i <<": "<<P::timeclassDt[i] << "s, ";
+               //std::cout << i <<": "<<P::timeclassDt[i] << "s, ";
             }
-            std::cout << endl;
+            //std::cout << endl;
          }
 
          // restep cells
