@@ -1956,6 +1956,7 @@ int simulate(int argn,char* args[]) {
 
                // restep cells
                calculateAcceleration(mpiGrid, 0.5);
+               logFile << "\ncompleted timeclass reassignemtn\n" << std::endl;
 
             } else {
                aCellHadTimeclassChanged = true;
@@ -1970,6 +1971,7 @@ int simulate(int argn,char* args[]) {
                // rolling forward
 
                calculateAcceleration(mpiGrid, 0.5, true, badTcCells);
+               logFile << "\ncompleted timeclass increase\n" << std::endl;
 
             }
 
@@ -2024,8 +2026,11 @@ int simulate(int argn,char* args[]) {
          // restep cells
          calculateAcceleration(mpiGrid, 0.5);
 
+         logFile << "\ncompleted timeclass reassignment after cell tc increase\n" << std::endl;
 
-      }
+      }      
+
+      
 
       //    phiprof::Timer dyndt_check {"check-and-update-dynamic-dt"};
          
