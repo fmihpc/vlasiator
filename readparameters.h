@@ -46,41 +46,20 @@ public:
    Readparameters(int cmdargc, char* cmdargv[]);
    ~Readparameters();
 
-   /** Add a new input parameter.
+   /** Add a new input parameter with lambda function that does something with each parsed value.
     * Note that parse must be called in order for the input file(s) to be re-read.
     * Only called by the root process.
     * @param name The name of the parameter, as given in the input file(s).
     * @param desc Description for the parameter.
-    * @param defValue Default value for variable.
+    * @param var variable to which the parsed value is assigned.
+    * @param lambda function<void(string)> for doing operations on values as they are parsed. 
     */
-   // static void add(const std::string& name, const std::string& desc, const std::string& defValue) {
-   //    int rank;
-   //    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-   //    if (rank == MASTER_RANK) {
-   //       options[name] = "";
-   //       isOptionParsed[name] = false;
-   //       app->add_option(
-   //           name.c_str(), boost::program_options::value<std::string>(&(options[name]))->default_value(defValue),
-   //           desc.c_str());
-   //    }
-   // }
-    template <typename T> static CLI::Option* add_each_lambda(const std::string& name, const std::string& desc, T& defValue,
+
+    template <typename T> static CLI::Option* add_each_lambda(const std::string& name, const std::string& desc, T& var,
         std::function<void(const std::string)> lambda
                                                     ) {
       int rank;
       MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-         // std::stringstream ss;
-         //
-         // static constexpr bool n = (std::is_floating_point<T>::value);
-         // if (n) {
-         //    ss << std::setprecision(std::numeric_limits<double>::digits10 + 1) << defValue;
-         // } else {
-         //    ss << defValue;
-         // }
-      // options[name] = "";
-      // isOptionParsed[name] = false;
-      // std::cout << name << std::endl;
-
       CLI::Option* opt;
       if (name.find('.') != std::string::npos) {
 
@@ -102,34 +81,35 @@ public:
           if (namein.size() != 1){
             dashes+="-";
           }
-          opt=sub->add_option((dashes+namein).c_str(), defValue, desc.c_str())->each(lambda);//->callback_priority(priority)->force_callback();
+          opt=sub->add_option((dashes+namein).c_str(), var, desc.c_str())->each(lambda);//->callback_priority(priority)->force_callback();
           isOptionParsed[subcom]=true;
         } else {
         std::cerr << "Something went wrong with adding subcommand "+subcom+"!" << std::endl;
         abort();
         };
       } else {
-        opt=app->add_option(("--"+name).c_str(), defValue, desc.c_str())->each(lambda);
+        opt=app->add_option(("--"+name).c_str(), var, desc.c_str())->each(lambda);
       }  
       return opt;
-      // options[name] = "";
-      // isOptionParsed[name] = false;
-      // app->add_option(
-      //     name.c_str(), defValue,
-          // desc.c_str())->each(lambda);
    }
 
    static CLI::App* get_app(){
       return app;
    }
+   /** Add a new input parameter 
+    * Note that parse must be called in order for the input file(s) to be re-read.
+    * Only called by the root process.
+    * @param name The name of the parameter, as given in the input file(s).
+    * @param desc Description for the parameter.
+    * @param var variable to which the parsed value is assigned.
+    * @param defval Default value for variable.
+    */
+
    template <typename T> static CLI::Option* add(const std::string& name, const std::string& desc,
-       T& value, std::optional<T> defval=std::nullopt
+       T& var, std::optional<T> defval=std::nullopt
       ) {
       int rank;
       MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-      // options[name] = "";
-      // isOptionParsed[name] = false;
-      // std::cout << name << std::endl;
       CLI::Option* opt;
       if (name.find('.') != std::string::npos) {
 
@@ -149,24 +129,20 @@ public:
           if (namein.size() != 1){
             dashes+="-";
           }
-          opt = sub->add_option((dashes+namein).c_str(), value, desc.c_str())->capture_default_str(); //->each(lambda);
+          opt = sub->add_option((dashes+namein).c_str(), var, desc.c_str())->capture_default_str(); //->each(lambda);
           isOptionParsed[subcom]=true;
         } else {
         std::cerr << "Something went wrong with adding subcommand "+subcom+"!" << std::endl;
         abort();
         };
       } else {
-        opt=app->add_option(("--"+name).c_str(), value, desc.c_str())->capture_default_str();//->expected(0,-1); //->each(lambda);
+        opt=app->add_option(("--"+name).c_str(), var, desc.c_str())->capture_default_str();//->expected(0,-1); //->each(lambda);
       }
       if (defval && opt != nullptr){
           opt->default_val(*defval);
       } 
 
       return opt;
-
-      // std::cerr << "Something went wrong with adding option " << name << std::endl;
-      // abort();
-      // return nullptr;
    }
    static void parseComposing(){
     int rank;
@@ -255,7 +231,15 @@ public:
 
     }
    }
-
+    /** Add a new composing input parameter.
+    * Note that parse must be called in order for the input file(s) to be re-read.
+    * Only needs to be called by root process.
+    * It can be defined multiple times and are all returned as a vector.
+    * @param name The name of the parameter, as given in the input file(s).
+    * @param desc Description for the parameter.
+    * @param var variable to which the parsed value is assigned.
+    * @param defval Default value for variable.
+  */
    template <typename T> static CLI::Option* addComposing(const std::string& name, const std::string& desc,
        T& value, std::optional<T> defval=std::nullopt
       ) {
@@ -277,9 +261,6 @@ public:
    template <typename T> static void addFlag(const std::string& name, const std::string& desc,  T& defValue) {
       int rank;
       MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-      // options[name] = "";
-      // isOptionParsed[name] = false;
-      // std::cout << name << std::endl;
       if (name.find('.') != std::string::npos) {
 
         auto indx = name.find('.');
@@ -294,24 +275,23 @@ public:
         };
         if (sub!=nullptr)
         {
-          sub->add_flag(namein.c_str(), defValue, desc.c_str()); //->each(lambda);
+          sub->add_flag(namein.c_str(), defValue, desc.c_str());
           isOptionParsed[subcom]=true;
         } else {
         std::cerr << "Something went wrong with adding subcommand "+subcom+"!" << std::endl;
         abort();
         };
       } else {
-        app->add_flag(name.c_str(), defValue, desc.c_str()); //->each(lambda);
+        app->add_flag(name.c_str(), defValue, desc.c_str());
       }
-      // app->add_option(
-      //     name.c_str(), defValue,
-          // desc.c_str());
+
    }
 
    // Determine whether a given variable has been set.
    static bool isSet(const std::string& name) {
       return(app->get_option_no_throw(name)!=nullptr);
    }
+
    static CLI::Option* getOption(const std::string& name) {
       if (auto indx=name.find('.'); indx!=std::string::npos) {
          std::string subcomName=name.substr(0,indx);

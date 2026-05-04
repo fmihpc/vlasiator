@@ -79,22 +79,6 @@ Readparameters::~Readparameters() {
    // delete app;
 }
 
-/** Add a new composing input parameter.
- * Note that parse must be called in order for the input file(s) to be re-read.
- * Only needs to be called by root process.
- * It can be defined multiple times and are all returned as a vector.
- * @param name The name of the parameter, as given in the input file(s).
- * @param desc Description for the parameter.
- */
-// void Readparameters::addComposing(const string& name, const string& desc) {
-//    int rank;
-//    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-//    if (rank == MASTER_RANK) {
-//       isVectorOptionParsed[name] = false;
-//       descriptions->add_options()(name.c_str(), PO::value<vector<string>>(&(vectorOptions[name]))->composing(),
-//                                   desc.c_str());
-//    }
-// }
 
 /** Write the descriptions of known input options to standard output if
  * an option called "help" has been read, and exit in that case.
@@ -236,11 +220,6 @@ void Readparameters::addDefaultParameters() {
    if (rank == MASTER_RANK) {
       app->remove_option(app->get_help_ptr());
       Readparameters::addFlag("--help", "print this help message", Readparameters::helpRequested);
-      // std::cout << "INSIDE DEFAULT PARAM ADD" << std::endl;
-      // Readparameters::app->get_option("--help")->each([](const string){
-      //   std::cout << "test" << std::endl;
-      //   Readparameters::helpRequested=true;
-      // });
       Readparameters::addFlag("--version", "print version information", Readparameters::versionRequested);
 
       // // Parameters which set the names of the configuration file(s):
