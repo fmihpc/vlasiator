@@ -153,6 +153,9 @@ public:
 
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     if (rank==MASTER_RANK) {
+      if (app->get_config_ptr()==nullptr) {
+        return;
+      }
       configFile.open(app->get_config_ptr()->as<std::string>());
       if (configFile.is_open()) {
         while ( getline(configFile,line) ){
@@ -191,7 +194,6 @@ public:
           } else {
             commandName=std::string(optName);
           }
-
 
           //Skip vector values and let CLI11 handle them
           if (optValue.front()=='[') {
@@ -235,10 +237,20 @@ public:
       MPI_Bcast(&isOptionParsed[commandName], sizeof(bool) ,MPI_BYTE, MASTER_RANK, MPI_COMM_WORLD);
       if (!isOptionParsed[commandName]) {
         iter->second='['+iter->second+']'; 
-        std::cout <<"rank="<<rank << " , " << commandName << " " << iter->second << std::endl;
+        std::string optVal=iter->second;
+        int strSize=optVal.size();
+        MPI_Bcast(&strSize, 1, MPI_INT,
+              MASTER_RANK, MPI_COMM_WORLD);
+
+        if (rank != MASTER_RANK) {
+            optVal.resize(strSize);
+        }
+        MPI_Bcast(optVal.data(), strSize, MPI_CHAR,
+                  MASTER_RANK, MPI_COMM_WORLD);
+
         auto opt= getOption(commandName);
         opt->clear();
-        opt->add_result(iter->second);
+        opt->add_result(optVal);
         opt->run_callback(); 
       }
     }
