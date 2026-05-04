@@ -361,6 +361,7 @@ namespace SBC {
    }
 
    void Outflow::updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+                             FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
                              FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
                              FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
                              creal t) {}
@@ -507,10 +508,12 @@ namespace SBC {
       mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::SYSBOUNDARIES_EXTENDED);
 
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-         SpatialCell::setCommunicatedSpecies(popID);
-         updateRemoteVelocityBlockLists(mpiGrid, popID, Neighborhoods::SYSBOUNDARIES);
-         SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA, true);
-         mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::SYSBOUNDARIES);
+         for (int timeclass = 0; timeclass<=P::maxTimeclass; ++timeclass){
+            SpatialCell::setCommunicatedSpecies(popID, timeclass);
+            updateRemoteVelocityBlockLists(mpiGrid, popID, Neighborhoods::SYSBOUNDARIES,timeclass);
+            SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA, true);
+            mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::SYSBOUNDARIES);
+         }
       }
 
       const vector<CellID>& cells = getLocalCells();

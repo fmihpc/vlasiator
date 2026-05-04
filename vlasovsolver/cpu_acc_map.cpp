@@ -109,7 +109,7 @@ void inline swapBlockIndices(velocity_block_indices_t &blockIndices, const uint 
 
 /*
    Here we map from the current time step grid, to a target grid which
-   is the lagrangian departure grid (so th grid at timestep +dt,
+   is the lagrangian departure grid (so the grid at timestep +dt,
    tracked backwards by -dt)
 
    TODO: parallelize with openMP over block-columns. If one also
@@ -291,6 +291,7 @@ bool map_1d(SpatialCell* spatial_cell,
                                       (setFirstBlockIndices[0] * WID + WID - 1) * intersection_di +
                                       (setFirstBlockIndices[1] * WID + WID - 1) * intersection_dj);
 
+
       //now, record which blocks are target blocks
       for(uint columnIndex = setColumnOffsets[setIndex]; columnIndex < setColumnOffsets[setIndex] + setNumColumns[setIndex] ; columnIndex ++){
          const vmesh::LocalID n_cblocks = columnNumBlocks[columnIndex];
@@ -396,8 +397,6 @@ bool map_1d(SpatialCell* spatial_cell,
             blockIndexToBlockData[blockK] = blockContainer->getData(tblockLID);
          }
       }
-
-
 
       // loop over columns in set and do the mapping
       valuesColumnOffset = 0; //offset to values array for data in a column in this set
@@ -545,15 +544,15 @@ bool map_1d(SpatialCell* spatial_cell,
                // k + WID is the index where we have stored k index, WID amount of padding.
                #ifdef ACC_SEMILAG_PLM
                Vec a[2];
-               compute_plm_coeff(values + valuesColumnOffset + i_pcolumnv(j, 0, -1, n_cblocks), k + WID , a, spatial_cell->getVelocityBlockMinValue(popID));
+               compute_plm_coeff(values + valuesColumnOffset + i_pcolumnv(j, 0, -1, n_cblocks), k + WID , a, spatial_cell->getVelocityBlockMinValue(popID, timeclass));
                #endif
                #ifdef ACC_SEMILAG_PPM
                Vec a[3];
-               compute_ppm_coeff(values + valuesColumnOffset + i_pcolumnv(j, 0, -1, n_cblocks), h4, k + WID, a, spatial_cell->getVelocityBlockMinValue(popID));
+               compute_ppm_coeff(values + valuesColumnOffset + i_pcolumnv(j, 0, -1, n_cblocks), h4, k + WID, a, spatial_cell->getVelocityBlockMinValue(popID, timeclass));
                #endif
                #ifdef ACC_SEMILAG_PQM
                Vec a[5];
-               compute_pqm_coeff(values + valuesColumnOffset + i_pcolumnv(j, 0, -1, n_cblocks), h8, k + WID, a, spatial_cell->getVelocityBlockMinValue(popID));
+               compute_pqm_coeff(values + valuesColumnOffset + i_pcolumnv(j, 0, -1, n_cblocks), h8, k + WID, a, spatial_cell->getVelocityBlockMinValue(popID, timeclass ));
                #endif
 
                // set the initial value for the integrand at the boundary at v = 0
@@ -581,7 +580,6 @@ bool map_1d(SpatialCell* spatial_cell,
                   const int blockK = gk/WID;
                   const int gk_mod_WID = (gk - blockK * WID);
 
-                  
                   //cell indices in the target block  (TODO: to be replaced by
                   //compile time generated scatter write operation)
                   const Veci target_cell(target_cell_index_common + gk_mod_WID * cell_indices_to_id[2]);

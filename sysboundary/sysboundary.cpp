@@ -483,16 +483,6 @@ void SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
    if(ionosphereDownmapRadius < 1000) {
       ionosphereDownmapRadius *= physicalconstants::R_E;
    }
-   if (ionosphereDownmapRadius > 0) {
-      #pragma omp parallel for
-      for (uint i = 0; i < cells.size(); i++) {
-         creal x = mpiGrid[cells[i]]->parameters[CellParams::XCRD]+ mpiGrid[cells[i]]->parameters[CellParams::DX];
-         creal y = mpiGrid[cells[i]]->parameters[CellParams::YCRD]+ mpiGrid[cells[i]]->parameters[CellParams::DY];
-         creal z = mpiGrid[cells[i]]->parameters[CellParams::ZCRD]+ mpiGrid[cells[i]]->parameters[CellParams::DZ];
-         creal radius2 = x*x + y*y + z*z;
-      }
-   }
-
 
    // Now the layers need to be set on fsgrid too
    // In dccrg initialization the max number of boundary layers is set to 3.
@@ -639,13 +629,14 @@ void SysBoundary::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_G
 }
 
 void SysBoundary::updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+                              FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
                               FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
                               FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
                               creal t) {
    if (isAnyDynamic()) {
       for(auto& b : sysBoundaries) {
          if (b->isDynamic()) {
-            b->updateState(mpiGrid, perBGrid, BgBGrid, t);
+            b->updateState(mpiGrid, technicalGrid, perBGrid, BgBGrid, t);
          }
       }
    }
@@ -664,7 +655,8 @@ void SysBoundary::setupL2OutflowAtRestart(dccrg::Dccrg<SpatialCell, dccrg::Carte
    }
    // Needed after copying VDFs in L1 Outflow cells or LUMI (and our communications) breaks.
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-      updateRemoteVelocityBlockLists(mpiGrid, popID);
+      for(int timeclass=0; timeclass<=P::maxTimeclass; ++timeclass)
+         updateRemoteVelocityBlockLists(mpiGrid, popID,Neighborhoods::DIST_FUNC, timeclass);
    }
 }
 
@@ -697,85 +689,88 @@ void SysBoundary::applySysBoundaryVlasovConditions(
 
    // Loop over existing particle species
    for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID) {
-      SpatialCell::setCommunicatedSpecies(popID);
-      // update lists in neighborhood
-      updateRemoteVelocityBlockLists(mpiGrid, popID, Neighborhoods::SYSBOUNDARIES);
+      for (int timeclass = 0; timeclass <= P::maxTimeclass; ++timeclass){
+         SpatialCell::setCommunicatedSpecies(popID, timeclass);
+         // update lists in neighborhood
+         updateRemoteVelocityBlockLists(mpiGrid, popID, Neighborhoods::SYSBOUNDARIES, timeclass);
 
-      // Then the block data in the reduced neighbourhood:
-      phiprof::Timer commTimer {"Start comm of cell and block data", {"MPI"}};
-      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA, true);
-      mpiGrid.start_remote_neighbor_copy_updates(Neighborhoods::SYSBOUNDARIES);
-      commTimer.stop();
+         // Then the block data in the reduced neighbourhood:
+         phiprof::Timer commTimer {"Start comm of cell and block data", {"MPI"}};
+         SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA, true);
+         mpiGrid.start_remote_neighbor_copy_updates(Neighborhoods::SYSBOUNDARIES);
+         commTimer.stop();
 
-      phiprof::Timer computeInnerTimer {"Compute process inner cells"};
-      // Compute Vlasov boundary condition on system boundary/process inner cells
-      vector<CellID> localCells;
-      vector<CellID> timeclassCells;
+         phiprof::Timer computeInnerTimer {"Compute process inner cells"};
+         // Compute Vlasov boundary condition on system boundary/process inner cells
+         vector<CellID> localCells;
+         vector<CellID> timeclassCells;
 
-      for (size_t c=0; c<localCells.size(); c++) {
-         const CellID cellID = localCells[c];
-         SpatialCell* SC = mpiGrid[cellID];
+         for (size_t c=0; c<localCells.size(); c++) {
+            const CellID cellID = localCells[c];
+            SpatialCell* SC = mpiGrid[cellID];
 
-         if (SC->get_timeclass_turn_v() == true) {
-            timeclassCells.push_back(cellID);
+            if (SC->get_timeclass_turn_v() == true) {
+               timeclassCells.push_back(cellID);
+            }
          }
-      }
 
-      getBoundaryCellList(mpiGrid, mpiGrid.get_local_cells_not_on_process_boundary(Neighborhoods::SYSBOUNDARIES), localCells);
+         getBoundaryCellList(mpiGrid, mpiGrid.get_local_cells_not_on_process_boundary(Neighborhoods::SYSBOUNDARIES), localCells);
 
-#pragma omp parallel for
-      for (uint i = 0; i < localCells.size(); i++) {
-         cuint sysBoundaryType = mpiGrid[localCells[i]]->sysBoundaryFlag;
-         this->getSysBoundary(sysBoundaryType)->vlasovBoundaryCondition(mpiGrid, localCells[i], popID, calculate_V_moments);
-      }
-      if (popID==getObjectWrapper().particleSpecies.size()-1) {
-         // Only calculate moments when handling last population
-         if (calculate_V_moments) {
-            calculateMoments_V(mpiGrid, timeclassCells, true);
-         } else {
-            calculateMoments_R(mpiGrid, timeclassCells, true);
+   #pragma omp parallel for
+         for (uint i = 0; i < localCells.size(); i++) {
+            cuint sysBoundaryType = mpiGrid[localCells[i]]->sysBoundaryFlag;
+            this->getSysBoundary(sysBoundaryType)->vlasovBoundaryCondition(mpiGrid, localCells[i], popID, calculate_V_moments);
          }
-      }
-      computeInnerTimer.stop();
-
-      phiprof::Timer waitimer {"Wait for receives", {"MPI", "Wait"}};
-      mpiGrid.wait_remote_neighbor_copy_updates(Neighborhoods::SYSBOUNDARIES);
-      waitimer.stop();
-
-      // Compute vlasov boundary on system boundary/process boundary cells
-      phiprof::Timer computeBoundaryTimer {"Compute process boundary cells"};
-      vector<CellID> boundaryCells;
-      vector<CellID> timeclassBoundaryCells;
-      getBoundaryCellList(mpiGrid, mpiGrid.get_local_cells_on_process_boundary(Neighborhoods::SYSBOUNDARIES),
-                          boundaryCells);
-
-      for (size_t c=0; c<boundaryCells.size(); c++) {
-         const CellID cellID = boundaryCells[c];
-         SpatialCell* SC = mpiGrid[cellID];
-
-         if (SC->get_timeclass_turn_v() == true) {
-            timeclassBoundaryCells.push_back(cellID);
+         if (popID==getObjectWrapper().particleSpecies.size()-1) {
+            // Only calculate moments when handling last population
+            if (calculate_V_moments) {
+               calculateMoments_V(mpiGrid, timeclassCells, true);
+            } else {
+               calculateMoments_R(mpiGrid, timeclassCells, true);
+            }
          }
-      }
+         computeInnerTimer.stop();
 
-#pragma omp parallel for
-      for (uint i = 0; i < boundaryCells.size(); i++) {
-         cuint sysBoundaryType = mpiGrid[boundaryCells[i]]->sysBoundaryFlag;
-         this->getSysBoundary(sysBoundaryType)->vlasovBoundaryCondition(mpiGrid, boundaryCells[i], popID, calculate_V_moments);
-      }
-      if (popID==getObjectWrapper().particleSpecies.size()-1) {
-         // Only calculate moments when handling last population
-         if (calculate_V_moments) {
-            calculateMoments_V(mpiGrid, timeclassBoundaryCells, true);
-         } else {
-            calculateMoments_R(mpiGrid, timeclassBoundaryCells, true);
+         phiprof::Timer waitimer {"Wait for receives", {"MPI", "Wait"}};
+         mpiGrid.wait_remote_neighbor_copy_updates(Neighborhoods::SYSBOUNDARIES);
+         waitimer.stop();
+
+         // Compute vlasov boundary on system boundary/process boundary cells
+         phiprof::Timer computeBoundaryTimer {"Compute process boundary cells"};
+         vector<CellID> boundaryCells;
+         vector<CellID> timeclassBoundaryCells;
+         getBoundaryCellList(mpiGrid, mpiGrid.get_local_cells_on_process_boundary(Neighborhoods::SYSBOUNDARIES),
+                           boundaryCells);
+
+         for (size_t c=0; c<boundaryCells.size(); c++) {
+            const CellID cellID = boundaryCells[c];
+            SpatialCell* SC = mpiGrid[cellID];
+
+            if (SC->get_timeclass_turn_v() == true) {
+               timeclassBoundaryCells.push_back(cellID);
+            }
          }
-      }
-      computeBoundaryTimer.stop();
 
-      // WARNING Blocks are changed but lists not updated now, if you need to use/communicate them before the next
-      // update is done, add an update here. reset lists in smaller default neighborhood
-      updateRemoteVelocityBlockLists(mpiGrid, popID);
+   #pragma omp parallel for
+         for (uint i = 0; i < boundaryCells.size(); i++) {
+            cuint sysBoundaryType = mpiGrid[boundaryCells[i]]->sysBoundaryFlag;
+            this->getSysBoundary(sysBoundaryType)->vlasovBoundaryCondition(mpiGrid, boundaryCells[i], popID, calculate_V_moments);
+         }
+         if (popID==getObjectWrapper().particleSpecies.size()-1) {
+            // Only calculate moments when handling last population
+            if (calculate_V_moments) {
+               calculateMoments_V(mpiGrid, timeclassBoundaryCells, true);
+            } else {
+               calculateMoments_R(mpiGrid, timeclassBoundaryCells, true);
+            }
+         }
+         computeBoundaryTimer.stop();
+
+         // WARNING Blocks are changed but lists not updated now, if you need to use/communicate them before the next
+         // update is done, add an update here. reset lists in smaller default neighborhood
+         updateRemoteVelocityBlockLists(mpiGrid, popID,Neighborhoods::DIST_FUNC,timeclass);
+      }
+
 
    } // for-loop over populations
 }

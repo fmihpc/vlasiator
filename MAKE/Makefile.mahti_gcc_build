@@ -1,0 +1,88 @@
+CMP = mpic++
+LNK = mpic++
+
+# Modules loaded
+# module load gcc/13 openmpi jemalloc papi
+# also load cuda/11.5.0 for nvtx support
+# ./build_fetched_libraries.sh mahti_gcc_build
+#======== Vectorization ==========
+#Set vector backend type for vlasov solvers, sets precision and length.
+#Options:
+# AVX:      VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
+# AVX512:   VEC8D_AGNER, VEC16F_AGNER
+# Fallback: VEC_FALLBACK_GENERIC
+
+ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
+#Single-precision
+        VECTORCLASS = VEC8F_AGNER
+else
+#Double-precision
+        VECTORCLASS = VEC4D_AGNER
+endif
+
+FLAGS =
+
+#WID=8
+#WID=4
+#VECL=4
+#VECL=8
+
+#GNU flags:
+CC_BRAND = gcc
+CC_BRAND_VERSION = 9.3.0
+CXXFLAGS += -g -O3 -fopenmp -funroll-loops -std=c++20 -W -Wall -Wno-unused -fabi-version=0 -march=native -mfma -mavx2 -fpermissive
+testpackage: CXXFLAGS = -g -ggdb -O2 -fopenmp -funroll-loops -std=c++20 -fabi-version=0 -mfma -fpermissive
+
+MATHFLAGS = -ffast-math -fno-finite-math-only
+testpackage: MATHFLAGS = -fno-unsafe-math-optimizations
+
+#======== Libraries ===========
+LIBRARY_PREFIX = libraries-mahti_gcc_build
+
+LDFLAGS = -lrt -Wl,-rpath=$(CURDIR)/$(LIBRARY_PREFIX)/lib
+# Add -lnvToolsExt for nvtx profiling
+LIB_MPI = -lgomp
+
+#======== PAPI ==========
+#Add PAPI_MEM define to use papi to report memory consumption?
+CXXFLAGS +=  -DPAPI_MEM
+testpackage: CXXFLAGS +=  -DPAPI_MEM
+
+#======== Allocator =========
+#Use jemalloc instead of system malloc to reduce memory fragmentation? https://github.com/jemalloc/jemalloc
+#Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
+CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+
+#======= Compiler and compilation flags =========
+# NOTES on compiler flags:
+# CXXFLAGS is for compiler flags, they are always used
+# MATHFLAGS are for special math etc. flags, these are only applied on solver functions
+# LDFLAGS flags for linker
+
+#-DNO_WRITE_AT_ALL:  Define to disable write at all to
+#                    avoid memleak (much slower IO)
+
+#======== Libraries ===========
+
+MPT_VERSION = 4.0.3
+JEMALLOC_VERSION = 5.2.1
+# Old library prefix for project-managed libraries
+# LIBRARY_PREFIX =  /projappl/project_2000203/libraries_rhel8_openmpi/
+
+# module libraries
+LIB_JEMALLOC = -ljemalloc
+LIB_PAPI = -lpapi
+
+# compiled libraries
+INC_BOOST = -I$(LIBRARY_PREFIX)/include/boost
+LIB_BOOST = -L$(LIBRARY_PREFIX)/lib -lboost_program_options
+
+INC_ZOLTAN = -I$(LIBRARY_PREFIX)/include
+LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/lib -lzoltan
+
+INC_VLSV = -I$(LIBRARY_PREFIX)/include
+LIB_VLSV = -L$(LIBRARY_PREFIX)/lib -lvlsv
+
+LIB_PROFILE = -L$(LIBRARY_PREFIX)/lib -lphiprof
+INC_PROFILE = -I$(LIBRARY_PREFIX)/include

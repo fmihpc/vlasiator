@@ -62,7 +62,9 @@ namespace vmesh {
       VelocityBlockContainer();
       ~VelocityBlockContainer();
       VelocityBlockContainer(const VelocityBlockContainer& other);
+      VelocityBlockContainer(VelocityBlockContainer&& other) = delete;
       const VelocityBlockContainer& operator=(const VelocityBlockContainer& other);
+      VelocityBlockContainer& operator=(VelocityBlockContainer&& other) = delete;
 
       ARCH_HOSTDEV vmesh::LocalID capacity() const;
       ARCH_HOSTDEV size_t capacityInBytes() const;

@@ -851,13 +851,6 @@ int simulate(int argn,char* args[]) {
       exit(1);
    }
 
-   if (P::initialMaxTimeclass > 0 && P::amrMaxSpatialRefLevel == 0) {
-      // if we are using timeclasses, we need to use AMR
-      cerr << "(MAIN) Warning: Using timeclasses requires AMR, please turn AMR on. exiting..." << endl;
-      logFile << "(MAIN) Warning: Using timeclasses requires AMR, please turn AMR on. exiting..." << endl;
-      exit(1);
-   }
-
    // Verify correct handling of floating point exceptions
    // see https://github.com/fmihpc/vlasiator/pull/845
    {
@@ -1357,6 +1350,7 @@ int simulate(int argn,char* args[]) {
       propagateHalfTimer.stop();
 
       updatePreviousVMoments(mpiGrid, true);
+      // std::cerr <<__FILE__<<":"<<__LINE__<<" ("<<myRank <<") Calling balanceLoad\n";
 
       // Apply boundary conditions
       if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration ) {
@@ -1365,6 +1359,7 @@ int simulate(int argn,char* args[]) {
          updateBoundariesTimer.stop();
          addTimedBarrier("barrier-boundary-conditions");
       }
+      // std::cerr <<__FILE__<<":"<<__LINE__<<" ("<<myRank <<")\n";
       // Also update all moments. They won't be transmitted to FSgrid until the field solver is called, though.
       phiprof::Timer computeMomentsTimer {"Compute interp moments"};
       std::cout << "for initial interpolated moments\n";
@@ -1387,7 +1382,7 @@ int simulate(int argn,char* args[]) {
 
       computeMomentsTimer.stop();
    }
-
+// std::cerr <<__FILE__<<":"<<__LINE__<<" ("<<myRank <<")\n";
    initTimer.stop();
 
    // ***********************************
@@ -1714,7 +1709,7 @@ int simulate(int argn,char* args[]) {
          break;
       }
 
-      std::cout << "main loop at" << __FILE__ << " " << __LINE__ << " " << P::tstep << " " << P::fractionalTimestep << std::endl;
+      // std::cout << "main loop at" << __FILE__ << " " << __LINE__ << " " << P::tstep << " " << P::fractionalTimestep << std::endl;
 
       //Re-loadbalance if needed
       //TODO - add LB measure and do LB if it exceeds threshold
@@ -2188,7 +2183,24 @@ int simulate(int argn,char* args[]) {
       // Update boundary condition states (time-varying)
       if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration) {
          phiprof::Timer timer {"Update system boundaries (Vlasov pre-translation)"};
-         sysBoundaryContainer.updateState(mpiGrid, perBGrid, BgBGrid, P::t + 0.5 * P::dt);
+         sysBoundaryContainer.updateState(mpiGrid, technicalGrid, perBGrid, BgBGrid, P::t + 0.5 * P::dt);
+
+         // updateState leaves mpiGrid and fsgrid in mismatching states, interpolated moments need to be recalculated
+         // TODO: Check whether updated state is the same as previously so synchronization can be skipped when not needed?
+         calculateInterpolatedVelocityMoments(
+            mpiGrid,
+            CellParams::RHOM,
+            CellParams::VX,
+            CellParams::VY,
+            CellParams::VZ,
+            CellParams::RHOQ,
+            CellParams::P_11,
+            CellParams::P_22,
+            CellParams::P_33,
+            CellParams::P_23,
+            CellParams::P_13,
+            CellParams::P_12
+         );
          timer.stop();
          addTimedBarrier("barrier-boundary-conditions");
       }
@@ -2246,16 +2258,17 @@ int simulate(int argn,char* args[]) {
 
       updateParticlePopulations(mpiGrid);
 
-      auto cell1 = mpiGrid[cells[5]];
-      auto cell2 = mpiGrid[cells[20]];
-      if (false) {
-         for (uint i = 0; i < 11; ++i) {
-            std::cout << "cell1moment" << i << ": " << P::t << " " << cell1->parameters[CellParams::XCRD] << " " << cell1->parameters[CellParams::YCRD] << " " << cell1->parameters[CellParams::ZCRD] << " " << cell1->parameters[CellParams::RHOM+i] << std::endl;
-            std::cout << "cell1moment" << i << ": " << P::t + P::dt/2.0 << " " << cell1->parameters[CellParams::XCRD] << " " << cell1->parameters[CellParams::YCRD] << " " << cell1->parameters[CellParams::ZCRD] << " " << cell1->parameters[CellParams::RHOM_DT2+i] << std::endl;
-            std::cout << "cell2moment" << i << ": " << P::t << " " << cell2->parameters[CellParams::XCRD] << " " << cell2->parameters[CellParams::YCRD] << " " << cell2->parameters[CellParams::ZCRD] << " " << cell2->parameters[CellParams::RHOM+i] << std::endl;
-            std::cout << "cell2moment" << i << ": " << P::t + P::dt/2.0 << " " << cell2->parameters[CellParams::XCRD] << " " << cell2->parameters[CellParams::YCRD] << " " << cell2->parameters[CellParams::ZCRD] << " " << cell2->parameters[CellParams::RHOM_DT2+i] << std::endl;
-         }
-      }
+      // auto cell1 = mpiGrid[cells[5]];
+      // auto cell2 = mpiGrid[cells[20]];
+
+      // std::cout << "maxtc: " << P::maxTimeclass << std::endl;
+
+      // std::cout << "cell 1 tc "<< cell1->parameters[CellParams::TIMECLASS] << " VX " << cell1->parameters[CellParams::VX] << " VY " << cell1->parameters[CellParams::VY] << " VZ " << cell1->parameters[CellParams::VZ] << std::endl;
+      // std::cout << "cell 2 tc "<< cell2->parameters[CellParams::TIMECLASS] << " VX " << cell2->parameters[CellParams::VX] << " VY " << cell2->parameters[CellParams::VY] << " VZ " << cell2->parameters[CellParams::VZ] << std::endl;
+
+      // std::cout << "cell1 vx_v " << cell1->parameters[CellParams::VX_V] << " vx_r " << cell1->parameters[CellParams::VX_R] << std::endl;
+      // std::cout << "cell2 vx_v " << cell2->parameters[CellParams::VX_V] << " vx_r " << cell2->parameters[CellParams::VX_R] << std::endl;
+
       momentsTimer.stop();
       
       // Propagate fields forward in time by dt. This needs to be done before the
@@ -2395,7 +2408,7 @@ int simulate(int argn,char* args[]) {
       // Check timestep
       if (P::dt < P::bailout_min_dt) {
          stringstream s;
-         s << "The timestep dt=" << P::dt << " went below bailout.bailout_min_dt (" << to_string(P::bailout_min_dt) << ")." << endl;
+         s << "The timestep dt=" << P::dt << " went below bailout.min_dt (" << to_string(P::bailout_min_dt) << ")." << endl;
          bailout(true, s.str(), __FILE__, __LINE__);
       }
       //Move forward in time

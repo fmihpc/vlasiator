@@ -46,7 +46,7 @@ plt.switch_backend('Agg')
 
 outfilename = "./vecpotdip_compare_"+str(int(line_phi))+".png"
 
-inputLocation="/proj/vlasov/2D/BCH/bulk/"
+inputLocation="/turso/group/spacephysics/vlasiator/data/L0/2D/BCH/bulk/"
 times = [0,10,50,100,200,500]
 colors = ['r','g','b','magenta','k']
 timefulls = [str(time).rjust(7, '0') for time in times]

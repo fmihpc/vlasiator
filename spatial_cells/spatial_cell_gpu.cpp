@@ -347,18 +347,20 @@ namespace spatial_cell {
       // This one is also used in acceleration for adding new blocks to the mesh, so should have more room. 
       if (vbwcl_sizePower < HashmapReqSize+1) {
          vbwcl_sizePower = HashmapReqSize+1;
-         ::delete velocity_block_with_content_map;
-         void *buf = malloc(sizeof(Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>));
-         velocity_block_with_content_map = ::new (buf) Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(vbwcl_sizePower);
-         dev_velocity_block_with_content_map = velocity_block_with_content_map->upload<true>(stream);
+         velocity_block_with_content_map->resize(vbwcl_sizePower, Hashinator::targets::device, stream);
+         // ::delete velocity_block_with_content_map;
+         // void *buf = malloc(sizeof(Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>));
+         // velocity_block_with_content_map = ::new (buf) Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(vbwcl_sizePower);
+         // dev_velocity_block_with_content_map = velocity_block_with_content_map->upload<true>(stream);
       }
       // Here the regular size estimate should be enough.
       if (vbwncl_sizePower < HashmapReqSize) {
          vbwncl_sizePower = HashmapReqSize;
-         ::delete velocity_block_with_no_content_map;
-         void *buf = malloc(sizeof(Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>));
-         velocity_block_with_no_content_map = ::new (buf) Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(vbwncl_sizePower);
-         dev_velocity_block_with_no_content_map = velocity_block_with_no_content_map->upload<true>(stream);
+         velocity_block_with_no_content_map->resize(vbwncl_sizePower, Hashinator::targets::device, stream);
+         // ::delete velocity_block_with_no_content_map;
+         // void *buf = malloc(sizeof(Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>));
+         // velocity_block_with_no_content_map = ::new (buf) Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(vbwncl_sizePower);
+         // dev_velocity_block_with_no_content_map = velocity_block_with_no_content_map->upload<true>(stream);
       }
       // These lists are also used in acceleration, where sometimes, very many blocks may be added.
       // (Maximum possible is all existing blocks moved to a new location + 2 per column)
@@ -588,7 +590,7 @@ namespace spatial_cell {
    vmesh::LocalID SpatialCell::adjust_velocity_blocks_caller(const uint popID) {
       const uint cpuThreadID = gpu_getThread();
       const gpuStream_t stream = gpu_getStream();
-      host_returnRealf[cpuThreadID][0] = 0; // host_rhoLossAdjust
+      (GET_SUBPOINTER(gpuMemoryManager, Realf, host_returnRealf, cpuThreadID))[0] = 0; // host_rhoLossAdjust
       // populations[popID].vmesh->print();
       // Grow the vmesh and block container, if necessary. Try performing this on-device, if possible.
       resize_vbc_kernel_pre<<<1, 1, 0, stream>>> (
@@ -598,17 +600,17 @@ namespace spatial_cell {
          dev_list_delete,
          dev_list_to_replace,
          dev_list_with_replace_old,
-         returnLID[cpuThreadID], // return values: nbefore, nafter, nblockstochange, resize success
-         returnRealf[cpuThreadID] // mass loss, set to zero
+         GET_SUBPOINTER(gpuMemoryManager, vmesh::LocalID, returnLID, cpuThreadID), // return values: nbefore, nafter, nblockstochange, resize success
+         GET_SUBPOINTER(gpuMemoryManager, Realf, returnRealf, cpuThreadID) // mass loss, set to zero
          );
       CHK_ERR( gpuPeekAtLastError() );
-      CHK_ERR( gpuMemcpyAsync(host_returnLID[cpuThreadID], returnLID[cpuThreadID], 4*sizeof(vmesh::LocalID), gpuMemcpyDeviceToHost, stream) );
+      CHK_ERR( gpuMemcpyAsync(GET_SUBPOINTER(gpuMemoryManager, vmesh::LocalID, host_returnLID, cpuThreadID), GET_SUBPOINTER(gpuMemoryManager, vmesh::LocalID, returnLID, cpuThreadID), 4*sizeof(vmesh::LocalID), gpuMemcpyDeviceToHost, stream) );
       CHK_ERR( gpuStreamSynchronize(stream) );
       // Grow mesh if necessary and on-device resize did not work??
-      const vmesh::LocalID nBlocksBeforeAdjust = host_returnLID[cpuThreadID][0];
-      const vmesh::LocalID nBlocksAfterAdjust = host_returnLID[cpuThreadID][1];
-      const vmesh::LocalID nBlocksToChange = host_returnLID[cpuThreadID][2];
-      const vmesh::LocalID resizeDevSuccess = host_returnLID[cpuThreadID][3];
+      const vmesh::LocalID nBlocksBeforeAdjust = (GET_SUBPOINTER(gpuMemoryManager, vmesh::LocalID, host_returnLID, cpuThreadID))[0];
+      const vmesh::LocalID nBlocksAfterAdjust = (GET_SUBPOINTER(gpuMemoryManager, vmesh::LocalID, host_returnLID, cpuThreadID))[1];
+      const vmesh::LocalID nBlocksToChange = (GET_SUBPOINTER(gpuMemoryManager, vmesh::LocalID, host_returnLID, cpuThreadID))[2];
+      const vmesh::LocalID resizeDevSuccess = (GET_SUBPOINTER(gpuMemoryManager, vmesh::LocalID, host_returnLID, cpuThreadID))[3];
       if ( (nBlocksAfterAdjust > nBlocksBeforeAdjust) && (resizeDevSuccess == 0)) {
          //GPUTODO is _FACTOR enough instead of _PADDING?
          populations[popID].vmesh->setNewCapacity(nBlocksAfterAdjust*BLOCK_ALLOCATION_PADDING);
@@ -642,10 +644,10 @@ namespace spatial_cell {
          nBlocksBeforeAdjust,
          nBlocksToChange,
          nBlocksAfterAdjust,
-         returnRealf[cpuThreadID] // mass loss
+         GET_SUBPOINTER(gpuMemoryManager, Realf, returnRealf, cpuThreadID) // mass loss
          );
       CHK_ERR( gpuPeekAtLastError() );
-      CHK_ERR( gpuMemcpyAsync(host_returnRealf[cpuThreadID], returnRealf[cpuThreadID], sizeof(Realf), gpuMemcpyDeviceToHost, stream) );
+      CHK_ERR( gpuMemcpyAsync(GET_SUBPOINTER(gpuMemoryManager, Realf, host_returnRealf, cpuThreadID), GET_SUBPOINTER(gpuMemoryManager, Realf, returnRealf, cpuThreadID), sizeof(Realf), gpuMemcpyDeviceToHost, stream) );
 
       // Shrink the vmesh and block container, if necessary
       if (nBlocksAfterAdjust < nBlocksBeforeAdjust) {
@@ -662,7 +664,7 @@ namespace spatial_cell {
       populations[popID].blockContainer->setNewCachedSize(nBlocksAfterAdjust);
 
       CHK_ERR( gpuStreamSynchronize(stream) );
-      this->populations[popID].RHOLOSSADJUST += host_returnRealf[cpuThreadID][0];
+      this->populations[popID].RHOLOSSADJUST += (GET_SUBPOINTER(gpuMemoryManager, Realf, host_returnRealf, cpuThreadID))[0];
 
       // DEBUG output after kernel
       #ifdef DEBUG_SPATIAL_CELL
@@ -789,7 +791,7 @@ namespace spatial_cell {
 
          //add data to send/recv to displacement and block length lists
          if ((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_LIST_STAGE1) != 0) {
-            //first copy values in case this is the send operation
+            // first copy values in case this is the send operation
             populations[activePopID].N_blocks = populations[activePopID].vmesh->size();
 
             // send velocity block list size
@@ -802,19 +804,16 @@ namespace spatial_cell {
             if (receiving) {
                // Set population size based on mpi_number_of_blocks transferred earlier.
                // Does not need to be cleared. Vmesh map and VBC will be prepared in prepare_to_receive_blocks.
-               // populations[activePopID].vmesh->setNewSize(populations[activePopID].N_blocks);
                this->dev_resize_vmesh(activePopID,populations[activePopID].N_blocks);
-               //populations[activePopID].vmesh->setNewSizeClear(populations[activePopID].N_blocks);
-               //setNewSizeClear(activePopID,populations[activePopID].N_blocks);
             } else {
-               //Ensure N_blocks is still correct
+               // Ensure N_blocks is still correct
                populations[activePopID].N_blocks = populations[activePopID].vmesh->size();
             }
 
             // send velocity block list
-            if(populations[activePopID].vmesh->size() > 0) {
+            if (populations[activePopID].N_blocks > 0) {
                displacements.push_back((uint8_t*) populations[activePopID].vmesh->getGrid()->data() - (uint8_t*) this);
-               block_lengths.push_back(sizeof(vmesh::GlobalID) * populations[activePopID].vmesh->size());
+               block_lengths.push_back(sizeof(vmesh::GlobalID) * populations[activePopID].N_blocks);
             } else {
                displacements.push_back(0);
                block_lengths.push_back(0);

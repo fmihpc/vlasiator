@@ -57,7 +57,7 @@ char* IObuffer = 0; // For GPU VDF output
 typedef Parameters P;
 
 bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
-                                   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                   const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                    const std::vector<CellID>& cells,MPI_Comm comm);
 
 /*! Updates local ids across MPI to let other processes know in which order this process saves the local cell ids
@@ -123,7 +123,7 @@ bool globalSuccess(bool success, const string& errorMessage, MPI_Comm comm){
  @param comm The MPI communicator.
  @return Returns true if operation was successful.*/
 bool writeVelocityDistributionData(Writer& vlsvWriter,
-                                   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                   const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                    const vector<CellID>& cells,MPI_Comm comm) {
    bool success = true;
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
@@ -139,7 +139,7 @@ bool writeVelocityDistributionData(Writer& vlsvWriter,
  @param comm The MPI communicator.
  @return Returns true if operation was successful.*/
 bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
-                                   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                   const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                    const std::vector<CellID>& cells,MPI_Comm comm) {
    // Write velocity blocks and related data. 
    // In restart we just write velocity grids for all cells.
@@ -335,8 +335,9 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
             vmesh::VelocityBlockContainer* velblocksghost = SC->get_velocity_blocks_ghost(popID, timeclass);
             // std::cerr << timeclass << " preparing to write at c="<< cells[cell] << " with " << velblocksghost.size() << "blocks\n";
 
-            totalBlocks+=velblocksghost->size();
-            blocksPerCell.push_back(velblocksghost->size());
+            totalBlocks+=SC->get_number_of_velocity_blocks(popID, timeclass);
+            blocksPerCell.push_back(SC->get_number_of_velocity_blocks(popID, timeclass));
+            std::cerr << timeclass << " cell " << cells[cell] << " has " << SC->get_number_of_velocity_blocks(popID, timeclass) << " vs " << velblocksghost->size() <<  std::endl;
          // }
          // else{
             // vmesh::VelocityBlockContainer<vmesh::LocalID>* velblocksghost = &emptyvmesh;
@@ -344,6 +345,7 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
             // blocksPerCell.push_back(0);
          // }
       }
+      std::cerr << "timeclass " << timeclass << " total ghost blocks to write: " << totalBlocks << std::endl;
 
 
       attribs.clear();
@@ -400,21 +402,26 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
       }
 
       // Write velocity block IDs
-      vector<vmesh::GlobalID> velocityBlockIds(totalBlocks);
+      vector<vmesh::GlobalID> velocityBlockIds_g(totalBlocks);
+      blockIndex = 0;
       try {
          // gather data for writing
          for (size_t i=0; i<cells.size(); ++i) {
             SpatialCell* SC = mpiGrid[cells[i]];
             vmesh::VelocityMesh* velmeshghost = SC->get_velocity_mesh_ghost(popID, timeclass);
             vmesh::VelocityBlockContainer* velblocksghost = SC->get_velocity_blocks_ghost(popID, timeclass);
+            const vmesh::LocalID nBlocks = SC->get_number_of_velocity_blocks(popID, timeclass);
             #ifdef USE_GPU
             const vmesh::GlobalID *GIDlist = SC->get_velocity_grid(popID);
             CHK_ERR( gpuMemcpy(&velocityBlockIds[blockIndex], GIDlist, nBlocks*sizeof(vmesh::GlobalID), gpuMemcpyDeviceToHost));
             #else
-            for (vmesh::LocalID block_i=0; block_i<velblocksghost->size(); ++block_i) {
-               const vmesh::GlobalID block = velmeshghost->getGlobalID(block_i);
-               velocityBlockIds.push_back(block);
+            int blocksum = 0;
+            for (vmesh::LocalID block_i=0; block_i<nBlocks; ++block_i) {
+               const vmesh::GlobalID block = SC->get_velocity_block_global_id(block_i, popID, timeclass);
+               velocityBlockIds_g[blockIndex+block_i] = block;
             }
+            blockIndex += nBlocks;
+
             #endif
          }
       } catch (...) {
@@ -433,11 +440,11 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
       attribs["name"] += '_';
       attribs["name"] += std::to_string(timeclass);
 
-      if (vlsvWriter.writeArray("BLOCKIDS", attribs, totalBlocks, vectorSize, velocityBlockIds.data()) == false) success = false;
-      if (success == false) logFile << "(MAIN) writeGrid: ERROR failed to write BLOCKIDS to file!" << endl << writeVerbose;
-      {
-         vector<vmesh::GlobalID>().swap(velocityBlockIds);
-      }
+      if (vlsvWriter.writeArray("BLOCKIDS", attribs, totalBlocks, vectorSize, velocityBlockIds_g.data()) == false) success = false;
+      if (success == false)logFile << "(MAIN) writeGrid: ERROR failed to write BLOCKIDS to file!" << endl << writeVerbose;
+
+      vector<vmesh::GlobalID>().swap(velocityBlockIds_g);
+
 
       // Write the velocity space data
       // set everything that is needed for writing in data such as the array name, size, datatype, etc..
@@ -477,7 +484,7 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
             bufferOffset += arrayElements*WID3*sizeof(Realf);
          }
          #else
-         char* arrayToWrite = reinterpret_cast<char*>(SC->get_data(popID));
+         char* arrayToWrite = reinterpret_cast<char*>(SC->get_data(popID, timeclass));
          #endif
          vlsvWriter.addMultiwriteUnit(arrayToWrite, arrayElements);
 
@@ -666,7 +673,7 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
  */
 bool writeCommonGridData(
    Writer& vlsvWriter,
-   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const vector<uint64_t>& local_cells,
    const uint& fileIndex,
    MPI_Comm comm
@@ -724,7 +731,7 @@ bool writeCommonGridData(
  \return Returns true if operation was successful
  \sa updateLocalIds
  */
-bool writeGhostZoneDomainAndLocalIdNumbers( dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+bool writeGhostZoneDomainAndLocalIdNumbers( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                               Writer & vlsvWriter,
                                               const string & meshName,
                                               const vector<uint64_t> & ghost_cells ) {
@@ -815,6 +822,61 @@ bool writeDomainSizes( Writer & vlsvWriter,
 }
 
 
+/*! Writes domain extents into the vlsv file, so a box that contains all the cells in this process
+ \param vlsvWriter Some vlsv writer with a file open
+ \param meshName Name of the mesh (SpatialGrid used in the writeGrid function)
+ \param local_cells Cells that are local to current process
+ \param mpiGrid Vlaisator's MPI grid
+ \return Returns true if operation was successful
+ */
+
+bool writeDomainExtents(Writer& vlsvWriter, const string& meshName, const std::vector<CellID>& local_cells,
+                        const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid) {
+   vector<CellID>::const_iterator it;
+
+   // Write the array:
+   map<string, string> xmlAttributes;
+   // Put the meshName
+   xmlAttributes["mesh"] = meshName;
+   Real ret[6]={0,0,0,0,0,0};
+   //Loop through the domain cells and find a box that bounds all the cells
+   for (it = local_cells.begin() ; it != local_cells.end(); it++) {
+      CellID cellId = *it;
+
+      const SpatialCell& cell = *mpiGrid[cellId];
+      Real lowcorner[6] = {
+          cell.parameters[CellParams::XCRD], cell.parameters[CellParams::XCRD] + cell.parameters[CellParams::DX],
+          cell.parameters[CellParams::YCRD], cell.parameters[CellParams::YCRD] + cell.parameters[CellParams::DY],
+          cell.parameters[CellParams::ZCRD], cell.parameters[CellParams::ZCRD] + cell.parameters[CellParams::DZ],
+      };
+      if (it==local_cells.begin()) {
+        for (uint8_t i = 0 ; i!=6;i++){ 
+          ret[i]=lowcorner[i];
+        }
+        continue;
+      }
+      for (uint8_t i = 0; i != 6; i++) {
+         //min
+         if ((lowcorner[i] < ret[i]) && (i % 2 == 0)) {
+            ret[i] = lowcorner[i];
+         //max
+         } else if ((lowcorner[i] > ret[i]) && (i % 2 != 0)) {
+            ret[i] = lowcorner[i];
+         }
+      }
+   }
+   const unsigned int arraySize = 1;
+   const unsigned int vectorSize = 6;
+
+   // Write the mesh extents, ret corresponds to [xmin,xmax,ymin,ymax,zmin,zmax] 
+   if (vlsvWriter.writeArray("MESH_DOMAIN_EXTENTS",xmlAttributes,arraySize,vectorSize,ret) == false){
+       cerr << "Error at: " << __FILE__ << " " << __LINE__ << ", FAILED TO WRITE MESH_DOMAIN_EXTENTS" << endl;
+       logFile << "(MAIN) writeGrid: ERROR FAILED TO WRITE MESH_DOMAIN_EXTENTS AT: " << __FILE__ << " " << __LINE__ <<
+       endl << writeVerbose; return false;
+   }
+
+   return true;
+}
 
 /*! Writes the zone global id numbers into the file. The vlsv file needs to know in which order the local cells + ghost cells are written. Local cells are first appended to a vector called global ids, after which the ghost cells are appended. The global ids vector will then be saved into a vlsv file
  \param mpiGrid Vlasiator's MPI grid
@@ -1040,7 +1102,7 @@ bool writeMeshBoundingBox( Writer & vlsvWriter,
  \param comm MPI comm
  \return Returns true if operation was successful
  */
-bool writeVersionInfo(std::string version,vlsv::Writer& vlsvWriter,MPI_Comm comm){
+bool writeVersionInfo(const std::string& version,vlsv::Writer& vlsvWriter,MPI_Comm comm){
   
    int myRank;
    MPI_Comm_rank(comm, &myRank);
@@ -1064,7 +1126,7 @@ bool writeVersionInfo(std::string version,vlsv::Writer& vlsvWriter,MPI_Comm comm
  \param comm MPI comm
  \return Returns true if operation was successful
  */
-bool writeConfigInfo(std::string config,vlsv::Writer& vlsvWriter,MPI_Comm comm){
+bool writeConfigInfo(const std::string& config,vlsv::Writer& vlsvWriter,MPI_Comm comm){
   
    int myRank;
    MPI_Comm_rank(comm, &myRank);
@@ -1096,7 +1158,7 @@ bool writeFsGridMetadata(FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technic
 
   //The visit plugin expects MESH_BBOX as a keyword. We only write one
   //from the first rank.
-  std::array<FsGridTools::FsSize_t, 3>& globalSize = technicalGrid.getGlobalSize();
+  const std::array<FsGridTools::FsSize_t, 3>& globalSize = technicalGrid.getGlobalSize();
   std::array<FsGridTools::FsSize_t, 6> boundaryBox({globalSize[0], globalSize[1], globalSize[2],
       1,1,1});
 
@@ -1144,7 +1206,7 @@ bool writeFsGridMetadata(FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technic
   vlsvWriter.writeArray("MESH_GHOST_LOCALIDS", xmlAttributes, 0, 1, &dummyghost);
 
   // writeDomainSizes
-  std::array<FsGridTools::FsIndex_t,3>& localSize = technicalGrid.getLocalSize();
+  const std::array<FsGridTools::FsIndex_t,3>& localSize = technicalGrid.getLocalSize();
   std::array<uint64_t,2> meshDomainSize({(uint64_t)localSize[0]*(uint64_t)localSize[1]*(uint64_t)localSize[2], 0});
   vlsvWriter.writeArray("MESH_DOMAIN_SIZES", xmlAttributes, 1, 2, &meshDomainSize[0]);
 
@@ -1624,12 +1686,14 @@ bool writeGrid(
    if( writeZoneGlobalIdNumbers( mpiGrid, vlsvWriter, meshName, local_cells, ghost_cells ) == false ) {
       return false;
    }
-
    //Write domain sizes:
    if( writeDomainSizes( vlsvWriter, meshName, local_cells.size(), ghost_cells.size() ) == false ) {
       return false;
    }
-
+   //Write domain extents
+   if( writeDomainExtents( vlsvWriter, meshName, local_cells, mpiGrid ) == false ) {
+      return false;
+   }
    //Update local ids for cells:
    if( updateLocalIds( mpiGrid, local_cells, MPI_COMM_WORLD ) == false ) {
       return false;
@@ -1860,7 +1924,10 @@ bool writeRestart(
 
    //Write domain sizes:
    if( writeDomainSizes( vlsvWriter, meshName, local_cells.size(), ghost_cells.size() ) == false ) return false;
-
+   
+   //Write domain extents
+   if( writeDomainExtents( vlsvWriter, meshName, local_cells, mpiGrid ) == false )  return false;
+  
    //Write FSGrid metadata
    if( writeFsGridMetadata( technicalGrid, vlsvWriter, true ) == false ) return false;
    
@@ -2071,8 +2138,13 @@ bool writeRestart(
    phiprof::Timer updateRemoteTimer {"updateRemoteBlocks"};
    //Updated newly adjusted velocity block lists on remote cells, and
    //prepare to receive block data
-   for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
-      updateRemoteVelocityBlockLists(mpiGrid,popID);
+   for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID){
+      for(int timeclass = 0; timeclass <= P::maxTimeclass; ++timeclass){
+         std::cerr<<__FILE__<<":"<<__LINE__<<"\n";
+        updateRemoteVelocityBlockLists(mpiGrid,popID,Neighborhoods::DIST_FUNC,timeclass);
+      }
+   }
+   std::cerr<<__FILE__<<":"<<__LINE__<<"\n";
    updateRemoteTimer.stop();
 
    const uint64_t bytesWritten = vlsvWriter.getBytesWritten();

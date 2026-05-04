@@ -1,4 +1,4 @@
-/* 
+/*
  * This file is part of Vlasiator.
  * Copyright 2010-2016 Finnish Meteorological Institute
  *
@@ -96,6 +96,9 @@ namespace Neighborhoods {
       VLASOV_SOLVER_Z_GHOST, /*!< up to third(PPM+ghost) neighbor in z face directions */
       VLASOV_SOLVER_GHOST, /*!< all required neighbors for ghost translation */
       VLASOV_SOLVER_GHOST_REQNEIGH, /*!< all ghost translation neighbors which require own neighbor information */
+      VLASOV_SOLVER_TIMEGHOST_EXACT_HALO,
+      VLASOV_SOLVER_TIMEGHOST_OUTER_HALO,
+      VLASOV_SOLVER_TIMEGHOST_HALODIFF,
       N_NEIGHBORHOODS
    };
 }

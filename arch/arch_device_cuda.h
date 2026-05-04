@@ -21,10 +21,13 @@
 #define gpuGetDevice                     cudaGetDevice
 #define gpuGetDeviceCount                cudaGetDeviceCount
 #define gpuGetDeviceProperties           cudaGetDeviceProperties
+#define gpuDeviceGetAttribute            cudaDeviceGetAttribute
 #define gpuDeviceSynchronize             cudaDeviceSynchronize
 #define gpuDeviceReset                   cudaDeviceReset
 #define gpuCpuDeviceId                   cudaCpuDeviceId
 #define gpuMemGetInfo                    cudaMemGetInfo
+
+#define gpuDevAttrMaxBlocksPerMultiprocessor    cudaDevAttrMaxBlocksPerMultiprocessor
 
 #define gpuFree                          cudaFree
 #define gpuFreeHost                      cudaFreeHost
@@ -83,6 +86,7 @@
 #define gpuMemcpyDeviceToHost            cudaMemcpyDeviceToHost
 #define gpuMemcpyHostToDevice            cudaMemcpyHostToDevice
 #define gpuMemcpyDeviceToDevice          cudaMemcpyDeviceToDevice
+#define gpuMemcpyHostToHost              cudaMemcpyHostToHost
 #define gpuMemcpyToSymbol                cudaMemcpyToSymbol
 
 #define gpuKernelBallot(mask, input)     __ballot_sync(mask, input)

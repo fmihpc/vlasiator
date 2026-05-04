@@ -27,6 +27,7 @@
 #include <unordered_set>
 #include <dccrg.hpp>
 #include <dccrg_cartesian_geometry.hpp>
+#include <string>
 #include "../common.h"
 #include "../spatial_cells/spatial_cell_wrapper.hpp"
 
@@ -51,13 +52,17 @@ struct setOfPencils {
 
    //GPUTODO: move gpu buffers and their upload to separate gpu_trans_pencils .hpp and .cpp files
 #ifdef USE_GPU
-   uint gpu_allocated_N = 0;
-   uint gpu_allocated_sumOfLengths = 0;
    // Pointers to GPU copies of vectors
-   uint *gpu_lengthOfPencils;
-   uint *gpu_idsStart;
-   Realf *gpu_sourceDZ;
-   Realf *gpu_targetRatios;
+   size_t gpu_lengthOfPencils = 0;
+   size_t gpu_idsStart = 0;
+   size_t gpu_sourceDZ = 0;
+   size_t gpu_targetRatios = 0;
+   size_t dev_pencilsInBin = 0;
+   size_t host_binStart = 0;
+   size_t host_binSize = 0;
+   size_t dev_binStart = 0;
+   size_t dev_binSize = 0;
+
 #endif
 
    setOfPencils() {
@@ -66,7 +71,7 @@ struct setOfPencils {
    }
 
    void removeAllPencils() {
-      std::cerr << __FILE__ <<":"<<__LINE__<<" removeAllPencils called \n";
+      // std::cerr << __FILE__ <<":"<<__LINE__<<" removeAllPencils called \n";
 
       N = 0;
       sumOfLengths = 0;
@@ -88,7 +93,7 @@ struct setOfPencils {
 
    void addPencil(std::vector<CellID> idsIn, Real xIn, Real yIn, bool periodicIn, std::vector<uint> pathIn, int timeclass) {
       N++;
-      std::cerr << __FILE__ <<":"<<__LINE__<<" addPencil called \n";
+      // std::cerr << __FILE__ <<":"<<__LINE__<<" addPencil called \n";
 
       // If necessary, add the zero cells to the beginning and end
       if (idsIn.front() != 0) {
@@ -111,11 +116,11 @@ struct setOfPencils {
       periodic.push_back(periodicIn);
       path.push_back(pathIn);
       timeclasses.push_back(timeclass);
-      std::cerr << __FILE__ <<":"<<__LINE__<<" Added " << xIn << " to x = {";
-      for (auto i = x.begin(); i != x.end(); i++){
-         std::cerr << *i << ", ";
-      }
-      std::cerr << "}\n";
+      // std::cerr << __FILE__ <<":"<<__LINE__<<" Added " << xIn << " to x = {";
+      // for (auto i = x.begin(); i != x.end(); i++){
+      //    std::cerr << *i << ", ";
+      // }
+      // std::cerr << "}\n";
    }
 
    void binPencils() {
@@ -193,7 +198,49 @@ struct setOfPencils {
       for (auto [bin, pencils] : pencilsInBin) {
          activeBins.push_back(bin);
       }
+
+      #ifdef USE_GPU
+      gpuBins();
+      #endif
    }
+
+   #ifdef USE_GPU
+   void gpuBins(){
+      gpuMemoryManager.createPointer(dev_pencilsInBin);
+      gpuMemoryManager.createPointer(host_binStart);
+      gpuMemoryManager.createPointer(host_binSize);
+      gpuMemoryManager.createPointer(dev_binStart);
+      gpuMemoryManager.createPointer(dev_binSize);
+      
+      gpuMemoryManager.allocate(dev_pencilsInBin, sumOfLengths*sizeof(uint));
+      gpuMemoryManager.hostAllocate(host_binStart, activeBins.size()*sizeof(uint));
+      gpuMemoryManager.hostAllocate(host_binSize, activeBins.size()*sizeof(uint));
+      gpuMemoryManager.allocate(dev_binStart, activeBins.size()*sizeof(uint));
+      gpuMemoryManager.allocate(dev_binSize, activeBins.size()*sizeof(uint));
+
+      uint *dev_pencilsInBinPointer = gpuMemoryManager.getPointer<uint>(dev_pencilsInBin);
+      uint *host_binStartPointer = gpuMemoryManager.getPointer<uint>(host_binStart);
+      uint *host_binSizePointer = gpuMemoryManager.getPointer<uint>(host_binSize);
+      uint *dev_binStartPointer = gpuMemoryManager.getPointer<uint>(dev_binStart);
+      uint *dev_binSizePointer = gpuMemoryManager.getPointer<uint>(dev_binSize);
+
+      int offset = 0;
+      for(size_t bin = 0; bin < activeBins.size(); bin++){
+         uint thisBin = activeBins[bin];
+         host_binStartPointer[bin] = offset;
+
+         uint binSize = pencilsInBin[thisBin].size();
+         host_binSizePointer[bin] = binSize;
+
+         CHK_ERR( gpuMemcpy(dev_pencilsInBinPointer + offset, pencilsInBin[thisBin].data(), binSize * sizeof(uint), gpuMemcpyHostToDevice) );
+
+         offset += binSize;
+      }
+
+      CHK_ERR( gpuMemcpy(dev_binStartPointer, host_binStartPointer, activeBins.size() * sizeof(uint), gpuMemcpyHostToDevice) );
+      CHK_ERR( gpuMemcpy(dev_binSizePointer, host_binSizePointer, activeBins.size() * sizeof(uint), gpuMemcpyHostToDevice) );
+   }
+   #endif
 
    // Never called?
    void removePencil(const uint pencilId) {
@@ -308,7 +355,7 @@ struct setOfPencils {
 };
 // Note: Splitting does not handle target or source cells, as those are computed after all pencil splitting has concluded.
 
-bool do_translate_cell(spatial_cell::SpatialCell* SC, int tc = -1);
+bool do_translate_cell(const spatial_cell::SpatialCell* const SC, const int tc = -1);
 
 // grid.cpp calls this function to both find seed cells and build pencils for all dimensions
 void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
@@ -324,7 +371,7 @@ void prepareGhostTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cart
                                       const std::vector<CellID>& localPropagatedCells, 
                                        std::map<uint,std::unordered_set<CellID>>& ghostTranslate_source,
                                       std::map<uint,std::unordered_set<CellID>>& ghostTranslate_active,
-                                      int tc = -1
+                                      const int tc = -1
                                       );
 
 // defined in cpu_trans_map_amr.cpp

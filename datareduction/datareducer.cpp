@@ -3242,6 +3242,50 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             continue;
          }
       }
+      if(P::systemWriteAllDROs || lowercase == "ig_jfromdivj") {
+        outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereElement("ig_jFromDivJ", [&](SBC::SphericalTriGrid& grid)->std::vector<Real> {
+
+              std::vector<Real> retval(3*grid.elements.size());
+
+
+              for(uint el=0; el<grid.elementDivFreeCurrent.size(); el++) {
+                 Eigen::Vector3d J = grid.elementDivFreeCurrent[el];
+                 retval[3*el] = J[0];
+                 retval[3*el+1] = J[1];
+                 retval[3*el+2] = J[2];
+              }
+
+              return retval;
+
+        }));
+
+        outputReducer->addMetadata(outputReducer->size()-1, "A", "$\\mathrm{A}$", "$J_{\\text{divJ}}$", "1.0");
+        if(!P::systemWriteAllDROs) {
+          continue;
+        }
+      }
+
+      if(P::systemWriteAllDROs || lowercase == "ig_jfromcurlj") {
+        outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereElement("ig_jFromCurlJ", [&](SBC::SphericalTriGrid& grid)->std::vector<Real> {
+
+              std::vector<Real> retval(3*grid.elements.size());
+
+              for(uint el=0; el<grid.elementCurlFreeCurrent.size(); el++) {
+                 Eigen::Vector3d J = grid.elementCurlFreeCurrent[el];
+                 retval[3*el] = J[0];
+                 retval[3*el+1] = J[1];
+                 retval[3*el+2] = J[2];
+               }
+
+               return retval;
+        }));
+
+        outputReducer->addMetadata(outputReducer->size()-1, "A", "$\\mathrm{A}$", "$J_{\\text{curlJ}}$", "1.0");
+        if(!P::systemWriteAllDROs) {
+          continue;
+        }
+      }
+
       if(P::systemWriteAllDROs || lowercase == "ig_inplanecurrent") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereElement("ig_inplanecurrent", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
@@ -3785,6 +3829,19 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          // Overall mass density
          diagnosticReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_rhom",CellParams::RHOM,1));
          if(!P::diagnosticWriteAllDROs) {
+            continue;
+         }
+      }
+      if(P::diagnosticWriteAllDROs || lowercase == "vg_p" || lowercase == "p") {
+	 // Overall mass density
+         diagnosticReducer->addOperator(new DRO::VariablePressureSolver);
+         if(!P::diagnosticWriteAllDROs) {
+	      continue;
+	 }
+      }
+      if(P::diagnosticWriteAllDROs || lowercase == "perturbedvolb" || lowercase == "vg_b_perturbed_vol") {
+         diagnosticReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_b_perturbed_vol",CellParams::PERBXVOL,3));
+         if(!P::systemWriteAllDROs) {
             continue;
          }
       }

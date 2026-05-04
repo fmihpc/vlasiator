@@ -50,7 +50,7 @@ namespace spatial_cell {
       const int timeclass=-1);
 
    void adjust_velocity_blocks_in_cells(
-      dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const vector<CellID>& cells,
       const uint popID=0,
       const int timeclass=-1);

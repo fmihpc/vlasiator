@@ -18,10 +18,13 @@
 #define gpuGetDevice                     hipGetDevice
 #define gpuGetDeviceCount                hipGetDeviceCount
 #define gpuGetDeviceProperties           hipGetDeviceProperties
+#define gpuDeviceGetAttribute            hipDeviceGetAttribute
 #define gpuDeviceSynchronize             hipDeviceSynchronize
 #define gpuDeviceReset                   hipDeviceReset
 #define gpuCpuDeviceId                   hipCpuDeviceId
 #define gpuMemGetInfo                    hipMemGetInfo
+
+#define gpuDevAttrMaxBlocksPerMultiprocessor    hipDeviceAttributeMaxBlocksPerMultiProcessor // This is not well defined on AMD
 
 #define gpuFree                          hipFree
 #define gpuFreeHost                      hipHostFree
@@ -79,6 +82,7 @@
 #define gpuMemcpyDeviceToHost            hipMemcpyDeviceToHost
 #define gpuMemcpyHostToDevice            hipMemcpyHostToDevice
 #define gpuMemcpyDeviceToDevice          hipMemcpyDeviceToDevice
+#define gpuMemcpyHostToHost              hipMemcpyHostToHost
 #define gpuMemcpyToSymbol                hipMemcpyToSymbol
 
 #define gpuKernelBallot(mask, input)     __ballot(input)

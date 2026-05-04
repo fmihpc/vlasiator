@@ -16,12 +16,12 @@ jobs:
     - name: Clean workspace
       run: |
         RUN_STRING=$( cat << MORO
-        rm -rf libraries library-build testpackage
-        rm -f libraries.tar.zst testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
+        rm -rf libraries-carrington library-build testpackage
+        rm -f libraries-binaries-carrington.tar.gz testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
         rm -f *.xml
         MORO
         )
-        srun -M carrington bash -c "$RUN_STRING"
+        srun --constraint="carrington" bash -c "$RUN_STRING"
     - name: Checkout source
       uses: actions/checkout@v4
       with:
@@ -29,9 +29,18 @@ jobs:
     - name: Make clean
       run: VLASIATOR_ARCH=carrington_gcc_openmpi make clean
     - uses: ursg/gcc-problem-matcher@master
+    - name: Build libraries
+      run: |
+        WORKSPACE=`pwd`
+        rm -rf library-build
+        mkdir -p library-build
+        BUILDDIR=library-build
+        bash ./fetch_libraries.sh carrington
+        srun --constraint="carrington" --job-name CI_ref_build_lib --interactive --nodes=1 -n 1 -c 16 --mem=40G -p short -t 0:10:0 bash -c 'set -e; module purge; ml GCC/13.2.0 OpenMPI/4.1.6-GCC-13.2.0 PMIx/4.2.6-GCCcore-13.2.0 PAPI/7.1.0-GCCcore-13.2.0 Boost/1.83.0-GCC-13.2.0; export VLASIATOR_ARCH=carrington_gcc_openmpi; ./build_fetched_libraries.sh carrington'
+        rm -rf $BUILDDIR
     - name: Compile vlasiator (Testpackage build) and fluxfunction
       run: |
-        srun -M carrington --job-name CI_ref_tp_compile --interactive --nodes=1 -n 1 -c 16 --mem=40G -p short -t 0:10:0 bash -c 'module purge; module load GCC/13.2.0; module load OpenMPI/4.1.6-GCC-13.2.0 ; module load PMIx/4.2.6-GCCcore-13.2.0; module load PAPI/7.1.0-GCCcore-13.2.0; export VLASIATOR_ARCH=carrington_gcc_openmpi; make -j 16 testpackage fluxfunction; sleep 10s'
+        srun --constraint="carrington" --job-name CI_ref_tp_compile --interactive --nodes=1 -n 1 -c 16 --mem=40G -p short -t 0:10:0 bash -c 'set -e; module purge; ml GCC/13.2.0 OpenMPI/4.1.6-GCC-13.2.0 PMIx/4.2.6-GCCcore-13.2.0 PAPI/7.1.0-GCCcore-13.2.0 Boost/1.83.0-GCC-13.2.0; export VLASIATOR_ARCH=carrington_gcc_openmpi; make -j 16 testpackage fluxfunction; sleep 10s'
     - name: Make sure the output binary is visible in lustre
       uses: nick-fields/retry@v3
       with:
@@ -39,13 +48,13 @@ jobs:
         max_attempts: 3
         retry_on: error
         command: ls vlasiator
+    - name: Pack libraries and binaries
+      run: tar -zcf libraries-binaries-carrington.tar.gz libraries-carrington/ vlasiator fluxfunction
     - name: Upload testpackage binary
       uses: actions/upload-artifact@v4
       with:
-        name: vlasiator-testpackage
-        path: |
-          vlasiator
-          fluxfunction
+        name: vlasiator-reference-testpackage
+        path: libraries-binaries-carrington.tar.gz
         if-no-files-found: error
     #- name: Upload build log
     #  uses: actions/upload-artifact@v3
@@ -63,16 +72,22 @@ jobs:
       uses: actions/checkout@v4
       with:
         submodules: false
+    - name: Clean libraries
+      run: |
+        rm -rf libraries-carrington
+        rm -f libraries-binaries-carrington.tar.gz
     - name: Download testpackage binary
       uses: actions/download-artifact@v4
       with:
-        name: vlasiator-testpackage
+        name: vlasiator-reference-testpackage
+    - name: Unpack libraries and binaries
+      run: tar -zxf libraries-binaries-carrington.tar.gz
     - name: Run testpackage
       id: run
       run: |
         chmod +x $GITHUB_WORKSPACE/vlasiator
         cd testpackage
-        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/libraries/lib
+        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/libraries-carrington/lib
         # Fudge the run script
         sed -i 's/\/proj\/USERNAME\/BINARYNAME/$GITHUB_WORKSPACE\/vlasiator/' ./small_test_carrington.sh
         sed -i 's/create_verification_files=0/create_verification_files=1/' ./small_test_carrington.sh
@@ -80,10 +95,12 @@ jobs:
         cat testpackage_run_output.txt
     - name: Generate reference fluxfunction files
       run: |
+        echo "Generating fluxfunction files for revision $REFERENCE_REVISION"
         chmod +x $GITHUB_WORKSPACE/fluxfunction
-        srun --job-name fluxtest -M carrington -N 1 -c 1 --mem=1G bash -c "module purge; module load GCC/13.2.0; module load OpenMPI/4.1.6-GCC-13.2.0 ; module load PMIx/4.2.6-GCCcore-13.2.0; module load PAPI/7.1.0-GCCcore-13.2.0; $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_small/bulk.0000001.vlsv equatorial.bin"
-        srun --job-name fluxtest -M carrington -N 1 -c 1 --mem=1G bash -c "module purge; module load GCC/13.2.0; module load OpenMPI/4.1.6-GCC-13.2.0 ; module load PMIx/4.2.6-GCCcore-13.2.0; module load PAPI/7.1.0-GCCcore-13.2.0; $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_polar_small/bulk.0000001.vlsv polar.bin"
+        srun --job-name fluxtest --constraint="carrington" -N 1 -c 1 --mem=1G bash -c "module purge; ml GCC/13.2.0 OpenMPI/4.1.6-GCC-13.2.0 PMIx/4.2.6-GCCcore-13.2.0 PAPI/7.1.0-GCCcore-13.2.0  Boost/1.83.0-GCC-13.2.0; $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_small/bulk.0000001.vlsv equatorial.bin"
+        srun --job-name fluxtest --constraint="carrington" -N 1 -c 1 --mem=1G bash -c "module purge; ml GCC/13.2.0 OpenMPI/4.1.6-GCC-13.2.0 PMIx/4.2.6-GCCcore-13.2.0 PAPI/7.1.0-GCCcore-13.2.0  Boost/1.83.0-GCC-13.2.0; $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_polar_small/bulk.0000001.vlsv polar.bin"
         chmod 775 polar.bin equatorial.bin
-        cp equatorial.bin polar.bin $REFERENCE_REVISION
-        # No longer overwrites files in /proj/group/spacephysics/vlasiator_testpackage/CI_reference/ but places in proper folder
+        cp equatorial.bin $REFERENCE_REVISION
+        cp polar.bin $REFERENCE_REVISION
+        # No longer overwrites files in $reference_dir/CI_reference/ but places in proper folder
     # We don't bother to create artefacts or anything here.

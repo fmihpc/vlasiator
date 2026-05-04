@@ -118,7 +118,7 @@ bool P::prepareForRebalance = false;
 vector<CellID> P::localCells;
 
 bool P::adaptGPUWID = true;
-uint P::GPUallocations = 64;
+uint P::GPUallocations = 128;
 
 vector<string> P::systemWriteName;
 vector<string> P::systemWritePath;
@@ -159,6 +159,7 @@ uint P::maxFieldSolverSubcycles = 0.0;
 int P::maxSlAccelerationSubcycles = 0.0;
 Real P::resistivity = NAN;
 bool P::fieldSolverDiffusiveEterms = true;
+bool P::fieldSolverFiniteDifferencingAtBoundaries = false;
 uint P::ohmHallTerm = 0;
 uint P::ohmGradPeTerm = 0;
 Real P::electronTemperature = 0.0;
@@ -363,11 +364,11 @@ bool P::addParameters() {
        "Manual FsGridDecomposition for field solver grid stored in a restart file.", 0);
 
    RP::add("gridbuilder.x_min", "Minimum value of the x-coordinate.", NAN);
-   RP::add("gridbuilder.x_max", "Minimum value of the x-coordinate.", NAN);
+   RP::add("gridbuilder.x_max", "Maximum value of the x-coordinate.", NAN);
    RP::add("gridbuilder.y_min", "Minimum value of the y-coordinate.", NAN);
-   RP::add("gridbuilder.y_max", "Minimum value of the y-coordinate.", NAN);
+   RP::add("gridbuilder.y_max", "Maximum value of the y-coordinate.", NAN);
    RP::add("gridbuilder.z_min", "Minimum value of the z-coordinate.", NAN);
-   RP::add("gridbuilder.z_max", "Minimum value of the z-coordinate.", NAN);
+   RP::add("gridbuilder.z_max", "Maximum value of the z-coordinate.", NAN);
    RP::add("gridbuilder.x_length", "Number of cells in x-direction in initial grid.", 0);
    RP::add("gridbuilder.y_length", "Number of cells in y-direction in initial grid.", 0);
    RP::add("gridbuilder.z_length", "Number of cells in z-direction in initial grid.", 0);
@@ -413,6 +414,7 @@ bool P::addParameters() {
    RP::add("fieldsolver.maxSubcycles", "Maximum allowed field solver subcycles", 1);
    RP::add("fieldsolver.resistivity", "Resistivity for the eta*J term in Ohm's law.", 0.0);
    RP::add("fieldsolver.diffusiveEterms", "Enable diffusive terms in the computation of E", true);
+   RP::add("fieldsolver.finiteDifferencingAtBoundaries", "Enable finite differencing at sysboundaries", false);
    RP::add(
        "fieldsolver.ohmHallTerm",
        "Enable/choose spatial order of the Hall term in Ohm's law. 0: off, 1: 1st spatial order, 2: 2nd spatial order",
@@ -597,7 +599,7 @@ bool P::addParameters() {
    RP::add("AMR.transShortPencils", "if true, use one-cell pencils", false);
    RP::addComposing("AMR.filterpasses", string("AMR filter passes for each individual refinement level"));
    RP::add("adaptGPUWID", "if true, will halve velocity block counts if GPU is in use and WID==8", true);
-   RP::add("GPUallocations", "How many parallel GPU vlasov allocations to make? (default 64)", 64);
+   RP::add("GPUallocations", "How many parallel GPU vlasov allocations to make? (default 128)", 128);
 
    // Diffusion parameters
    RP::add("PAD.enable","Enable Artificial pitch-angle diffusion",0);
@@ -1039,11 +1041,6 @@ void Parameters::getParameters() {
       MPI_Abort(MPI_COMM_WORLD, 1);
    }
 
-   #ifdef USE_GPU
-   // Ensure GPU allocation count figure is at least equal to max threads
-   P::GPUallocations = std::max(P::GPUallocations,gpu_getMaxThreads());
-   #endif
-
    // Set some parameter values.
    P::dx_ini = (P::xmax - P::xmin) / P::xcells_ini;
    P::dy_ini = (P::ymax - P::ymin) / P::ycells_ini;
@@ -1108,6 +1105,7 @@ void Parameters::getParameters() {
    RP::get("fieldsolver.maxSubcycles", P::maxFieldSolverSubcycles);
    RP::get("fieldsolver.resistivity", P::resistivity);
    RP::get("fieldsolver.diffusiveEterms", P::fieldSolverDiffusiveEterms);
+   RP::get("fieldsolver.finiteDifferencingAtBoundaries",P::fieldSolverFiniteDifferencingAtBoundaries);
    RP::get("fieldsolver.ohmHallTerm", P::ohmHallTerm);
    RP::get("fieldsolver.ohmGradPeTerm", P::ohmGradPeTerm); // Which order solver to use for fieldsolver eGradPe term (supported: 0 for off, 1 for first-order)
    RP::get("fieldsolver.electronTemperature", P::electronTemperature); // Electron temperature associated with anchor point, e.g. incoming solar wind

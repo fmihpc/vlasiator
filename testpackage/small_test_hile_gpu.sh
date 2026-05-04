@@ -16,7 +16,7 @@
 create_verification_files=0
 
 # folder for all reference data
-reference_dir="/wrk-kappa/group/spacephysics/vlasiator/testpackage"
+reference_dir="/turso/group/spacephysics/vlasiator/testpackage/"
 #cd $SLURM_SUBMIT_DIR
 #cd $reference_dir # don't run on /proj
 
@@ -46,8 +46,8 @@ export LD_PRELOAD=/wrk-kappa/users/markusb/vlasiator-mempool/libpreload-me.so
 module load papi
 module load cray-pmi
 module load craype-accel-amd-gfx90a
-module load rocm/6.2.0
-module load libfabric/1.22.0
+module load rocm/6.3.4
+module load libfabric/1.20.1
 module list
 
 # threads per job (equal to -c )
@@ -84,5 +84,4 @@ source test_definitions_small.sh
 wait
 # Run tests
 source run_tests.sh
-wait 
-
+wait

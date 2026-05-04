@@ -1388,15 +1388,16 @@ namespace vmesh {
 
    // Used in initialization
    inline bool VelocityMesh::setNewCapacity(const vmesh::LocalID newCapacity) {
-      if (ltg_capacity >= newCapacity) {
+      // Ensure also that the map is large enough (newCapacity always greater than zero here)
+      uint HashmapReqSize = (uint)ceil(log2(newCapacity)) +1;
+
+      if (ltg_capacity >= newCapacity && gtl_sizepower >= HashmapReqSize) {
          return false; // Still have enough buffer
       }
       gpuStream_t stream = gpu_getStream();
       ltg_capacity = newCapacity*BLOCK_ALLOCATION_FACTOR;
       // Passing eco flag = true to resize tells splitvector we manage padding manually.
       localToGlobalMap.reserve(ltg_capacity,true, stream);
-      // Ensure also that the map is large enough (newCapacity always greater than zero here)
-      uint HashmapReqSize = (uint)ceil(log2(newCapacity)) +1;
       if (gtl_sizepower < HashmapReqSize) {
          gtl_sizepower = HashmapReqSize;
          globalToLocalMap.resize(gtl_sizepower, Hashinator::targets::device, stream);

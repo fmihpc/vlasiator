@@ -1,284 +1,196 @@
-#!/usr/bin/python
-# -*- coding: latin-1 -*-
-import numpy
-import matplotlib.pyplot
-import math
-#matplotlib.pyplot.clf()
-# Importing binary
-print "Loading input data..."
-Real = numpy.fromfile('Angle_1.570796_l1e8_B1e-9_Hall_perByt.bin', numpy.double, -1, '')
-print "Loading done."
-# Using the last two numbers for format
-#lines = int(Real[Real.size - 2])
-#cols = int(Real[Real.size - 1])
-cols = 2000
-lines = Real.size / cols
-# Dropping the last two numbers, putting the stream into array shape
-Real.resize(lines, cols)
-# Truncating the first line away
-#Real = Real[1:lines][:]
-#lines -= 1
-# Set range
-Real = Real[range(0,25000)][:]
-lines = 25000
+#!/usr/bin/env python3
+import glob
+import numpy as np
+import analysator
+import matplotlib.pyplot as plt
+import os
+import sys
 
-print "Dataset dimensions are ", Real.shape
+if len(sys.argv) > 1:
+    dirname = sys.argv[1]
+else:
+    dirname = "."
 
-#imshow(Real[0:1000,0:10000])
-#colorbar()
-#show()
+ptnoninteractive = int(os.environ.get('PTNOINTERACTIVE', '0'))
 
-# Windowing
-print "Windowing data..."
-window = numpy.hamming(lines).reshape(lines, 1)
+if ptnoninteractive == 0: # interactive mode
+    try:
+        from tqdm import tqdm
+        have_tqdm = True
+    except ImportError:
+        print("WARNING: Could not import tqdm")
+        have_tqdm = False
+else:
+    have_tqdm = False
+if not have_tqdm:
+    tqdm = lambda x : x
 
-#for i in range(cols):
-Real *= window
-print "Windowing done."
+# can be "none", "spatial", "temporal" or "both"
+do_windowing="both"
 
-# Partial plotting
-k_start = 1
-k_end = 500
-w_start = 0
-w_end = 500
 
-# WHAMP
-#whamp_f_list = arange(0.1,50.1,0.5)
-plotWHAMP = 1 # 0: skip WHAMP; 1: plot WHAMP
-whamp_f_list = (0.1,0.2,0.3,0.4,0.5,0.9,1.1,1.2,5.1,6.1,7.1,8.1,9.1,10.1)
-#whamp_f_list = [0.1,0.5,1.0,1.5,2.0,2.5,3.0,3.5,4.0,4.5,5.0,5.5,6.0,6.5,7.0,7.5,8.0,8.5,9.0,9.5,10.1,20.1,50.1,100.1]
-#whamp_f_list = [1.1,2.1,10.1,25.1,50.1,75.1,100.1,150.1,200.1,250.1,500.1,750.1,1000.1,1250.1]
+class SI:
+    e = 1.6022e-19 #C
+    mp = 1.6726e-27 #kg
+    me = 9.1094e-31 #kg
+    eps0 = 8.8542e-12 # F/m
+    mu0 = 4.*np.pi*1e-7 # H/m
+    kB = 1.3807e-23 # J/K
+    c = 2.9979e8 # m/s
 
-# Parameters
-length = 1e8
-ncells = cols
-dx = length/ncells
-dt = 0.025
-Temperature = 1.0e5 # K
-electronTemperature = 1.0e-3 # eV, for WHAMP only
-B0 = 1.0e-9
-density = 1.0e4
-angle = 1.570796
+timesteps = []
+for filename in glob.glob(dirname+"/bulk*vlsv"):
+    parts = filename.split(".")
+    if len(parts) == 3:
+        timesteps.append(int(parts[1]))
+timesteps.sort()
+tsize = len(timesteps)
 
-# Constants
-c = 299792458.0
-kb = 1.3806505e-23
-mp = 1.67262171e-27
-me = 9.1093826e-31
-q = 1.60217653e-19
-mu0 = 4*math.pi*1.0e-7
-epsilon0 = 8.85418781762e-12
-gamma = 5.0/3.0
-eV = 1.60217733e-19 # J
+for i,t in enumerate(timesteps[:1]):
+    f = analysator.vlsvfile.VlsvReader(dirname+"/bulk."+"{:07d}".format(t)+".vlsv")
+    [xsize, ysize, zsize] = map(int,f.get_fsgrid_mesh_size()) # uint64t makes some other stuff unhappy
+    fg_b = f.read_fsgrid_variable("fg_b")
+    B0vec = np.array([np.average(fg_b[:,0]), np.average(fg_b[:,1]), np.average(fg_b[:,2])])
+    B0 = np.sqrt(np.sum(B0vec**2))
 
-v_th = math.sqrt(2.0*kb * Temperature / mp)
-r_Larmor = mp * v_th / (q * B0)
-w_ci = q*B0/mp
+print("Found field grid with "+str(xsize)+"x"+str(ysize)+"x"+str(zsize)+" cells")
+print("Found "+str(tsize)+" timesteps")
+print("B_0 = "+str(B0)+" T")
 
-print "Starting FFT..."
-Fourier = numpy.fft.rfft2(Real)
-print "FFT done."
+config=f.get_config()
+dt = f.read_parameter("dt")
+print("dt = "+str(dt)+" s")
+dtout = float(config["io"]["system_write_t_interval"][0])
+print("dtout = "+str(dtout)+" s")
+xmin = f.read_parameter("xmin")
+xmax = f.read_parameter("xmax")
+dx = (xmax-xmin)/xsize
+print("dx = "+str(dx)+" m")
+ni = float(config["proton_Dispersion"]["rho"][0])
+print("n_p = "+str(ni)+" m^-3")
+Ti = float(config["proton_Dispersion"]["Temperature"][0])
+print("T_p = "+str(Ti)+" K")
+ne, Te = ni, Ti # wild assumption!
+Wci = SI.e * B0 / SI.mp
+print("W_ci = "+str(Wci)+" 1/s")
+Wce = SI.e * B0 / SI.me
+print("W_ce = "+str(Wce)+" 1/s")
+wpi = np.sqrt(ni * SI.e**2 / SI.mp / SI.eps0)
+print("w_pi = "+str(wpi)+" 1/s")
+wpe = np.sqrt(ne * SI.e**2 / SI.me / SI.eps0)
+print("w_pe = "+str(wpe)+" 1/s")
+vthi = np.sqrt(2.*SI.kB * Ti / SI.mp)
+print("v_thi = "+str(vthi)+" m/s")
+vA = B0 / np.sqrt(SI.mu0 * (SI.me*ne + SI.mp*ni))
+print("v_A = "+str(vA)+" m/s")
+vthe = np.sqrt(2.*SI.kB * Te / SI.me)
+print("v_the = "+str(vthe)+" m/s")
+di = SI.c / wpi
+print("d_i = "+str(di)+" m")
+de = SI.c / wpe
+print("d_e = "+str(de)+" m")
+ri = vthi / Wci
+print("r_i = "+str(ri)+" m")
+re = vthe / Wce
+print("r_e = "+str(re)+" m")
+lD = vthe / wpe
+print("l_D = "+str(lD)+" m")
 
-dk = 2.0*math.pi / (cols * dx)
-kaxis = dk * numpy.arange(cols) * r_Larmor
 
-dw = 2.0*math.pi / (lines * dt)
-waxis= dw * numpy.arange(lines) / w_ci
+B = np.zeros( (len(timesteps), xsize, 5) , dtype=complex) # time, space, field component (including left and right handed)
 
-matplotlib.rcParams.update({'font.size': 22})
-matplotlib.rcParams.update({'lines.linewidth': 2})
-matplotlib.rcParams.update({'axes.linewidth': 2})
-matplotlib.rcParams.update({'xtick.major.size': 8})
-matplotlib.rcParams.update({'ytick.major.size': 8})
-matplotlib.rcParams.update({'lines.markeredgewidth': 2})
-#matplotlib.rcParams.update({'figure.facecolor': 'w'})
-#matplotlib.rcParams.update({'figure.edgecolor': 'k'})
-#matplotlib.rcParams.update({'figure.figsize': 20, 12})
-#matplotlib.rcParams.update({'figure.dpi': 150})
+print("Loading data")
+for i in tqdm(range(len(timesteps))):
+    t = timesteps[i]
+    if not have_tqdm:
+            print("Output step "+str(i)+" at time "+str(t))
+    f = analysator.vlsvfile.VlsvReader(dirname+"/bulk."+"{:07d}".format(t)+".vlsv")
+    fg_b = f.read_fsgrid_variable("fg_b")
+    B[i,:,:3] = fg_b
 
-fig = matplotlib.pyplot.figure(num=None, facecolor='w', edgecolor='k')
-fig.set_size_inches(10.0, 10.0)
-fig.set_dpi(150)
+# from left and right handed circular component by complex addition
+B[:,:,3] = B[:,:,1] - complex("j")*B[:,:,2]
+B[:,:,4] = B[:,:,1] + complex("j")*B[:,:,2]
 
-axes = matplotlib.pyplot.subplot(111)
-matplotlib.pyplot.subplots_adjust(left=0.1, right=0.9, bottom=0.1, top=0.95)
+if do_windowing=="spatial" or do_windowing=="both":
+    spatial_window = np.hamming(xsize)
+else:
+    spatial_window = np.ones(xsize)
+if do_windowing=="temporal" or do_windowing=="both":
+    temporal_window = np.hamming(tsize)
+else:
+    temporal_window = np.ones(tsize)
 
-matplotlib.pyplot.imshow(numpy.log10(numpy.abs(Fourier[w_start:w_end, k_start:k_end])), extent=[kaxis[k_start], kaxis[k_end], waxis[w_start], waxis[w_end]], origin='lower', aspect=0.2, interpolation='Nearest')
-matplotlib.pyplot.colorbar(shrink=0.9)
+window = np.outer(spatial_window, temporal_window).T
 
-# Alfv\'en wave
-vA = B0 / math.sqrt(mu0*density*mp)
-#kaxis2 = kaxis.*kaxis;
-#kaxis4 = kaxis2.*kaxis2;
-#de2 = 5314^2;
-#one = ones(1, cols + 1, 'double');
-#omega2Val = 0.5 * (kaxis2 ./ (one + kaxis2 * de2) .* (2.0*one + kaxis2 ./ (one + kaxis2 * de2)) - sqrt(kaxis4 ./ ((one + kaxis2*de2).*(one + kaxis2*de2).*(one + kaxis2*de2)) .* (4.0*kaxis2 + kaxis4 ./ (one + kaxis2 * de2))));
-axes.plot(kaxis[k_start:k_end], vA * kaxis[k_start:k_end] / r_Larmor / w_ci, scalex=False, scaley=False, lw=2, color='k') # / sqrt(1.0 + vA*vA / (c*c)))
+componentnames = ["x","y","z", "left", "right"]
 
-# Ion-acoustic wave
-cS = math.sqrt(gamma * kb * Temperature / mp)
-#Ldebye2 = epsilon0 * kb * Temperature / (density * q * q);
-#axes.plot(kaxis[k_start:k_end], kaxis[k_start:k_end]*cS / r_Larmor / w_ci, scalex=False, scaley=False) # ./ sqrt(1.0 + kaxis.*kaxis*Ldebye2), color='g');
+print("Plotting data")
 
-# Magnetosonic wave
-axes.plot(kaxis[k_start:k_end], kaxis[k_start:k_end] * math.sqrt((cS*cS + vA * vA)) / r_Larmor / w_ci, scalex=False, scaley=False) # / (1.0 + vA * vA / (c*c))), color='b')
-#plot(kaxis, kaxis * 2 * dw * math.sqrt((cS*cS + vA * vA)));
-#plot(kaxis, kaxis * 3 * dw * math.sqrt((cS*cS + vA * vA)));
-#plot(kaxis, kaxis * 4 * dw * math.sqrt((cS*cS + vA * vA)));
+with tqdm(total=3+5+5) as pbar:
+    for c in range(len(componentnames)):
+        # plot x-t space
+        if c < 3:
+            plt.figure("B"+componentnames[c])
+            X = np.linspace(xmin, xmax, xsize)
+            T = np.linspace(timesteps[0], timesteps[-1], len(timesteps))
+            vmax = np.amax(abs(B[2:,:,c]))
+            im = plt.pcolormesh(X/ri, T*Wci, np.real(B[:,:,c]), shading="gouraud", vmin=-vmax, vmax=vmax)
+            plt.colorbar(im, label="B_{"+componentnames[c]+"} / T")
+            plt.xlabel("x / r_i")
+            plt.ylabel("t * W_ci")
+            plt.tight_layout()
+            plt.savefig(dirname+"/B"+componentnames[c]+".png")
+            plt.close()
+            pbar.update()
 
-# Numerical propagation
-V = dx/dt
-axes.plot(kaxis[k_start:k_end], kaxis[k_start:k_end] * V / r_Larmor / w_ci, scalex=False, scaley=False, color='r')
+        # plot k-omega power
+        plt.figure("kB"+componentnames[c])
+        kB = np.fft.fftshift(np.fft.fft2(B[:,:,c]*window))
+        w  = 2.*np.pi*np.fft.fftshift(np.fft.fftfreq(tsize, d=dtout))
+        kx = 2.*np.pi*np.fft.fftshift(np.fft.fftfreq(xsize, d=dx))
+        kleft  = 1./SI.c * np.sqrt(w**2 - wpe**2/(1.+Wce/w) - wpi**2/(1.-Wci/w))
+        kright = 1./SI.c * np.sqrt(w**2 - wpe**2/(1.-Wce/w) - wpi**2/(1.+Wci/w))
+        #kleft  = w/SI.c * np.sqrt(1. - (wpe**2+wpi**2)/((1.+Wce)*(1.-Wci)))
+        #kright = w/SI.c * np.sqrt(1. - (wpe**2+wpi**2)/((1.-Wce)*(1.+Wci)))
 
-# "Langmuir" wave
+        powerB = kB.real**2 + kB.imag**2
 
-# Light
-axes.plot(kaxis, kaxis * dw * c)
+        vmax = np.ceil(np.log10(np.amax(powerB)))
+        vmin = vmax - 7
 
-# Ion cyclotron frequency
-#axes.plot(kaxis[k_start:k_end], numpy.ones(kaxis[k_start:k_end].size), scalex=False, scaley=False, color='k', lw=2)
-#axes.plot(kaxis[k_start:k_end], numpy.ones(kaxis[k_start:k_end].size)*2.0, scalex=False, scaley=False, color='b')
-#axes.plot(kaxis[k_start:k_end], numpy.ones(kaxis[k_start:k_end].size)*3.0, scalex=False, scaley=False, color='b')
-#axes.plot(kaxis[k_start:k_end], numpy.ones(kaxis[k_start:k_end].size)*4.0, scalex=False, scaley=False, color='b')
+        im = plt.pcolormesh(kx*ri, w/Wci, np.log10(powerB), shading='gouraud', vmin=vmin, vmax=vmax)
+        plt.colorbar(im, label="log |~B_{"+componentnames[c]+"}|^2")
+        plt.plot( kleft*ri,  w/Wci, color="C0", linestyle=":", label="L")
+        plt.plot(-kleft*ri,  w/Wci, color="C0", linestyle=":")
+        plt.plot( kright*ri, w/Wci, color="C1", linestyle=":", label="R")
+        plt.plot(-kright*ri, w/Wci, color="C1", linestyle=":")
+        plt.plot( kx*ri, abs(vA*kx/Wci), color="C2", linestyle=":", label="vA")
+        plt.plot( kx*ri, abs(vthi*kx/Wci), color="C3", linestyle=":", label="vthi")
+        plt.axhline(Wci/Wci,  color="C4", linewidth=0.5, label="W_ci")
+        plt.xlabel("k_x r_i")
+        plt.ylabel("w / Wci")
+        #plt.xlim(-np.pi/ri*ri, np.pi/ri*ri)
+        #plt.ylim(   0.,  3.*Wci/Wci)
+        plt.xlim(-0.2, 0.2)
+        plt.ylim( 0.0, 1.2)
+        plt.legend()
+        plt.tight_layout()
+        plt.savefig(dirname+"/kB"+componentnames[c]+".png")
+        plt.close()
+        pbar.update()
 
-# Ion lower hybrid frequency
-w_ce = q*B0/me
-w_pi = math.sqrt(density * q*q / (mp * epsilon0))
-w_pe = math.sqrt(density * q*q / (me * epsilon0))
-w_lh = math.sqrt((w_pi*w_pi + w_ci*w_ci) / (1 + w_pe*w_pe / (w_ce*w_ce)))
-axes.plot(kaxis[k_start:k_end], w_lh/w_ci * numpy.ones(kaxis[k_start:k_end].size), scalex=False, scaley=False, lw=2)
+        # plot t-k power
+        plt.figure("sB"+componentnames[c])
+        sB = np.fft.fftshift(np.fft.fft(B[:,:,c]*window, axis=1), axes=1) # compute the fft only over the x->kx direction
+        spowerB = sB.real**2 + sB.imag**2
+        mask = kx>=0.
+        im = plt.pcolormesh(T*Wci, kx[mask]*ri, np.log10(spowerB[:,mask].T), shading='gouraud')
+        plt.colorbar(im, label="log |~B_{"+componentnames[c]+"}|^2")
+        plt.xlabel("t * W_ci")
+        plt.ylabel("k_x r_i")
+        plt.tight_layout()
+        plt.savefig(dirname+"/sB"+componentnames[c]+".png")
+        plt.close()
+        pbar.update()
 
-#axes.plot(kaxis[k_start:k_end], w_ce/w_ci * numpy.ones(kaxis[k_start:k_end].size), scalex=False, scaley=False)
-
-#axes.plot(kaxis[k_start:k_end], math.sqrt(2.0) * numpy.ones(kaxis[k_start:k_end].size), scalex=False, scaley=False)
-#axes.plot(kaxis[k_start:k_end], 2.0*math.sqrt(2.0) * numpy.ones(kaxis[k_start:k_end].size), scalex=False, scaley=False)
-#axes.plot(kaxis[k_start:k_end], 3.0*math.sqrt(2.0) * numpy.ones(kaxis[k_start:k_end].size), scalex=False, scaley=False)
-
-# Ion plasma frequency
-#axes.plot(kaxis[k_start:k_end], w_pi/w_ci * numpy.ones(kaxis[k_start:k_end].size), scalex=False, scaley=False, lw=2);
-
-# Treumann Baumjohann 9.138
-#axes.plot(kaxis[k_start:k_end], 0.5 * w_ce / w_ci / (1.0 + w_pe**2 / (kaxis[k_start:k_end]**2 * c**2 / r_Larmor**2)) * (numpy.sqrt(1.0 + 4.0 * w_pi**2 / (kaxis[k_start:k_end]**2 * c**2/ r_Larmor**2)) + 1.0), '-.', lw=2, scalex=False, scaley=False, color='k')
-
-# Treumann Baumjohann 9.140
-#axes.plot(kaxis[k_start:k_end], 0.5 * w_ce / w_ci / (1.0 + w_pe**2 / (kaxis[k_start:k_end]**2 * c**2 / r_Larmor**2)) * (numpy.sqrt(1.0 + 4.0 * w_pi**2 / (kaxis[k_start:k_end]**2 * c**2/ r_Larmor**2)) - 1.0), '-.', lw=2, scalex=False, scaley=False, color='k')
-
-if plotWHAMP == 1:
-   print "Starting WHAMP..."
-   ## Generate input file
-   fileWHAMPinput = open("WHAMPinput", "w")
-   fileWHAMPinput.write("%e %e 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0\n" % (density, density)) # Number density of species
-   fileWHAMPinput.write("%e %e 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0\n" % (Temperature*kb/(1000.0*eV), electronTemperature/1000.0)) # Temperatures in keV
-   fileWHAMPinput.write("1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0\n")
-   fileWHAMPinput.write("1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0\n")
-   fileWHAMPinput.write("0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0\n")
-   fileWHAMPinput.write("1.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0\n") # Species (1 H, 0 electron)
-   fileWHAMPinput.write("0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0\n")
-   fileWHAMPinput.write("%e\n" % (q * B0 / (2.0 * math.pi * me * 1000.0))) # electron gyrofrequency in kHz
-   fileWHAMPinput.write("0\n")
-   fileWHAMPinput.close()
-   
-   ## Overplot WHAMP data
-   #from subprocess import PIPE, Popen
-   #fileWHAMPOut = open('WHAMP_CLI_output.txt', 'w')
-   #proc = Popen('whamp', stdin=PIPE, stdout=fileWHAMPOut)
-   #proc.stdin.write('./WHAMPinput\n')
-   #proc.stdin.write('M(2)=0.0,f=0.01,z=0.01,p=0.01\n')
-   #proc.stdin.write('zpf\n')
-   ## p perpendicular
-   ## z parallel
-   
-   fileWHAMP_CLIinput = open("WHAMP_CLIinput", "w")
-   fileWHAMP_CLIinput.write('./WHAMPinput\n')
-   fileWHAMP_CLIinput.write('M(2)=0.0,f=0.01,z=0.01,p=0.01\n')
-   fileWHAMP_CLIinput.write('zpf\n')
-   
-   #import os
-   for j in whamp_f_list:
-      for i in numpy.arange(k_start, k_end):
-         #proc.stdin.write('f=')
-         #proc.stdin.write(str(j))
-         #proc.stdin.write('z=')
-         #proc.stdin.write(str(kaxis[i]*math.cos(angle)))
-         #proc.stdin.write('p=')
-         #proc.stdin.write(str(kaxis[i]*math.sin(angle)))
-         #proc.stdin.write('\n')
-         fileWHAMP_CLIinput.write('f=')
-         fileWHAMP_CLIinput.write(str(j))
-         fileWHAMP_CLIinput.write('z=')
-         fileWHAMP_CLIinput.write(str(kaxis[i]*math.cos(angle)))
-         fileWHAMP_CLIinput.write('p=')
-         fileWHAMP_CLIinput.write(str(kaxis[i]*math.sin(angle)))
-         fileWHAMP_CLIinput.write('\n')
-   
-   #proc.stdin.write('s\n\n')
-   fileWHAMP_CLIinput.write('s\n\n')
-   
-   ##fileWHAMPOut.flush()
-   ##os.fsync(fileWHAMPOut.fileno())
-   
-   ##for k in proc.stdout.readlines():
-      ##fileWHAMPOut.write(str(k)),
-      ##retval = proc.wait()
-   
-   #fileWHAMPOut.close()
-   fileWHAMP_CLIinput.close()
-   
-   from subprocess import call
-   call(["sync"])
-   
-   fileWHAMPOut = open('WHAMP_CLI_output.txt', 'w')
-   fileWHAMP_CLIinput = open("WHAMP_CLIinput", "r")
-   #proc = Popen('whamp', stdin=PIPE, stdout=fileWHAMPOut)
-   
-   from subprocess import Popen
-   proc = Popen("whamp", stdin=fileWHAMP_CLIinput, stdout=fileWHAMPOut)
-   proc.wait()
-   
-   #from subprocess import call
-   #call(["sync"])
-   
-   print "WHAMP done."
-   
-   #sleep(5);
-   
-   print "Loading WHAMP data..."
-   from pylab import load
-   WHAMP=load('WHAMP_CLI_output.txt')
-   print "Loading done."
-   
-   print "Processing WHAMP data..."
-   import numpy.ma
-   dampingNegative = (WHAMP[:,3] < 0)
-   dampingNegative.resize(len(WHAMP[:,3]), 4)
-   dampingPositive = (WHAMP[:,3] >= 0)
-   dampingPositive.resize(len(WHAMP[:,3]), 4)
-   
-   WHAMPneg = numpy.ma.masked_array(WHAMP, dampingNegative)
-   WHAMPpos = numpy.ma.masked_array(WHAMP, dampingPositive)
-   
-   #Plot with different colour scales for positive and negative damping
-   #axes.scatter(numpy.sqrt(WHAMPpos[:,1]*WHAMPpos[:,1] + WHAMPpos[:,0]*WHAMPpos[:,0]), WHAMPpos[:,2], s=5, cmap=matplotlib.pyplot.cm.get_cmap('Blues_r'), marker='d', c=WHAMPpos[:,3], edgecolor='none', alpha=0.5);
-   #matplotlib.pyplot.colorbar(shrink=0.9);
-   
-   #axes.scatter(numpy.sqrt(WHAMPneg[:,1]*WHAMPneg[:,1] + WHAMPneg[:,0]*WHAMPneg[:,0]), WHAMPneg[:,2], s=5, cmap=matplotlib.pyplot.cm.get_cmap('Reds'), marker='d', c=WHAMPneg[:,3], edgecolor='none', alpha=0.5);
-   #matplotlib.pyplot.colorbar(shrink=0.9);
-   
-   #Plot all in black 
-   axes.scatter(numpy.sqrt(WHAMPpos[:,1]*WHAMPpos[:,1] + WHAMPpos[:,0]*WHAMPpos[:,0]), WHAMPpos[:,2], s=3, marker='d', edgecolor='none', alpha=0.5, color='k');
-   axes.scatter(numpy.sqrt(WHAMPneg[:,1]*WHAMPneg[:,1] + WHAMPneg[:,0]*WHAMPneg[:,0]), WHAMPneg[:,2], s=3, marker='d', edgecolor='none', alpha=0.5, color='k');
-
-# Now we're also done with WHAMP
-print "Et voilà !"
-   
-matplotlib.pyplot.xlabel('$k\cdot r_L$', fontsize=30)
-matplotlib.pyplot.ylabel('$\omega/\omega_{ci}$', fontsize=30)
-
-axes.xaxis.set_major_locator(matplotlib.pyplot.MaxNLocator(4))
-
-matplotlib.pyplot.xlim([kaxis[k_start], kaxis[k_end]])
-matplotlib.pyplot.ylim([waxis[w_start], waxis[w_end]])
-
-matplotlib.pyplot.show()
-
-#matplotlib.pyplot.savefig('Angle_1.570796_l1e8_B1e-9_Hall_perBy.png', dpi=600)
