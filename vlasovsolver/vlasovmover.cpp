@@ -1523,7 +1523,7 @@ void updatePreviousVMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    for (size_t c=0; c<cells.size(); c++) {
       const CellID cellID = cells[c];
       SpatialCell* SC = mpiGrid[cellID];
-      Real tdiff = SC->parameters[CellParams::TIMECLASSDT];
+      Real tdiff = P::timeclassDt[SC->parameters[CellParams::TIMECLASS]];
 
       if (isInitialization == true) {
          // initializiing all _PREV and _PREV_PREV moments to same values as _V moments

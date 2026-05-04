@@ -412,6 +412,31 @@ std::vector<Real> computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_G
    return retVec;
 }
 
+
+// // called when a cell changes its timeclass. checks if that cells' neighbors possess all required timeghosts. If not, returns vector of pairs, each containing a cellid and timeclass of timeghost needed to be created.
+// std::vector<std::pair<CellID, int>> checkNeighborTimeghosts(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, SpatialCell* cell) {
+
+//    std::vector<std::pair<CellID, int>> ret;
+
+//    auto neighbors = mpiGrid.get_neighbors_of(cell->get_cellid(), Neighborhoods::VLASOV_SOLVER_TIMEGHOST_EXACT_HALO);
+
+//    for (auto n : *neighbors){
+//       CellID cid = n.first;
+
+      
+
+//    }
+
+
+// }
+
+//creates timeghosts in cells where they were requested
+void createNewTimeghosts(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, CellID cell) {
+
+   getGhostNeighborsforTC(mpiGrid, {cell}, std::set<CellID> &active_cells, int timeclass)
+
+}
+
 // check goodness of current used fsdt, if it isnt good, changes newDt to good one and sets isChanged to true. Also sets subcycling number.
 void handleChangingofDt(const std::vector<Real>& dtMaxGlobal, bool& isChanged, Real& newDt) {
 
