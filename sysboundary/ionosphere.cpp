@@ -2260,29 +2260,29 @@ namespace SBC {
       }
 
  
-      if(this->VDFmodeString == "FixedMoments") {
+      if(VDFmodeString == "FixedMoments") {
          boundaryVDFmode = FixedMoments;
-      } else if(this->VDFmodeString == "AverageMoments") {
+      } else if(VDFmodeString == "AverageMoments") {
          boundaryVDFmode = AverageMoments;
-      } else if(this->VDFmodeString == "AverageAllMoments") {
+      } else if(VDFmodeString == "AverageAllMoments") {
          boundaryVDFmode = AverageAllMoments;
-      } else if(this->VDFmodeString == "CopyAndLosscone") {
+      } else if(VDFmodeString == "CopyAndLosscone") {
          boundaryVDFmode = CopyAndLosscone;
       } else {
-         cerr << "(IONOSPHERE) Unknown inner boundary VDF mode \"" << this->VDFmodeString << "\". Aborting." << endl;
+         cerr << "(IONOSPHERE) Unknown inner boundary VDF mode \"" << VDFmodeString << "\". Aborting." << endl;
          abort();
       }
 
-      if(this->gaugeFixingString == "pole") {
+      if(gaugeFixingString == "pole") {
          ionosphereGrid.gaugeFixing = SphericalTriGrid::Pole;
-      } else if (this->gaugeFixingString == "integral") {
+      } else if (gaugeFixingString == "integral") {
          ionosphereGrid.gaugeFixing = SphericalTriGrid::Integral;
-      } else if (this->gaugeFixingString == "equator") {
+      } else if (gaugeFixingString == "equator") {
          ionosphereGrid.gaugeFixing = SphericalTriGrid::Equator;
-      } else if (this->gaugeFixingString == "None") {
+      } else if (gaugeFixingString == "None") {
          ionosphereGrid.gaugeFixing = SphericalTriGrid::None;
       } else {
-         cerr << "(IONOSPHERE) Unknown solver gauge fixing method \"" << this->gaugeFixingString << "\". Aborting." << endl;
+         cerr << "(IONOSPHERE) Unknown solver gauge fixing method \"" << gaugeFixingString << "\". Aborting." << endl;
          abort();
       }
  
@@ -2295,14 +2295,14 @@ namespace SBC {
 
       FieldTracing::fieldTracingParameters.innerBoundaryRadius = this->innerRadius;
  
-      if(this->ionizationModelString == "Rees1963") {
+      if(ionizationModelString == "Rees1963") {
          ionosphereGrid.ionizationModel = SphericalTriGrid::Rees1963;
-      } else if(this->ionizationModelString == "Rees1989") {
+      } else if(ionizationModelString == "Rees1989") {
          ionosphereGrid.ionizationModel = SphericalTriGrid::Rees1989;
-      } else if(this->ionizationModelString == "SergienkoIvanov") {
+      } else if(ionizationModelString == "SergienkoIvanov") {
          ionosphereGrid.ionizationModel = SphericalTriGrid::SergienkoIvanov;
       } else {
-         cerr << "(IONOSPHERE) Unknown ionization production model \"" << this->ionizationModelString << "\". Aborting." << endl;
+         cerr << "(IONOSPHERE) Unknown ionization production model \"" << ionizationModelString << "\". Aborting." << endl;
          abort();
       }
       //TODO needs to be updated for the new handling?
