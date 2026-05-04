@@ -196,12 +196,16 @@ public:
           //Skip vector values and let CLI11 handle them
           if (optValue.front()=='[') {
               //Do we need to do something?
-              options.erase(commandName);
+              isOptionParsed.erase(commandName);
               continue;
           } 
 
           //Skip if the command is not addComposing/not known
           if (auto search=options.find(commandName); search == options.end()) {
+            continue;
+          }
+          //this is used for checking whether to pass the handling to CLI11 later(or rather whether to rerun callback)
+          if (auto search=isOptionParsed.find(commandName); search == isOptionParsed.end()) {
             continue;
           }
 
@@ -210,26 +214,36 @@ public:
           } else {
             options[commandName]=options[commandName]+','+std::string(optValue);
           }
-          isOptionParsed[commandName]=true;
+          isOptionParsed[commandName]=false;
     
 
         }
         configFile.close();
-      }  
-      //Add brackets and throw the values to CLI option
-      for(std::map<std::string,std::string>::iterator iter = options.begin(); iter != options.end(); ++iter) {
-        iter->second='['+iter->second+']'; 
+      }
+    }
+    //Add brackets and throw the values to CLI option
+    for(std::map<std::string,std::string>::iterator iter = options.begin(); iter != options.end(); ++iter) {
+      std::string commandName=iter->first;
+      if (rank == MASTER_RANK) {
+        if (auto search=isOptionParsed.find(commandName); search == isOptionParsed.end()) {
+          isOptionParsed[commandName]=true;  
+        } else {
+          isOptionParsed[commandName]=false;
+        }
+      }
 
-        std::cout << iter->first << " " << iter->second << std::endl;
-        auto opt= getOption(iter->first);
+      MPI_Bcast(&isOptionParsed[commandName], sizeof(bool) ,MPI_BYTE, MASTER_RANK, MPI_COMM_WORLD);
+      if (!isOptionParsed[commandName]) {
+        iter->second='['+iter->second+']'; 
+        std::cout <<"rank="<<rank << " , " << commandName << " " << iter->second << std::endl;
+        auto opt= getOption(commandName);
         opt->clear();
         opt->add_result(iter->second);
         opt->run_callback(); 
-
       }
-
-
     }
+
+
    }
     /** Add a new composing input parameter.
     * Note that parse must be called in order for the input file(s) to be re-read.
