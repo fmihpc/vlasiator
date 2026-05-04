@@ -171,7 +171,6 @@ void SysBoundary::initSysBoundaries(Project& project, creal& t) {
    MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
    vector<string>::const_iterator it;
    for (auto& b : sysBoundaries)  {
-     // std::cout << "LOOP INIT=" <<b->getName()<< std::endl;
      this->addSysBoundary(b, project, t);
      b->setPeriodicity(periodic);
    }
@@ -189,7 +188,6 @@ void SysBoundary::initSysBoundaries(Project& project, creal& t) {
 
    for (it = sysBoundaryCondList.begin(); it != sysBoundaryCondList.end(); it++) {
       if (*it == "Outflow" || *it == "outflow") {
-         // this->addSysBoundary(::new SBC::Outflow, project, t);
 
          anyDynamic = anyDynamic | this->getSysBoundary(sysboundarytype::OUTFLOW)->isDynamic();
          bool faces[6];
@@ -218,15 +216,10 @@ void SysBoundary::initSysBoundaries(Project& project, creal& t) {
          }
 
       } else if (*it == "Ionosphere" || *it == "ionosphere") {
-         // this->addSysBoundary(::new SBC::Ionosphere, project, t);
-         // this->addSysBoundary(::new SBC::DoNotCompute, project, t);
          anyDynamic = anyDynamic | this->getSysBoundary(sysboundarytype::IONOSPHERE)->isDynamic();
       } else if(*it == "Copysphere" || *it == "copysphere") {
-         // this->addSysBoundary(::new SBC::Copysphere, project, t);
-         // this->addSysBoundary(::new SBC::DoNotCompute, project, t);
          anyDynamic = anyDynamic | this->getSysBoundary(sysboundarytype::COPYSPHERE)->isDynamic();
       } else if (*it == "Maxwellian" || *it == "maxwellian") {
-         // this->addSysBoundary(::new SBC::Maxwellian, project, t);
          anyDynamic = anyDynamic | this->getSysBoundary(sysboundarytype::MAXWELLIAN)->isDynamic();
          bool faces[6];
          this->getSysBoundary(sysboundarytype::MAXWELLIAN)->getFaces(&faces[0]);

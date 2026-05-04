@@ -235,13 +235,13 @@ void Readparameters::addDefaultParameters() {
    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
    if (rank == MASTER_RANK) {
       app->remove_option(app->get_help_ptr());
-      Readparameters::add_flag("--help", "print this help message", Readparameters::helpRequested);
+      Readparameters::addFlag("--help", "print this help message", Readparameters::helpRequested);
       // std::cout << "INSIDE DEFAULT PARAM ADD" << std::endl;
       // Readparameters::app->get_option("--help")->each([](const string){
       //   std::cout << "test" << std::endl;
       //   Readparameters::helpRequested=true;
       // });
-      Readparameters::add_flag("--version", "print version information", Readparameters::versionRequested);
+      Readparameters::addFlag("--version", "print version information", Readparameters::versionRequested);
 
       // // Parameters which set the names of the configuration file(s):
       // descriptions->add_options()(

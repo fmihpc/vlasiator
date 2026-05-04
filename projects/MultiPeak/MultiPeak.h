@@ -67,7 +67,8 @@ namespace projects {
          FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
       ) override;
 
-      std::vector<MultiPeakSpeciesParameters*> speciesParams;
+      std::vector<MultiPeakSpeciesParameters> speciesParams;
+      std::vector<MultiPeakSpeciesParameters*> speciesParamsRead;
 
       virtual Realf fillPhaseSpace(spatial_cell::SpatialCell *cell,
                                   const uint popID,

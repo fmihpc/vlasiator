@@ -663,13 +663,9 @@ Project* createProject() {
    Project* rvalue=nullptr;
 
     if (Readparameters::helpRequested) {
-      
         projects::MultiPeak* multipeak=new projects::MultiPeak();
-
         projects::Flowthrough* flowthrough=new projects::Flowthrough();
-
         projects::Magnetosphere* magnetosphere=new projects::Magnetosphere();
-        
         projects::LossCone* losscone=new projects::LossCone();
         
         multipeak->addParameters();
@@ -677,11 +673,9 @@ Project* createProject() {
         magnetosphere->addParameters();
         flowthrough->addParameters();
         return nullptr;
-    }
-    else if(Parameters::projectName == "") {
+    } else if(Parameters::projectName == "") {
         cerr << "No project specified! Please set 'project' parameter!" << Parameters::projectName << endl;
         return nullptr;
-        // abort();
     }
     if (Parameters::projectName=="MultiPeak") {
         projects::MultiPeak* multipeak=new projects::MultiPeak();
@@ -711,37 +705,6 @@ Project* createProject() {
         abort();
     }
 
-    // if (Parameters::projectName == "MultiPeak") {
-    //   std::cout << "MULTPEAK FINE" << std::endl;
-    //   projects::MultiPeak* multipeak=new projects::MultiPeak();
-    //   multipeak->addParameters();
-    //   rvalue=multipeak;
-    //
-    // }
-    // else if (Parameters::projectName == "Flowthrough") {
-    //   std::cout << "FLOWTHROUGH FINE" << std::endl;
-    //   projects::Flowthrough* flowthrough=new projects::Flowthrough();
-    //   flowthrough->addParameters();
-    //   rvalue=flowthrough;
-    //
-    // }
-    //  else if (Parameters::projectName == "Magnetosphere") {
-    //   std::cout << "MAGNETO FINE" << std::endl;
-    //   projects::Magnetosphere* magnetosphere=new projects::Magnetosphere();
-    //   magnetosphere->addParameters();
-    //   rvalue=magnetosphere;
-    //
-    // }
-    //
-
-
-    // for (auto project : project_temp){
-    //   if (project.first != Parameters::projectName){
-    //     std::cout << "DELETED: " << project.first<< std::endl;
-    //     delete project.second;
-    //     project.second=nullptr;
-    //   }
-    // }
    
    if (rvalue == nullptr) {
       cerr << "Something went wrong with setting a project! Project value null" << endl;

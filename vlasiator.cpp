@@ -293,13 +293,14 @@ int simulate(int argn,char* args[]) {
      MPI_Finalize();
      exit(0);
    }
-  //issue: objetwrapper.AddParameters adds the parameters during parse
-  //but the callback works such that those added parameters do not make it to that parse
-  //thus they need to be double parse later,
-  //this means that line below getPopulationParameters do not have the parameters read yet
-  //but having it here would simplify createProject and getParameters and no need to change stuff in spatial cells
-  //momentary fix: triple parse:D
-  //strangely this also seems to only be issue for the non master MPI rnaks
+    //issue: objetwrapper.AddParameters adds the parameters during parse
+    //but the callback works such that those added parameters do not make it to that parse
+    //thus they need to be double parse later,
+    //this means that line below getPopulationParameters do not have the parameters read yet
+    //but having it here would simplify createProject and getParameters and no need to change stuff in spatial cells
+    //momentary fix: triple parse:D
+    //strangely this also seems to only be issue for the non master MPI rnaks
+    //this can probably be removed if one does run_callback() to individual options, see parseComposing(), but should we?
    readparameters.parse(true);
    getObjectWrapper().getPopulationParameters();
 
@@ -308,6 +309,7 @@ int simulate(int argn,char* args[]) {
    
 
    readparameters.parse(false); // 2nd parsing for specific population parameters
+   Readparameters::parseComposing(); //has to be done afterwards, will do callbacks on the final addComposing values that are parsed here
    readparameters.helpMessage(); // Call after last parse, exits after printing help if help requested
    
    P::getParameters();

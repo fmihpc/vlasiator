@@ -24,6 +24,7 @@
 #define READPARAMETERS_H
 
 #include "CLI11.hpp"
+#include <cctype>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -32,6 +33,7 @@
 #include <optional>
 #include <stdint.h>
 #include <string>
+#include <string_view>
 #include <typeinfo>
 #include "projects/project.h"
 #include <vector>
@@ -75,8 +77,8 @@ public:
          // } else {
          //    ss << defValue;
          // }
-      options[name] = "";
-      isOptionParsed[name] = false;
+      // options[name] = "";
+      // isOptionParsed[name] = false;
       // std::cout << name << std::endl;
 
       CLI::Option* opt;
@@ -86,13 +88,7 @@ public:
         auto subcom = name.substr(0, indx);
         auto namein = name.substr(indx + 1, name.size());
         CLI::App* sub = nullptr;
-        // CLI::CallbackPriority priority = CLI::CallbackPriority::First;
-        //
-        //
-        // if (name=="proton_properties.mass") {
-        //   std::cout << "priority" << std::endl;
-        //   CLI::CallbackPriority priority = CLI::CallbackPriority::Last;
-        // };
+
         if (!isOptionParsed[subcom]){
           
           sub = app->add_subcommand(subcom, "");
@@ -113,9 +109,7 @@ public:
         abort();
         };
       } else {
-
         opt=app->add_option(("--"+name).c_str(), defValue, desc.c_str())->each(lambda);
-        // app->callback([](){projects::Project::addParameters();});
       }  
       return opt;
       // options[name] = "";
@@ -129,24 +123,12 @@ public:
       return app;
    }
    template <typename T> static CLI::Option* add(const std::string& name, const std::string& desc,
-       T& value,
-       std::optional<T> defval=std::nullopt, bool join=false, bool required=false
-
-              ) {
+       T& value, std::optional<T> defval=std::nullopt
+      ) {
       int rank;
       MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-         
-         // std::stringstream ss;
-         //
-         // static constexpr bool n = (std::is_floating_point<T>::value);
-         // if (n) {
-         //    ss << std::setprecision(std::numeric_limits<double>::digits10 + 1) << defValue;
-         // } else {
-         //    ss << defValue;
-         // }
-      //
-      options[name] = "";
-      isOptionParsed[name] = false;
+      // options[name] = "";
+      // isOptionParsed[name] = false;
       // std::cout << name << std::endl;
       CLI::Option* opt;
       if (name.find('.') != std::string::npos) {
@@ -186,14 +168,117 @@ public:
       // abort();
       // return nullptr;
    }
+   static void parseComposing(){
+    int rank;
+    ifstream configFile;
+    std::string line;
+    std::string subcom;
+    std::string commandName;
+
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    if (rank==MASTER_RANK) {
+      configFile.open(app->get_config_ptr()->as<std::string>());
+      if (configFile.is_open()) {
+        while ( getline(configFile,line) ){
+          //remove white spaces 
+          auto it = std::remove_if(line.begin(),line.end(),[](unsigned char x){return std::isspace(x);});
+          line.erase(it,line.end());
+
+          //skip if empty
+          if (line.empty()) {
+            continue;
+          }
+
+          //check if subcommand, if found make it current subcommand to be parsed
+          if (line.front()=='[') {
+              if (line.back()!=']') {
+                std::cerr << "Invalid configuration line, found a line starting with '[' but it did not end with ']':\n"+line << std::endl;
+              }
+              subcom=line.substr(1,line.length() - 2);
+              continue;
+          } 
+          
+          //Find eqIndx, skip if not found
+          auto eqIndx=line.find('=');
+          if (eqIndx == std::string::npos ) {
+            continue;
+          }
+          
+          //Find '=' to capture option name and value as string_view for now 
+          std::string_view optName=std::string_view(line).substr(0,eqIndx);
+          std::string_view optValue=std::string_view(line).substr(eqIndx + 1,line.size());
+          
+
+          //Are we inside subcommand or not?
+          if (!subcom.empty()) {
+            commandName=subcom+'.'+std::string(optName);
+          } else {
+            commandName=std::string(optName);
+          }
+
+
+          //Skip vector values and let CLI11 handle them
+          if (optValue.front()=='[') {
+              //Do we need to do something?
+              options.erase(commandName);
+              continue;
+          } 
+
+          //Skip if the command is not addComposing/not known
+          if (auto search=options.find(commandName); search == options.end()) {
+            continue;
+          }
+
+          if (options[commandName].empty()) {
+            options[commandName]=std::string(optValue);
+          } else {
+            options[commandName]=options[commandName]+','+std::string(optValue);
+          }
+          isOptionParsed[commandName]=true;
+    
+
+        }
+        configFile.close();
+      }  
+      //Add brackets and throw the values to CLI option
+      for(std::map<std::string,std::string>::iterator iter = options.begin(); iter != options.end(); ++iter) {
+        iter->second='['+iter->second+']'; 
+
+        std::cout << iter->first << " " << iter->second << std::endl;
+        auto opt= getOption(iter->first);
+        opt->clear();
+        opt->add_result(iter->second);
+        opt->run_callback(); 
+
+      }
+
+
+    }
+   }
+
+   template <typename T> static CLI::Option* addComposing(const std::string& name, const std::string& desc,
+       T& value, std::optional<T> defval=std::nullopt
+      ) {
+
+      //Options are added her to be handled by the config parser defined in this file NOT CLI11
+      options[name] = "";
+      isOptionParsed[name]=false;
+
+      //Add an option for help print and CLI
+      //Will also be used to pass the parameter to other MPI ranks 
+      auto opt = add(name,desc,value,defval); 
+      return opt;
+
+
+   }
    static string getPops(int i){
      return populations.at(i);
    };
-   template <typename T> static void add_flag(const std::string& name, const std::string& desc,  T& defValue) {
+   template <typename T> static void addFlag(const std::string& name, const std::string& desc,  T& defValue) {
       int rank;
       MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-      options[name] = "";
-      isOptionParsed[name] = false;
+      // options[name] = "";
+      // isOptionParsed[name] = false;
       // std::cout << name << std::endl;
       if (name.find('.') != std::string::npos) {
 
@@ -227,10 +312,46 @@ public:
    static bool isSet(const std::string& name) {
       return(app->get_option_no_throw(name)!=nullptr);
    }
-   static CLI::Option* get_option(const std::string& name) {
-      return app->get_option(name);
-   }
+   static CLI::Option* getOption(const std::string& name) {
+      if (auto indx=name.find('.'); indx!=std::string::npos) {
+         std::string subcomName=name.substr(0,indx);
+         std::string optName=name.substr(indx+1,name.size());
+         CLI::App* subcom = app->get_subcommand(subcomName);
+         std::string dashes="-";
+         if (optName.size() != 1){
+            dashes+="-";
+          }
+         return subcom->get_option(dashes+optName);
+      }
 
+      std::string dashes="";
+      if (name.front() != '-') {
+        dashes="-";
+        if (name.size() != 1){
+            dashes+="-";
+        }
+      }
+      return app->get_option(dashes+name);
+   }
+   static bool removeOption(const std::string& name, bool master_rank) {
+      if (master_rank) {
+        int rank;
+        MPI_Comm_rank(MPI_COMM_WORLD,&rank);
+        if (rank!=MASTER_RANK){
+          return false;
+        }
+      }
+      if (auto indx=name.find('.'); indx!=std::string::npos) {
+         std::string subcomName=name.substr(0,indx);
+         std::string optName=name.substr(indx+1,name.size());
+         CLI::App* subcom = app->get_subcommand(subcomName);
+         subcom->remove_option(subcom->get_option(optName));
+
+      } else {
+        app->remove_option(app->get_option(name));
+      }
+      return true;
+   }
    static void helpMessage();
 
    static bool versionMessage();

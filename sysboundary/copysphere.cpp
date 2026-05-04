@@ -84,7 +84,6 @@ namespace SBC {
 
       FieldTracing::fieldTracingParameters.innerBoundaryRadius = this->radius;
 
-      //TODO Needs to be updated for the new handling
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
         CopysphereSpeciesParameters* sP=speciesParamsRead[i];
