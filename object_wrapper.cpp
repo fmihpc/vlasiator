@@ -207,11 +207,11 @@ bool ObjectWrapper::getPopulationParameters() {
          // Energy stored internally in SI units
          species.SolarWindEnergy = 0.5 * species.mass * species.SolarWindSpeed * species.SolarWindSpeed;
       } else {
-         species.SolarWindEnergy = species.SolarWindEnergy * physicalconstants::CHARGE;
+         species.SolarWindEnergy = species.SolarWindEnergy*physicalconstants::CHARGE;
       }
       // Convert from eV to SI units
-      species.precipitationEmin = species.precipitationEmin * physicalconstants::CHARGE;
-      species.precipitationEmax = species.precipitationEmax * physicalconstants::CHARGE;
+      species.precipitationEmin = species.precipitationEmin*physicalconstants::CHARGE;
+      species.precipitationEmax = species.precipitationEmax*physicalconstants::CHARGE;
       getObjectWrapper().particleSpecies.push_back(species);
       getObjectWrapper().particleSpecies.at(i)=species;
 

@@ -313,10 +313,6 @@ bool P::addParameters() {
            "Minimum rho value used for the Hall and electron pressure gradient terms in the Lorentz force and in the "
            "field solver. Default is very low and has no effect in practice.",
            hallRho);
-   std::function<void(std::string)> lambda_fun=[](const std::string s){std::cout << "PROJNAME SET TO=" << s << std::endl;
-     // P::projectName=s;
-    // projects::createProject();
-   };
 
    RP::add("project",
            "Specify the name of the project to use. Supported to date (20150610): Alfven Diffusion Dispersion "
@@ -325,7 +321,7 @@ bool P::addParameters() {
            P::projectName);
 
    RP::add("restart.write_as_float", "If true, write restart fields in floats instead of doubles", P::writeRestartAsFloat);
-   RP::add_each_lambda("restart.filename", "Restart from this vlsv file. No restart if empty file.", P::restartFileName,lambda_fun);
+   RP::add("restart.filename", "Restart from this vlsv file. No restart if empty file.", P::restartFileName);
 
    RP::add(
        "restart.overrideReadFsGridDecompositionX",
@@ -740,10 +736,7 @@ void Parameters::getParameters() {
    }
 
 
-   //RP::get("project", P::projectName);
-    std::cout << "pre proj name set="<<P::projectName << std::endl;
    if (RP::helpRequested) {
-      std::cout << "proj name set" << std::endl;
       P::projectName = string("Magnetosphere");
    }
 
