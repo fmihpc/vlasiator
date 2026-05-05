@@ -14,10 +14,12 @@ bool ObjectWrapper::addParameters() {
    // Parameters needed to create particle populations
    //NOTE was this still necessary?
    std::function<void(const std::string)> lambda_fun = [this](std::string s) {
-      this->initpop(s);
+        if (this->particleSpeciesRead.size() == 0 && this->particleSpecies.size()==0 ) {
+          this->initpop(s);
+        }
    };
    RP::add_each_lambda("ParticlePopulations", "Name of the simulated particle populations (string)", RP::populations,
-                       lambda_fun);
+                       lambda_fun)->force_callback(false);
 
    return true;
 }
@@ -175,7 +177,9 @@ bool ObjectWrapper::getPopulationParameters() {
                                 " has too many blocks per dimension. Maximum defined in MAX_BLOCKS_PER_DIM is " +
                                 std::to_string(MAX_BLOCKS_PER_DIM) + " " + std::string(__FILE__) + ":" +
                                 std::to_string(__LINE__) + "\n";
-         std::cerr << errormsg;
+         if (!Readparameters::helpRequested) {
+            std::cerr << errormsg;
+         }
       }
 
       /* Special handling of WID=8; halve the number of blocks */

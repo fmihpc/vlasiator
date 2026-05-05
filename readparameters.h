@@ -150,12 +150,12 @@ public:
     std::string line;
     std::string subcom;
     std::string commandName;
-
+    if (app->get_config_ptr()->count()==0) {
+        return;
+    }
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     if (rank==MASTER_RANK) {
-      if (app->get_config_ptr()==nullptr) {
-        return;
-      }
+      
       configFile.open(app->get_config_ptr()->as<std::string>());
       if (configFile.is_open()) {
         while ( getline(configFile,line) ){
@@ -276,10 +276,7 @@ public:
 
       //Add an option for help print and CLI
       //Will also be used to pass the parameter to other MPI ranks 
-      auto opt = add(name,desc,value,defval); 
-      return opt;
-
-
+      return add(name,desc,value,defval); 
    }
    static string getPops(int i){
      return populations.at(i);
@@ -369,6 +366,7 @@ public:
    static void parse(bool main=false);
 
    static bool helpRequested;
+   static bool fullHelp;
    static bool versionRequested;
 
    static std::vector<std::string> populations;

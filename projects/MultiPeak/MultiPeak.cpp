@@ -71,11 +71,7 @@ void MultiPeak::addParameters() {
       const std::string& pop = getObjectWrapper().particleSpecies[i].name;
       MultiPeakSpeciesParameters* sP = new MultiPeakSpeciesParameters();
       this->speciesParamsRead.push_back(sP);
-      std::function<void(std::string)> lambda=[](std::string s) {
-         std::cout << "PROCESSING: " << s << std::endl;
-       };
-
-      RP::add<uint>(pop + "_MultiPeak.n", "Number of peaks to create", sP->numberOfPeaks);
+      RP::add<uint>(pop + "_MultiPeak.n", "Number of peaks to create", sP->numberOfPeaks,0);
       RP::addComposing(pop + "_MultiPeak.rho", "Number density (m^-3)", sP->rho);
       RP::addComposing(pop + "_MultiPeak.Tx", "Temperature (K)", sP->Tx);
       RP::addComposing(pop + "_MultiPeak.Ty", "Temperature", sP->Ty);

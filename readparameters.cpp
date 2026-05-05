@@ -32,6 +32,7 @@ using namespace std;
 
 // Initialize static member of class ReadParameters
 bool Readparameters::helpRequested = false;
+bool Readparameters::fullHelp = false;
 bool Readparameters::versionRequested = false;
 vector<string> Readparameters::populations = {};
 CLI::App app_new{"Usage: main [options (options given on the command line override "
@@ -88,7 +89,11 @@ void Readparameters::helpMessage() {
       int rank;
       MPI_Comm_rank(MPI_COMM_WORLD, &rank);
       if (rank == MASTER_RANK) {
-         cout << app->help() << endl;
+         if (fullHelp) {
+            cout << app->help("",CLI::AppFormatMode::All) << endl;
+         } else {
+            cout << app->help() << endl;
+         }
       }
       MPI_Finalize();
       exit(0);
@@ -181,7 +186,7 @@ void Readparameters::parse(bool extras) {
       }
 
       parsed_conf.erase(remove(parsed_conf.begin(), parsed_conf.end(), '"'), parsed_conf.end());
-      std::cout << parsed_conf << std::endl;
+      // std::cout << parsed_conf << std::endl;
       app->allow_extras(extras);
 
       // std::cout << "CSTR=" << parsed_conf << std::endl;
@@ -218,8 +223,10 @@ void Readparameters::addDefaultParameters() {
    int rank;
    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
    if (rank == MASTER_RANK) {
+      //Remove the original CLI11-made flag, since we want to replace it with helpRequested.
       app->remove_option(app->get_help_ptr());
       Readparameters::addFlag("--help", "print this help message", Readparameters::helpRequested);
+      Readparameters::addFlag("--allhelp","print the full help without subcommand categorization", Readparameters::fullHelp);
       Readparameters::addFlag("--version", "print version information", Readparameters::versionRequested);
 
       // // Parameters which set the names of the configuration file(s):

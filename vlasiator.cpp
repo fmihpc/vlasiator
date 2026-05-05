@@ -280,10 +280,10 @@ int simulate(int argn,char* args[]) {
     //we have to handle particle species separately because we need the full number of particle species
     //during the population init
     readparameters.parse(true);
-    if (!Readparameters::helpRequested){
-      //this can be replaced with if parsed type thing that was already there
-      app->remove_option(app->get_option("--ParticlePopulations"));
-    } else {
+    if (Readparameters::fullHelp) {
+      Readparameters::helpRequested=true;
+    }
+    if (Readparameters::helpRequested) {
       getObjectWrapper().addHelp();
     }
 
@@ -303,15 +303,12 @@ int simulate(int argn,char* args[]) {
     //this can probably be removed if one does run_callback() to individual options, see parseComposing(), but should we?
    readparameters.parse(true);
    getObjectWrapper().getPopulationParameters();
-
-   sysBoundaryContainer.getParameters(); 
+   sysBoundaryContainer.getParameters();
    projects::createProject();
    
-
    readparameters.parse(false); // 2nd parsing for specific population parameters
+   readparameters.helpMessage(); // Call after last parse, exits after printing help if help requested 
    Readparameters::parseComposing(); //has to be done afterwards, will do callbacks on the final addComposing values that are parsed here
-   readparameters.helpMessage(); // Call after last parse, exits after printing help if help requested
-   
    P::getParameters();
 
    Project* project = getObjectWrapper().project;
