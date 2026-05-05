@@ -212,7 +212,8 @@ bool ObjectWrapper::getPopulationParameters() {
       // Convert from eV to SI units
       species.precipitationEmin = species.precipitationEmin*physicalconstants::CHARGE;
       species.precipitationEmax = species.precipitationEmax*physicalconstants::CHARGE;
-      getObjectWrapper().particleSpecies.push_back(species);
+
+      getObjectWrapper().particleSpecies.resize(getObjectWrapper().particleSpeciesRead.size());
       getObjectWrapper().particleSpecies.at(i)=species;
 
 
