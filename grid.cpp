@@ -1055,6 +1055,7 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
    vector<CellID> validCells;
    for (CellID cid: cellsToAdjust) {
       SpatialCell *SC = mpiGrid[cid];
+
       if (SC->sysBoundaryFlag != sysboundarytype::DO_NOT_COMPUTE) {
          validCells.push_back(cid);
       }
@@ -1288,7 +1289,7 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    // set a reduced neighborhood for nearest neighbours
    std::set<neigh_t> neighborhood;
    std::set<neigh_t> all_neighborhoods;
-   
+
    phiprof::Timer stencil1 {"Stencils init 1"};
 
    for (int z = -1; z <= 1; z++) {
@@ -1417,17 +1418,18 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    }
    neighborhood.clear();
 
-   for (int d = -VLASOV_STENCIL_WIDTH-3; d <= VLASOV_STENCIL_WIDTH+3; d++) {
-      if (d != 0) {
-         neighborhood.insert({{d, 0, 0}});
-      }
-   }
-   for (auto it : neighborhood){
-      all_neighborhoods.emplace(it);
-   }
    stencil2.stop();
    phiprof::Timer stencil3 {"Stencils init 3"};
 
+   // neighborhood.clear();
+   // for (int d = -VLASOV_STENCIL_WIDTH-3; d <= VLASOV_STENCIL_WIDTH+3; d++) {
+   //    if (d != 0) {
+   //       neighborhood.insert({{d, 0, 0}});
+   //    }
+   // }
+   // for (auto it : neighborhood){
+   //    all_neighborhoods.emplace(it);
+   // }
    // if (!mpiGrid.add_neighborhood(VLASOV_SOLVER_X_GHOST_NEIGHBORHOOD_ID, neighborhood)) {
    //    std::cerr << "Failed to add neighborhood VLASOV_SOLVER_X_GHOST_NEIGHBORHOOD_ID \n";
    //    abort();
@@ -1439,7 +1441,7 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    //       neighborhood.push_back({{0, d, 0}});
    //    }
    // }
-   // if (!mpiGrid.add_neighborhood(VLASOV_SOLVER_Y_GHOST_NEIGHBORHOOD_ID, neighborhood)) { 
+   // if (!mpiGrid.add_neighborhood(VLASOV_SOLVER_Y_GHOST_NEIGHBORHOOD_ID, neighborhood)) {
    //    std::cerr << "Failed to add neighborhood VLASOV_SOLVER_Y_GHOST_NEIGHBORHOOD_ID \n";
    //    abort();
    // }
@@ -1539,7 +1541,7 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    //    }
    // }
 
-      std::stringstream ss;
+   std::stringstream ss;
 
    if (P::vlasovSolverGhostTranslate) {
       neighborhood.clear();
@@ -1559,7 +1561,6 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
          std::cerr << "Failed to add neighborhood Neighborhoods::VLASOV_SOLVER_X_GHOST \n";
          abort();
       }
-      
 
       neighborhood.clear();
       for (int d = -VLASOV_STENCIL_WIDTH-1; d <= VLASOV_STENCIL_WIDTH+1; d++) {
@@ -1597,7 +1598,7 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
             neighborhood.insert({{0, dy, 0}});
          }
       }
-      
+
       // Then: full + GT extensions in X from Y-translated cells
       for (int dy = -P::vlasovSolverGhostTranslateExtent; dy <= (int)P::vlasovSolverGhostTranslateExtent; dy++){
          for (int dx = -VLASOV_STENCIL_WIDTH-1; dx <= VLASOV_STENCIL_WIDTH+1; dx++){
@@ -1654,7 +1655,7 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
             neighborhood.insert({{0, dy, 0}});
          }
       }
-      
+
       // Then: full + GT extensions in X from Y-translated cells
       for (int dy = -P::timeclassExactHaloExtent; dy <= (int)P::timeclassExactHaloExtent; dy++){
          for (int dx = -VLASOV_STENCIL_WIDTH-1; dx <= VLASOV_STENCIL_WIDTH+1; dx++){
@@ -1825,7 +1826,6 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    // // usage can grow in an uncontrolled fashion due to extra-large ghost regions.
    // // This is also asymmetric due to translation direction order. For now assumes VLASOV_STENCIL_WIDTH=2.
    // neighborhood.clear();
-   // //if (P::vlasovSolverLocalTranslate) {
    // for (int y = 1; y <= VLASOV_STENCIL_WIDTH+3; y++) {
    //    neighborhood.push_back({{ 0, y, 0}});
    //    neighborhood.push_back({{ 0,-y, 0}});
@@ -1875,7 +1875,7 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    for (auto it : neighborhood){
       all_neighborhoods.emplace(it);
    }
-   
+
    neighborhood.clear();
    ss.clear();
    ss << "All: ";
@@ -1884,8 +1884,8 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       ss << "("<<n[0]<<","<<n[1]<<","<<n[2]<<")";
       }
    ss << "\n";
-   // std::cerr <<ss.str();
-   
+   //std::cerr <<ss.str();
+
    /*all possible communication pairs*/
    if( !mpiGrid.add_neighborhood(Neighborhoods::FULL, std::vector<neigh_t>(neighborhood.begin(), neighborhood.end()))){
       std::cerr << "Failed to add neighborhood Neighborhoods::FULL \n";
