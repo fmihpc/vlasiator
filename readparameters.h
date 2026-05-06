@@ -150,10 +150,15 @@ public:
     std::string line;
     std::string subcom;
     std::string commandName;
-    if (app->get_config_ptr()->count()==0) {
-        return;
-    }
+    bool hasConfig=true;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    if (rank==MASTER_RANK && app->get_config_ptr()->count()==0) {
+      hasConfig=false;
+    }
+    MPI_Bcast(&hasConfig,sizeof(bool),MPI_BYTE,MASTER_RANK,MPI_COMM_WORLD); 
+    if (!hasConfig) {
+      return;
+    }
     if (rank==MASTER_RANK) {
       
       configFile.open(app->get_config_ptr()->as<std::string>());

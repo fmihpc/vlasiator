@@ -101,9 +101,16 @@ void ObjectWrapper::initpop(std::string pop) {
    // //Was not even used?
 
    // Thermal / suprathermal parameters
-   RP::add<std::array<Real,3>>(pop + "_thermal.vx",
+   RP::add<Real>(pop + "_thermal.vx",
            "Center coordinate for the maxwellian distribution. Used for calculating the suprathermal moments.",
-           newSpecies->thermalV,thermv);
+           newSpecies->thermalV[0],thermv.at(0));
+   RP::add<Real>(pop + "_thermal.vy",
+           "Center coordinate for the maxwellian distribution. Used for calculating the suprathermal moments.",
+           newSpecies->thermalV[1],thermv.at(1));
+   RP::add<Real>(pop + "_thermal.vz",
+           "Center coordinate for the maxwellian distribution. Used for calculating the suprathermal moments.",
+           newSpecies->thermalV[2],thermv.at(2));
+
    RP::add<Real>(pop + "_thermal.radius",
            "Radius of the maxwellian distribution. Used for calculating the suprathermal moments. If set to 0 "
            "(default), the thermal/suprathermal DROs are skipped.",

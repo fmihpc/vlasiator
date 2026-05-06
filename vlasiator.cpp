@@ -302,7 +302,7 @@ int simulate(int argn,char* args[]) {
     //strangely this also seems to only be issue for the non master MPI rnaks
     //this can probably be removed if one does run_callback() to individual options, see parseComposing(), but should we?
    readparameters.parse(true);
-   getObjectWrapper().getPopulationParameters();
+   getObjectWrapper().getPopulationParameters(); //particleSpecies is populated here from paritcleSpeciesRead
    sysBoundaryContainer.getParameters();
    projects::createProject();
    
