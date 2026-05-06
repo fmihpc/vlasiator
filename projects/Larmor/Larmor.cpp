@@ -46,17 +46,17 @@ namespace projects {
 
     void Larmor::addParameters() {
       typedef Readparameters RP;
-      RP::add("Larmor.BX0", "Background field value (T)",this->BX0);
-      RP::add("Larmor.BY0", "Background field value (T)",this->BY0);
-      RP::add("Larmor.BZ0", "Background field value (T)",this->BZ0);
-      RP::add("Larmor.VX0", "Bulk velocity in x",this->VX0);
-      RP::add("Larmor.VY0", "Bulk velocity in y",this->VY0);
-      RP::add("Larmor.VZ0", "Bulk velocuty in z",this->VZ0);
-      RP::add("Larmor.rho", "Number density (m^-3)",this->DENSITY);
-      RP::add("Larmor.Temperature", "Temperature (K)",this->TEMPERATURE);
-      RP::add("Larmor.maxwCutoff", "Cutoff for the maxwellian distribution",this->maxwCutoff);
-      RP::add("Larmor.Scale_x", "Scale length in x (m)",this->SCA_X);
-      RP::add("Larmor.Scale_y", "Scale length in y (m)",this->SCA_Y);
+      RP::add<Real>("Larmor.BX0", "Background field value (T)",this->BX0,0.0);
+      RP::add<Real>("Larmor.BY0", "Background field value (T)",this->BY0,0.0);
+      RP::add<Real>("Larmor.BZ0", "Background field value (T)",this->BZ0,3.0e-9);
+      RP::add<Real>("Larmor.VX0", "Bulk velocity in x",this->VX0,0.0);
+      RP::add<Real>("Larmor.VY0", "Bulk velocity in y",this->VY0,0.0);
+      RP::add<Real>("Larmor.VZ0", "Bulk velocuty in z",this->VZ0,0.0);
+      RP::add<Real>("Larmor.rho", "Number density (m^-3)",this->DENSITY,1.0e7);
+      RP::add<Real>("Larmor.Temperature", "Temperature (K)",this->TEMPERATURE,2.0e6);
+      RP::add<Real>("Larmor.maxwCutoff", "Cutoff for the maxwellian distribution",this->maxwCutoff,1e-12);
+      RP::add<Real>("Larmor.Scale_x", "Scale length in x (m)",this->SCA_X,2.0e6);
+      RP::add<Real>("Larmor.Scale_y", "Scale length in y (m)",this->SCA_Y,2.0e6);
     }
 
     void Larmor::getParameters() {
@@ -68,17 +68,6 @@ namespace projects {
          abort();
       }
 
-      //RP::get("Larmor.BX0", this->BX0);
-      //RP::get("Larmor.BY0", this->BY0);
-      //RP::get("Larmor.BZ0", this->BZ0);
-      //RP::get("Larmor.VX0", this->VX0);
-      //RP::get("Larmor.VY0", this->VY0);
-      //RP::get("Larmor.VZ0", this->VZ0);
-      //RP::get("Larmor.rho", this->DENSITY);
-      //RP::get("Larmor.Temperature", this->TEMPERATURE);
-      //RP::get("Larmor.maxwCutoff", this->maxwCutoff);
-      //RP::get("Larmor.Scale_x", this->SCA_X);
-      //RP::get("Larmor.Scale_y", this->SCA_Y);
     }
 
    Realf Larmor::fillPhaseSpace(spatial_cell::SpatialCell *cell,

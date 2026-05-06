@@ -64,7 +64,8 @@ namespace projects {
       Real Bz;   
       Real lambda;
       Real amp;
-      std::vector<FirehoseSpeciesParameters*> speciesParams;
+      std::vector<FirehoseSpeciesParameters> speciesParams;
+      std::vector<FirehoseSpeciesParameters*> speciesParamsRead;
    }; // class Firehose
 } // namespace projects
 

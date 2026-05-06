@@ -63,7 +63,8 @@ namespace projects {
 
       Real SCA_LAMBDA;
       Real BX0, BY0, BZ0;
-      std::vector<HarrisSpeciesParameters*> speciesParams;
+      std::vector<HarrisSpeciesParameters> speciesParams;
+      std::vector<HarrisSpeciesParameters*> speciesParamsRead;
 
    }; // class Harris
 } // namespace Harris

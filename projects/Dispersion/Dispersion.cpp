@@ -60,7 +60,7 @@ namespace projects {
 
         DispersionSpeciesParameters* sP=new DispersionSpeciesParameters();
         
-        speciesParams.push_back(sP);
+        speciesParamsRead.push_back(sP);
         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
         RP::add<Real>(pop + "_Dispersion.VX0", "Bulk velocity (m/s)", sP->VX0,0.0);
         RP::add<Real>(pop + "_Dispersion.VY0", "Bulk velocity (m/s)",sP->VY0,0.0);
@@ -73,7 +73,9 @@ namespace projects {
    }
    
    void Dispersion::getParameters() {
-
+      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
+        this->speciesParams.push_back(*this->speciesParamsRead.at(i));
+      }
    }
    
    void Dispersion::hook(
@@ -139,7 +141,7 @@ namespace projects {
                                        const uint popID,
                                        const uint nRequested
       ) const {
-      const DispersionSpeciesParameters& sP = *speciesParams[popID];
+      const DispersionSpeciesParameters& sP = speciesParams[popID];
       const Real mass = getObjectWrapper().particleSpecies[popID].mass;
       Real initT = sP.TEMPERATURE;
       Real initRho = sP.DENSITY * (1.0 + sP.densityPertRelAmp * (0.5 - this->rndRho));

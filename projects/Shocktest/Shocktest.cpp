@@ -72,40 +72,24 @@ namespace projects {
          std::cerr << "The selected project does not support multiple particle populations! Aborting in " << __FILE__ << " line " << __LINE__ << std::endl;
          abort();
       }
-      // this->rho[this->LEFT] = {NAN};
-      // this->T[this->LEFT] = {NAN};
-      // this->Vx[this->LEFT] = {NAN};
-      // this->Vy[this->LEFT] = {NAN};
-      // this->Vz[this->LEFT] = {NAN};
-      // this->Bx[this->LEFT] = {NAN};
-      // this->By[this->LEFT] = {NAN};
-      // this->Bz[this->LEFT] = {NAN};
-      // this->rho[this->RIGHT] = {NAN};
-      // this->T[this->RIGHT] = {NAN};
-      // this->Vx[this->RIGHT] = {NAN};
-      // this->Vy[this->RIGHT] = {NAN};
-      // this->Vz[this->RIGHT] = {NAN};
-      // this->Bx[this->RIGHT] = {NAN};
-      // this->By[this->RIGHT] = {NAN};
-      // this->Bz[this->RIGHT] = {NAN};
-      //
+      this->rho[this->LEFT] = {NAN};
+      this->T[this->LEFT] = {NAN};
+      this->Vx[this->LEFT] = {NAN};
+      this->Vy[this->LEFT] = {NAN};
+      this->Vz[this->LEFT] = {NAN};
+      this->Bx[this->LEFT] = {NAN};
+      this->By[this->LEFT] = {NAN};
+      this->Bz[this->LEFT] = {NAN};
+      this->rho[this->RIGHT] = {NAN};
+      this->T[this->RIGHT] = {NAN};
+      this->Vx[this->RIGHT] = {NAN};
+      this->Vy[this->RIGHT] = {NAN};
+      this->Vz[this->RIGHT] = {NAN};
+      this->Bx[this->RIGHT] = {NAN};
+      this->By[this->RIGHT] = {NAN};
+      this->Bz[this->RIGHT] = {NAN};
+
       typedef Readparameters RP;
-      //RP::get("Shocktest.rho1", this->rho[this->LEFT]);
-      //RP::get("Shocktest.rho2", this->rho[this->RIGHT]);
-      //RP::get("Shocktest.T1", this->T[this->LEFT]);
-      //RP::get("Shocktest.T2", this->T[this->RIGHT]);
-      //RP::get("Shocktest.Vx1", this->Vx[this->LEFT]);
-      //RP::get("Shocktest.Vx2", this->Vx[this->RIGHT]);
-      //RP::get("Shocktest.Vy1", this->Vy[this->LEFT]);
-      //RP::get("Shocktest.Vy2", this->Vy[this->RIGHT]);
-      //RP::get("Shocktest.Vz1", this->Vz[this->LEFT]);
-      //RP::get("Shocktest.Vz2", this->Vz[this->RIGHT]);
-      //RP::get("Shocktest.Bx1", this->Bx[this->LEFT]);
-      //RP::get("Shocktest.Bx2", this->Bx[this->RIGHT]);
-      //RP::get("Shocktest.By1", this->By[this->LEFT]);
-      //RP::get("Shocktest.By2", this->By[this->RIGHT]);
-      //RP::get("Shocktest.Bz1", this->Bz[this->LEFT]);
-      //RP::get("Shocktest.Bz2", this->Bz[this->RIGHT]);
    }
    
    Realf Shocktest::fillPhaseSpace(spatial_cell::SpatialCell *cell,

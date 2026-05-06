@@ -58,7 +58,7 @@ namespace projects {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
 
          FluctuationsSpeciesParameters* sP=new FluctuationsSpeciesParameters();
-         speciesParams.push_back(sP);
+         speciesParamsRead.push_back(sP);
          RP::add<Real>(pop + "_Fluctuations.rho", "Number density (m^-3)", sP->DENSITY,1.0e7);
          RP::add<Real>(pop + "_Fluctuations.TemperatureX", "Temperature (K)", sP->TEMPERATUREX,2.0e6);
          RP::add<Real>(pop + "_Fluctuations.TemperatureY", "Temperature (K)", sP->TEMPERATUREY,2.0e6);
@@ -70,14 +70,16 @@ namespace projects {
    }
 
    void Fluctuations::getParameters() {
-
+      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
+        this->speciesParams.push_back(*this->speciesParamsRead.at(i));
+      }
    }
 
    Realf Fluctuations::fillPhaseSpace(spatial_cell::SpatialCell *cell,
                                        const uint popID,
                                        const uint nRequested
       ) const {
-      const FluctuationsSpeciesParameters& sP = *speciesParams[popID];
+      const FluctuationsSpeciesParameters& sP = speciesParams[popID];
       // Fetch spatial cell center coordinates
       // const Real x  = cell->parameters[CellParams::XCRD] + 0.5*cell->parameters[CellParams::DX];
       // const Real y  = cell->parameters[CellParams::YCRD] + 0.5*cell->parameters[CellParams::DY];
@@ -136,7 +138,7 @@ namespace projects {
                                         const uint popID,
                                         Real vx_in, Real vy_in, Real vz_in
       ) const {
-      const FluctuationsSpeciesParameters& sP = *speciesParams[popID];
+      const FluctuationsSpeciesParameters& sP = speciesParams[popID];
       // Fetch spatial cell center coordinates
       // const Real x  = cell->parameters[CellParams::XCRD] + 0.5*cell->parameters[CellParams::DX];
       // const Real y  = cell->parameters[CellParams::YCRD] + 0.5*cell->parameters[CellParams::DY];

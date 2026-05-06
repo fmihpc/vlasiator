@@ -51,14 +51,14 @@ namespace projects {
 
    void TestHall::addParameters(){
       typedef Readparameters RP;
-      RP::add("TestHall.BX0", "Magnetic field x (T)",this->BX0);
-      RP::add("TestHall.BY0", "Magnetic field y (T)",this->BY0);
-      RP::add("TestHall.BZ0", "Magnetic field z (T)",this->BZ0);
-      RP::add("TestHall.VX0", "velocity x (m/s)",this->VX0);
-      RP::add("TestHall.VY0", "velocity y (m/s)",this->VY0);
-      RP::add("TestHall.VZ0", "velocity z (m/s)",this->VZ0);
-      RP::add("TestHall.Temperature", "Temperature (K)",this->TEMPERATURE);
-      RP::add("TestHall.rho", "Number density (m^-3)",this->DENSITY);
+      RP::add<Real>("TestHall.BX0", "Magnetic field x (T)",this->BX0,1.0e-9);
+      RP::add<Real>("TestHall.BY0", "Magnetic field y (T)",this->BY0,1.0e-9);
+      RP::add<Real>("TestHall.BZ0", "Magnetic field z (T)",this->BZ0,1.0e-9);
+      RP::add<Real>("TestHall.VX0", "velocity x (m/s)",this->VX0,-1.0e3);
+      RP::add<Real>("TestHall.VY0", "velocity y (m/s)",this->VY0,1.0e3);
+      RP::add<Real>("TestHall.VZ0", "velocity z (m/s)",this->VZ0,1.0e3);
+      RP::add<Real>("TestHall.Temperature", "Temperature (K)",this->TEMPERATURE,1.0e6);
+      RP::add<Real>("TestHall.rho", "Number density (m^-3)",this->DENSITY,1.0e6);
    }
 
    void TestHall::getParameters(){
@@ -69,14 +69,6 @@ namespace projects {
          std::cerr << "The selected project does not support multiple particle populations! Aborting in " << __FILE__ << " line " << __LINE__ << std::endl;
          abort();
       }
-      //RP::get("TestHall.BX0", this->BX0);
-      //RP::get("TestHall.BY0", this->BY0);
-      //RP::get("TestHall.BZ0", this->BZ0);
-      //RP::get("TestHall.VX0", this->VX0);
-      //RP::get("TestHall.VY0", this->VY0);
-      //RP::get("TestHall.VZ0", this->VZ0);
-      //RP::get("TestHall.Temperature", this->TEMPERATURE);
-      //RP::get("TestHall.rho", this->DENSITY);
    }
 
    Realf TestHall::fillPhaseSpace(spatial_cell::SpatialCell *cell,

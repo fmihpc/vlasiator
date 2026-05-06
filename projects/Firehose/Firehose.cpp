@@ -43,36 +43,38 @@ namespace projects {
    void Firehose::addParameters(){
       typedef Readparameters RP;
 
-      RP::add("Firehose.Bx", "Magnetic field x component (T)", this->Bx);
-      RP::add("Firehose.By", "Magnetic field y component (T)", this->By);
-      RP::add("Firehose.Bz", "Magnetic field z component (T)", this->Bz);
-      RP::add("Firehose.lambda", "Initial perturbation wavelength (m)", this->lambda);
-      RP::add("Firehose.amp", "Initial perturbation amplitude (m)", this->amp);
+      RP::add<Real>("Firehose.Bx", "Magnetic field x component (T)", this->Bx,0.0);
+      RP::add<Real>("Firehose.By", "Magnetic field y component (T)", this->By,0.0);
+      RP::add<Real>("Firehose.Bz", "Magnetic field z component (T)", this->Bz,0.0);
+      RP::add<Real>("Firehose.lambda", "Initial perturbation wavelength (m)", this->lambda,0.0);
+      RP::add<Real>("Firehose.amp", "Initial perturbation amplitude (m)", this->amp,0.0);
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
         FirehoseSpeciesParameters *sP=new FirehoseSpeciesParameters();
-         this->speciesParams.push_back(sP);
+         this->speciesParamsRead.push_back(sP);
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
-         RP::add(pop + "_Firehose.rho1", "Number density, first peak (m^-3)", sP->rho[0]);
-         RP::add(pop + "_Firehose.rho2", "Number density, second peak (m^-3)", sP->rho[1]);
-         RP::add(pop + "_Firehose.Tx1", "Temperature x, first peak (K)", sP->Tx[0]);
-         RP::add(pop + "_Firehose.Tx2", "Temperature x, second peak (K)", sP->Tx[1]);
-         RP::add(pop + "_Firehose.Ty1", "Temperature y, first peak (K)", sP->Ty[0]);
-         RP::add(pop + "_Firehose.Ty2", "Temperature y, second peak (K)", sP->Ty[1]);
-         RP::add(pop + "_Firehose.Tz1", "Temperature z, first peak (K)", sP->Tz[0]);
-         RP::add(pop + "_Firehose.Tz2", "Temperature z, second peak (K)", sP->Tz[1]);
-         RP::add(pop + "_Firehose.Vx1", "Bulk velocity x component, first peak (m/s)", sP->Vx[0]);
-         RP::add(pop + "_Firehose.Vx2", "Bulk velocity x component, second peak (m/s)", sP->Vx[1]);
-         RP::add(pop + "_Firehose.Vy1", "Bulk velocity y component, first peak (m/s)", sP->Vy[0]);
-         RP::add(pop + "_Firehose.Vy2", "Bulk velocity y component, second peak (m/s)",sP->Vy[1]);
-         RP::add(pop + "_Firehose.Vz1", "Bulk velocity z component, first peak (m/s)", sP->Vz[0]);
-         RP::add(pop + "_Firehose.Vz2", "Bulk velocity z component, second peak (m/s)",sP->Vz[1]);
+         RP::add<Real>(pop + "_Firehose.rho1", "Number density, first peak (m^-3)", sP->rho[0],0.0);
+         RP::add<Real>(pop + "_Firehose.rho2", "Number density, second peak (m^-3)", sP->rho[1],0.0);
+         RP::add<Real>(pop + "_Firehose.Tx1", "Temperature x, first peak (K)", sP->Tx[0],0.0);
+         RP::add<Real>(pop + "_Firehose.Tx2", "Temperature x, second peak (K)", sP->Tx[1],0.0);
+         RP::add<Real>(pop + "_Firehose.Ty1", "Temperature y, first peak (K)", sP->Ty[0],0.0);
+         RP::add<Real>(pop + "_Firehose.Ty2", "Temperature y, second peak (K)", sP->Ty[1],0.0);
+         RP::add<Real>(pop + "_Firehose.Tz1", "Temperature z, first peak (K)", sP->Tz[0],0.0);
+         RP::add<Real>(pop + "_Firehose.Tz2", "Temperature z, second peak (K)", sP->Tz[1],0.0);
+         RP::add<Real>(pop + "_Firehose.Vx1", "Bulk velocity x component, first peak (m/s)", sP->Vx[0],0.0);
+         RP::add<Real>(pop + "_Firehose.Vx2", "Bulk velocity x component, second peak (m/s)", sP->Vx[1],0.0);
+         RP::add<Real>(pop + "_Firehose.Vy1", "Bulk velocity y component, first peak (m/s)", sP->Vy[0],0.0);
+         RP::add<Real>(pop + "_Firehose.Vy2", "Bulk velocity y component, second peak (m/s)",sP->Vy[1],0.0);
+         RP::add<Real>(pop + "_Firehose.Vz1", "Bulk velocity z component, first peak (m/s)", sP->Vz[0],0.0);
+         RP::add<Real>(pop + "_Firehose.Vz2", "Bulk velocity z component, second peak (m/s)",sP->Vz[1],0.0);
       }
    }
 
    void Firehose::getParameters(){
-
+      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
+        this->speciesParams.push_back(*this->speciesParamsRead.at(i));
+      }
    }
 
    Real Firehose::profile(creal top, creal bottom, creal x) const {
@@ -83,7 +85,7 @@ namespace projects {
                                        const uint popID,
                                        const uint nRequested
       ) const {
-      const FirehoseSpeciesParameters& sP = *speciesParams[popID];
+      const FirehoseSpeciesParameters& sP = speciesParams[popID];
       // Fetch spatial cell center coordinates
       const Real x  = cell->parameters[CellParams::XCRD] + 0.5*cell->parameters[CellParams::DX];
       // const Real y  = cell->parameters[CellParams::YCRD] + 0.5*cell->parameters[CellParams::DY];

@@ -38,30 +38,21 @@ namespace projects {
    bool ReadGaussianPopulation::addParameters(const std::string& prefix,projects::GaussianPopulation& populations) {
       // Add input variables to config file reader
       typedef Readparameters RP;
-      RP::add(prefix+".n", "Number of populations to use", populations.numberOfPopulations);
-      RP::add(prefix+".rho", "Number density (m^-3)",populations.rho);
-      RP::add(prefix+".rhoPertAbsAmp", "Absolute amplitude of the density perturbation",populations.rhoPertAbsAmp);
-      RP::add(prefix+".Tx", "Temperature (K)",populations.Tx);
-      RP::add(prefix+".Ty", "Temperature",populations.Ty);
-      RP::add(prefix+".Tz", "Temperature",populations.Tz);
-      RP::add(prefix+".Vx", "Bulk velocity x component (m/s)",populations.Vx);
-      RP::add(prefix+".Vy", "Bulk velocity y component (m/s)",populations.Vy);
-      RP::add(prefix+".Vz", "Bulk velocity z component (m/s)",populations.Vz);
+      RP::addComposing(prefix+".n", "Number of populations to use", populations.numberOfPopulations);
+      RP::addComposing(prefix+".rho", "Number density (m^-3)",populations.rho);
+      RP::addComposing(prefix+".rhoPertAbsAmp", "Absolute amplitude of the density perturbation",populations.rhoPertAbsAmp);
+      RP::addComposing(prefix+".Tx", "Temperature (K)",populations.Tx);
+      RP::addComposing(prefix+".Ty", "Temperature",populations.Ty);
+      RP::addComposing(prefix+".Tz", "Temperature",populations.Tz);
+      RP::addComposing(prefix+".Vx", "Bulk velocity x component (m/s)",populations.Vx);
+      RP::addComposing(prefix+".Vy", "Bulk velocity y component (m/s)",populations.Vy);
+      RP::addComposing(prefix+".Vz", "Bulk velocity z component (m/s)",populations.Vz);
       return true;
    }
 
    bool ReadGaussianPopulation::getParameters(const std::string& prefix,projects::GaussianPopulation& populations) {
       // Read values of input variables
       typedef Readparameters RP;
-      //RP::get(prefix+".n", populations.numberOfPopulations);
-      //RP::get(prefix+".rho", populations.rho);
-      //RP::get(prefix+".rhoPertAbsAmp", populations.rhoPertAbsAmp);
-      //RP::get(prefix+".Tx", populations.Tx);
-      //RP::get(prefix+".Ty", populations.Ty);
-      //RP::get(prefix+".Tz", populations.Tz);
-      //RP::get(prefix+".Vx", populations.Vx);
-      //RP::get(prefix+".Vy", populations.Vy);
-      //RP::get(prefix+".Vz", populations.Vz);
       
       // Do some sanity check on input variables
       bool success = true;

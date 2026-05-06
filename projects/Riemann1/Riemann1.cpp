@@ -42,22 +42,22 @@ namespace projects {
 
    void Riemann1::addParameters(){
       typedef Readparameters RP;
-      RP::add("Riemann.rho1", "Number density, left state (m^-3)",this->rho[this->LEFT]);
-      RP::add("Riemann.rho2", "Number density, right state (m^-3)",this->rho[this->RIGHT]);
-      RP::add("Riemann.T1", "Temperature, left state (K)",this->T[this->LEFT]);
-      RP::add("Riemann.T2", "Temperature, right state (K)",this->T[this->RIGHT]);
-      RP::add("Riemann.Vx1", "Bulk velocity x component, left state (m/s)",this->Vx[this->LEFT]);
-      RP::add("Riemann.Vx2", "Bulk velocity x component, right state (m/s)",this->Vx[this->RIGHT]);
-      RP::add("Riemann.Vy1", "Bulk velocity y component, left state (m/s)",this->Vy[this->LEFT]);
-      RP::add("Riemann.Vy2", "Bulk velocity y component, right state (m/s)",this->Vy[this->RIGHT]);
-      RP::add("Riemann.Vz1", "Bulk velocity z component, left state (m/s)",this->Vz[this->LEFT]);
-      RP::add("Riemann.Vz2", "Bulk velocity z component, right state (m/s)",this->Vz[this->RIGHT]);
-      RP::add("Riemann.Bx1", "Magnetic field x component, left state (T)",this->Bx[this->LEFT]);
-      RP::add("Riemann.Bx2", "Magnetic field x component, right state (T)",this->Bx[this->RIGHT]);
-      RP::add("Riemann.By1", "Magnetic field y component, left state (T)",this->By[this->LEFT]);
-      RP::add("Riemann.By2", "Magnetic field y component, right state (T)",this->By[this->RIGHT]);
-      RP::add("Riemann.Bz1", "Magnetic field z component, left state (T)",this->Bz[this->LEFT]);
-      RP::add("Riemann.Bz2", "Magnetic field z component, right state (T)",this->Bz[this->RIGHT]);
+      RP::add<Real>("Riemann.rho1", "Number density, left state (m^-3)",this->rho[this->LEFT],0.0);
+      RP::add<Real>("Riemann.rho2", "Number density, right state (m^-3)",this->rho[this->RIGHT],0.0);
+      RP::add<Real>("Riemann.T1", "Temperature, left state (K)",this->T[this->LEFT],0.0);
+      RP::add<Real>("Riemann.T2", "Temperature, right state (K)",this->T[this->RIGHT],0.0);
+      RP::add<Real>("Riemann.Vx1", "Bulk velocity x component, left state (m/s)",this->Vx[this->LEFT],0.0);
+      RP::add<Real>("Riemann.Vx2", "Bulk velocity x component, right state (m/s)",this->Vx[this->RIGHT],0.0);
+      RP::add<Real>("Riemann.Vy1", "Bulk velocity y component, left state (m/s)",this->Vy[this->LEFT],0.0);
+      RP::add<Real>("Riemann.Vy2", "Bulk velocity y component, right state (m/s)",this->Vy[this->RIGHT],0.0);
+      RP::add<Real>("Riemann.Vz1", "Bulk velocity z component, left state (m/s)",this->Vz[this->LEFT],0.0);
+      RP::add<Real>("Riemann.Vz2", "Bulk velocity z component, right state (m/s)",this->Vz[this->RIGHT],0.0);
+      RP::add<Real>("Riemann.Bx1", "Magnetic field x component, left state (T)",this->Bx[this->LEFT],0.0);
+      RP::add<Real>("Riemann.Bx2", "Magnetic field x component, right state (T)",this->Bx[this->RIGHT],0.0);
+      RP::add<Real>("Riemann.By1", "Magnetic field y component, left state (T)",this->By[this->LEFT],0.0);
+      RP::add<Real>("Riemann.By2", "Magnetic field y component, right state (T)",this->By[this->RIGHT],0.0);
+      RP::add<Real>("Riemann.Bz1", "Magnetic field z component, left state (T)",this->Bz[this->LEFT],0.0);
+      RP::add<Real>("Riemann.Bz2", "Magnetic field z component, right state (T)",this->Bz[this->RIGHT],0.0);
    }
 
    void Riemann1::getParameters(){
@@ -68,22 +68,6 @@ namespace projects {
          std::cerr << "The selected project does not support multiple particle populations! Aborting in " << __FILE__ << " line " << __LINE__ << std::endl;
          abort();
       }
-      //RP::get("Riemann.rho1", this->rho[this->LEFT]);
-      //RP::get("Riemann.rho2", this->rho[this->RIGHT]);
-      //RP::get("Riemann.T1", this->T[this->LEFT]);
-      //RP::get("Riemann.T2", this->T[this->RIGHT]);
-      //RP::get("Riemann.Vx1", this->Vx[this->LEFT]);
-      //RP::get("Riemann.Vx2", this->Vx[this->RIGHT]);
-      //RP::get("Riemann.Vy1", this->Vy[this->LEFT]);
-      //RP::get("Riemann.Vy2", this->Vy[this->RIGHT]);
-      //RP::get("Riemann.Vz1", this->Vz[this->LEFT]);
-      //RP::get("Riemann.Vz2", this->Vz[this->RIGHT]);
-      //RP::get("Riemann.Bx1", this->Bx[this->LEFT]);
-      //RP::get("Riemann.Bx2", this->Bx[this->RIGHT]);
-      //RP::get("Riemann.By1", this->By[this->LEFT]);
-      //RP::get("Riemann.By2", this->By[this->RIGHT]);
-      //RP::get("Riemann.Bz1", this->Bz[this->LEFT]);
-      //RP::get("Riemann.Bz2", this->Bz[this->RIGHT]);
    }
 
    Realf Riemann1::fillPhaseSpace(spatial_cell::SpatialCell *cell,

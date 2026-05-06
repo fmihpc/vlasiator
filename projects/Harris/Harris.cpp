@@ -51,7 +51,7 @@ namespace projects {
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
          HarrisSpeciesParameters* sP=new HarrisSpeciesParameters();
-         speciesParams.push_back(sP);
+         speciesParamsRead.push_back(sP);
 
          RP::add<Real>(pop + "_Harris.Temperature", "Temperature (K)", sP->TEMPERATURE,2.0e6);
          RP::add<Real>(pop + "_Harris.rho", "Number density at infinity (m^-3)", sP->DENSITY,1.0e7);
@@ -59,14 +59,16 @@ namespace projects {
    }
 
    void Harris::getParameters(){
-
+      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
+        this->speciesParams.push_back(*this->speciesParamsRead.at(i));
+      }
    }
 
    Realf Harris::fillPhaseSpace(spatial_cell::SpatialCell *cell,
                                        const uint popID,
                                        const uint nRequested
       ) const {
-      const HarrisSpeciesParameters& sP = *speciesParams[popID];
+      const HarrisSpeciesParameters& sP = speciesParams[popID];
       // Fetch spatial cell center coordinates
       const Real x  = cell->parameters[CellParams::XCRD] + 0.5*cell->parameters[CellParams::DX];
       // const Real y  = cell->parameters[CellParams::YCRD] + 0.5*cell->parameters[CellParams::DY];
@@ -126,7 +128,7 @@ namespace projects {
                                         const uint popID,
                                         Real vx_in, Real vy_in, Real vz_in
       ) const {
-      const HarrisSpeciesParameters& sP = *speciesParams[popID];
+      const HarrisSpeciesParameters& sP = speciesParams[popID];
       // Fetch spatial cell center coordinates
       const Real x  = cell->parameters[CellParams::XCRD] + 0.5*cell->parameters[CellParams::DX];
       // const Real y  = cell->parameters[CellParams::YCRD] + 0.5*cell->parameters[CellParams::DY];

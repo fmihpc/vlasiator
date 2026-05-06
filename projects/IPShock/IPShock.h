@@ -102,6 +102,7 @@ namespace projects {
       Real AMR_L4width;
 
       std::vector<IPShockSpeciesParameters> speciesParams;
+      std::vector<IPShockSpeciesParameters*> speciesParamsRead;
 
    } ; //class IPShock
 } // namespace projects

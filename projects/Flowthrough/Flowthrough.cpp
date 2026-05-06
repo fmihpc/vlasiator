@@ -71,15 +71,14 @@ namespace projects {
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
          FlowthroughSpeciesParameters* sP = new FlowthroughSpeciesParameters();
 
-         this->speciesParams.push_back(sP);
-         // auto sP=&this->speciesParams.at(i); 
+         this->speciesParamsRead.push_back(sP);
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
-         RP::add(pop + "_Flowthrough.rho", "Number density (m^-3)", sP->rho);
+         RP::add<Real>(pop + "_Flowthrough.rho", "Number density (m^-3)", sP->rho,0.0);
          RP::add<Real>(pop + "_Flowthrough.rhoBase", "Background number density (m^-3)", sP->rhoBase,0.0);
-         RP::add(pop + "_Flowthrough.T", "Temperature (K)", sP->T);
-         RP::add(pop + "_Flowthrough.VX0", "Initial bulk velocity in x-direction", sP->V0[0]);
-         RP::add(pop + "_Flowthrough.VY0", "Initial bulk velocity in y-direction", sP->V0[1]);
-         RP::add(pop + "_Flowthrough.VZ0", "Initial bulk velocity in z-direction", sP->V0[2]);
+         RP::add<Real>(pop + "_Flowthrough.T", "Temperature (K)", sP->T,0.0);
+         RP::add<Real>(pop + "_Flowthrough.VX0", "Initial bulk velocity in x-direction", sP->V0[0],0.0);
+         RP::add<Real>(pop + "_Flowthrough.VY0", "Initial bulk velocity in y-direction", sP->V0[1],0.0);
+         RP::add<Real>(pop + "_Flowthrough.VZ0", "Initial bulk velocity in z-direction", sP->V0[2],0.0);
       }
    }
 
@@ -97,10 +96,13 @@ namespace projects {
          if (myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: Unknown option value!" << endl;
          exit(1);
       }
+      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
+        this->speciesParams.push_back(*this->speciesParamsRead.at(i));
+      }
 
    }
    Real Flowthrough::getCorrectNumberDensity(spatial_cell::SpatialCell* cell,const uint popID) const {
-      const FlowthroughSpeciesParameters& sP = *speciesParams[popID];
+      const FlowthroughSpeciesParameters& sP = speciesParams[popID];
       Real rvalue;
       const Real x  = cell->parameters[CellParams::XCRD] + 0.5*cell->parameters[CellParams::DX];
       const Real y  = cell->parameters[CellParams::YCRD] + 0.5*cell->parameters[CellParams::DY];
@@ -154,7 +156,7 @@ namespace projects {
                                        const uint popID,
                                        const uint nRequested
       ) const {
-      const FlowthroughSpeciesParameters& sP = *speciesParams[popID];
+      const FlowthroughSpeciesParameters& sP = speciesParams[popID];
 
       const Real mass = getObjectWrapper().particleSpecies[popID].mass;
       Real initRho = this->getCorrectNumberDensity(cell, popID);
@@ -214,7 +216,7 @@ namespace projects {
                                         const uint popID,
                                         Real vx_in, Real vy_in, Real vz_in
       ) const {
-      const FlowthroughSpeciesParameters& sP = *speciesParams[popID];
+      const FlowthroughSpeciesParameters& sP = speciesParams[popID];
       const Real mass = getObjectWrapper().particleSpecies[popID].mass;
       Real initRho = this->getCorrectNumberDensity(cell, popID);
       Real initT = sP.T;
@@ -250,7 +252,7 @@ namespace projects {
       creal z,
       const uint popID
    ) const {
-      const FlowthroughSpeciesParameters& sP = *speciesParams[popID];
+      const FlowthroughSpeciesParameters& sP = speciesParams[popID];
       vector<std::array<Real, 3>> centerPoints;
       std::array<Real, 3> point {{sP.V0[0], sP.V0[1], sP.V0[2]}};
       centerPoints.push_back(point);
