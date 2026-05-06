@@ -667,39 +667,37 @@ Project* createProject() {
         projects::Flowthrough* flowthrough=new projects::Flowthrough();
         projects::Magnetosphere* magnetosphere=new projects::Magnetosphere();
         projects::LossCone* losscone=new projects::LossCone();
+        projects::test_fp* test_fp=new projects::test_fp();
         
         multipeak->addParameters();
         losscone->addParameters();
         magnetosphere->addParameters();
         flowthrough->addParameters();
+        test_fp->addParameters();
         return nullptr;
+
     } else if(Parameters::projectName == "") {
         cerr << "No project specified! Please set 'project' parameter!" << Parameters::projectName << endl;
         return nullptr;
     }
     if (Parameters::projectName=="MultiPeak") {
-        projects::MultiPeak* multipeak=new projects::MultiPeak();
-        multipeak->addParameters();
-        rvalue=multipeak;
+        projects::MultiPeak* rvalue=new projects::MultiPeak();
+
     } else if (Parameters::projectName=="Flowthrough") {
-        projects::Flowthrough* flowthrough=new projects::Flowthrough();
-        flowthrough->addParameters();
-        rvalue=flowthrough;
+        projects::Flowthrough* rvalue=new projects::Flowthrough();
 
     } else if (Parameters::projectName=="Magnetosphere") {
-        projects::Magnetosphere* magnetosphere=new projects::Magnetosphere();
-        magnetosphere->addParameters();
-        rvalue=magnetosphere;
+        projects::Magnetosphere* rvalue=new projects::Magnetosphere();
 
     } else if (Parameters::projectName=="LossCone") {
-        projects::LossCone* losscone=new projects::LossCone();
-        losscone->addParameters();
-        rvalue=losscone;
+        projects::LossCone* rvalue=new projects::LossCone();
+
     } else if (Parameters::projectName=="Alfven") {
-        projects::LossCone* alfven=new projects::LossCone();
-        alfven->addParameters();
-        rvalue=alfven;
-    
+        projects::Alfven* rvalue=new projects::Alfven();
+
+     } else if (Parameters::projectName=="test_fp") {
+        projects::test_fp* rvalue=new projects::test_fp();
+
     } else {
         cerr << "Unknown project name! = "<<Parameters::projectName << endl;
         abort();
@@ -711,12 +709,10 @@ Project* createProject() {
       abort();
     } 
    
-   // rvalue->addParameters();
+   rvalue->addParameters();
    getObjectWrapper().project = rvalue;
     
-  
    return rvalue;
-   // rvalue->addParameters();
   }
 
 } // namespace projects
