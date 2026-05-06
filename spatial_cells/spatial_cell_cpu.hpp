@@ -284,6 +284,7 @@ namespace spatial_cell {
       const Population & get_population(const uint popID, const int timeclass) const;
       void set_population(const Population& pop, cuint popID);
       void set_ghost_population(const Population& pop, cuint popID, const int timeclass);
+      void remove_ghost_population(cuint popID, const int timeclass);
       void scale_population(creal factor, cuint popID, const int timeclass);
       void increment_population(const Population& pop, creal factor, cuint popID, const int timeclass);
 
@@ -598,6 +599,10 @@ namespace spatial_cell {
    inline void SpatialCell::set_ghost_population(const Population& pop, cuint popID, const int timeclass = -1) {
       ghostPopulations.erase({popID, timeclass});
       ghostPopulations.emplace(std::pair<cuint, const int>({popID, timeclass}), pop);
+   }
+
+   inline void SpatialCell::remove_ghost_population(cuint popID, const int timeclass = -1) {
+      ghostPopulations.erase({popID, timeclass});
    }
 
    

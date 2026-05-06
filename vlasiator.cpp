@@ -331,7 +331,21 @@ void increaseTimeclass(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiG
       //std::cerr << "current max timeclass is " << P::currentMaxTimeclass << "\n";
       // this might be overkill, but for initial testing
       prepareAMRLists(mpiGrid);
-      //calculateAcceleration(mpiGrid, 0.0);
+      calculateAcceleration(mpiGrid, 0.0);
+      calculateSpatialTranslation(mpiGrid, 0.0, false);
+
+      //remove extra ghosts from accelerated cells
+
+      for (size_t c=0; c<cellsToIncreaseTimeclass.size(); ++c) {
+         const CellID cell = cellsToIncreaseTimeclass[c];
+         SpatialCell* spatialCell = mpiGrid[cell];
+
+         spatialCell->requested_timeclass_ghosts.erase(spatialCell->parameters[CellParams::TIMECLASS]);
+         spatialCell->requested_timeclass_copy_ghosts.erase(spatialCell->parameters[CellParams::TIMECLASS]);
+         spatialCell->remove_ghost_population(0, spatialCell->parameters[CellParams::TIMECLASS]);
+      
+      }
+
    } else {
       std::cout << "not implemented yet, aborting...\n";
       abort();
@@ -1866,7 +1880,7 @@ int simulate(int argn,char* args[]) {
          auto cells = getLocalCells();
          for (CellID c: cells) {
             if (c > 220 && c < 240) {
-               std::cout << "cid: " << c << ", pos: " << mpiGrid[c]->parameters[CellParams::XCRD] << ", tc: " << mpiGrid[c]->parameters[CellParams::TIMECLASS] <<"\n"; 
+               std::cout << "cid: " << c << ", pos: " << mpiGrid[c]->parameters[CellParams::XCRD] << ", " <<  mpiGrid[c]->parameters[CellParams::YCRD] << ", tc: " << mpiGrid[c]->parameters[CellParams::TIMECLASS] <<"\n"; 
             }
          }
 
@@ -1876,7 +1890,18 @@ int simulate(int argn,char* args[]) {
 
       }
 
+      std::cout << "requested ghosts of changed cell\n";
+      for (auto g: mpiGrid[229]->requested_timeclass_ghosts) {
+         std::cout << g << " ";
+      }
+      std::cout << std::endl;
 
+
+      std::cout << "requested copy ghosts of changed cell\n";
+      for (auto g: mpiGrid[229]->requested_timeclass_copy_ghosts) {
+         std::cout << g << " ";
+      }
+      std::cout << std::endl;
 
       if (P::dynamicTimestep) {
 
