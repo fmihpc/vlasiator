@@ -74,41 +74,15 @@ namespace projects {
 
    Project::~Project() {}
 
-   void Project::addParameters() {
+   void Project::addCommonParameters() {
       typedef Readparameters RP;
-      // // TODO add all projects' static addParameters() functions here.
-      // projects::Alfven* _Alfven= new Alfven();
-      // _Alfven->addParameters();
-      // project_temp["Alfven"]=_Alfven;
-      // projects::Diffusion* _Diffusion=new Diffusion();_Diffusion->addParameters();project_temp["Diffusion"]=_Diffusion;
-      // projects::Dispersion* _Dispersion=new Dispersion();_Dispersion->addParameters();project_temp["Dispersion"]=_Dispersion;
-      // projects::Distributions* _Distributions=new Distributions();_Distributions->addParameters();project_temp["Distributions"]=_Distributions;
-      // projects::Firehose* _Firehose=new Firehose();_Firehose->addParameters();project_temp["Firehose"]=_Firehose;
-      // projects::Flowthrough* _Flowthrough=new Flowthrough();_Flowthrough->addParameters();project_temp["Flowthrough"]=_Flowthrough;
-      // projects::Fluctuations* _Fluctuations=new Fluctuations();_Fluctuations->addParameters();project_temp["Fluctuations"]=_Fluctuations;
-      // projects::Harris* _Harris=new Harris();_Harris->addParameters();project_temp["Harris"]=_Harris;
-      // projects::KHB* _KHB=new KHB();_KHB->addParameters();project_temp["KHB"]=_KHB;
-      // // projects::Larmor* _Larmor=new Larmor();_Larmor->addParameters();project_temp["Larmor"]=_Larmor;
-      // // projects::KHB* _KHB=new KHB();_KHB->addParameters();projects::project_temp["KHB"]=_KHB;
-      // projects::Larmor* _Larmor=new Larmor();_Larmor->addParameters();projects::project_temp["Larmor"]=_Larmor;
-      // projects::Magnetosphere* _Magnetosphere=new Magnetosphere();_Magnetosphere->addParameters();projects::project_temp["Magnetosphere"]=_Magnetosphere;
-      // projects::MultiPeak* _MultiPeak=new MultiPeak();_MultiPeak->addParameters();projects::project_temp["MultiPeak"]=_MultiPeak;
-      // projects::Riemann1* _Riemann1=new Riemann1();_Riemann1->addParameters();projects::project_temp["Riemann1"]=_Riemann1;
-      // projects::Shock* _Shock=new Shock();_Shock->addParameters();projects::project_temp["Shock"]=_Shock;
-      // projects::IPShock* _IPShock=new IPShock();_IPShock->addParameters();projects::project_temp["IPShock"]=_IPShock;
-      // projects::Template* _Template=new Template();_Template->addParameters();projects::project_temp["Template"]=_Template;
-      // projects::test_fp* _test_fp=new test_fp();_test_fp->addParameters();projects::project_temp["test_fp"]=_test_fp;
-      // projects::TestHall* _TestHall=new TestHall();_TestHall->addParameters();projects::project_temp["TestHall"]=_TestHall;
-      // projects::verificationLarmor* _verificationLarmor=new verificationLarmor();_verificationLarmor->addParameters();projects::project_temp["verificationLarmor"]=_verificationLarmor;
-      // projects::Shocktest* _Shocktest=new Shocktest();_Shocktest->addParameters();projects::project_temp["Shocktest"]=_Shocktest;
-      // projects::LossCone* _LossCone=new LossCone();_LossCone->addParameters();projects::project_temp["LossCone"]=_LossCone;
-      // // RP::add("Project_common.seed", "Seed for the RNG", this->seed);
-      //
+
+      Readparameters::add<uint>("Project_common.seed", "Seed for the RNG", this->seed,42);
    }
 
    void Project::getParameters() {
       typedef Readparameters RP;
-      //RP::get("Project_common.seed", this->seed);
+      //seed no handled in createProject
    }
 
    /** Initialize the Project. Velocity mesh and particle population
@@ -660,7 +634,7 @@ Project* createProject() {
    int rank;
 
    MPI_Comm_rank(MPI_COMM_WORLD,&rank);
-   Project* rvalue=nullptr;
+   Project* project=nullptr;
 
     if (Readparameters::helpRequested) {
         projects::MultiPeak* multipeak=new projects::MultiPeak();
@@ -668,7 +642,8 @@ Project* createProject() {
         projects::Magnetosphere* magnetosphere=new projects::Magnetosphere();
         projects::LossCone* losscone=new projects::LossCone();
         projects::test_fp* test_fp=new projects::test_fp();
-        
+       
+        multipeak->addCommonParameters();
         multipeak->addParameters();
         losscone->addParameters();
         magnetosphere->addParameters();
@@ -681,38 +656,38 @@ Project* createProject() {
         return nullptr;
     }
     if (Parameters::projectName=="MultiPeak") {
-        projects::MultiPeak* rvalue=new projects::MultiPeak();
+       project=new projects::MultiPeak();
 
     } else if (Parameters::projectName=="Flowthrough") {
-        projects::Flowthrough* rvalue=new projects::Flowthrough();
+        project=new projects::Flowthrough();
 
     } else if (Parameters::projectName=="Magnetosphere") {
-        projects::Magnetosphere* rvalue=new projects::Magnetosphere();
+        project=new projects::Magnetosphere();
 
     } else if (Parameters::projectName=="LossCone") {
-        projects::LossCone* rvalue=new projects::LossCone();
+        project=new projects::LossCone();
 
     } else if (Parameters::projectName=="Alfven") {
-        projects::Alfven* rvalue=new projects::Alfven();
+        project=new projects::Alfven();
 
      } else if (Parameters::projectName=="test_fp") {
-        projects::test_fp* rvalue=new projects::test_fp();
+        project=new projects::test_fp();
 
     } else {
         cerr << "Unknown project name! = "<<Parameters::projectName << endl;
         abort();
     }
 
-   
-   if (rvalue == nullptr) {
+   if (!project) {
       cerr << "Something went wrong with setting a project! Project value null" << endl;
       abort();
     } 
    
-   rvalue->addParameters();
-   getObjectWrapper().project = rvalue;
+   project->addParameters();
+   project->addCommonParameters();
+   getObjectWrapper().project = project;
     
-   return rvalue;
+   return project;
   }
 
 } // namespace projects

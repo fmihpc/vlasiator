@@ -56,7 +56,8 @@ namespace projects {
       virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) override;
       
       Real B0;
-      std::vector<DiffusionSpeciesParameters*> speciesParams;
+      std::vector<DiffusionSpeciesParameters> speciesParams;
+      std::vector<DiffusionSpeciesParameters*> speciesParamsRead;
    } ; // class Diffusion
 } // namespace projects
 

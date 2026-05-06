@@ -51,11 +51,9 @@ namespace projects {
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
 
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
-        
-
          DiffusionSpeciesParameters* sP=new DiffusionSpeciesParameters;
     
-         this->speciesParams.push_back(sP);
+         this->speciesParamsRead.push_back(sP);
          RP::add<Real>(pop + "_Diffusion.rho", "Number density (m^-3)",sP->DENSITY ,1.0e7);
          RP::add<Real>(pop + "_Diffusion.Temperature", "Temperature (K)", sP->TEMPERATURE,2.0e6);
          RP::add<Real>(pop + "_Diffusion.Scale_x", "Scale length in x (m)", sP->SCA_X,100000.0);
@@ -64,14 +62,16 @@ namespace projects {
    }
 
    void Diffusion::getParameters() {
-
+      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
+        this->speciesParams.push_back(*this->speciesParamsRead.at(i));
+      }
    }
 
    Realf Diffusion::fillPhaseSpace(spatial_cell::SpatialCell *cell,
                                        const uint popID,
                                        const uint nRequested
       ) const {
-      const DiffusionSpeciesParameters& sP = *speciesParams[popID];
+      const DiffusionSpeciesParameters& sP = speciesParams[popID];
       creal mass = getObjectWrapper().particleSpecies[popID].mass;
       // Fetch spatial cell center coordinates
       const Real x  = cell->parameters[CellParams::XCRD] + 0.5*cell->parameters[CellParams::DX];

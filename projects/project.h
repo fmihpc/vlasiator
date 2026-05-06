@@ -78,7 +78,9 @@ namespace projects {
       virtual ~Project();
       
       /*! Register parameters that should be read in. */
-      static void addParameters();
+      virtual void addParameters()=0;
+
+      void addCommonParameters();
       
       virtual Real getCorrectNumberDensity(spatial_cell::SpatialCell* cell,const uint popID) const;
       
@@ -148,7 +150,6 @@ namespace projects {
        * \param mpiGrid grid to filter
        */
       virtual bool filterRefined( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const;
-
     protected:
       /*! \brief Prepares a  list of blocks to loop through when initialising.
        * 
@@ -223,8 +224,8 @@ namespace projects {
        */
       void setRandomCellSeed(spatial_cell::SpatialCell* cell, std::default_random_engine& randGen) const;
       
-    private:
       uint seed;
+    private:
       static char rngStateBuffer[256];
 
       bool baseClassInitialized;                      /**< If true, base class has been initialized.*/
