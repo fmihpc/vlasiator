@@ -35,7 +35,6 @@
 #include <string>
 #include <string_view>
 #include <typeinfo>
-#include "projects/project.h"
 #include <vector>
 
 #include "common.h"
@@ -146,7 +145,7 @@ public:
    }
    static void parseComposing(){
     int rank;
-    ifstream configFile;
+    std::ifstream configFile;
     std::string line;
     std::string subcom;
     std::string commandName;
@@ -283,7 +282,7 @@ public:
       //Will also be used to pass the parameter to other MPI ranks 
       return add(name,desc,value,defval); 
    }
-   static string getPops(int i){
+   static std::string getPops(int i){
      return populations.at(i);
    };
    template <typename T> static void addFlag(const std::string& name, const std::string& desc,  T& defValue) {
