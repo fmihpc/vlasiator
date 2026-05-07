@@ -300,47 +300,50 @@ void increaseTimeclass(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiG
       for (size_t c=0; c<cellsToIncreaseTimeclass.size(); ++c) {
          const CellID cell = cellsToIncreaseTimeclass[c];
          SpatialCell* spatialCell = mpiGrid[cell];
-
-         // before we increase timeclass, we copy the cell's ghost population of tc+1 into its actual population
-         // then we put its current population into a coarser ghost
-         // basically swapping main population and one tc level finer ghost population
-
-         auto newCoarserPop = spatialCell->get_population(0);
-         auto newFinerPop = spatialCell->get_population(0, spatialCell->parameters[CellParams::TIMECLASS]+1);
+         for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
 
 
-         if (spatialCell->parameters[CellParams::TIMECLASS] != P::currentMaxTimeclass) {
-            // If the cell is not at the maximum timeclass, we can increase it
-            //std::cerr << "Increasing timeclass for cell " << cell << " with tc " << spatialCell->parameters[CellParams::TIMECLASS] << " by one"<< "\n";
-            //std::cerr << "current max timeclass is " << P::currentMaxTimeclass << "\n";
-            spatialCell->parameters[CellParams::TIMECLASS] += 1;
-            spatialCell->parameters[CellParams::TIMECLASSDT] = spatialCell->get_tc_dt();
-         } else {
 
-            // If the cell is already at the maximum timeclass, we must create a new timeclass one higher
-            std::cerr << "Cell " << cell << " is already at the maximum timeclass, creating a new one" << "\n";
-            std::cerr << "current max timeclass is " << P::currentMaxTimeclass << "\n";
+            // before we increase timeclass, we copy the cell's ghost population of tc+1 into its actual population
+            // then we put its current population into a coarser ghost
+            // basically swapping main population and one tc level finer ghost population
 
-            std::cerr << "this is not supported yet, aborting" << "\n";
-            abort();
+            auto newCoarserPop = spatialCell->get_population(popID);
+            auto newFinerPop = spatialCell->get_population(popID, spatialCell->parameters[CellParams::TIMECLASS]+1);
 
-            additionalTimeclassCreated = true;
-            P::currentMaxTimeclass += 1;
-            spatialCell->parameters[CellParams::TIMECLASS] = P::currentMaxTimeclass;
-         
-            P::timeclassDt.resize(P::currentMaxTimeclass + 1);
-            P::timeclassDt.end()[-1] = P::timeclassDt.end()[-2]/2.0;
 
-            spatialCell->parameters[CellParams::TIMECLASSDT] = spatialCell->get_tc_dt();
+            if (spatialCell->parameters[CellParams::TIMECLASS] != P::currentMaxTimeclass) {
+               // If the cell is not at the maximum timeclass, we can increase it
+               //std::cerr << "Increasing timeclass for cell " << cell << " with tc " << spatialCell->parameters[CellParams::TIMECLASS] << " by one"<< "\n";
+               //std::cerr << "current max timeclass is " << P::currentMaxTimeclass << "\n";
+               spatialCell->parameters[CellParams::TIMECLASS] += 1;
+               spatialCell->parameters[CellParams::TIMECLASSDT] = spatialCell->get_tc_dt();
+            } else {
+
+               // If the cell is already at the maximum timeclass, we must create a new timeclass one higher
+               std::cerr << "Cell " << cell << " is already at the maximum timeclass, creating a new one" << "\n";
+               std::cerr << "current max timeclass is " << P::currentMaxTimeclass << "\n";
+
+               std::cerr << "this is not supported yet, aborting" << "\n";
+               abort();
+
+               additionalTimeclassCreated = true;
+               P::currentMaxTimeclass += 1;
+               spatialCell->parameters[CellParams::TIMECLASS] = P::currentMaxTimeclass;
+            
+               P::timeclassDt.resize(P::currentMaxTimeclass + 1);
+               P::timeclassDt.end()[-1] = P::timeclassDt.end()[-2]/2.0;
+
+               spatialCell->parameters[CellParams::TIMECLASSDT] = spatialCell->get_tc_dt();
+            }
+
+            spatialCell->set_population(newFinerPop, popID);
+            spatialCell->set_ghost_population(newCoarserPop, popID, spatialCell->parameters[CellParams::TIMECLASS]-1);
+            spatialCell->requested_timeclass_ghosts.insert(spatialCell->parameters[CellParams::TIMECLASS]-1);         
+            spatialCell->requested_timeclass_copy_ghosts.insert(spatialCell->parameters[CellParams::TIMECLASS]-1);
+            // change cell time
+            spatialCell->parameters[CellParams::TIME_V] -= P::timeclassDt[spatialCell->parameters[CellParams::TIMECLASS]]*0.5;         
          }
-
-         spatialCell->set_population(newFinerPop, 0);
-         spatialCell->set_ghost_population(newCoarserPop, 0, spatialCell->parameters[CellParams::TIMECLASS]-1);
-         spatialCell->requested_timeclass_ghosts.insert(spatialCell->parameters[CellParams::TIMECLASS]-1);         
-         spatialCell->requested_timeclass_copy_ghosts.insert(spatialCell->parameters[CellParams::TIMECLASS]-1);
-         // change cell time
-         spatialCell->parameters[CellParams::TIME_V] -= P::timeclassDt[spatialCell->parameters[CellParams::TIMECLASS]]*0.5;         
-
       }
 
       prepareAMRLists(mpiGrid);
@@ -359,11 +362,12 @@ void increaseTimeclass(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiG
       for (size_t c=0; c<cellsToIncreaseTimeclass.size(); ++c) {
          const CellID cell = cellsToIncreaseTimeclass[c];
          SpatialCell* spatialCell = mpiGrid[cell];
+         for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
 
-         spatialCell->requested_timeclass_ghosts.erase(spatialCell->parameters[CellParams::TIMECLASS]);
-         spatialCell->requested_timeclass_copy_ghosts.erase(spatialCell->parameters[CellParams::TIMECLASS]);
-         spatialCell->remove_ghost_population(0, spatialCell->parameters[CellParams::TIMECLASS]);
-      
+            spatialCell->requested_timeclass_ghosts.erase(spatialCell->parameters[CellParams::TIMECLASS]);
+            spatialCell->requested_timeclass_copy_ghosts.erase(spatialCell->parameters[CellParams::TIMECLASS]);
+            spatialCell->remove_ghost_population(popID, spatialCell->parameters[CellParams::TIMECLASS]);
+         }
       }
 
    } else {
@@ -1910,32 +1914,20 @@ int simulate(int argn,char* args[]) {
 
       // }
 
-      // if (P::fractionalTimestep == 0 && P::tstep == 60) {
-      //    auto cells = getLocalCells();
-      //    for (CellID c: cells) {
-      //       if (c > 220 && c < 240) {
-      //          std::cout << "cid: " << c << ", pos: " << mpiGrid[c]->parameters[CellParams::XCRD] << ", " <<  mpiGrid[c]->parameters[CellParams::YCRD] << ", tc: " << mpiGrid[c]->parameters[CellParams::TIMECLASS] <<"\n"; 
-      //       }
-      //    }
 
-      //    bool asdasd=false;
 
-      //    increaseTimeclass(mpiGrid, {229+35}, asdasd);
-
+      // std::cout << "requested ghosts of changed cell\n";
+      // for (auto g: mpiGrid[229]->requested_timeclass_ghosts) {
+      //    std::cout << g << " ";
       // }
-
-      std::cout << "requested ghosts of changed cell\n";
-      for (auto g: mpiGrid[229]->requested_timeclass_ghosts) {
-         std::cout << g << " ";
-      }
-      std::cout << std::endl;
+      // std::cout << std::endl;
 
 
-      std::cout << "requested copy ghosts of changed cell\n";
-      for (auto g: mpiGrid[229]->requested_timeclass_copy_ghosts) {
-         std::cout << g << " ";
-      }
-      std::cout << std::endl;
+      // std::cout << "requested copy ghosts of changed cell\n";
+      // for (auto g: mpiGrid[229]->requested_timeclass_copy_ghosts) {
+      //    std::cout << g << " ";
+      // }
+      // std::cout << std::endl;
 
       if (P::dynamicTimestep) {
 
