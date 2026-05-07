@@ -23,7 +23,7 @@
 #ifndef READPARAMETERS_H
 #define READPARAMETERS_H
 
-#include "CLI11.hpp"
+#include <CLI11.hpp>
 #include <cctype>
 #include <fstream>
 #include <iomanip>

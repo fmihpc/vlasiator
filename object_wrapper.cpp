@@ -143,6 +143,8 @@ void ObjectWrapper::initpop(std::string pop) {
 }
 
 bool ObjectWrapper::addPopulationParameters() {
+  //currently unused
+  return true;
 }
 
 bool ObjectWrapper::getPopulationParameters() {
