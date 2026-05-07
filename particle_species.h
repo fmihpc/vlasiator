@@ -72,7 +72,8 @@ namespace species {
     
     
       Species();
-      Species(const Species& other);
+      Species(const Species& other); //this is partial copy
+      Species& operator=(const Species& other)=default;
       ~Species();
     };
 
