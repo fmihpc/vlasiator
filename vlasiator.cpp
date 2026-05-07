@@ -294,11 +294,21 @@ void increaseTimeclass(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiG
 
    if (P::fractionalTimestep == 0) {
       // first we step them back 
-      calculateAcceleration(mpiGrid, -0.5, true, cellsToIncreaseTimeclass);
+      //calculateAcceleration(mpiGrid, -0.5, true, cellsToIncreaseTimeclass);
+
 
       for (size_t c=0; c<cellsToIncreaseTimeclass.size(); ++c) {
          const CellID cell = cellsToIncreaseTimeclass[c];
          SpatialCell* spatialCell = mpiGrid[cell];
+
+         // before we increase timeclass, we copy the cell's ghost population of tc+1 into its actual population
+         // then we put its current population into a coarser ghost
+         // basically swapping main population and one tc level finer ghost population
+
+         auto newCoarserPop = spatialCell->get_population(0);
+         auto newFinerPop = spatialCell->get_population(0, spatialCell->parameters[CellParams::TIMECLASS]+1);
+
+
          if (spatialCell->parameters[CellParams::TIMECLASS] != P::currentMaxTimeclass) {
             // If the cell is not at the maximum timeclass, we can increase it
             //std::cerr << "Increasing timeclass for cell " << cell << " with tc " << spatialCell->parameters[CellParams::TIMECLASS] << " by one"<< "\n";
@@ -323,16 +333,26 @@ void increaseTimeclass(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiG
 
             spatialCell->parameters[CellParams::TIMECLASSDT] = spatialCell->get_tc_dt();
          }
+
+         spatialCell->set_population(newFinerPop, 0);
+         spatialCell->set_ghost_population(newCoarserPop, 0, spatialCell->parameters[CellParams::TIMECLASS]-1);
+         spatialCell->requested_timeclass_ghosts.insert(spatialCell->parameters[CellParams::TIMECLASS]-1);         
+         spatialCell->requested_timeclass_copy_ghosts.insert(spatialCell->parameters[CellParams::TIMECLASS]-1);
+         // change cell time
+         spatialCell->parameters[CellParams::TIME_V] -= P::timeclassDt[spatialCell->parameters[CellParams::TIMECLASS]]*0.5;         
+
       }
 
-      calculateAcceleration(mpiGrid, 0.5, true, cellsToIncreaseTimeclass);
+      prepareAMRLists(mpiGrid);
+
+      //calculateAcceleration(mpiGrid, 0.5, true, cellsToIncreaseTimeclass);
 
       //std::cerr << "calling prepareAMRLists after increasing timeclass\n";
       //std::cerr << "current max timeclass is " << P::currentMaxTimeclass << "\n";
       // this might be overkill, but for initial testing
-      prepareAMRLists(mpiGrid);
-      calculateAcceleration(mpiGrid, 0.0);
-      calculateSpatialTranslation(mpiGrid, 0.0, false);
+      // prepareAMRLists(mpiGrid);
+      // calculateAcceleration(mpiGrid, 0.0);
+      // calculateSpatialTranslation(mpiGrid, 0.0, false);
 
       //remove extra ghosts from accelerated cells
 
@@ -1876,19 +1896,33 @@ int simulate(int argn,char* args[]) {
 
       //forced timeclass change at time t=20
 
-      if (P::fractionalTimestep == 0 && P::tstep == 10) {
-         auto cells = getLocalCells();
-         for (CellID c: cells) {
-            if (c > 220 && c < 240) {
-               std::cout << "cid: " << c << ", pos: " << mpiGrid[c]->parameters[CellParams::XCRD] << ", " <<  mpiGrid[c]->parameters[CellParams::YCRD] << ", tc: " << mpiGrid[c]->parameters[CellParams::TIMECLASS] <<"\n"; 
-            }
-         }
+      // if (P::fractionalTimestep == 0 && P::tstep == 10) {
+      //    auto cells = getLocalCells();
+      //    for (CellID c: cells) {
+      //       if (c > 220 && c < 240) {
+      //          std::cout << "cid: " << c << ", pos: " << mpiGrid[c]->parameters[CellParams::XCRD] << ", " <<  mpiGrid[c]->parameters[CellParams::YCRD] << ", tc: " << mpiGrid[c]->parameters[CellParams::TIMECLASS] <<"\n"; 
+      //       }
+      //    }
 
-         bool asdasd=false;
+      //    bool asdasd=false;
 
-         increaseTimeclass(mpiGrid, {229}, asdasd);
+      //    increaseTimeclass(mpiGrid, {229}, asdasd);
 
-      }
+      // }
+
+      // if (P::fractionalTimestep == 0 && P::tstep == 60) {
+      //    auto cells = getLocalCells();
+      //    for (CellID c: cells) {
+      //       if (c > 220 && c < 240) {
+      //          std::cout << "cid: " << c << ", pos: " << mpiGrid[c]->parameters[CellParams::XCRD] << ", " <<  mpiGrid[c]->parameters[CellParams::YCRD] << ", tc: " << mpiGrid[c]->parameters[CellParams::TIMECLASS] <<"\n"; 
+      //       }
+      //    }
+
+      //    bool asdasd=false;
+
+      //    increaseTimeclass(mpiGrid, {229+35}, asdasd);
+
+      // }
 
       std::cout << "requested ghosts of changed cell\n";
       for (auto g: mpiGrid[229]->requested_timeclass_ghosts) {
