@@ -31,6 +31,7 @@ using namespace std;
 // Initialize static member of class ReadParameters
 bool Readparameters::helpRequested = false;
 bool Readparameters::fullHelp = false;
+bool Readparameters::legacyHelp = false;
 bool Readparameters::versionRequested = false;
 vector<string> Readparameters::populations = {};
 CLI::App app_new{"Usage: main [options (options given on the command line override "
@@ -47,9 +48,9 @@ int Readparameters::argc;
 char** Readparameters::argv;
 
 map<string, string> Readparameters::options;
+map<string, string> Readparameters::optionsComposing;
 map<string, bool> Readparameters::isOptionParsed;
-map<string, vector<string>> Readparameters::vectorOptions;
-map<string, bool> Readparameters::isVectorOptionParsed;
+map<string, bool> Readparameters::isSubComParsed;
 
 /** Constructor for class ReadParameters.
  * The constructor defines some default parameters and parses the input files.
@@ -89,6 +90,13 @@ void Readparameters::helpMessage() {
       if (rank == MASTER_RANK) {
          if (fullHelp) {
             cout << app->help("",CLI::AppFormatMode::All) << endl;
+         } else if (legacyHelp) {
+            for(std::map<std::string,std::string>::iterator iter = options.begin(); iter != options.end(); ++iter) {
+               cout << iter->first << endl;
+            }
+            for(std::map<std::string,std::string>::iterator iter = optionsComposing.begin(); iter != optionsComposing.end(); ++iter) {
+               cout << iter->first << endl;
+            }
          } else {
             cout << app->help() << endl;
          }
@@ -141,6 +149,7 @@ void Readparameters::parse(bool extras) {
    if (rank == MASTER_RANK) {
       try {
          app->allow_extras(extras);
+         app->allow_config_extras(extras);
          app->parse(argc, argv);
       } catch (const CLI::ParseError& e) {
          app->exit(e);
@@ -225,6 +234,7 @@ void Readparameters::addDefaultParameters() {
       app->remove_option(app->get_help_ptr());
       Readparameters::addFlag("--help", "print this help message", Readparameters::helpRequested);
       Readparameters::addFlag("--allhelp","print the full help without subcommand categorization", Readparameters::fullHelp);
+      Readparameters::addFlag("--legacyHelp","used for config stuff", Readparameters::legacyHelp);
       Readparameters::addFlag("--version", "print version information", Readparameters::versionRequested);
 
       // // Parameters which set the names of the configuration file(s):

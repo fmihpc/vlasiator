@@ -280,7 +280,7 @@ int simulate(int argn,char* args[]) {
     //we have to handle particle species separately because we need the full number of particle species
     //during the population init
     readparameters.parse(true);
-    if (Readparameters::fullHelp) {
+    if (Readparameters::fullHelp or Readparameters::legacyHelp) {
       Readparameters::helpRequested=true;
     }
     if (Readparameters::helpRequested) {

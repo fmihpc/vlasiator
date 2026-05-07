@@ -44,7 +44,6 @@ class Readparameters {
 public:
    Readparameters(int cmdargc, char* cmdargv[]);
    ~Readparameters();
-
    /** Add a new input parameter with lambda function that does something with each parsed value.
     * Note that parse must be called in order for the input file(s) to be re-read.
     * Only called by the root process.
@@ -60,14 +59,13 @@ public:
       int rank;
       MPI_Comm_rank(MPI_COMM_WORLD, &rank);
       CLI::Option* opt;
-      if (name.find('.') != std::string::npos) {
-
-        auto indx = name.find('.');
-        auto subcom = name.substr(0, indx);
-        auto namein = name.substr(indx + 1, name.size());
+      std::vector<std::string> cmdNameVec=parseCommandName(name);
+      if (cmdNameVec.size()==2) {
+        auto subcom = cmdNameVec.at(0);
+        auto namein = cmdNameVec.at(1);
         CLI::App* sub = nullptr;
 
-        if (!isOptionParsed[subcom]){
+        if (!isSubComParsed[subcom]){
           
           sub = app->add_subcommand(subcom, "");
 
@@ -81,13 +79,13 @@ public:
             dashes+="-";
           }
           opt=sub->add_option((dashes+namein).c_str(), var, desc.c_str())->each(lambda);//->callback_priority(priority)->force_callback();
-          isOptionParsed[subcom]=true;
+          isSubComParsed[subcom]=true;
         } else {
         std::cerr << "Something went wrong with adding subcommand "+subcom+"!" << std::endl;
         abort();
         };
       } else {
-        opt=app->add_option(("--"+name).c_str(), var, desc.c_str())->each(lambda);
+        opt=app->add_option(("--"+cmdNameVec.at(0)).c_str(), var, desc.c_str())->each(lambda);
       }  
       return opt;
    }
@@ -110,14 +108,13 @@ public:
       int rank;
       MPI_Comm_rank(MPI_COMM_WORLD, &rank);
       CLI::Option* opt;
-      if (name.find('.') != std::string::npos) {
-
-        auto indx = name.find('.');
-        auto subcom = name.substr(0, indx);
-        auto namein = name.substr(indx + 1, name.size());
+      std::vector<std::string> cmdNameVec=parseCommandName(name);
+      if (cmdNameVec.size()==2) {
+        auto subcom = cmdNameVec.at(0);
+        auto namein = cmdNameVec.at(1);
         CLI::App* sub = nullptr;
         
-        if (!isOptionParsed[subcom]){
+        if (!isSubComParsed[subcom]){
           sub = app->add_subcommand(subcom, "");
         } else {
           sub = app->get_subcommand(subcom);
@@ -129,13 +126,13 @@ public:
             dashes+="-";
           }
           opt = sub->add_option((dashes+namein).c_str(), var, desc.c_str())->capture_default_str(); //->each(lambda);
-          isOptionParsed[subcom]=true;
+          isSubComParsed[subcom]=true;
         } else {
         std::cerr << "Something went wrong with adding subcommand "+subcom+"!" << std::endl;
         abort();
         };
       } else {
-        opt=app->add_option(("--"+name).c_str(), var, desc.c_str())->capture_default_str();//->expected(0,-1); //->each(lambda);
+        opt=app->add_option(("--"+cmdNameVec.at(0)).c_str(), var, desc.c_str())->capture_default_str();//->expected(0,-1); //->each(lambda);
       }
       if (defval && opt != nullptr){
           opt->default_val(*defval);
@@ -171,7 +168,6 @@ public:
           if (line.empty()) {
             continue;
           }
-
           //check if subcommand, if found make it current subcommand to be parsed
           if (line.front()=='[') {
               if (line.back()!=']') {
@@ -181,13 +177,12 @@ public:
               continue;
           } 
           
+          //Find '=' to capture option name and value as string_view for now 
           //Find eqIndx, skip if not found
           auto eqIndx=line.find('=');
           if (eqIndx == std::string::npos ) {
             continue;
           }
-          
-          //Find '=' to capture option name and value as string_view for now 
           std::string_view optName=std::string_view(line).substr(0,eqIndx);
           std::string_view optValue=std::string_view(line).substr(eqIndx + 1,line.size());
           
@@ -207,7 +202,7 @@ public:
           } 
 
           //Skip if the command is not addComposing/not known
-          if (auto search=options.find(commandName); search == options.end()) {
+          if (auto search=optionsComposing.find(commandName); search == optionsComposing.end()) {
             continue;
           }
           //this is used for checking whether to pass the handling to CLI11 later(or rather whether to rerun callback)
@@ -215,10 +210,10 @@ public:
             continue;
           }
 
-          if (options[commandName].empty()) {
-            options[commandName]=std::string(optValue);
+          if (optionsComposing[commandName].empty()) {
+            optionsComposing[commandName]=std::string(optValue);
           } else {
-            options[commandName]=options[commandName]+','+std::string(optValue);
+            optionsComposing[commandName]=optionsComposing[commandName]+','+std::string(optValue);
           }
           isOptionParsed[commandName]=false;
     
@@ -228,7 +223,7 @@ public:
       }
     }
     //Add brackets and throw the values to CLI option
-    for(std::map<std::string,std::string>::iterator iter = options.begin(); iter != options.end(); ++iter) {
+    for(std::map<std::string,std::string>::iterator iter = optionsComposing.begin(); iter != optionsComposing.end(); ++iter) {
       std::string commandName=iter->first;
       if (rank == MASTER_RANK) {
         if (auto search=isOptionParsed.find(commandName); search == isOptionParsed.end()) {
@@ -275,27 +270,28 @@ public:
       ) {
 
       //Options are added her to be handled by the config parser defined in this file NOT CLI11
-      options[name] = "";
+      optionsComposing[name] = "";
       isOptionParsed[name]=false;
 
       //Add an option for help print and CLI
       //Will also be used to pass the parameter to other MPI ranks 
       return add(name,desc,value,defval); 
    }
+
    static std::string getPops(int i){
      return populations.at(i);
    };
+
    template <typename T> static void addFlag(const std::string& name, const std::string& desc,  T& defValue) {
       int rank;
       MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-      if (name.find('.') != std::string::npos) {
-
-        auto indx = name.find('.');
-        auto subcom = name.substr(0, indx);
-        auto namein = name.substr(indx + 1, name.size());
+      std::vector<std::string> cmdNameVec=parseCommandName(name);
+      if (cmdNameVec.size()==2) {
+        auto subcom = cmdNameVec.at(0);
+        auto namein = cmdNameVec.at(1);
         CLI::App* sub = nullptr;
         
-        if (!isOptionParsed[subcom]){
+        if (!isSubComParsed[subcom]){
           sub = app->add_subcommand(subcom, "");
         } else {
           sub = app->get_subcommand(subcom);
@@ -303,13 +299,14 @@ public:
         if (sub!=nullptr)
         {
           sub->add_flag(namein.c_str(), defValue, desc.c_str());
-          isOptionParsed[subcom]=true;
+          isSubComParsed[subcom]=true;
         } else {
         std::cerr << "Something went wrong with adding subcommand "+subcom+"!" << std::endl;
         abort();
         };
       } else {
         app->add_flag(name.c_str(), defValue, desc.c_str());
+
       }
 
    }
@@ -340,6 +337,7 @@ public:
       }
       return app->get_option(dashes+name);
    }
+
    static bool removeOption(const std::string& name, bool master_rank) {
       if (master_rank) {
         int rank;
@@ -353,7 +351,6 @@ public:
          std::string optName=name.substr(indx+1,name.size());
          CLI::App* subcom = app->get_subcommand(subcomName);
          subcom->remove_option(subcom->get_option(optName));
-
       } else {
         app->remove_option(app->get_option(name));
       }
@@ -372,21 +369,35 @@ public:
    static bool helpRequested;
    static bool fullHelp;
    static bool versionRequested;
-
+   static bool legacyHelp;
    static std::vector<std::string> populations;
 
 private:
+   static inline std::vector<std::string> parseCommandName(const std::string& name) {
+      options[name]="";  
+      std::vector<std::string> outVec;
+      if (name.find('.') != std::string::npos) {
+        auto indx = name.find('.');
+        auto subcom = name.substr(0, indx);
+        auto cmdName = name.substr(indx + 1, name.size());  
+        outVec.resize(2);
+        outVec.at(0)=subcom;
+        outVec.at(1)=cmdName;
+      } else {
+        outVec.push_back(name);
+      } 
+      return outVec;
+   }
+
    static int argc;    /**< How many entries argv contains.*/
    static char** argv; /**< Pointer to char* array containing command line parameters.*/
    static CLI::App* app; 
 
-   // static boost::program_options::options_description* descriptions;
-   // static boost::program_options::variables_map* variables;
    static std::map<std::string, std::string> options;
+   static std::map<std::string, std::string> optionsComposing;
    static std::map<std::string, bool> isOptionParsed;
-   static std::map<std::string, std::vector<std::string>> vectorOptions;
-   static std::map<std::string, bool> isVectorOptionParsed;
-
+   static std::map<std::string, bool> isSubComParsed;
+  
    static std::string global_config_file_name;
    static std::string user_config_file_name;
    static std::string run_config_file_name;
