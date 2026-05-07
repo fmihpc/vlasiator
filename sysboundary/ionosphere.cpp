@@ -3103,8 +3103,8 @@ namespace SBC {
       Readparameters::add<Real>("ionosphere.ridleyParallelConductivity", "Constant parallel conductivity value. 1000 mho is given without justification by Ridley et al 2004.", Ionosphere::ridleyParallelConductivity,1000);
       Readparameters::add<int>("ionosphere.fibonacciNodeNum", "Number of nodes in the spherical fibonacci mesh.", this->fibonacciNodeNum,256);
       Readparameters::add<string>("ionosphere.gridFilePath", "Path to the ionosphere grid mesh OBJ or VTK legacy file, if loading grid from file.",this->gridFilePath,std::string(""));
-      Readparameters::add<std::vector<Real>>("ionosphere.refineMinLatitude", "Refine the grid polewards of the given latitude. Multiple of these lines can be given for successive refinement, paired up with refineMaxLatitude lines.",this->refineMinLatitudes);
-      Readparameters::add<std::vector<Real>>("ionosphere.refineMaxLatitude", "Refine the grid equatorwards of the given latitude. Multiple of these lines can be given for successive refinement, paired up with refineMinLatitude lines.",this->refineMaxLatitudes);
+      Readparameters::addComposing("ionosphere.refineMinLatitude", "Refine the grid polewards of the given latitude. Multiple of these lines can be given for successive refinement, paired up with refineMaxLatitude lines.",this->refineMinLatitudes);
+      Readparameters::addComposing("ionosphere.refineMaxLatitude", "Refine the grid equatorwards of the given latitude. Multiple of these lines can be given for successive refinement, paired up with refineMinLatitude lines.",this->refineMaxLatitudes);
       Readparameters::add<string>("ionosphere.atmosphericModelFile", "Filename to read the MSIS atmosphere data from (default: NRLMSIS.dat)", this->atmosphericModelFile,std::string("NRLMSIS.dat"));
       Readparameters::add<Real>("ionosphere.recombAlpha", "Ionospheric recombination parameter (m^3/s)", Ionosphere::recombAlpha,2.4e-13);
       Readparameters::add<string>("ionosphere.ionizationModel", "Ionospheric electron production rate model. Options are: Rees1963, Rees1989, SergienkoIvanov (default).", this->ionizationModelString,std::string("SergienkoIvanov"));
@@ -3112,7 +3112,7 @@ namespace SBC {
       Readparameters::add<Real>("ionosphere.F10_7", "Solar 10.7 cm radio flux (sfu = 10^{-22} W/m^2)", Ionosphere::F10_7,100);
       Readparameters::add<Real>("ionosphere.backgroundIonisation", "Background ionoisation due to cosmic rays (mho)", Ionosphere::backgroundIonisation,0.5);
       Readparameters::add<Real>("ionosphere.fixedSigmaP", "Fixed Pedersen conductivity value for the whole shell, if ionizationModel is 'fixedSigma'",Ionosphere::fixedSigmaP, 10.);
-      Readparameters::add<Real>("ionosphere.fixedSigmaH", "Fixed Hall conductivity value for the whole shell, if ionizationModel is 'fixedSigma'",Ionosphere::fixedSigmaH 0.);
+      Readparameters::add<Real>("ionosphere.fixedSigmaH", "Fixed Hall conductivity value for the whole shell, if ionizationModel is 'fixedSigma'",Ionosphere::fixedSigmaH, 0.);
       Readparameters::add<int>("ionosphere.solverMaxIterations", "Maximum number of iterations for the conjugate gradient solver", Ionosphere::solverMaxIterations,2000);
       Readparameters::add<Real>("ionosphere.solverRelativeL2ConvergenceThreshold", "Convergence threshold for the relative L2 metric", Ionosphere::solverRelativeL2ConvergenceThreshold,1e-6);
       Readparameters::add<int>("ionosphere.solverMaxFailureCount", "Maximum number of iterations allowed to diverge before restarting the ionosphere solver", Ionosphere::solverMaxFailureCount,5);
@@ -3255,7 +3255,7 @@ namespace SBC {
       } else if(baseShape == "sphericalFibonacci") {
          ionosphereGrid.initializeSphericalFibonacci(fibonacciNodeNum);
       } else if(baseShape == "fromFile") {
-         ionosphereGrid.initializeGridFromFile(path);
+         ionosphereGrid.initializeGridFromFile(gridFilePath);
       } else {
          cerr << "(IONOSPHERE) Unknown mesh base shape \"" << baseShape << "\". Aborting." << endl;
          abort();
