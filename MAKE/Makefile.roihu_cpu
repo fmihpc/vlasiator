@@ -62,7 +62,7 @@ testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 
 #======== Libraries ===========
 
-LIBRARY_PREFIX =  /projappl/project_2001659/pfaukemp/CPU/vlasiator/libraries-roihu_cpu
+LIBRARY_PREFIX =  /projappl/project_2001659/pfaukemp/CPU/vlasiator-libraries/libraries-roihu_cpu/
 
 # module libraries
 LIB_PAPI = -lpapi
@@ -80,7 +80,7 @@ INC_VLSV = -I$(LIBRARY_PREFIX)/include
 LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv -lvlsv -Wl,-rpath=$(LIBRARY_PREFIX)lib
 
 INC_ZOLTAN = -I$(LIBRARY_PREFIX)/include
-LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/lib -lzoltan -Wl,-rpath=$(LIBRARY_PREFIX)/lib
+LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/lib64 -lzoltan -Wl,-rpath=$(LIBRARY_PREFIX)/lib64
 
 INC_JEMALLOC = -I$(LIBRARY_PREFIX)/include
 LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/lib -ljemalloc -Wl,-rpath=$(LIBRARY_PREFIX)/lib

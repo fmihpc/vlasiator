@@ -21,11 +21,7 @@ if [[ $PLATFORM == "-hile_cpu" || $PLATFORM=="-hile_cpu" ]]; then
    mkdir -p library-build
    BUILDDIR=library-build
 else
-   if [[ $PLATFORM == "-roihu_cpu" ]]; then
-      BUILDDIR=`mktemp -d "/scratch/project_2001659/pfaukemp/vlasiator-library-build-XXXXX"`
-   else
-      BUILDDIR=`mktemp -d "${TMPDIR:-/tmp}/vlasiator-library-build-XXXXX"`
-   fi
+   BUILDDIR=`mktemp -d "${TMPDIR:-/tmp}/vlasiator-library-build-XXXXX"`
    ln -s $BUILDDIR library-build
 fi
 
