@@ -21,7 +21,7 @@
  */
 
 #include "parameters.h"
-#include "CLI11.hpp"
+#include <CLI11.hpp>
 #include "object_wrapper.h"
 #include "particle_species.h"
 #include "projects/project.h"

@@ -21,7 +21,7 @@
  */
 
 #include "readparameters.h"
-#include "CLI11.hpp"
+#include <CLI11.hpp>
 #include "common.h"
 #include "object_wrapper.h"
 #include "projects/project.h"
