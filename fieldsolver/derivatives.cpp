@@ -138,7 +138,7 @@ void computePerbDerivatives(fsgrids::perbspan perb,
        perb[stencil.omo()],   perb[stencil.oop()],  perb[stencil.oom()],
    };
 
-   if (atSysBoundary) {
+   if (P::fieldSolverFiniteDifferencingAtBoundaries && atSysBoundary) {
       dPerB[dpb::dPERBydx] = computeDiff(bfi::PERBY, perbData.poo, perbData.moo);
       dPerB[dpb::dPERBzdx] = computeDiff(bfi::PERBZ, perbData.poo, perbData.moo);
       dPerB[dpb::dPERBxdy] = computeDiff(bfi::PERBX, perbData.opo, perbData.omo);
