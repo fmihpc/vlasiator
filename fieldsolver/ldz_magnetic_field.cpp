@@ -343,5 +343,6 @@ void propagateMagneticFieldSimple(
          propagateSysBoundaryMagneticField(perBGrid, perBDt2Grid, bgbGrid, EGrid, EDt2Grid, technicalGrid, i, j, k, sysBoundaries, dt, RKCase, dir);
       }
    }
+   sysBoundaryTimer.stop();
    propagateBTimer.stop(N_cells,"Spatial Cells");
 }

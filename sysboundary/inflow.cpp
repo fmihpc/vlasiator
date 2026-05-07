@@ -471,7 +471,7 @@ namespace SBC {
  * Make sure from the calling side that nParams Real values can be written there!
  */
    void Inflow::interpolate(const int inputDataIndex, const uint popID, creal t, Real* outputData) {
-      InflowSpeciesParameters& sP = speciesParams[popID];
+      const InflowSpeciesParameters& sP = speciesParams[popID];
 
       // Find first data[0] value which is >= t
       int i1 = 0, i2 = 0;

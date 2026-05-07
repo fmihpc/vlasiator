@@ -63,7 +63,7 @@ void reduce_vlasov_dt(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
          arch::parallel_reduce<arch::min>({2, nBlocks},
             ARCH_LOOP_LAMBDA (uint i, const uint blockLID, Real *lthreadMin) -> void{
                i = i * (WID - 1); // ie, i == 0, i == WID - 1
-               const Real* blockParams = blockContainer->getParameters(popID);
+               const Real* blockParams = blockContainer->getParameters();
                const Real Vx =
                    blockParams[blockLID * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] +
                    (i + HALF) * blockParams[blockLID * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX] + EPS;

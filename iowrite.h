@@ -117,7 +117,7 @@ bool writeDiagnostic(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 bool writeVelocitySpace(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                         vlsv::Writer& vlsvWriter,int index,const std::vector<uint64_t>& cells);
 
-bool writeVelocityDistributionData(vlsv::Writer& vlsvWriter,dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+bool writeVelocityDistributionData(vlsv::Writer& vlsvWriter,const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                    const std::vector<uint64_t>& cells,MPI_Comm comm);
 
 bool writeIonosphereGridMetadata(vlsv::Writer& vlsvWriter);

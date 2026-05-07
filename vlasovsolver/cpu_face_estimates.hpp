@@ -212,7 +212,7 @@ inline void compute_h3_left_face_derivative(const Vec * const values, uint k, Ve
   2) Makes face values bounded
   3) Makes sure face slopes are consistent with PLM slope
 */
-inline void compute_filtered_face_values_derivatives(const Vec * const values, uint k, face_estimate_order order, Vec &fv_l, Vec &fv_r, Vec &fd_l, Vec &fd_r, const Realf threshold)
+inline void compute_filtered_face_values_derivatives(const Vec * const values,const uint k,const face_estimate_order order, Vec &fv_l, Vec &fv_r, Vec &fd_l, Vec &fd_r, const Realf threshold)
 {
    switch(order)
    {
@@ -275,7 +275,7 @@ inline void compute_filtered_face_values_derivatives(const Vec * const values, u
   2) Makes face values bounded
   3) Makes sure face slopes are consistent with PLM slope
 */
-inline void compute_filtered_face_values(const Vec * const values, uint k, face_estimate_order order, Vec &fv_l, Vec &fv_r, const Realf threshold)
+inline void compute_filtered_face_values(const Vec * const values,const uint k,const face_estimate_order order, Vec &fv_l, Vec &fv_r, const Realf threshold)
 {
    switch(order)
    {
@@ -324,7 +324,7 @@ inline void compute_filtered_face_values(const Vec * const values, uint k, face_
 
 
 
-inline void compute_filtered_face_values_nonuniform(const Realf * const dv, const Vec * const values, uint k, face_estimate_order order, Vec &fv_l, Vec &fv_r, const Realf threshold){
+inline void compute_filtered_face_values_nonuniform(const Realf * const dv, const Vec * const values,const uint k,const face_estimate_order order, Vec &fv_l, Vec &fv_r, const Realf threshold){
    switch(order){
       case h4:
          compute_h4_left_face_value_nonuniform(dv, values, k, fv_l);
@@ -377,7 +377,7 @@ inline void compute_filtered_face_values_nonuniform(const Realf * const dv, cons
    }
 }
 
-inline Vec get_D2aLim(const Realf * h, const Vec * values, uint k, const Vec C, Vec & fv) {
+inline Vec get_D2aLim(const Realf * h, const Vec * values,const uint k, const Vec C,const Vec & fv) {
 
    // Colella & Sekora, eq. 18
    Vec invh2 = 1.0 / (h[k] * h[k]);
@@ -394,7 +394,7 @@ inline Vec get_D2aLim(const Realf * h, const Vec * values, uint k, const Vec C, 
    return d2aLim;
 }
 
-inline void constrain_face_values(const Realf * h,const Vec * values,uint k,Vec & fv_l, Vec & fv_r) {
+inline void constrain_face_values(const Realf * h,const Vec * values,const uint k,Vec & fv_l, Vec & fv_r) {
 
    const Vec C = 1.25;
    Vec invh2 = 1.0 / (h[k] * h[k]);
@@ -434,7 +434,7 @@ inline void constrain_face_values(const Realf * h,const Vec * values,uint k,Vec 
 
 }
 
-inline void compute_filtered_face_values_nonuniform_conserving(const Realf * const dv, const Vec * const values,uint k, face_estimate_order order, Vec &fv_l, Vec &fv_r, const Realf threshold){
+inline void compute_filtered_face_values_nonuniform_conserving(const Realf * const dv, const Vec * const values,const uint k,const face_estimate_order order, Vec &fv_l, Vec &fv_r, const Realf threshold){
    switch(order){
       case h4:
          compute_h4_left_face_value_nonuniform(dv, values, k, fv_l);

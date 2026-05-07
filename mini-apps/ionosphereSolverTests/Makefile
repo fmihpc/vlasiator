@@ -85,7 +85,7 @@ fieldtracing.o: ../../fieldtracing/fieldtracing.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c ../../fieldtracing/fieldtracing.cpp ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_ZOLTAN} ${INC_EIGEN} ${INC_PROFILE} ${INC_JEMALLOC}
 
 main.o: main.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c ./main.cpp  ${INC_VLSV} ${INC_BOOST} ${INC_PROFILE} ${INC_JEMALLOC} ${INC_DCCRG} ${INC_ZOLTAN} ${INC_FSGRID}
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c ./main.cpp  ${INC_VLSV} ${INC_BOOST} ${INC_PROFILE} ${INC_JEMALLOC} ${INC_DCCRG} ${INC_ZOLTAN} ${INC_FSGRID} ${INC_EIGEN}
 
 main: main.o ionosphere.o sysboundarycondition.o parameters.o readparameters.o object_wrapper.o particle_species.o spatial_cell.o arch_moments.o iowrite.o logger.o datareducer.o datareductionoperator.o common.o ioread.o fs_common.o version.o fieldtracing.o velocity_mesh_parameters.o
 	${LNK} ${LDFLAGS} -o main $^ $(LIBS) -lgomp
@@ -146,3 +146,6 @@ lfmtest.dat: LFMtest.vlsv
 LFMtest: lfmtest.dat
 	./plot_LFMtest.gp
 	#./plot_ionosphereLFM.py LFMtest.vlsv
+curlJtest: main
+	 OMP_NUM_THREADS=1 ./main -N 2000 -r 40 90 -r 50 90 -r 60 80 -sigma curlJ -fac file -infile FHA_bulk501.vlsv -gaugeFix equator50 -o curlJtest.vlsv
+	 ./plot_ionosphereEigenPhi.py curlJtest.vlsv
