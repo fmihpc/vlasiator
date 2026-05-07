@@ -53,10 +53,7 @@ jobs:
     container: ursg/vlasiator_ci:20250909_1
 
     steps:
-      - name: Install build dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y cmake
+      - uses: lukka/get-cmake@latest
       - name: Checkout source
         uses: actions/checkout@v4
       - name: Run library build script
