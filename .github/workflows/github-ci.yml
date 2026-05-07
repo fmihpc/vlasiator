@@ -53,10 +53,10 @@ jobs:
     container: ursg/vlasiator_ci:20250909_1
 
     steps:
+      - uses: threeal/cmake-action@v2.1.0
       - name: Checkout source
         uses: actions/checkout@v4
       - name: Run library build script
-        uses: threeal/cmake-action@v2.1.0
         run: ./fetch_and_build_libraries.sh
       - name: Build libraries tar
         run: tar --zstd -cf libraries-docker.tar.zstd libraries-docker/
