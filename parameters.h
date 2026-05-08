@@ -241,7 +241,12 @@ struct Parameters {
    static int PADmubins; // Number of bins in mu for pitch-angle diffusion
    static std::string PADnu0; // Path to txt file for nu0
    static Realf PADfudge; // Fudge factore for diffusion   
-
+   static std::vector<std::string> mpiioKeysWrite;
+   static std::vector<std::string> mpiioValuesWrite;
+   static std::vector<std::string> mpiioKeysRestartRead;
+   static std::vector<std::string> mpiioValuesRestartRead;
+   static std::vector<std::string> mpiioKeysRestartWrite;
+   static std::vector<std::string> mpiioValuesRestartWrite;
    static std::array<FsGridTools::Task_t,3> manualFsGridDecomposition;
    static std::array<FsGridTools::Task_t,3> overrideReadFsGridDecomposition;
    

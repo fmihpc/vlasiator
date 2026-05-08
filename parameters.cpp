@@ -103,6 +103,13 @@ vector<bool> P::systemWriteFsGrid;
 bool P::systemWriteAllDROs=false;
 bool P::diagnosticWriteAllDROs=false;
 vector<int> P::systemWrites;
+std::vector<std::string> P::mpiioKeysWrite;
+std::vector<std::string> P::mpiioValuesWrite;
+std::vector<std::string> P::mpiioKeysRestartRead;
+std::vector<std::string> P::mpiioValuesRestartRead;
+std::vector<std::string> P::mpiioKeysRestartWrite;
+std::vector<std::string> P::mpiioValuesRestartWrite;
+
 vector<pair<string, string>> P::systemWriteHints;
 vector<pair<string, string>> P::restartWriteHints;
 vector<pair<string, string>> P::restartReadHints;
@@ -255,22 +262,22 @@ bool P::addParameters() {
    RP::add("io.system_write_fsgrid_variables", "If 0 don't write fsgrid DROs, if 1 do write them.",P::systemWriteFsGrid);
    RP::add(
        "io.system_write_mpiio_hint_key",
-       "MPI-IO hint key passed to the non-restart IO. Has to be matched by io.system_write_mpiio_hint_value.",P::systemWriteHints);
-   // RP::add(
-   //     "io.system_write_mpiio_hint_value",
-   //     "MPI-IO hint value passed to the non-restart IO. Has to be matched by io.system_write_mpiio_hint_key.");
+       "MPI-IO hint key passed to the non-restart IO. Has to be matched by io.system_write_mpiio_hint_value.",P::mpiioKeysWrite);
+   RP::add(
+       "io.system_write_mpiio_hint_value",
+       "MPI-IO hint value passed to the non-restart IO. Has to be matched by io.system_write_mpiio_hint_key.",P::mpiioValuesWrite);
    RP::add(
        "io.restart_write_mpiio_hint_key",
-       "MPI-IO hint key passed to the restart IO. Has to be matched by io.restart_write_mpiio_hint_value.",P::restartWriteHints);
-   // RP::add(
-   //     "io.restart_write_mpiio_hint_value",
-   //     "MPI-IO hint value passed to the restart IO. Has to be matched by io.restart_write_mpiio_hint_key.");
+       "MPI-IO hint key passed to the restart IO. Has to be matched by io.restart_write_mpiio_hint_value.",P::mpiioKeysRestartWrite);
+   RP::add(
+       "io.restart_write_mpiio_hint_value",
+       "MPI-IO hint value passed to the restart IO. Has to be matched by io.restart_write_mpiio_hint_key.",P::mpiioValuesRestartWrite);
    RP::add(
        "io.restart_read_mpiio_hint_key",
-       "MPI-IO hint key passed to the restart IO. Has to be matched by io.restart_read_mpiio_hint_value.",P::restartReadHints);
-   // RP::add(
-   //     "io.restart_read_mpiio_hint_value",
-   //     "MPI-IO hint value passed to the restart IO. Has to be matched by io.restart_read_mpiio_hint_key.");
+       "MPI-IO hint key passed to the restart IO. Has to be matched by io.restart_read_mpiio_hint_value.",P::mpiioKeysRestartRead);
+   RP::add(
+       "io.restart_read_mpiio_hint_value",
+       "MPI-IO hint value passed to the restart IO. Has to be matched by io.restart_read_mpiio_hint_key.",P::mpiioValuesRestartRead);
 
    RP::add("io.write_initial_state",
            "Write initial state, not even the 0.5 dt propagation is done. Do not use for restarting. ", P::writeInitialState);
@@ -591,7 +598,7 @@ void Parameters::getParameters() {
 
    for (auto diagnosticVar: diagnosticVariableList) {
      if (std::find(deprecatedDiagnosticVariables.begin(),deprecatedDiagnosticVariables.end(),diagnosticVar)!=deprecatedDiagnosticVariables.end()){
-       std::cerr << "Found deprecated diagnostic variable: "<<diagnosticVartVar<<", this will ignored!" << std::endl;
+       std::cerr << "Found deprecated diagnostic variable: "<<diagnosticVar<<", this will ignored!" << std::endl;
      }
    }
 
@@ -714,28 +721,53 @@ void Parameters::getParameters() {
       }
    }
 
-
-   vector<string> mpiioKeys, mpiioValues;
-   //NOTE: this needs to be fixed
-   //RP::get("io.system_write_mpiio_hint_key", mpiioKeys);
-   //RP::get("io.system_write_mpiio_hint_value", mpiioValues);
-
-   if (mpiioKeys.size() != mpiioValues.size()) {
+   // system write hints
+   if (P::mpiioKeysWrite.size() != P::mpiioValuesWrite.size()) {
       if (myRank == MASTER_RANK) {
          cerr << "WARNING the number of io.system_write_mpiio_hint_key and io.system_write_mpiio_hint_value do not "
                  "match. Disregarding these options."
               << endl;
       }
    } else {
-      for (uint i = 0; i < mpiioKeys.size(); i++) {
-         P::systemWriteHints.push_back({mpiioKeys[i], mpiioValues[i]});
+      for (uint i = 0; i < P::mpiioKeysWrite.size(); i++) {
+         P::systemWriteHints.push_back({P::mpiioKeysWrite[i], P::mpiioValuesWrite[i]});
       }
    }
+   P::mpiioKeysWrite.clear();
+   P::mpiioValuesWrite.clear();
 
-   // mpiioKeys.clear();
-   // mpiioValues.clear();
+   // Restart read hints
+   if (P::mpiioKeysRestartRead.size() != P::mpiioValuesRestartRead.size()) {
+      if (myRank == MASTER_RANK) {
+         cerr << "WARNING the number of io.system_write_mpiio_hint_key and io.system_write_mpiio_hint_value do not "
+                 "match. Disregarding these options."
+              << endl;
+      }
+   } else {
+      for (uint i = 0; i < P::mpiioKeysRestartRead.size(); i++) {
+         P::restartReadHints.push_back({P::mpiioKeysRestartRead[i], P::mpiioValuesRestartRead[i]});
+      }
+   }
+   P::mpiioKeysRestartRead.clear();
+   P::mpiioValuesRestartRead.clear();
 
- 
+   // Restart write hints
+   if (P::mpiioKeysRestartWrite.size() != P::mpiioValuesRestartWrite.size()) {
+      if (myRank == MASTER_RANK) {
+         cerr << "WARNING the number of io.system_write_mpiio_hint_key and io.system_write_mpiio_hint_value do not "
+                 "match. Disregarding these options."
+              << endl;
+      }
+   } else {
+      for (uint i = 0; i < P::mpiioKeysRestartWrite.size(); i++) {
+         P::restartWriteHints.push_back({P::mpiioKeysRestartWrite[i], P::mpiioValuesRestartWrite[i]});
+      }
+   }
+   P::mpiioKeysRestartWrite.clear();
+   P::mpiioValuesRestartWrite.clear();
+
+
+
    P::hallMinimumRhom = hallRho * physicalconstants::MASS_PROTON;
    P::hallMinimumRhoq = hallRho * physicalconstants::CHARGE;
    P::isRestart = (P::restartFileName != string(""));
