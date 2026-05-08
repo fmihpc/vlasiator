@@ -35,7 +35,7 @@ bool Readparameters::legacyHelp = false;
 bool Readparameters::versionRequested = false;
 vector<string> Readparameters::populations = {};
 CLI::App app_new{"Usage: main [options (options given on the command line override "
-                 "options given everywhere else)], where options are:"};
+                 "options given everywhere else)], where options are:","vlasiator"};
 CLI::App* Readparameters::app = &app_new;
 // PO::options_description* Readparameters::descriptions = NULL;
 // PO::variables_map* Readparameters::variables = NULL;
@@ -66,8 +66,8 @@ Readparameters::Readparameters(int cmdargc, char* cmdargv[]) {
    if (rank == MASTER_RANK) {
       // variables = new PO::variables_map;
       addDefaultParameters();
-      app->set_config("--run_config");
-
+      app->set_config("--run_config","config.cfg","Configuration file.");
+      // auto config_base = app.get_config_formatter_base();  
       // Read options from command line, first time for help message parsing, second time in parse() below.
       // PO::store(PO::command_line_parser(argc, argv).options(*descriptions).allow_unregistered().run(), *variables);
       // PO::notify(*variables);
@@ -151,8 +151,31 @@ void Readparameters::parse(bool extras) {
          app->allow_extras(extras);
          app->allow_config_extras(extras);
          app->parse(argc, argv);
-      } catch (const CLI::ParseError& e) {
-         app->exit(e);
+      } catch (const CLI::ConfigError& err) {
+         auto config_file=app->get_config_ptr()->as<std::string>();
+         std::vector<CLI::ConfigItem> givenOptions = app->get_config_formatter()->from_file(config_file);
+         std::string invalidOptions="";
+         bool lastSubcomValid=true;
+         for (auto &opt : givenOptions) {
+            auto optName=opt.fullname();
+            std::string subcom="";
+            if (optName.back()=='+') {
+              subcom=optName.substr(0,optName.size()-3);
+              if (!isSubComParsed[subcom]) {
+                invalidOptions+="["+subcom+"]";
+                lastSubcomValid=false;
+              }
+              continue;
+            }
+            else if (optName.back()=='-') { 
+              lastSubcomValid=true;
+              continue;
+            };
+            if( (options.find(optName)==options.end()) && (optionsComposing.find(optName)==optionsComposing.end()) && lastSubcomValid) {
+                invalidOptions+=" "+opt.fullname()+'\n';
+            } 
+          }
+         std::cerr << "Error parsing config, following options are invalid:\n"<<invalidOptions << std::endl;
          MPI_Finalize();
          exit(1);
       }
@@ -169,7 +192,6 @@ void Readparameters::parse(bool extras) {
 
     MPI_Bcast(&confsize, 1, MPI_INT,
               MASTER_RANK, MPI_COMM_WORLD);
-
     if (rank != MASTER_RANK) {
         conf.resize(confsize);
     }
@@ -236,7 +258,7 @@ void Readparameters::addDefaultParameters() {
       app->remove_option(app->get_help_ptr());
       Readparameters::addFlag("--help", "print this help message", Readparameters::helpRequested);
       Readparameters::addFlag("--allhelp","print the full help without subcommand categorization", Readparameters::fullHelp);
-      Readparameters::addFlag("--legacyHelp","used for config stuff", Readparameters::legacyHelp);
+      Readparameters::addFlag("--legacyHelp","print all the options as a long list", Readparameters::legacyHelp);
       Readparameters::addFlag("--version", "print version information", Readparameters::versionRequested);
 
       // // Parameters which set the names of the configuration file(s):
