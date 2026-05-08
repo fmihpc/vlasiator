@@ -448,25 +448,6 @@ bool P::addParameters() {
                         "vg_amr_drho vg_amr_du vg_amr_dpsq vg_amr_dbsq vg_amr_db vg_amr_alpha1 vg_amr_reflevel vg_amr_alpha2 "+
                         "vg_gridcoordinates fg_gridcoordinates vg_pressure_anisotropy vg_amr_vorticity",P::outputVariableList);
 
-   // RP::add(
-   //     "variables_deprecated.output",
-   //     string() + "List of deprecated names for data reduction operators (DROs). Names are case insensitive. " +
-   //         "Available (20250413): " + "B BackgroundB fg_BackgroundB PerturbedB fg_PerturbedB " + "E " +
-   //         "Rhom Rhoq populations_Rho " + "V populations_V " +
-   //         "populations_moments_Backstream populations_moments_NonBackstream " +
-   //         "populations_moments_thermal populations_moments_nonthermal " +
-   //         "populations_minvalue populations_EffectiveSparsityThreshold populations_RhoLossAdjust "
-   //         "populations_rho_loss_adjust populations_1dmuspace " +
-   //         "populations_EnergyDensity populations_PrecipitationFlux populations_precipitationdifferentialflux" +
-   //         "LBweight vg_lbweight vg_loadbalanceweight MaxVdt MaxRdt populations_MaxVdt populations_MaxRdt " +
-   //         "populations_maxdt_acceleration populations_maxdt_translation MaxFieldsdt fg_maxfieldsdt" +
-   //         "MPIrank FsGridRank " + "FsGridBoundaryType BoundaryType FsGridBoundaryLayer BoundaryLayer " +
-   //         "populations_Blocks fSaved vg_fsaved" + "populations_accSubcycles populations_acceleration_subcycles" +
-   //         "VolE vg_VolE Evol E_vol fg_VolE fg_Evol " +
-   //         "HallE fg_HallE GradPeE e_gradpe VolB vg_VolB fg_VolB B_vol Bvol vg_Bvol fg_volB fg_Bvol " +
-   //         "BackgroundVolB PerturbedVolB " + "Pressure vg_Pressure fg_Pressure populations_PTensor " +
-   //         "BVOLderivs b_vol_derivs",P::outputVariableList);
-
    RP::add("io.diagnostic_write_all_data_reducers", "Write all available diagnostic reducers", P::diagnosticWriteAllDROs);
    // NOTE Do not remove the : before the list of variable names as this is parsed by tools/check_vlasiator_cfg.sh
    RP::addComposing("variables.diagnostic",
@@ -477,17 +458,6 @@ bool P::addParameters() {
                         "vg_rhom populations_vg_rho_loss_adjust " + "vg_loadbalance_weight " +
                         "vg_maxdt_acceleration vg_maxdt_translation " + "fg_maxdt_fieldsolver " +
                         "populations_vg_maxdt_acceleration populations_vg_maxdt_translation ",P::diagnosticVariableList)->expected(0,-1);
-
-   // RP::add("variables_deprecated.diagnostic",
-   //                  string() +
-   //                      "List of deprecated data reduction operators (DROs) to add to the diagnostic runtime output. "
-   //                      "Names are case insensitive. " +
-   //                      "Available (20250130): " + "rhom populations_rholossadjust populations_rho_loss_adjust " +
-   //                      "populations_blocks lbweight loadbalance_weight " + "vg_lbweight vg_loadbalanceweight " +
-   //                      "maxvdt maxdt_acceleration " + "maxrdt maxdt_translation " +
-   //                      "populations_maxvdt populations_maxrdt " +
-   //                      "populations_maxdt_acceleration populations_maxdt_translation " +
-   //                      "maxfieldsdt maxdt_fieldsolver fg_maxfieldsdt",P::diagnosticVariableList);
 
    // bailout parameters
    RP::add("bailout.write_restart",
@@ -601,12 +571,31 @@ void Parameters::getParameters() {
       "BackgroundVolB","PerturbedVolB","Pressure","vg_Pressure","fg_Pressure","populations_PTensor",
       "BVOLderivs","b_vol_derivs",
    };
-   std::vector<std::string> deprecatedDiagnosticVariables {};
+   std::vector<std::string> deprecatedDiagnosticVariables{
+      "rhom","populations_rholossadjust","populations_rho_loss_adjust",
+     "populations_blocks","lbweight",
+     "loadbalance_weight","vg_lbweight",
+     "vg_loadbalanceweight","maxvdt",
+     "maxdt_acceleration","maxrdt",
+     "maxdt_translation","populations_maxvdt",
+     "populations_maxrdt","populations_maxdt_acceleration",
+     "populations_maxdt_translation","maxfieldsdt",
+     "maxdt_fieldsolver","fg_maxfieldsdt"
+   };
+   //check for deprecated variables
    for (auto outputVar: outputVariableList) {
      if (std::find(deprecatedOutputVariables.begin(),deprecatedOutputVariables.end(),outputVar)!=deprecatedOutputVariables.end()){
-       std::cerr << "Found deprecated output variable: "<<outputVar<<"!" << std::endl;
+       std::cerr << "Found deprecated output variable: "<<outputVar<<", this will be ignored!" << std::endl;
      }
    }
+
+   for (auto diagnosticVar: diagnosticVariableList) {
+     if (std::find(deprecatedDiagnosticVariables.begin(),deprecatedDiagnosticVariables.end(),diagnosticVar)!=deprecatedDiagnosticVariables.end()){
+       std::cerr << "Found deprecated diagnostic variable: "<<diagnosticVartVar<<", this will ignored!" << std::endl;
+     }
+   }
+
+
    const string prefix = string("./");
    if (access(&(P::restartWritePath[0]), W_OK) != 0) {
       if (myRank == MASTER_RANK) {
