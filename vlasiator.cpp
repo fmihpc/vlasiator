@@ -312,7 +312,6 @@ int simulate(int argn,char* args[]) {
    P::getParameters();
 
    Project* project = getObjectWrapper().project;
-
    // getObjectWrapper().project = project; (Already set in createProject)
 
    // sysBoundaryContainer.getParameters();

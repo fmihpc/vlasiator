@@ -180,7 +180,7 @@ public:
           //Find '=' to capture option name and value as string_view for now 
           //Find eqIndx, skip if not found
           auto eqIndx=line.find('=');
-          if (eqIndx == std::string::npos ) {
+          if (eqIndx == std::string::npos ) {  
             continue;
           }
           std::string_view optName=std::string_view(line).substr(0,eqIndx);
@@ -248,6 +248,10 @@ public:
                   MASTER_RANK, MPI_COMM_WORLD);
 
         auto opt= getOption(commandName);
+        if (opt->get_items_expected()==0 && optVal=="[]") {
+          continue;
+        }
+
         opt->clear();
         opt->add_result(optVal);
         opt->run_callback(); 
