@@ -636,19 +636,47 @@ Project* createProject() {
    MPI_Comm_rank(MPI_COMM_WORLD,&rank);
    Project* project=nullptr;
 
-    if (Readparameters::helpRequested) {
-        projects::MultiPeak* multipeak=new projects::MultiPeak();
-        projects::Flowthrough* flowthrough=new projects::Flowthrough();
-        projects::Magnetosphere* magnetosphere=new projects::Magnetosphere();
-        projects::LossCone* losscone=new projects::LossCone();
-        projects::test_fp* test_fp=new projects::test_fp();
-       
-        multipeak->addCommonParameters();
-        multipeak->addParameters();
-        losscone->addParameters();
-        magnetosphere->addParameters();
-        flowthrough->addParameters();
-        test_fp->addParameters();
+    if (Readparameters::helpRequested && P::projectName=="") {
+        projects::MultiPeak* _Multipeak=new projects::MultiPeak();
+        projects::Alfven* _Alfven = new projects::Alfven();
+        projects::Flowthrough* _Flowthrough=new projects::Flowthrough();
+        projects::Magnetosphere* _Magnetosphere=new projects::Magnetosphere();
+        projects::LossCone* _Losscone=new projects::LossCone();
+        projects::test_fp* _test_fp=new projects::test_fp();
+        projects::Firehose* _Firehose = new projects::Firehose();
+        projects::Diffusion* _Diffusion = new projects::Diffusion();
+        projects::Harris* _Harris = new projects::Harris();
+        projects::Riemann1* _Riemann1 = new projects::Riemann1();
+        projects::TestHall* _TestHall = new projects::TestHall();
+        projects::Larmor* _Larmor = new projects::Larmor();
+        projects::IPShock* _IPShock = new projects::IPShock();
+        projects::Fluctuations* _Fluctuations = new projects::Fluctuations();
+        projects::verificationLarmor* _verificationLarmor = new projects::verificationLarmor();
+        projects::KHB* _KHB = new projects::KHB();
+        projects::Dispersion* _Dispersion = new projects::Dispersion();
+        projects::Shock* _Shock = new projects::Shock();
+        projects::Shocktest* _Shocktest = new projects::Shocktest();
+
+        _Multipeak->addCommonParameters();
+        _Multipeak->addParameters();
+        _Losscone->addParameters();
+        _Magnetosphere->addParameters();
+        _Flowthrough->addParameters();
+        _test_fp->addParameters();
+        _Firehose->addParameters();
+        _Diffusion->addParameters();
+        _Harris->addParameters();
+        _Riemann1->addParameters();
+        _TestHall->addParameters();
+        _Larmor->addParameters();
+        _IPShock->addParameters();
+        _Fluctuations->addParameters();
+        _verificationLarmor->addParameters();
+        _KHB->addParameters();
+        _Dispersion->addParameters();
+        _Shock->addParameters();
+        _Shocktest->addParameters();
+
         return nullptr;
 
     } else if(Parameters::projectName == "") {
@@ -670,8 +698,44 @@ Project* createProject() {
     } else if (Parameters::projectName=="Alfven") {
         project=new projects::Alfven();
 
-     } else if (Parameters::projectName=="test_fp") {
+    } else if (Parameters::projectName=="test_fp") {
         project=new projects::test_fp();
+
+    } else if (Parameters::projectName=="Firehose") {
+        project=new projects::Firehose();
+
+    } else if (Parameters::projectName=="Diffusion") {
+        project=new projects::Diffusion();
+
+    } else if (Parameters::projectName=="Harris") {
+        project=new projects::Harris();
+
+    } else if (Parameters::projectName=="Riemann1") {
+        project=new projects::Riemann1();
+
+    } else if (Parameters::projectName=="TestHall") {
+        project=new projects::TestHall();
+
+    } else if (Parameters::projectName=="Larmor") {
+        project=new projects::Larmor();
+
+    } else if (Parameters::projectName=="IPShock") {
+        project=new projects::IPShock();
+
+    } else if (Parameters::projectName=="Fluctuations") {
+        project=new projects::Fluctuations();
+
+    } else if (Parameters::projectName=="verificationLarmor") {
+        project=new projects::verificationLarmor();
+
+    } else if (Parameters::projectName=="KHB") {
+        project=new projects::KHB();
+
+    } else if (Parameters::projectName=="Shock") {
+        project=new projects::Shock();
+
+    } else if (Parameters::projectName=="Shocktest") {
+        project=new projects::Shocktest();
 
     } else {
         cerr << "Unknown project name! = "<<Parameters::projectName << endl;
