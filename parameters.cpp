@@ -583,6 +583,30 @@ void Parameters::getParameters() {
    // Checks for validity of io and restart parameters
    int myRank;
    MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
+
+   std::vector<std::string> deprecatedOutputVariables {
+      "B","BackgroundB","fg_BackgroundB","PerturbedB","fg_PerturbedB","E",
+      "Rhom","Rhoq","populations_Rho","V","populations_V",
+      "populations_moments_Backstream","populations_moments_NonBackstream",
+      "populations_moments_thermal","populations_moments_nonthermal",
+      "populations_minvalue","populations_EffectiveSparsityThreshold","populations_RhoLossAdjust",
+      "populations_rho_loss_adjust","populations_1dmuspace",
+      "populations_EnergyDensity","populations_PrecipitationFlux","populations_precipitationdifferentialflux",
+      "LBweight","vg_lbweight","vg_loadbalanceweight","MaxVdt","MaxRdt","populations_MaxVdt","populations_MaxRdt",
+      "populations_maxdt_acceleration","populations_maxdt_translation","MaxFieldsdt","fg_maxfieldsdt",
+      "MPIrank","FsGridRank","FsGridBoundaryType","BoundaryType","FsGridBoundaryLayer","BoundaryLayer",
+      "populations_Blocks","fSaved","vg_fsaved","populations_accSubcycles","populations_acceleration_subcycles",
+      "VolE","vg_VolE","Evol","E_vol","fg_VolE","fg_Evol",
+      "HallE","fg_HallE","GradPeE","e_gradpe","VolB","vg_VolB","fg_VolB","B_vol","Bvol","vg_Bvol","fg_volB","fg_Bvol",
+      "BackgroundVolB","PerturbedVolB","Pressure","vg_Pressure","fg_Pressure","populations_PTensor",
+      "BVOLderivs","b_vol_derivs",
+   };
+   std::vector<std::string> deprecatedDiagnosticVariables {};
+   for (auto outputVar: outputVariableList) {
+     if (std::find(deprecatedOutputVariables.begin(),deprecatedOutputVariables.end(),outputVar)!=deprecatedOutputVariables.end()){
+       std::cerr << "Found deprecated output variable: "<<outputVar<<"!" << std::endl;
+     }
+   }
    const string prefix = string("./");
    if (access(&(P::restartWritePath[0]), W_OK) != 0) {
       if (myRank == MASTER_RANK) {
