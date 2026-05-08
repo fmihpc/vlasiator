@@ -79,7 +79,7 @@ INC_VLSV = -I$(VLASIATOR_LIBRARY_PATH)/include
 LIB_BOOST = -L$(VLASIATOR_LIBRARY_PATH)/lib  -lboost_program_options
 INC_BOOST = -isystem $(VLASIATOR_LIBRARY_PATH)/include
 
-LIB_ZOLTAN = -L$(VLASIATOR_LIBRARY_PATH)/lib -lzoltan
+LIB_ZOLTAN = -L$(VLASIATOR_LIBRARY_PATH)/lib64 -lzoltan
 INC_ZOLTAN = -isystem $(VLASIATOR_LIBRARY_PATH)/include
 
 LIB_PAPI = -lpapi
