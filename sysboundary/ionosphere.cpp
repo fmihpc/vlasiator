@@ -3096,7 +3096,7 @@ namespace SBC {
       Readparameters::add<Real>("ionosphere.radius", "Radius of the inner simulation boundary (unit is assumed to be R_E if value < 1000, otherwise m).", Ionosphere::radius,1.0e7);
       Readparameters::add<Real>("ionosphere.innerRadius", "Radius of the ionosphere model (m).", Ionosphere::innerRadius,physicalconstants::R_E+100e3);
       Readparameters::add<uint>("ionosphere.geometry", "Select the geometry of the ionosphere, 0: inf-norm (diamond), 1: 1-norm (square), 2: 2-norm (circle, DEFAULT), 3: 2-norm cylinder aligned with y-axis, use with polar plane/line dipole.", this->geometry,2);
-      Readparameters::add<uint>("ionosphere.precedence", "Precedence value of the ionosphere system boundary condition (integer), the higher the stronger.",this->precedence,3);
+      Readparameters::add<uint>("ionosphere.precedence", "Precedence value of the ionosphere system boundary condition (integer), the higher the stronger.",this->precedence,2);
       Readparameters::add<bool>("ionosphere.reapplyUponRestart", "If 0 (default), keep going with the state existing in the restart file. If 1, calls again applyInitialState. Can be used to change boundary condition behaviour during a run.", this->applyUponRestart,false);
       Readparameters::add<string>("ionosphere.baseShape", "Select the seed mesh geometry for the spherical ionosphere grid. Options are: sphericalFibonacci, tetrahedron, icosahedron.", this->baseShape,std::string("sphericalFibonacci"));
       Readparameters::add<SBC::Ionosphere::IonosphereConductivityModel>("ionosphere.conductivityModel", "Select ionosphere conductivity tensor construction model. Options are: 0=GUMICS style (Vertical B, only SigmaH and SigmaP), 1=Ridley et al 2004 (1000 mho longitudinal conductivity), 2=Koskinen 2011 full conductivity tensor.", Ionosphere::conductivityModel,IonosphereConductivityModel::GUMICS);
@@ -3214,11 +3214,10 @@ namespace SBC {
               sP->T=proj->speciesParamsRead.at(i)->T;
           }
           if(sP->rho == 0) {
-              sP->T=proj->speciesParamsRead.at(i)->rho;
+              sP->rho=proj->speciesParamsRead.at(i)->rho;
           }
         }
-        this->speciesParams.push_back(*sP);
-        this->speciesParams.at(i)=*sP;
+        this->speciesParams.push_back(*sP); //Issue?
       }
    }
 
