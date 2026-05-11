@@ -15,7 +15,7 @@ else
 fi
 echo "Using platform $PLATFORM"
 
-if [[ $PLATFORM == "-hile_cpu" || $PLATFORM=="-hile_cpu" ]]; then
+if [[ $PLATFORM == "-hile_cpu" || $PLATFORM == "-hile_gpu" ]]; then
    # Regular subdirectory instead of on /tmp
    rm -rf library-build
    mkdir -p library-build
