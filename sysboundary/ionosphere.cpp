@@ -370,7 +370,7 @@ namespace SBC {
    }
 
    // Read an arbitrary ionosphere grid, in either Wavefront OBJ
-   // or VTK ASCII format. 
+   // or VTK ASCII format.
    // The file should contain only a single triangle grid (and be otherwise
    // reasonable for use as an ionosphere mesh)
    void SphericalTriGrid::initializeGridFromFile(string pathString) {
@@ -1557,7 +1557,7 @@ namespace SBC {
                            continue;
                         }
 
-                        if(nodes[i].openFieldLine  == FieldTracing::TracingLineEndType::CLOSED) {
+                        if(nodes[i].openFieldLine == FieldTracing::TracingLineEndType::CLOSED) {
                            // Closed nodes can be probed directly
                            Eigen::Vector3d ox(nodes[i].x.data());
                            Real distance = (ox - x).norm();
@@ -2798,7 +2798,7 @@ namespace SBC {
 #endif
          for(uint n=0; n<nodes.size(); n++) {
             Node& N=nodes[n];
-            const iSolverReal incr = N.openFieldLine * N.parameters[ionosphereParameters::RRESIDUAL];
+            const iSolverReal incr = N.parameters[ionosphereParameters::ZPARAM] * N.parameters[ionosphereParameters::RRESIDUAL];
 #ifdef IONOSPHERE_SORTED_SUMS
             if(incr < 0) {
                thread_set_neg.insert(incr);
@@ -2837,7 +2837,7 @@ namespace SBC {
             #pragma omp for
             for(uint n=0; n<nodes.size(); n++) {
                Node& N=nodes[n];
-               N.parameters[ionosphereParameters::PPARAM] = N.openFieldLine;
+               N.parameters[ionosphereParameters::PPARAM] = N.parameters[ionosphereParameters::ZPARAM];
                N.parameters[ionosphereParameters::PPPARAM] = N.parameters[ionosphereParameters::ZZPARAM];
             }
          } else {
@@ -2847,7 +2847,7 @@ namespace SBC {
             for(uint n=0; n<nodes.size(); n++) {
                Node& N=nodes[n];
                N.parameters[ionosphereParameters::PPARAM] *= bk;
-               N.parameters[ionosphereParameters::PPARAM] += N.openFieldLine;
+               N.parameters[ionosphereParameters::PPARAM] += N.parameters[ionosphereParameters::ZPARAM];
                N.parameters[ionosphereParameters::PPPARAM] *= bk;
                N.parameters[ionosphereParameters::PPPARAM] += N.parameters[ionosphereParameters::ZZPARAM];
             }
@@ -2877,7 +2877,7 @@ namespace SBC {
          for(uint n=0; n<nodes.size(); n++) {
             Node& N=nodes[n];
             iSolverReal zparam = Atimes(n, ionosphereParameters::PPARAM, false);
-            N.openFieldLine = zparam;
+            N.parameters[ionosphereParameters::ZPARAM] = zparam;
             iSolverReal incr = zparam * N.parameters[ionosphereParameters::PPPARAM];
 #ifdef IONOSPHERE_SORTED_SUMS
             if(incr < 0) {
@@ -2971,7 +2971,7 @@ namespace SBC {
             Node& N=nodes[n];
             // Calculate residual of the new solution. The faster way to do this would be
             //
-            // iSolverReal newresid = N.parameters[ionosphereParameters::RESIDUAL] - ak * N.openFieldLine;
+            // iSolverReal newresid = N.parameters[ionosphereParameters::RESIDUAL] - ak * N.parameters[ionosphereParameters::ZPARAM]
             // and
             // N.parameters[ionosphereParameters::RRESIDUAL] -= ak * N.parameters[ionosphereParameters::ZZPARAM];
             //
@@ -3011,7 +3011,7 @@ namespace SBC {
          #pragma omp for
          for(uint n=0; n<nodes.size(); n++) {
             Node& N=nodes[n];
-            N.openFieldLine = Asolve(n, ionosphereParameters::RESIDUAL, false);
+            N.parameters[ionosphereParameters::ZPARAM] = Asolve(n, ionosphereParameters::RESIDUAL, false);
          }
 
          // See if this solved the potential better than before
