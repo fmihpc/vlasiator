@@ -741,6 +741,11 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
    // Set active population
    SpatialCell::setCommunicatedSpecies(popID);
 
+   // Calculate velocity moments, these are needed to
+   // calculate the transforms used in the accelerations.
+   // Calculated moments are stored in the "_V" variables.
+   calculateMoments_V(mpiGrid, acceleratedCells, false);
+  
    // set seed, initialise generator and get value. The order is the same
    // for all cells, but varies with timestep.
    std::default_random_engine rndState;
@@ -820,12 +825,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
    } else {
       // Fairly ugly but no goto
       phiprof::Timer accTimer {"semilag-acc"};
-
-      // Calculate velocity moments, these are needed to
-      // calculate the transforms used in the accelerations.
-      // Calculated moments are stored in the "_V" variables.
-      calculateMoments_V(mpiGrid, cells, false);
-      
+    
       // Accelerate all particle species
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          int maxSubcycles=0;
