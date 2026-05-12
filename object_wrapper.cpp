@@ -14,12 +14,12 @@ bool ObjectWrapper::addParameters() {
    // Parameters needed to create particle populations
    //NOTE was this still necessary?
    std::function<void(const std::string)> lambda_fun = [this](std::string s) {
-        if (this->particleSpeciesRead.size() == 0 && this->particleSpecies.size()==0 ) {
+        if ( ! this->populationsParsed ) {
           this->initpop(s);
         }
    };
    RP::add_each_lambda("ParticlePopulations", "Name of the simulated particle populations (string)", RP::populations,
-                       lambda_fun)->force_callback(false);
+                       lambda_fun);//->force_callback(false);
 
    return true;
 }
@@ -157,7 +157,6 @@ bool ObjectWrapper::getPopulationParameters() {
     
       vmesh::MeshParameters& vMesh = *vmesh::getMeshWrapper()->velocityMeshesCreation->at(i);
       const std::string& pop = species.name;
-
       // Sanity check name
       if (species.name != vMesh.name) {
          std::cerr << "ParticlePopulation parse error: Name " << species.name << " != " << vMesh.name << std::endl;

@@ -280,6 +280,7 @@ int simulate(int argn,char* args[]) {
     //we have to handle particle species separately because we need the full number of particle species
     //during the population init
     readparameters.parse(true);
+    getObjectWrapper().populationsParsed=true;
     if (Readparameters::fullHelp or Readparameters::legacyHelp) {
       Readparameters::helpRequested=true;
     }
@@ -313,7 +314,8 @@ int simulate(int argn,char* args[]) {
 
    Project* project = getObjectWrapper().project;
    // getObjectWrapper().project = project; (Already set in createProject)
-
+   sysBoundaryContainer.addParamTest(); //this is now here incase some sysbounadary changes parameter during getParameters, that would be
+                                        // read into some project parameters, for example how it is currently with magnetosphere an ionosphereRadius
    // sysBoundaryContainer.getParameters();
    project->getParameters();
 

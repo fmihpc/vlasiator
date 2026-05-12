@@ -53,7 +53,7 @@ struct ObjectWrapper {
    bool addPopulationParameters();                          /**< After parsing the names of populations, create parameters for each of them */
    bool getPopulationParameters();                          /**< Use parsed config file parameters for objects held in this wrapper */
    bool addHelp(); 
-
+   bool populationsParsed = false;
    void initpop(const std::string pop);
  private:
    ObjectWrapper(const ObjectWrapper& ow);
