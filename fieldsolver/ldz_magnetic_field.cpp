@@ -44,7 +44,8 @@ void propagateMagneticField(fsgrids::perbspan perb,
          const auto& EGrid0 = e[stencil.ooo()];
          const auto& EGrid1 = e[stencil.opo()];
          const auto& EGrid2 = e[stencil.oop()];
-         perBGrid0[fsgrids::bfield::PERBX] += dtdz * (EGrid2[fsgrids::efield::EY] - EGrid0[fsgrids::efield::EY]) + dtdy * (EGrid0[fsgrids::efield::EZ] - EGrid1[fsgrids::efield::EZ]);
+         perBGrid0[fsgrids::bfield::PERBX] += dtdz * (EGrid2[fsgrids::efield::EY] - EGrid0[fsgrids::efield::EY]) +
+                                              dtdy * (EGrid0[fsgrids::efield::EZ] - EGrid1[fsgrids::efield::EZ]);
          break;
       }
 
@@ -63,8 +64,8 @@ void propagateMagneticField(fsgrids::perbspan perb,
          const auto& EGrid0 = edt2[stencil.ooo()];
          const auto& EGrid1 = edt2[stencil.opo()];
          const auto& EGrid2 = edt2[stencil.oop()];
-         perBGrid0[fsgrids::bfield::PERBX] += (dtdz * (EGrid2[fsgrids::efield::EY] - EGrid0[fsgrids::efield::EY]) +
-                                               dtdy * (EGrid0[fsgrids::efield::EZ] - EGrid1[fsgrids::efield::EZ]));
+         perBGrid0[fsgrids::bfield::PERBX] += dtdz * (EGrid2[fsgrids::efield::EY] - EGrid0[fsgrids::efield::EY]) +
+                                              dtdy * (EGrid0[fsgrids::efield::EZ] - EGrid1[fsgrids::efield::EZ]);
          break;
       }
 
@@ -89,8 +90,7 @@ void propagateMagneticField(fsgrids::perbspan perb,
          const auto& EGrid0 = e[stencil.ooo()];
          const auto& EGrid1 = e[stencil.oop()];
          const auto& EGrid2 = e[stencil.poo()];
-         perBDt2Grid0[fsgrids::bfield::PERBY] =
-             perBGrid0[fsgrids::bfield::PERBY] +
+         perBDt2Grid0[fsgrids::bfield::PERBY] = perBGrid0[fsgrids::bfield::PERBY] +
              0.5 * (dtdx * (EGrid2[fsgrids::efield::EZ] - EGrid0[fsgrids::efield::EZ]) +
                     dtdz * (EGrid0[fsgrids::efield::EX] - EGrid1[fsgrids::efield::EX]));
          break;
@@ -99,8 +99,8 @@ void propagateMagneticField(fsgrids::perbspan perb,
          const auto& EGrid0 = edt2[stencil.ooo()];
          const auto& EGrid1 = edt2[stencil.oop()];
          const auto& EGrid2 = edt2[stencil.poo()];
-         perBGrid0[fsgrids::bfield::PERBY] += (dtdx * (EGrid2[fsgrids::efield::EZ] - EGrid0[fsgrids::efield::EZ]) +
-                                               dtdz * (EGrid0[fsgrids::efield::EX] - EGrid1[fsgrids::efield::EX]));
+         perBGrid0[fsgrids::bfield::PERBY] += dtdx * (EGrid2[fsgrids::efield::EZ] - EGrid0[fsgrids::efield::EZ]) +
+                                              dtdz * (EGrid0[fsgrids::efield::EX] - EGrid1[fsgrids::efield::EX]);
          break;
       }
       default:
@@ -124,8 +124,7 @@ void propagateMagneticField(fsgrids::perbspan perb,
          const auto& EGrid0 = e[stencil.ooo()];
          const auto& EGrid1 = e[stencil.poo()];
          const auto& EGrid2 = e[stencil.opo()];
-         perBDt2Grid0[fsgrids::bfield::PERBZ] =
-             perBGrid0[fsgrids::bfield::PERBZ] +
+         perBDt2Grid0[fsgrids::bfield::PERBZ] = perBGrid0[fsgrids::bfield::PERBZ] +
              0.5 * (dtdy * (EGrid2[fsgrids::efield::EX] - EGrid0[fsgrids::efield::EX]) +
                     dtdx * (EGrid0[fsgrids::efield::EY] - EGrid1[fsgrids::efield::EY]));
          break;
@@ -134,8 +133,8 @@ void propagateMagneticField(fsgrids::perbspan perb,
          const auto& EGrid0 = edt2[stencil.ooo()];
          const auto& EGrid1 = edt2[stencil.poo()];
          const auto& EGrid2 = edt2[stencil.opo()];
-         perBGrid0[fsgrids::bfield::PERBZ] += (dtdy * (EGrid2[fsgrids::efield::EX] - EGrid0[fsgrids::efield::EX]) +
-                                               dtdx * (EGrid0[fsgrids::efield::EY] - EGrid1[fsgrids::efield::EY]));
+         perBGrid0[fsgrids::bfield::PERBZ] += dtdy * (EGrid2[fsgrids::efield::EX] - EGrid0[fsgrids::efield::EX]) +
+                                              dtdx * (EGrid0[fsgrids::efield::EY] - EGrid1[fsgrids::efield::EY]);
          break;
       }
       default:

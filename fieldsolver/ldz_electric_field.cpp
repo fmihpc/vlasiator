@@ -139,11 +139,11 @@ private:
 
 public:
    Reconstructions(fsgrids::perbspan perB,
-                     fsgrids::constdperbspan dPerB,
-                     fsgrids::constbgbspan BgB,
-                     fsgrids::constmomentsspan moments,
-                     fsgrids::constdmomentsspan dMoments, size_t self, size_t nbr,
-                     const Limits& rhomLimits)
+                   fsgrids::constdperbspan dPerB,
+                   fsgrids::constbgbspan BgB,
+                   fsgrids::constmomentsspan moments,
+                   fsgrids::constdmomentsspan dMoments, size_t self, size_t nbr,
+                   const Limits& rhomLimits)
        : perb(perB[self]), nbr_perb(perB[nbr]), dperb(dPerB[self]), nbr_dperb(dPerB[nbr]), bgb(BgB[self]),
          nbr_bgb(BgB[nbr]), moment(moments[self]), dmoment(dMoments[self]), rhomLimits(rhomLimits) {}
 

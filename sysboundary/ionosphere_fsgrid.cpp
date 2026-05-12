@@ -1165,23 +1165,22 @@ namespace SBC {
          }
 
          calculatePrecipitation();
+
          if (ionosphereGrid.ionizationModel == Robinson2020) {
             // In the Robinson (2020) model, conductivity gets directly calculated from FACs.
             // DOI: doi/10.1029/2020JA028008
-            const static std::array<Real, 3> SigmaP0d_coefficients = {5.0, -0.8,  60.9};
-            const static std::array<Real, 3> SigmaP0u_coefficients = {4.2,  1.1, 318.6};
+            const static std::array<Real, 3> SigmaP0d_coefficients = {5., -0.8, 60.9};
+            const static std::array<Real, 3> SigmaP0u_coefficients = {4.2, 1.1, 318.6};
             const static std::array<Real, 3> SigmaH0d_coefficients = {7.7, -1.8, 139.0};
-            const static std::array<Real, 3> SigmaH0u_coefficients = {8.7,  4.6, 327.1};
+            const static std::array<Real, 3> SigmaH0u_coefficients = {8.7, 4.6, 327.1};
 
-            const static std::array<Real, 3> SigmaP1d_coefficients = {-3.2,  -3.6,  21.9};
-            const static std::array<Real, 3> SigmaP1u_coefficients = { 6.8,  -1.5, 184.9};
-            const static std::array<Real, 3> SigmaH1d_coefficients = {-7.3,   5.6, 100.9};
+            const static std::array<Real, 3> SigmaP1d_coefficients = {-3.2, -3.6, 21.9};
+            const static std::array<Real, 3> SigmaP1u_coefficients = {6.8, -1.5, 184.9};
+            const static std::array<Real, 3> SigmaH1d_coefficients = {-7.3, 5.6, 100.9};
             const static std::array<Real, 3> SigmaH1u_coefficients = {14.8, -10.4, 129.9};
 
             // MLT interpolation (eq 7 from the paper)
-            auto interpolate_robinson = [](const std::array<Real, 3>& variable, Real MLT) -> Real {
-               return variable[0] + variable[1] * cos(variable[2] / 180. * M_PI + MLT);
-            };
+            auto interpolate_robinson = [](const std::array<Real, 3>& variable, Real MLT) -> Real { return variable[0] + variable[1] * cos(variable[2] / 180. * M_PI + MLT); };
 
             // Smooth (cubic hermite) interpolation between two curves a and b, x is clamped to [-1; 1]
             auto smoothstep = [](Real a, Real b, Real x) -> Real {
@@ -1635,14 +1634,7 @@ namespace SBC {
                Real SigmaP = nodes[n].parameters[ionosphereParameters::SIGMAP] = Ionosphere::fixedSigmaP;
                Real SigmaH = nodes[n].parameters[ionosphereParameters::SIGMAH] = Ionosphere::fixedSigmaH;
 
-               // Antisymmetric tensor epsilon_ijk
-               // clang-format off
-               static const int epsilon[3][3][3] = {
-                  {{0,0, 0}, { 0,0,1}, {0,-1,0}},
-                  {{0,0,-1}, { 0,0,0}, {1, 0,0}},
-                  {{0,1, 0}, {-1,0,0}, {0, 0,0}}
-               };
-               // clang-format on
+               static const int epsilon[3][3][3] = {{{0, 0, 0}, {0, 0, 1}, {0, -1, 0}}, {{0, 0, -1}, {0, 0, 0}, {1, 0, 0}}, {{0, 1, 0}, {-1, 0, 0}, {0, 0, 0}}};
 
                Eigen::Vector3d b(nodes[n].x.data());
                b.normalized();
@@ -2160,7 +2152,7 @@ namespace SBC {
             }
          }
       } else if (ionosphereGrid.gaugeFixing == Equator) {
-         // note that the second term in the first and second line involve different nodes!
+         // Note that the second condition refers to node2, not node1
          if ((!transposed && fabs(nodes[node1].x[2]) < Ionosphere::innerRadius * sin(Ionosphere::shieldingLatitude * M_PI / 180.0)) ||
               (transposed && fabs(nodes[node2].x[2]) < Ionosphere::innerRadius * sin(Ionosphere::shieldingLatitude * M_PI / 180.0))) {
             if (node1 == node2) {
@@ -2498,62 +2490,12 @@ namespace SBC {
       nIterations = 0;
       nRestarts = 0;
 
-      for (uint n = 0; n < nodes.size(); n++) {
-
-         SphericalTriGrid::Node& N = ionosphereGrid.nodes[n];
-
-         if (fabs(N.x[2]) < Ionosphere::innerRadius * sin(Ionosphere::shieldingLatitude * M_PI / 180.0)) {
-            N.parameters[ionosphereParameters::SOLUTION] = 0;
+      do {
+         solveInternal(nIterations, nRestarts, residual, minPotentialN, maxPotentialN, minPotentialS, maxPotentialS);
+         if (Ionosphere::solverToggleMinimumResidualVariant) {
+            Ionosphere::solverUseMinimumResidualVariant = !Ionosphere::solverUseMinimumResidualVariant;
          }
-      }
-
-      Eigen::SparseMatrix<Real> potentialSolverMatrix(nodes.size(), nodes.size());
-
-      Eigen::VectorXd vRightHand(nodes.size()), vPhi(nodes.size());
-
-      for (uint n = 0; n < nodes.size(); n++) {
-         for (uint m = 0; m < nodes[n].numDepNodes; m++) {
-            potentialSolverMatrix.insert(n, nodes[n].dependingNodes[m]) = nodes[n].dependingCoeffs[m];
-         }
-         vRightHand[n] = nodes[n].parameters[ionosphereParameters::SOURCE];
-      }
-
-      potentialSolverMatrix.makeCompressed();
-
-      Eigen::BiCGSTAB<Eigen::SparseMatrix<Real>> solver;
-
-      solver.compute(potentialSolverMatrix);
-
-      vPhi = solver.solve(vRightHand);
-
-      for (uint n = 0; n < nodes.size(); n++) {
-         nodes[n].parameters[ionosphereParameters::SOLUTION] = vPhi[n];
-      }
-
-      nIterations = solver.iterations();
-
-      residual = solver.error();
-
-      for (uint n = 0; n < nodes.size(); n++) {
-
-         Node& N = nodes[n];
-
-         if (N.x[2] >= 0) {
-            if (N.parameters.at(ionosphereParameters::SOLUTION) < minPotentialN) {
-               minPotentialN = N.parameters.at(ionosphereParameters::SOLUTION);
-            }
-            if (N.parameters.at(ionosphereParameters::SOLUTION) > maxPotentialN) {
-               maxPotentialN = N.parameters.at(ionosphereParameters::SOLUTION);
-            }
-         } else {
-            if (N.parameters.at(ionosphereParameters::SOLUTION) < minPotentialS) {
-               minPotentialS = N.parameters.at(ionosphereParameters::SOLUTION);
-            }
-            if (N.parameters.at(ionosphereParameters::SOLUTION) > maxPotentialS) {
-               maxPotentialS = N.parameters.at(ionosphereParameters::SOLUTION);
-            }
-         }
-      }
+      } while (residual > Ionosphere::solverRelativeL2ConvergenceThreshold && nIterations < Ionosphere::solverMaxIterations);
    }
 
    void SphericalTriGrid::solveInternal(int& iteration, int& nRestarts, Real& minerr, Real& minPotentialN, Real& maxPotentialN, Real& minPotentialS, Real& maxPotentialS) {
@@ -3721,14 +3663,8 @@ namespace SBC {
       }
 
       // Calculate E from potential differences as E = -grad(phi)
-      Vec3d E({
-         (potentials[0] - potentials[1]) / cellParams[CellParams::DX],
-         (potentials[2] - potentials[3]) / cellParams[CellParams::DY],
-         (potentials[4] - potentials[5]) / cellParams[CellParams::DZ]});
-      Vec3d B({
-         cellParams[CellParams::BGBXVOL] + cellParams[CellParams::PERBXVOL],
-         cellParams[CellParams::BGBYVOL] + cellParams[CellParams::PERBYVOL],
-         cellParams[CellParams::BGBZVOL] + cellParams[CellParams::PERBZVOL]});
+      Vec3d E({(potentials[0] - potentials[1]) / cellParams[CellParams::DX], (potentials[2] - potentials[3]) / cellParams[CellParams::DY], (potentials[4] - potentials[5]) / cellParams[CellParams::DZ]});
+      Vec3d B({cellParams[CellParams::BGBXVOL] + cellParams[CellParams::PERBXVOL], cellParams[CellParams::BGBYVOL] + cellParams[CellParams::PERBYVOL], cellParams[CellParams::BGBZVOL] + cellParams[CellParams::PERBZVOL]});
 
       // Add E from neutral wind convection for all cells with L <= 5
       Vec3d Omega(0, 0, Ionosphere::earthAngularVelocity); // Earth rotation vector

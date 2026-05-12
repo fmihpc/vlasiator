@@ -62,7 +62,7 @@ void calculateVolumeAveragedFields(fsgrids::perbspan perb,
       return;
    }
 
-   if (sbflag == sysboundarytype::NOT_SYSBOUNDARY || sbflag == 1) {
+   if (sbflag == sysboundarytype::NOT_SYSBOUNDARY || sysBoundaryLayer == 1) {
       const std::array<Real, fsgrids::efield::N_EFIELD>& E_i1j1k1 = e[center];
       const std::array<Real, fsgrids::efield::N_EFIELD>& E_i1j2k1 = e[stencil.opo()];
       const std::array<Real, fsgrids::efield::N_EFIELD>& E_i1j1k2 = e[stencil.oop()];

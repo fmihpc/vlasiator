@@ -28,7 +28,9 @@ void calculateGradPeTermSimple(fsgrids::egradpespan egradpe,
                                fsgrids::momentsspan momentsdt2,
                                fsgrids::dmomentsspan dmoments,
                                fsgrids::dmomentsspan dmomentsdt2,
-                               fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
-                               SysBoundary& sysBoundaries, cint& RKCase);
+                               fsgrids::technicalspan technical,
+                               FieldSolverGrid &fsgrid,
+                               SysBoundary& sysBoundaries,
+                               cint& RKCase);
 
 #endif

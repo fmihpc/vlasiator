@@ -623,10 +623,8 @@ bool readBlockData(vlsv::ParallelReader& file, const string& meshName, const vec
             y += velGridOffset[1];
             z += velGridOffset[2];
 
-            // logFile << " Remapping " << oldID << "(" << x << "," << y << "," << z << ") to " << x + y *
-            // ourMeshParams.gridLength[0] + z* ourMeshParams.gridLength[0] * ourMeshParams.gridLength[1] << endl <<
-            // write;
-            return x + y * ourMeshParams.gridLength[0] + z * ourMeshParams.gridLength[0] * ourMeshParams.gridLength[1];
+            //logFile << " Remapping " << oldID << "(" << x << "," << y << "," << z << ") to " << x + y * ourMeshParams.gridLength[0] + z* ourMeshParams.gridLength[0] * ourMeshParams.gridLength[1] << endl << write;
+            return x + y * ourMeshParams.gridLength[0] + z* ourMeshParams.gridLength[0] * ourMeshParams.gridLength[1];
          };
 
          logFile << "    => Resizing velocity space by renumbering GlobalIDs." << endl << endl << write;
@@ -1579,7 +1577,7 @@ bool readFsgridDecomposition(vlsv::ParallelReader& file, std::array<fsgrid::Task
       decomposition[0] = fsGridDecomposition[0];
       decomposition[1] = fsGridDecomposition[1];
       decomposition[2] = fsGridDecomposition[2];
-      // logFile << "(RESTART) Fsgrid decomposition read as " << decomposition[0] << " " << decomposition[1] << " " << decomposition[2] << "\n";
+      logFile << "(RESTART) Fsgrid decomposition read as " << decomposition[0] << " " << decomposition[1] << " " << decomposition[2] << "\n";
       return true;
    }
    return false;

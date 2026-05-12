@@ -154,10 +154,10 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mp
 
    // compute max dt for fieldsolver
    dtMaxLocal[2] = fsgrid.parallel_reduction([](int timerId) ->  phiprof::Timer { return phiprof::Timer{timerId}; },
-                                           phiprof::initializeTimer("compute-dt-reduction-loop"), technical,
-                                           [](Real a, Real b) { return std::min<Real>(a, b); },
-                                           std::numeric_limits<Real>::max(),
-                                           [=](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer, creal maximum) {
+                      phiprof::initializeTimer("compute-dt-reduction-loop"), technical,
+                      [](Real a, Real b) { return std::min<Real>(a, b); },
+                      std::numeric_limits<Real>::max(),
+                      [=](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer, creal maximum) {
       if (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
          (sysBoundaryLayer == 1 && sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY)) {
          return technical[stencil.ooo()].maxFsDt;

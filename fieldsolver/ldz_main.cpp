@@ -102,8 +102,11 @@ bool propagateFields(fsgrids::perbspan perb,
                      fsgrids::dmomentsspan dmomentsdt2,
                      fsgrids::bgbspan bgb,
                      fsgrids::volspan vol,
-                     fsgrids::technicalspan technical, FieldSolverGrid &fsgrid, SysBoundary& sysBoundaries,
-                     creal& dt, cuint subcycles) {
+                     fsgrids::technicalspan technical,
+                     FieldSolverGrid &fsgrid,
+                     SysBoundary& sysBoundaries,
+                     creal& dt,
+                     cuint subcycles) {
 
    if (subcycles == 0) {
       cerr << "Field solver subcycles cannot be 0." << endl;
