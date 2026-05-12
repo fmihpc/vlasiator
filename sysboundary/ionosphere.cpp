@@ -3206,6 +3206,7 @@ namespace SBC {
          abort();
       }
       //TODO needs to be updated for the new handling?
+      this->speciesParams.resize(getObjectWrapper().particleSpecies.size());
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
         IonosphereSpeciesParameters* sP=this->speciesParamsRead.at(i);
         if (Parameters::projectName=="Magnetosphere") {
@@ -3217,7 +3218,7 @@ namespace SBC {
               sP->rho=proj->speciesParamsRead.at(i)->rho;
           }
         }
-        this->speciesParams.push_back(*sP); //Issue?
+        this->speciesParams.at(i)=*sP;
       }
    }
 
@@ -3225,7 +3226,6 @@ namespace SBC {
       creal& t,
       Project &project
    ) {
-      getParameters();
       dynamic = false;
 
       // Sanity check: the ionosphere only makes sense in 3D simulations

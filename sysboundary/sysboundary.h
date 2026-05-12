@@ -58,6 +58,7 @@ class SysBoundary {
 
    void addParameters();
    void getParameters();
+   void addParamTest();
 
    void addSysBoundary(
                        SBC::SysBoundaryCondition* sbc,

@@ -91,6 +91,7 @@ namespace SBC {
       int myRank;
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
       // Per-species parameters
+      this->speciesParams.resize(getObjectWrapper().particleSpecies.size());
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
         // const string& pop = getObjectWrapper().particleSpecies[i].name;
         OutflowSpeciesParameters* sP=this->speciesParamsRead.at(i);
@@ -122,8 +123,7 @@ namespace SBC {
               abort_mpi("ERROR: " + this->vlasovSysBoundarySchemeName[j] + " is an invalid Outflow Vlasov scheme!");
            }
         }
-        this->speciesParams.push_back(*sP);
-
+        this->speciesParams.at(i)=*sP;
 
       }
    }
@@ -136,13 +136,12 @@ namespace SBC {
        * A true indicates the corresponding face will have outflow.
        * The 6 elements correspond to x+, x-, y+, y-, z+, z- respectively.
        */
-      for(uint i=0; i<6; i++) {
-         facesToProcess[i] = false;
-         facesToSkipFields[i] = false;
-         facesToReapply[i] = false;
-      }
-
-      this->getParameters();
+      // for(uint i=0; i<6; i++) {
+      //    facesToProcess[i] = false;
+      //    facesToSkipFields[i] = false;
+      //    facesToReapply[i] = false;
+      // }
+      //
 
       dynamic = false;
 

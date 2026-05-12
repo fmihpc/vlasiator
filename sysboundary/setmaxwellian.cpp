@@ -89,10 +89,9 @@ namespace SBC {
    }
 
    void Maxwellian::getParameters() {
-
+    this->speciesParams.resize(getObjectWrapper().particleSpecies.size());
     for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
       InflowSpeciesParameters* sP=this->speciesParamsRead.at(i);
-      this->speciesParams.push_back(*sP);
       this->speciesParams.at(i)=*sP;
     }
    }

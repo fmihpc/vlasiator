@@ -84,6 +84,7 @@ namespace SBC {
 
       FieldTracing::fieldTracingParameters.innerBoundaryRadius = this->radius;
 
+      this->speciesParams.resize(getObjectWrapper().particleSpecies.size());
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
         CopysphereSpeciesParameters* sP=speciesParamsRead[i];
@@ -94,10 +95,9 @@ namespace SBC {
               sP->T=proj->speciesParamsRead.at(i)->T;
           }
           if(sP->rho == 0) {
-              sP->T=proj->speciesParamsRead.at(i)->rho;
+              sP->rho=proj->speciesParamsRead.at(i)->rho;
           }
         }
-         speciesParams.push_back(*sP);
          speciesParams.at(i)=*sP;
 
       }
@@ -107,7 +107,6 @@ namespace SBC {
       creal& t,
       Project &project
    ) {
-      getParameters();
       dynamic = false;
 
       // iniSysBoundary is only called once, generateTemplateCell must

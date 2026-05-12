@@ -136,12 +136,17 @@ void SysBoundary::getParameters() {
  * \param t Current time
  * \retval success If true, the given SBC::SysBoundaryCondition was added successfully.
  */
+void SysBoundary::addParamTest() {
+   for (auto& b : sysBoundaries)  {
+     b->getParameters();
+   }
+}
 void SysBoundary::addSysBoundary(SBC::SysBoundaryCondition* bc, Project& project, creal& t) {
    // Initialize the boundary condition
    stringstream timername;
    timername<<"Initialize system boundary condition "<<bc->getName();
    phiprof::Timer timer {timername.str()};
-   bc->getParameters();
+   // bc->getParameters();
    bc->initSysBoundary(t, project);
    timer.stop();
 
