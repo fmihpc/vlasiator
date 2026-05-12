@@ -88,6 +88,7 @@ namespace SBC {
    Real Ionosphere::couplingInterval; /*!< Ionosphere update interval */
    int Ionosphere::solveCount; /*!< Counter of the number of solvings */
    Real Ionosphere::backgroundIonisation; /*!< Background ionisation due to stellar UV and cosmic rays */
+   bool Ionosphere::useEigenSolver;
    int  Ionosphere::solverMaxIterations;
    Real Ionosphere::solverRelativeL2ConvergenceThreshold;
    int Ionosphere::solverMaxFailureCount;
@@ -1234,9 +1235,6 @@ namespace SBC {
             }
          } else if(ionosphereGrid.ionizationModel == Juusola2025) {
 
-            const static int NODE_CONSTRAINT_REDUCTION = 1;
-            const static int ELEMENT_CONSTRAINT_REDUCTION =1;
-
             // Ionosoheric Sigma calculation functions from
             // Juusola et al. 2025.
             // Coefficients are in ionosphere_tables.h
@@ -1395,7 +1393,6 @@ namespace SBC {
                   int localC=0,localI=0,localJ=0;
                   for(int c=0; c< 3; c++) {
                      if(element.corners[c] == n) {
-                        localC = c;
                         localI = (c+1)%3;
                         gridI=element.corners[localI];
                         localJ = (c+2)%3;
@@ -1447,7 +1444,6 @@ namespace SBC {
             elementDivFreeCurrent.resize(elements.size());
             for(uint el=0; el<elements.size(); el++) {
                std::array<uint32_t, 3>& corners = elements[el].corners;
-               Real A = elementArea(el);
                Eigen::Vector3d r0(nodes[corners[0]].x.data());
                Eigen::Vector3d r1(nodes[corners[1]].x.data());
                Eigen::Vector3d r2(nodes[corners[2]].x.data());
@@ -1485,7 +1481,6 @@ namespace SBC {
             vJ = solver.solve(vRHS1);
             for(uint el=0; el<elements.size(); el++) {
                std::array<uint32_t, 3>& corners = elements[el].corners;
-               Real A = elementArea(el);
 
                Eigen::Vector3d r0(nodes[corners[0]].x.data());
                Eigen::Vector3d r1(nodes[corners[1]].x.data());
@@ -2448,7 +2443,7 @@ namespace SBC {
      // Zero out parameters
      if(zeroOut) {
         for(uint n=0; n<nodes.size(); n++) {
-           for(uint p=ionosphereParameters::SOLUTION; p<ionosphereParameters::N_IONOSPHERE_PARAMETERS-1; p++) {
+           for(uint p=ionosphereParameters::SOLUTION; p<ionosphereParameters::N_IONOSPHERE_PARAMETERS; p++) {
               Node& N=nodes[n];
               N.parameters[p] = 0;
            }
@@ -2459,7 +2454,7 @@ namespace SBC {
         for(uint n=0; n<nodes.size(); n++) {
            Node& N=nodes[n];
            potentialSum += N.parameters[ionosphereParameters::SOLUTION];
-           for(uint p=ionosphereParameters::ZPARAM; p<ionosphereParameters::N_IONOSPHERE_PARAMETERS-1; p++) {
+           for(uint p=ionosphereParameters::ZPARAM; p<ionosphereParameters::N_IONOSPHERE_PARAMETERS; p++) {
               N.parameters[p] = 0;
            }
         }
@@ -2562,106 +2557,70 @@ namespace SBC {
       }
       initSolver(false);
 
-
-
       nIterations = 0;
-
       nRestarts = 0;
-
       for(uint n=0; n<nodes.size(); n++) {
-
          SphericalTriGrid::Node& N = ionosphereGrid.nodes[n];
-
          if(fabs(N.x[2]) < Ionosphere::innerRadius * sin(Ionosphere::shieldingLatitude * M_PI / 180.0)) {
-
             N.parameters[ionosphereParameters::SOLUTION] = 0;
+         }
+      }
+
+
+      if(Ionosphere::useEigenSolver) {
+         // BiCGSTAB solver from Eigen
+         Eigen::SparseMatrix<Real> potentialSolverMatrix(nodes.size(), nodes.size());
+         Eigen::VectorXd vRightHand(nodes.size()), vPhi(nodes.size());
+         for(uint n=0; n<nodes.size(); n++) {
+
+            for(uint m=0; m<nodes[n].numDepNodes; m++) {
+               potentialSolverMatrix.insert(n, nodes[n].dependingNodes[m]) = nodes[n].dependingCoeffs[m];
+            }
+
+            vRightHand[n] = nodes[n].parameters[ionosphereParameters::SOURCE];
 
          }
 
-      }
-
-
-      Eigen::SparseMatrix<Real> potentialSolverMatrix(nodes.size(), nodes.size());
-
-      Eigen::VectorXd vRightHand(nodes.size()), vPhi(nodes.size());
-
-      for(uint n=0; n<nodes.size(); n++) {
-
-
-
-         for(uint m=0; m<nodes[n].numDepNodes; m++) {
-
-            potentialSolverMatrix.insert(n, nodes[n].dependingNodes[m]) = nodes[n].dependingCoeffs[m];
-
+         // gettimeofday(&tStart, NULL);
+         potentialSolverMatrix.makeCompressed();
+         Eigen::BiCGSTAB<Eigen::SparseMatrix<Real> > solver;
+         solver.compute(potentialSolverMatrix);
+         vPhi = solver.solve(vRightHand);
+         for(uint n=0; n<nodes.size(); n++) {
+            nodes[n].parameters[ionosphereParameters::SOLUTION] = vPhi[n];
          }
 
+         nIterations = solver.iterations();
+         residual = solver.error();
 
-
-         vRightHand[n] = nodes[n].parameters[ionosphereParameters::SOURCE];
-
-      }
-
-      // gettimeofday(&tStart, NULL);
-
-      potentialSolverMatrix.makeCompressed();
-
-      Eigen::BiCGSTAB<Eigen::SparseMatrix<Real> > solver;
-
-      solver.compute(potentialSolverMatrix);
-
-      vPhi = solver.solve(vRightHand);
-
-      for(uint n=0; n<nodes.size(); n++) {
-
-         nodes[n].parameters[ionosphereParameters::SOLUTION] = vPhi[n];
-
-      }
-
-
-
-      nIterations = solver.iterations();
-
-      residual = solver.error();
-
-
-
-      for(uint n=0; n<nodes.size(); n++) {
-
-         Node& N=nodes[n];
-
-         if(N.x[2] >= 0) {
-
-            if(N.parameters.at(ionosphereParameters::SOLUTION) < minPotentialN) {
-
-               minPotentialN = N.parameters.at(ionosphereParameters::SOLUTION);
-
+         for(uint n=0; n<nodes.size(); n++) {
+            Node& N=nodes[n];
+            if(N.x[2] >= 0) {
+               if(N.parameters.at(ionosphereParameters::SOLUTION) < minPotentialN) {
+                  minPotentialN = N.parameters.at(ionosphereParameters::SOLUTION);
+               }
+               if(N.parameters.at(ionosphereParameters::SOLUTION) > maxPotentialN) {
+                  maxPotentialN = N.parameters.at(ionosphereParameters::SOLUTION);
+               }
+            } else {
+               if(N.parameters.at(ionosphereParameters::SOLUTION) < minPotentialS) {
+                  minPotentialS = N.parameters.at(ionosphereParameters::SOLUTION);
+               }
+               if(N.parameters.at(ionosphereParameters::SOLUTION) > maxPotentialS) {
+                  maxPotentialS = N.parameters.at(ionosphereParameters::SOLUTION);
+               }
             }
-
-            if(N.parameters.at(ionosphereParameters::SOLUTION) > maxPotentialN) {
-
-               maxPotentialN = N.parameters.at(ionosphereParameters::SOLUTION);
-
-            }
-
-         } else {
-
-            if(N.parameters.at(ionosphereParameters::SOLUTION) < minPotentialS) {
-
-               minPotentialS = N.parameters.at(ionosphereParameters::SOLUTION);
-
-            }
-
-            if(N.parameters.at(ionosphereParameters::SOLUTION) > maxPotentialS) {
-
-               maxPotentialS = N.parameters.at(ionosphereParameters::SOLUTION);
-
-            }
-
          }
-
+      } else {
+         // Our own BiCG implementation in solveInternal, like in GUMICS' implementation.
+         do {
+            solveInternal(nIterations, nRestarts, residual, minPotentialN, maxPotentialN, minPotentialS, maxPotentialS);
+            if(Ionosphere::solverToggleMinimumResidualVariant) {
+               Ionosphere::solverUseMinimumResidualVariant = !Ionosphere::solverUseMinimumResidualVariant;
+            }
+         } while (residual > Ionosphere::solverRelativeL2ConvergenceThreshold && nIterations < Ionosphere::solverMaxIterations);
       }
-
-     }
+   }
 
    void SphericalTriGrid::solveInternal(
       int & iteration,
@@ -3129,6 +3088,7 @@ namespace SBC {
       Readparameters::add<Real>("ionosphere.unmappedNodeTe", "Electron temperature of ionosphere nodes that do not connect to the magnetosphere domain.", Ionosphere::unmappedNodeTe,1e6);
       Readparameters::add<Real>("ionosphere.couplingTimescale", "Magnetosphere->Ionosphere coupling timescale (seconds, 0=immediate coupling", Ionosphere::couplingTimescale,1.0);
       Readparameters::add<Real>("ionosphere.couplingInterval", "Time interval at which the ionosphere is solved (seconds)", Ionosphere::couplingInterval,0);
+      this->useEigenSolver=false;
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
@@ -4056,7 +4016,7 @@ namespace SBC {
                   cell.prepare_to_receive_blocks(popID);
 
                   // Set the reservation value (capacity is increased in add_velocity_blocks
-                  const Realf minValue = cell.getVelocityBlockMinValue(popID);
+                  //const Realf minValue = cell.getVelocityBlockMinValue(popID);
 
                   // fills v-space into target
 
@@ -4154,7 +4114,7 @@ namespace SBC {
                   cell.prepare_to_receive_blocks(popID);
 
                   // Set the reservation value (capacity is increased in add_velocity_blocks
-                  const Realf minValue = cell.getVelocityBlockMinValue(popID);
+                  //const Realf minValue = cell.getVelocityBlockMinValue(popID);
 
                   // fills v-space into target
 
@@ -4284,7 +4244,7 @@ namespace SBC {
          templateCell.prepare_to_receive_blocks(popID);
 
          // Set the reservation value (capacity is increased in add_velocity_blocks
-         const Realf minValue = templateCell.getVelocityBlockMinValue(popID);
+         //const Realf minValue = templateCell.getVelocityBlockMinValue(popID);
 
          // fills v-space into target
 
