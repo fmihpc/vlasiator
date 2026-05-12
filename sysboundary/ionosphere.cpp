@@ -86,6 +86,7 @@ namespace SBC {
    Real Ionosphere::couplingInterval; /*!< Ionosphere update interval */
    int Ionosphere::solveCount; /*!< Counter of the number of solvings */
    Real Ionosphere::backgroundIonisation; /*!< Background ionisation due to stellar UV and cosmic rays */
+   bool Ionosphere::useEigenSolver;
    int  Ionosphere::solverMaxIterations;
    Real Ionosphere::solverRelativeL2ConvergenceThreshold;
    int Ionosphere::solverMaxFailureCount;
@@ -2559,106 +2560,70 @@ namespace SBC {
       }
       initSolver(false);
 
-
-
       nIterations = 0;
-
       nRestarts = 0;
-
       for(uint n=0; n<nodes.size(); n++) {
-
          SphericalTriGrid::Node& N = ionosphereGrid.nodes[n];
-
          if(fabs(N.x[2]) < Ionosphere::innerRadius * sin(Ionosphere::shieldingLatitude * M_PI / 180.0)) {
-
             N.parameters[ionosphereParameters::SOLUTION] = 0;
+         }
+      }
+
+
+      if(Ionosphere::useEigenSolver) {
+         // BiCGSTAB solver from Eigen
+         Eigen::SparseMatrix<Real> potentialSolverMatrix(nodes.size(), nodes.size());
+         Eigen::VectorXd vRightHand(nodes.size()), vPhi(nodes.size());
+         for(uint n=0; n<nodes.size(); n++) {
+
+            for(uint m=0; m<nodes[n].numDepNodes; m++) {
+               potentialSolverMatrix.insert(n, nodes[n].dependingNodes[m]) = nodes[n].dependingCoeffs[m];
+            }
+
+            vRightHand[n] = nodes[n].parameters[ionosphereParameters::SOURCE];
 
          }
 
-      }
-
-
-      Eigen::SparseMatrix<Real> potentialSolverMatrix(nodes.size(), nodes.size());
-
-      Eigen::VectorXd vRightHand(nodes.size()), vPhi(nodes.size());
-
-      for(uint n=0; n<nodes.size(); n++) {
-
-
-
-         for(uint m=0; m<nodes[n].numDepNodes; m++) {
-
-            potentialSolverMatrix.insert(n, nodes[n].dependingNodes[m]) = nodes[n].dependingCoeffs[m];
-
+         // gettimeofday(&tStart, NULL);
+         potentialSolverMatrix.makeCompressed();
+         Eigen::BiCGSTAB<Eigen::SparseMatrix<Real> > solver;
+         solver.compute(potentialSolverMatrix);
+         vPhi = solver.solve(vRightHand);
+         for(uint n=0; n<nodes.size(); n++) {
+            nodes[n].parameters[ionosphereParameters::SOLUTION] = vPhi[n];
          }
 
+         nIterations = solver.iterations();
+         residual = solver.error();
 
-
-         vRightHand[n] = nodes[n].parameters[ionosphereParameters::SOURCE];
-
-      }
-
-      // gettimeofday(&tStart, NULL);
-
-      potentialSolverMatrix.makeCompressed();
-
-      Eigen::BiCGSTAB<Eigen::SparseMatrix<Real> > solver;
-
-      solver.compute(potentialSolverMatrix);
-
-      vPhi = solver.solve(vRightHand);
-
-      for(uint n=0; n<nodes.size(); n++) {
-
-         nodes[n].parameters[ionosphereParameters::SOLUTION] = vPhi[n];
-
-      }
-
-
-
-      nIterations = solver.iterations();
-
-      residual = solver.error();
-
-
-
-      for(uint n=0; n<nodes.size(); n++) {
-
-         Node& N=nodes[n];
-
-         if(N.x[2] >= 0) {
-
-            if(N.parameters.at(ionosphereParameters::SOLUTION) < minPotentialN) {
-
-               minPotentialN = N.parameters.at(ionosphereParameters::SOLUTION);
-
+         for(uint n=0; n<nodes.size(); n++) {
+            Node& N=nodes[n];
+            if(N.x[2] >= 0) {
+               if(N.parameters.at(ionosphereParameters::SOLUTION) < minPotentialN) {
+                  minPotentialN = N.parameters.at(ionosphereParameters::SOLUTION);
+               }
+               if(N.parameters.at(ionosphereParameters::SOLUTION) > maxPotentialN) {
+                  maxPotentialN = N.parameters.at(ionosphereParameters::SOLUTION);
+               }
+            } else {
+               if(N.parameters.at(ionosphereParameters::SOLUTION) < minPotentialS) {
+                  minPotentialS = N.parameters.at(ionosphereParameters::SOLUTION);
+               }
+               if(N.parameters.at(ionosphereParameters::SOLUTION) > maxPotentialS) {
+                  maxPotentialS = N.parameters.at(ionosphereParameters::SOLUTION);
+               }
             }
-
-            if(N.parameters.at(ionosphereParameters::SOLUTION) > maxPotentialN) {
-
-               maxPotentialN = N.parameters.at(ionosphereParameters::SOLUTION);
-
-            }
-
-         } else {
-
-            if(N.parameters.at(ionosphereParameters::SOLUTION) < minPotentialS) {
-
-               minPotentialS = N.parameters.at(ionosphereParameters::SOLUTION);
-
-            }
-
-            if(N.parameters.at(ionosphereParameters::SOLUTION) > maxPotentialS) {
-
-               maxPotentialS = N.parameters.at(ionosphereParameters::SOLUTION);
-
-            }
-
          }
-
+      } else {
+         // Our own BiCG implementation in solveInternal, like in GUMICS' implementation.
+         do {
+            solveInternal(nIterations, nRestarts, residual, minPotentialN, maxPotentialN, minPotentialS, maxPotentialS);
+            if(Ionosphere::solverToggleMinimumResidualVariant) {
+               Ionosphere::solverUseMinimumResidualVariant = !Ionosphere::solverUseMinimumResidualVariant;
+            }
+         } while (residual > Ionosphere::solverRelativeL2ConvergenceThreshold && nIterations < Ionosphere::solverMaxIterations);
       }
-
-     }
+   }
 
    void SphericalTriGrid::solveInternal(
       int & iteration,
@@ -3109,6 +3074,7 @@ namespace SBC {
       Readparameters::add("ionosphere.backgroundIonisation", "Background ionoisation due to cosmic rays (mho)", 0.5);
       Readparameters::add("ionosphere.fixedSigmaP", "Fixed Pedersen conductivity value for the whole shell, if ionizationModel is 'fixedSigma'", 10.);
       Readparameters::add("ionosphere.fixedSigmaH", "Fixed Hall conductivity value for the whole shell, if ionizationModel is 'fixedSigma'", 0.);
+      Readparameters::add("ionosphere.useEigenSolver", "Whether to use Eigen's BiCGSTAB solver over our home-grown BiCG implementation", false);
       Readparameters::add("ionosphere.solverMaxIterations", "Maximum number of iterations for the conjugate gradient solver", 2000);
       Readparameters::add("ionosphere.solverRelativeL2ConvergenceThreshold", "Convergence threshold for the relative L2 metric", 1e-6);
       Readparameters::add("ionosphere.solverMaxFailureCount", "Maximum number of iterations allowed to diverge before restarting the ionosphere solver", 5);
@@ -3178,6 +3144,7 @@ namespace SBC {
       Readparameters::get("ionosphere.ridleyParallelConductivity", ridleyParallelConductivity);
       Readparameters::get("ionosphere.fibonacciNodeNum",fibonacciNodeNum);
       Readparameters::get("ionosphere.gridFilePath",path);
+      Readparameters::get("ionosphere.useEigenSolver", useEigenSolver);
       Readparameters::get("ionosphere.solverMaxIterations", solverMaxIterations);
       Readparameters::get("ionosphere.solverRelativeL2ConvergenceThreshold", solverRelativeL2ConvergenceThreshold);
       Readparameters::get("ionosphere.solverMaxFailureCount", solverMaxFailureCount);

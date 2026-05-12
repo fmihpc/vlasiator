@@ -656,6 +656,7 @@ namespace SBC {
 
       // Parameters of the ionosphere model
       static Real innerRadius; /*!< Radius of the ionosphere model */
+      static bool useEigenSolver;
       static int solverMaxIterations; /*!< Maximum iterations of CG solver per timestep */
       static Real solverRelativeL2ConvergenceThreshold; /*! L2 metric relative convergence threshold */
       static int solverMaxFailureCount;
