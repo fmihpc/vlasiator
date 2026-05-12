@@ -343,7 +343,19 @@ namespace SBC {
          A.col(1) = - edge2Perpendicular;
          Eigen::Vector3d bVec = edge2Mid - edge1Mid;
          Eigen::Vector2d t = A.colPivHouseholderQr().solve(bVec);
-         Eigen::Vector3d residual = A * t - bVec;
+         // Verify that the solution is correct
+         //Eigen::Vector3d residual = A * t - bVec;
+         //if (residual.norm() > 1e-6) {
+         //   cerr << "Circumcentre calculation failed, residual: " << residual.norm() << endl;
+         //}
+
+         Eigen::Vector3d intersection = edge1Mid + t(0) * edge1Perpendicular;
+         Eigen::Vector3d intersection2 = edge2Mid + t(1) * edge2Perpendicular;
+         if((intersection - intersection2).norm() > 1e-6) {
+            cerr << "Circumcentre calculation failed, intersection points do not match: "
+                 << (intersection - intersection2).norm() << endl;
+         }
+         circumcentre = intersection;
 
          return circumcentre;
       }
