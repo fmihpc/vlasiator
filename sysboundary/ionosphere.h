@@ -414,15 +414,12 @@ namespace SBC {
 
             SphericalTriGrid::Element& element = elements[gridEl];
 
-            int gridI=0,gridJ=0;
             int localC=0,localI=0,localJ=0;
             for(int c=0; c < 3; c++) {
                if(element.corners[c] == gridNode) {
                   localC = c;
                   localI = (c+1)%3;
-                  gridI=element.corners[localI];
                   localJ = (c+2)%3;
-                  gridJ=element.corners[localJ];
                   break;
                }
             }

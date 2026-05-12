@@ -1232,9 +1232,6 @@ namespace SBC {
             }
          } else if(ionosphereGrid.ionizationModel == Juusola2025) {
 
-            const static int NODE_CONSTRAINT_REDUCTION = 1;
-            const static int ELEMENT_CONSTRAINT_REDUCTION =1;
-
             // Ionosoheric Sigma calculation functions from
             // Juusola et al. 2025.
             // Coefficients are in ionosphere_tables.h
@@ -1393,7 +1390,6 @@ namespace SBC {
                   int localC=0,localI=0,localJ=0;
                   for(int c=0; c< 3; c++) {
                      if(element.corners[c] == n) {
-                        localC = c;
                         localI = (c+1)%3;
                         gridI=element.corners[localI];
                         localJ = (c+2)%3;
@@ -1445,7 +1441,6 @@ namespace SBC {
             elementDivFreeCurrent.resize(elements.size());
             for(uint el=0; el<elements.size(); el++) {
                std::array<uint32_t, 3>& corners = elements[el].corners;
-               Real A = elementArea(el);
                Eigen::Vector3d r0(nodes[corners[0]].x.data());
                Eigen::Vector3d r1(nodes[corners[1]].x.data());
                Eigen::Vector3d r2(nodes[corners[2]].x.data());
@@ -1483,7 +1478,6 @@ namespace SBC {
             vJ = solver.solve(vRHS1);
             for(uint el=0; el<elements.size(); el++) {
                std::array<uint32_t, 3>& corners = elements[el].corners;
-               Real A = elementArea(el);
 
                Eigen::Vector3d r0(nodes[corners[0]].x.data());
                Eigen::Vector3d r1(nodes[corners[1]].x.data());
@@ -4067,7 +4061,7 @@ namespace SBC {
                   cell.prepare_to_receive_blocks(popID);
 
                   // Set the reservation value (capacity is increased in add_velocity_blocks
-                  const Realf minValue = cell.getVelocityBlockMinValue(popID);
+                  //const Realf minValue = cell.getVelocityBlockMinValue(popID);
 
                   // fills v-space into target
 
@@ -4165,7 +4159,7 @@ namespace SBC {
                   cell.prepare_to_receive_blocks(popID);
 
                   // Set the reservation value (capacity is increased in add_velocity_blocks
-                  const Realf minValue = cell.getVelocityBlockMinValue(popID);
+                  //const Realf minValue = cell.getVelocityBlockMinValue(popID);
 
                   // fills v-space into target
 
@@ -4295,7 +4289,7 @@ namespace SBC {
          templateCell.prepare_to_receive_blocks(popID);
 
          // Set the reservation value (capacity is increased in add_velocity_blocks
-         const Realf minValue = templateCell.getVelocityBlockMinValue(popID);
+         //const Realf minValue = templateCell.getVelocityBlockMinValue(popID);
 
          // fills v-space into target
 
