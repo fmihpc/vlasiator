@@ -46,7 +46,7 @@ bool P::divide_rhov_by_rho = false;
 
 std::default_random_engine::result_type P::random_seed = 1;
 Distribution* (*P::distribution)(std::default_random_engine&) = NULL;
-std::string distribution_name;
+std::string P::distribution_name;
 Real P::temperature = 1e6;
 Real P::particle_vel = 0;
 Real P::mass = PhysicalConstantsSI::mp;
@@ -55,6 +55,11 @@ Real P::charge = PhysicalConstantsSI::e;
 Boundary* P::boundary_behaviour_x = NULL;
 Boundary* P::boundary_behaviour_y = NULL;
 Boundary* P::boundary_behaviour_z = NULL;
+
+std::string P::boundary_behaviour_x_string;
+std::string P::boundary_behaviour_y_string;
+std::string P::boundary_behaviour_z_string;
+
 
 Real P::precip_inner_boundary;
 Real P::precip_start_x;
@@ -95,7 +100,7 @@ bool ParticleParameters::addParameters() {
    Readparameters::add<std::string>("particles.V_field_name", "Name of the Velocity data set in the input files", P::V_field_name, "V");
    Readparameters::add<std::string>("particles.rho_field_name", "Name of the Density data set in the input files", P::rho_field_name, "rho");
    Readparameters::add<bool>("particles.divide_rhov_by_rho", "Do the input file store rho_v and rho separately?", P::divide_rhov_by_rho, false);
-   Readparameters::add<int>("particles.random_seed", "Random seed for particle creation.", P::random_seed,1);
+   Readparameters::add<std::default_random_engine::result_type>("particles.random_seed", "Random seed for particle creation.", P::random_seed,1);
    Readparameters::add<std::string>("particles.distribution", "Type of distribution function to sample particles from.", P::distribution_name,
          std::string("maxwell"));
    Readparameters::add<Real>("particles.temperature", "Temperature of the particle distribution", P::temperature,1e6);
@@ -106,16 +111,16 @@ bool ParticleParameters::addParameters() {
    Readparameters::add<std::string>("particles.boundary_behaviour_x",
          "What to do with particles that reach the x boundaries (DELETE/REFLECT/PERIODIC)",P::boundary_behaviour_x_string,std::string("DELETE"));
    Readparameters::add<std::string>("particles.boundary_behaviour_y",
-         "What to do with particles that reach the y boundaries (DELETE/REFLECT/PERIODIC)",P::boundary_behaviour_y,std::string("PERIODIC"));
+         "What to do with particles that reach the y boundaries (DELETE/REFLECT/PERIODIC)",P::boundary_behaviour_y_string,std::string("PERIODIC"));
    Readparameters::add<std::string>("particles.boundary_behaviour_z",
-         "What to do with particles that reach the z boundaries (DELETE/REFLECT/PERIODIC)",P::boundary_behaviour_z,std::string("PERIODIC"));
+         "What to do with particles that reach the z boundaries (DELETE/REFLECT/PERIODIC)",P::boundary_behaviour_z_string,std::string("PERIODIC"));
 
    // Parameters for the precipitation mode
-   Readparameters::add<Real>("particles.inner_boundary", "Distance of the inner boundary from the coordinate centre (meters)", P::inner_boundary,
+   Readparameters::add<Real>("particles.inner_boundary", "Distance of the inner boundary from the coordinate centre (meters)", P::precip_inner_boundary,
          30e6);
-   Readparameters::add<Real>("particles.precipitation_start_x", "X-Coordinate at which precipitation injection starts (meters)", P::precipitation_start_x,
+   Readparameters::add<Real>("particles.precipitation_start_x", "X-Coordinate at which precipitation injection starts (meters)", P::precip_start_x,
          -200e6);
-   Readparameters::add<Real>("particles.precipitation_stop_x", "X-Coordinate at which precipitation injection stops (meters)", P::precipitation_stop_x,
+   Readparameters::add<Real>("particles.precipitation_stop_x", "X-Coordinate at which precipitation injection stops (meters)", P::precip_stop_x,
          -50e6);
 
    // Parameters for shock reflection mode
@@ -169,12 +174,12 @@ bool ParticleParameters::getParameters() {
    distribution_lookup["kappa2"]=&createDistribution<Kappa2>;
    distribution_lookup["kappa6"]=&createDistribution<Kappa6>;
 
-   if(distribution_lookup.find(distribution_name) == distribution_lookup.end()) {
-      std::cerr << "Error: particles.distribution value \"" << distribution_name
+   if(distribution_lookup.find(P::distribution_name) == distribution_lookup.end()) {
+      std::cerr << "Error: particles.distribution value \"" << P::distribution_name
          << "\" does not specify a valid distribution!" << std::endl;
       return false;
    } else {
-      P::distribution = distribution_lookup[distribution_name];
+      P::distribution = distribution_lookup[P::distribution_name];
    }
 
    // Boundaries
