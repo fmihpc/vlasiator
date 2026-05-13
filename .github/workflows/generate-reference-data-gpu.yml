@@ -35,8 +35,8 @@ jobs:
         rm -rf library-build
         mkdir -p library-build
         BUILDDIR=library-build
-        bash ./fetch_libraries.sh ukkogpu
-        srun --constraint="v100" --gres="gpu:V100" -pgpu --job-name CI_ref_build_lib --interactive --nodes=1 -n 1 -c 8 --mem-per-cpu=2G -t 0:20:0 bash -c 'set -e; export VLASIATOR_ARCH=ukko_dgx; source modules/modules.sh ; ./build_fetched_libraries.sh ukkogpu'
+        bash ./fetch_libraries.sh ukko_dgx
+        srun --constraint="v100" --gres="gpu:V100" -pgpu --job-name CI_ref_build_lib --interactive --nodes=1 -n 1 -c 8 --mem-per-cpu=2G -t 0:20:0 bash -c 'set -e; export VLASIATOR_ARCH=ukko_dgx; source modules/modules.sh ; ./build_fetched_libraries.sh ukko_dgx'
         rm -rf $BUILDDIR
     - name: Compile vlasiator (Testpackage build w/ CUDA) and fluxfunction
       run: |
@@ -76,7 +76,7 @@ jobs:
       run: |
         chmod +x $GITHUB_WORKSPACE/vlasiator
         cd testpackage
-        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/libraries-ukkogpu/lib
+        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/libraries-ukko_dgx/lib
         # Fudge the run script
         sed -i 's/\/proj\/USERNAME\/BINARYNAME/$GITHUB_WORKSPACE\/vlasiator/' ./small_test_ukko_dgx.sh
         sed -i 's/create_verification_files=0/create_verification_files=1/' ./small_test_ukko_dgx.sh
