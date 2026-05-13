@@ -78,7 +78,7 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v4
       - name: Run library build script
-        run: srun --interactive -C g -J build_libs_hile-g -n 1 -c 16 bash -c "hostname ; source modules/hile_gpu.sh ; ./fetch_and_build_libraries.sh hile_gpu"
+        run: srun --interactive -C g -J build_libs_hile-g -n 1 -c 16 bash -c "hostname ; pwd ; source modules/hile_gpu.sh ; ./fetch_and_build_libraries.sh hile_gpu"
       - name: Build libraries tar
         run: tar -zcf libraries-hile_gpu.tar.gz libraries-hile_gpu/
       - name: Upload libraries as artifact
@@ -97,7 +97,7 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v4
       - name: Run library build script
-        run: srun --interactive --constraint="v100" --gres="gpu:V100" -p gpu -J build_libs -n 1 -c 64 bash -c "hostname ; source modules/ukko_dgx.sh ; ./fetch_and_build_libraries.sh ukko_dgx"
+        run: srun --interactive --constraint="v100" --gres="gpu:V100" -p gpu -J build_libs -n 1 -c 64 bash -c "hostname ; pwd ; source modules/ukko_dgx.sh ; ./fetch_and_build_libraries.sh ukko_dgx"
       - name: Build libraries tar
         run: tar -zcf libraries-ukko_dgx.tar.gz libraries-ukko_dgx/
       - name: Upload libraries as artifact
@@ -116,7 +116,7 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v4
       - name: Run library build script
-        run: srun --interactive --constraint "carrington|ukko" -J build_libs -n 1 -c 64 bash -c "hostname ; ./fetch_and_build_libraries.sh carrington_gcc_openmpi"
+        run: srun --interactive --constraint "carrington|ukko" -J build_libs -n 1 -c 64 bash -c "hostname ; pwd ; ./fetch_and_build_libraries.sh carrington_gcc_openmpi"
       - name: Build libraries tar
         run: tar -zcf libraries-carrington_gcc_openmpi.tar.gz libraries-carrington_gcc_openmpi/
       - name: Upload libraries as artifact
@@ -166,7 +166,7 @@ jobs:
           rm -rf libraries library-build libraries-pioneer.tar.gz
       - name: Submit library job
         run: |
-          srun --interactive -p pioneer -J vlasiator-libs -n 1 -c 64 -t 01:00:00 bash -lc 'hostname ; source modules/pioneer.sh ; ./fetch_and_build_libraries.sh pioneer'
+          srun --interactive -p pioneer -J vlasiator-libs -n 1 -c 64 -t 01:00:00 bash -lc 'hostname ; pwd ; source modules/pioneer.sh ; ./fetch_and_build_libraries.sh pioneer'
           #ssh synth-hca 'source /etc/profile.d/lmod.sh; export PATH=$PATH:$HOME/bin; module load llvm/cross/EPI-0.7-development; cd '$GITHUB_WORKSPACE'; ./fetch_and_build_libraries.sh pioneer'
       - name: Build libraries tar
         run: tar -czvf libraries-pioneer.tar.gz libraries-pioneer/
@@ -326,7 +326,7 @@ jobs:
     - name: Compile vlasiator (Testpackage build)
       run: |
         export VLASIATOR_ARCH=carrington_gcc_openmpi
-        srun --constraint "carrington|ukko" --job-name CI_tp_compile --interactive --nodes=1 -n 1 -c 16 --mem=40G -p short -t 0:10:0 bash -c 'hostname ; export VLASIATOR_ARCH=carrington_gcc_openmpi; source modules/modules.sh ; make -j 16 testpackage; sleep 10s'
+        srun --constraint "carrington|ukko" --job-name CI_tp_compile --interactive --nodes=1 -n 1 -c 16 --mem=40G -p short -t 0:10:0 bash -c 'hostname ; pwd ; export VLASIATOR_ARCH=carrington_gcc_openmpi; source modules/modules.sh ; make -j 16 testpackage; sleep 10s'
     - name: Make sure the output binary is visible in lustre
       uses: nick-fields/retry@v3
       with:
@@ -378,7 +378,7 @@ jobs:
       - name: Compile vlasiator (Testpackage build w/ CUDA)
         run: |
           export VLASIATOR_ARCH=ukko_dgx
-          srun --constraint="ukko" -p gpu --job-name CI_tp_compile --interactive --nodes=1 -n 1 -c 8 --mem-per-cpu=2G -t 0:20:0 bash -c 'hostname ; export VLASIATOR_ARCH=ukko_dgx ; source modules/modules.sh ; make -j 9 testpackage; sleep 10s'
+          srun --constraint="ukko" -p gpu --job-name CI_tp_compile --interactive --nodes=1 -n 1 -c 8 --mem-per-cpu=2G -t 0:20:0 bash -c 'hostname ; pwd ; export VLASIATOR_ARCH=ukko_dgx ; source modules/modules.sh ; make -j 9 testpackage; sleep 10s'
       - name: Make sure the output binary is visible in lustre
         uses: nick-fields/retry@v3
         with:
@@ -424,7 +424,7 @@ jobs:
       - uses: ursg/gcc-problem-matcher@master
       - name: Compile vlasiator (Testpackage build w/ HIP)
         run: |
-          srun -C g --job-name CI_tp_G_compile --interactive --nodes=1 -n 1 -c 16 --mem-per-cpu=2G -t 0:20:0 bash -c 'hostname ; export VLASIATOR_ARCH=hile_gpu ; source modules/modules.sh ; make -j 16 testpackage; sleep 10s'
+          srun -C g --job-name CI_tp_G_compile --interactive --nodes=1 -n 1 -c 16 --mem-per-cpu=2G -t 0:20:0 bash -c 'hostname ; pwd ; export VLASIATOR_ARCH=hile_gpu ; source modules/modules.sh ; make -j 16 testpackage; sleep 10s'
       - name: Make sure the output binary is visible in lustre
         uses: nick-fields/retry@v3
         with:
@@ -473,7 +473,7 @@ jobs:
       - name: Compile vlasiator (Release, debug build w/ HIP)
         run: |
           # srun -C g --job-name CI_debug_G_compile --interactive --nodes=1 -n 1 -c 16 --mem-per-cpu=2G -t 0:20:0 bash -c 'module load papi; module load rocm/6.2.0; module load cray-pmi; module load craype-accel-amd-gfx90a; module load libfabric/1.22.0; export MPICH_GPU_SUPPORT_ENABLED=1; export VLASIATOR_ARCH=hile_gpu; make COMPFLAGS="-DDEBUG_VLASIATOR -DDEBUG_SOLVERS -DDEBUG_IONOSPHERE -DDEBUG_SPATIAL_CELL -DDEBUG_VMESH -DDEBUG_VBC -DDEBUG_ACC " -j 16; sleep 10s'
-          srun -C g --job-name CI_debug_G_compile --interactive --nodes=1 -n 1 -c 16 --mem-per-cpu=2G -t 0:20:0 bash -c 'hostname ; export VLASIATOR_ARCH=hile_gpu ; source modules/modules.sh ; make -j 16; sleep 10s'
+          srun -C g --job-name CI_debug_G_compile --interactive --nodes=1 -n 1 -c 16 --mem-per-cpu=2G -t 0:20:0 bash -c 'hostname ; pwd ; export VLASIATOR_ARCH=hile_gpu ; source modules/modules.sh ; make -j 16; sleep 10s'
       - name: Make sure the output binary is visible in lustre
         uses: nick-fields/retry@v3
         with:
@@ -514,7 +514,7 @@ jobs:
       - uses: ursg/gcc-problem-matcher@master
       - name: Compile vlasiator (Testpackage build w/ HIP)
         run: |
-          srun -C c --job-name CI_tp_C_compile --interactive --nodes=1 -n 1 -c 16 --mem-per-cpu=2G -t 0:20:0 bash -c 'hostname ; export VLASIATOR_ARCH=hile_cpu ; source modules/modules.sh ; make -j 16 testpackage; sleep 10s'
+          srun -C c --job-name CI_tp_C_compile --interactive --nodes=1 -n 1 -c 16 --mem-per-cpu=2G -t 0:20:0 bash -c 'hostname ; pwd ; export VLASIATOR_ARCH=hile_cpu ; source modules/modules.sh ; make -j 16 testpackage; sleep 10s'
       - name: Make sure the output binary is visible in lustre
         uses: nick-fields/retry@v3
         with:
@@ -557,7 +557,7 @@ jobs:
       - name: Compile vlasiator (Release, debug build w/ HIP)
         run: |
           # srun -C c --job-name CI_debug_C_compile --interactive --nodes=1 -n 1 -c 16 --mem-per-cpu=2G -t 0:20:0 bash -c 'module load papi; module load cray-pmi; module load libfabric/1.22.0; export VLASIATOR_ARCH=hile_cpu; make COMPFLAGS="-DDEBUG_VLASIATOR -DDEBUG_SOLVERS -DDEBUG_IONOSPHERE -DDEBUG_SPATIAL_CELL -DDEBUG_VMESH -DDEBUG_VBC -DDEBUG_ACC " -j 16; sleep 10s'
-          srun -C c --job-name CI_debug_C_compile --interactive --nodes=1 -n 1 -c 16 --mem-per-cpu=2G -t 0:20:0 bash -c 'hostname ; export VLASIATOR_ARCH=hile_cpu ; source modules/modules.sh ; make -j 16; sleep 10s'
+          srun -C c --job-name CI_debug_C_compile --interactive --nodes=1 -n 1 -c 16 --mem-per-cpu=2G -t 0:20:0 bash -c 'hostname ; pwd ; export VLASIATOR_ARCH=hile_cpu ; source modules/modules.sh ; make -j 16; sleep 10s'
       - name: Make sure the output binary is visible in lustre
         uses: nick-fields/retry@v3
         with:
@@ -604,7 +604,7 @@ jobs:
       - name: Compile vlasiator (Testpackage build w/ CUDA, debug)
         run: |
           export VLASIATOR_ARCH=ukko_dgx
-          srun --constraint="ukko" -p gpu --job-name CI_dbg_compile --interactive --nodes=1 -n 1 -c 8 --mem-per-cpu=2G -t 0:20:0 bash -c 'hostname ; export VLASIATOR_ARCH=ukko_dgx ; source modules/modules.sh ; COMPFLAGS="-DDEBUG_VLASIATOR -DDEBUG_SOLVERS -DDEBUG_IONOSPHERE -DHASHINATOR_DEBUG -DDEBUG_SPATIAL_CELL -DDEBUG_VMESH -DDEBUG_VBC -DDEBUG_ACC " make -j 9 testpackage ; sleep 10s'
+          srun --constraint="ukko" -p gpu --job-name CI_dbg_compile --interactive --nodes=1 -n 1 -c 8 --mem-per-cpu=2G -t 0:20:0 bash -c 'hostname ; pwd ; export VLASIATOR_ARCH=ukko_dgx ; source modules/modules.sh ; COMPFLAGS="-DDEBUG_VLASIATOR -DDEBUG_SOLVERS -DDEBUG_IONOSPHERE -DHASHINATOR_DEBUG -DDEBUG_SPATIAL_CELL -DDEBUG_VMESH -DDEBUG_VBC -DDEBUG_ACC " make -j 9 testpackage ; sleep 10s'
       - name: Make sure the output binary is visible in lustre
         uses: nick-fields/retry@v3
         with:
@@ -651,7 +651,7 @@ jobs:
       - name: Compile vlasiator (Production build w/ CUDA, debug, WA)
         run: |
           export VLASIATOR_ARCH=ukko_dgx
-          srun --constraint="ukko" -p gpu --job-name CI_tp_compile --interactive --nodes=1 -n 1 -c 8 --mem-per-cpu=2G -t 0:20:0 bash -c 'hostname ; export VLASIATOR_ARCH=ukko_dgx ; source modules/modules.sh ; COMPFLAGS="-DDEBUG_VLASIATOR -DDEBUG_SOLVERS -DDEBUG_IONOSPHERE -DHASHINATOR_DEBUG -DDEBUG_SPATIAL_CELL -DDEBUG_VMESH -DDEBUG_VBC -DDEBUG_ACC -DUSE_WARPACCESSORS " make -j 9 ; sleep 10s'
+          srun --constraint="ukko" -p gpu --job-name CI_tp_compile --interactive --nodes=1 -n 1 -c 8 --mem-per-cpu=2G -t 0:20:0 bash -c 'hostname ; pwd ; export VLASIATOR_ARCH=ukko_dgx ; source modules/modules.sh ; COMPFLAGS="-DDEBUG_VLASIATOR -DDEBUG_SOLVERS -DDEBUG_IONOSPHERE -DHASHINATOR_DEBUG -DDEBUG_SPATIAL_CELL -DDEBUG_VMESH -DDEBUG_VBC -DDEBUG_ACC -DUSE_WARPACCESSORS " make -j 9 ; sleep 10s'
       - name: Make sure the output binary is visible in lustre
         uses: nick-fields/retry@v3
         with:
@@ -690,7 +690,7 @@ jobs:
       run: VLASIATOR_ARCH=pioneer make clean
     - name: Compile vlasiator (RISC-V)
       run: |
-        srun --interactive -p pioneer -J vlasiator_build -n 1 -c 64 --pty -t 01:00:00 bash -lc 'hostname ; export VLASIATOR_ARCH=pioneer ; source modules/modules.sh ; make -j64'
+        srun --interactive -p pioneer -J vlasiator_build -n 1 -c 64 --pty -t 01:00:00 bash -lc 'hostname ; pwd ; export VLASIATOR_ARCH=pioneer ; source modules/modules.sh ; make -j64'
         #ssh synth-hca 'source /etc/profile.d/lmod.sh; export PATH=$PATH:$HOME/bin; module load llvm/cross/EPI-0.7-development; export VLASIATOR_ARCH=pioneer; cd '$GITHUB_WORKSPACE'; make -j 12'
     - name: Upload riscv binary
       uses: actions/upload-artifact@v4
@@ -755,7 +755,7 @@ jobs:
     - name: Compile tools
       run: |
         export VLASIATOR_ARCH=carrington_gcc_openmpi
-        srun --constraint "carrington|ukko" --job-name CI_tools_compile --interactive --nodes=1 -n 1 -c 1 --mem=4G -p short -t 0:10:0 bash -c 'hostname ; export VLASIATOR_ARCH=carrington_gcc_openmpi ; source modules/modules.sh ; make vlsvextract vlsvdiff fluxfunction'
+        srun --constraint "carrington|ukko" --job-name CI_tools_compile --interactive --nodes=1 -n 1 -c 1 --mem=4G -p short -t 0:10:0 bash -c 'hostname ; pwd ; export VLASIATOR_ARCH=carrington_gcc_openmpi ; source modules/modules.sh ; make vlsvextract vlsvdiff fluxfunction'
     - name: Upload tools binaries
       uses: actions/upload-artifact@v4
       with:
@@ -797,7 +797,7 @@ jobs:
     - name: Compile tools
       run: |
           export VLASIATOR_ARCH=ukko_dgx
-          srun --constraint="ukko" -p gpu --job-name CI_tools_compile --interactive --nodes=1 -n 1 -c 1 --mem-per-cpu=2G -t 0:10:0 bash -c 'hostname ; export VLASIATOR_ARCH=ukko_dgx ; source modules/modules.sh ; make vlsvextract vlsvdiff; sleep 10s'
+          srun --constraint="ukko" -p gpu --job-name CI_tools_compile --interactive --nodes=1 -n 1 -c 1 --mem-per-cpu=2G -t 0:10:0 bash -c 'hostname ; pwd ; export VLASIATOR_ARCH=ukko_dgx ; source modules/modules.sh ; make vlsvextract vlsvdiff; sleep 10s'
     - name: Upload tools binaries
       uses: actions/upload-artifact@v4
       with:
@@ -832,7 +832,7 @@ jobs:
       - uses: ursg/gcc-problem-matcher@master
       - name: Compile tools
         run: |
-          srun -C c --job-name CI_tools_HILE-C_compile --interactive --nodes=1 -n 1 -c 1 --mem-per-cpu=2G -t 0:10:0 bash -c 'hostname ; export VLASIATOR_ARCH=hile_cpu ; source modules/modules.sh ; make vlsvextract vlsvdiff fluxfunction; sleep 10s'
+          srun -C c --job-name CI_tools_HILE-C_compile --interactive --nodes=1 -n 1 -c 1 --mem-per-cpu=2G -t 0:10:0 bash -c 'hostname ; pwd ; export VLASIATOR_ARCH=hile_cpu ; source modules/modules.sh ; make vlsvextract vlsvdiff fluxfunction; sleep 10s'
       - name: Upload tools binaries
         uses: actions/upload-artifact@v4
         with:
@@ -916,8 +916,8 @@ jobs:
     - name: Run fluxfunction test
       run: |
         chmod +x $GITHUB_WORKSPACE/fluxfunction
-        srun --job-name fluxtest --constraint "carrington|ukko" -N 1 -c 1 --mem=1G bash -c "hostname ; source modules/carrington_gcc_openmpi.sh ; $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_small/bulk.0000001.vlsv equatorial.bin"
-        srun --job-name fluxtest --constraint "carrington|ukko" -N 1 -c 1 --mem=1G bash -c "hostname ; source modules/carrington_gcc_openmpi.sh ; $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_polar_small/bulk.0000001.vlsv polar.bin"
+        srun --job-name fluxtest --constraint "carrington|ukko" -N 1 -c 1 --mem=1G bash -c "hostname ; pwd ; source modules/carrington_gcc_openmpi.sh ; $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_small/bulk.0000001.vlsv equatorial.bin"
+        srun --job-name fluxtest --constraint "carrington|ukko" -N 1 -c 1 --mem=1G bash -c "hostname ; pwd ; source modules/carrington_gcc_openmpi.sh ; $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_polar_small/bulk.0000001.vlsv polar.bin"
         diff -q equatorial.bin /turso/group/spacephysics/vlasiator/testpackage/CI_reference/equatorial.bin || if [ $? -eq 1 ] ; then true; else false; fi
         diff -q polar.bin /turso/group/spacephysics/vlasiator/testpackage/CI_reference/polar.bin || if [ $? -eq 1 ] ; then true; else false; fi
 
@@ -987,8 +987,8 @@ jobs:
     - name: Run fluxfunction test
       run: |
         chmod +x $GITHUB_WORKSPACE/fluxfunction
-        srun -C c --job-name fluxtest --nodes=1 -n 1 -c 1 --mem-per-cpu=2G -t 0:10:0 bash -c 'hostname ; source modules/hile_cpu.sh ; $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_small/bulk.0000001.vlsv equatorial.bin'
-        srun -C c --job-name fluxtest --nodes=1 -n 1 -c 1 --mem-per-cpu=2G -t 0:10:0 bash -c 'hostname ; source modules/hile_cpu.sh ; $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_polar_small/bulk.0000001.vlsv polar.bin'
+        srun -C c --job-name fluxtest --nodes=1 -n 1 -c 1 --mem-per-cpu=2G -t 0:10:0 bash -c 'hostname ; pwd ; source modules/hile_cpu.sh ; $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_small/bulk.0000001.vlsv equatorial.bin'
+        srun -C c --job-name fluxtest --nodes=1 -n 1 -c 1 --mem-per-cpu=2G -t 0:10:0 bash -c 'hostname ; pwd ; source modules/hile_cpu.sh ; $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_polar_small/bulk.0000001.vlsv polar.bin'
         diff -q equatorial.bin /turso/group/spacephysics/vlasiator/testpackage/CI_reference/equatorial.bin || if [ $? -eq 1 ] ; then true; else false; fi
         diff -q polar.bin /turso/group/spacephysics/vlasiator/testpackage/CI_reference/polar.bin || if [ $? -eq 1 ] ; then true; else false; fi
 
