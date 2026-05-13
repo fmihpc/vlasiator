@@ -343,7 +343,19 @@ namespace SBC {
          A.col(1) = - edge2Perpendicular;
          Eigen::Vector3d bVec = edge2Mid - edge1Mid;
          Eigen::Vector2d t = A.colPivHouseholderQr().solve(bVec);
-         Eigen::Vector3d residual = A * t - bVec;
+         // Verify that the solution is correct
+         //Eigen::Vector3d residual = A * t - bVec;
+         //if (residual.norm() > 1e-6) {
+         //   cerr << "Circumcentre calculation failed, residual: " << residual.norm() << endl;
+         //}
+
+         Eigen::Vector3d intersection = edge1Mid + t(0) * edge1Perpendicular;
+         Eigen::Vector3d intersection2 = edge2Mid + t(1) * edge2Perpendicular;
+         if((intersection - intersection2).norm() > 1e-6) {
+            cerr << "Circumcentre calculation failed, intersection points do not match: "
+                 << (intersection - intersection2).norm() << endl;
+         }
+         circumcentre = intersection;
 
          return circumcentre;
       }
@@ -414,15 +426,12 @@ namespace SBC {
 
             SphericalTriGrid::Element& element = elements[gridEl];
 
-            int gridI=0,gridJ=0;
             int localC=0,localI=0,localJ=0;
             for(int c=0; c < 3; c++) {
                if(element.corners[c] == gridNode) {
                   localC = c;
                   localI = (c+1)%3;
-                  gridI=element.corners[localI];
                   localJ = (c+2)%3;
-                  gridJ=element.corners[localJ];
                   break;
                }
             }
@@ -656,6 +665,7 @@ namespace SBC {
 
       // Parameters of the ionosphere model
       static Real innerRadius; /*!< Radius of the ionosphere model */
+      static bool useEigenSolver;
       static int solverMaxIterations; /*!< Maximum iterations of CG solver per timestep */
       static Real solverRelativeL2ConvergenceThreshold; /*! L2 metric relative convergence threshold */
       static int solverMaxFailureCount;
