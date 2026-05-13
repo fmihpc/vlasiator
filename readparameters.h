@@ -148,7 +148,6 @@ public:
          //however it only applies if the the default value was not given as a variable rather than a literal (if even possible)
          if constexpr ( n && !h && !isVec) {
             ss << std::setprecision(std::numeric_limits<double>::digits10 + 1) << *defval;
-            std::cout << name << " and " << ss.str() << std::endl;
             opt->default_val(ss.str());
          } else {
             opt->default_val(*defval);
