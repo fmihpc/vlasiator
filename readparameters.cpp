@@ -224,27 +224,6 @@ void Readparameters::parse(bool extras) {
 
       app->parse(parsed_conf);
 
-      // // getObjectWrapper().project->getParameters();
-      // auto subs = app->get_subcommands();
-      // auto opts1 = app->get_options();
-      // for (auto opt : opts1) {
-      //    std::cout << "OPTION=" << opt->get_name() << std::endl;
-      // }
-      // std::cout << "SUBSSIZE=" << subs.size() << std::endl;
-      // string last_name;
-      // for (auto sub : subs) {
-      //    if (last_name == sub->get_name()) {
-      //       continue;
-      //    }
-      //    auto opts = sub->get_options();
-      //    std::cout << "OPTSIZE=" << opts.size() << std::endl;
-      //    std::cout << sub->get_name() << std::endl;
-      //    for (auto opt : opts) {
-      //       std::cout << "SUBCOM=" << sub->get_name() << "      OPTION=" << opt->get_name() << std::endl;
-      //    }
-      //    last_name = sub->get_name();
-      // }
-      // abort();
     }
 }
 

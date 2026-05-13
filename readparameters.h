@@ -22,7 +22,7 @@
 
 #ifndef READPARAMETERS_H
 #define READPARAMETERS_H
-
+#include <type_traits>
 #include <CLI11.hpp>
 #include <cctype>
 #include <fstream>
@@ -93,7 +93,13 @@ public:
    static CLI::App* get_app(){
       return app;
    }
-   /** Add a new input parameter 
+
+   template<typename T> struct is_vector : public std::false_type {};
+
+   template<typename T, typename A>
+   struct is_vector<std::vector<T, A>> : public std::true_type {};
+
+    /** Add a new input parameter 
     * Note that parse must be called in order for the input file(s) to be re-read.
     * Only called by the root process.
     * @param name The name of the parameter, as given in the input file(s).
@@ -101,7 +107,6 @@ public:
     * @param var variable to which the parsed value is assigned.
     * @param defval Default value for variable.
     */
-
    template <typename T> static CLI::Option* add(const std::string& name, const std::string& desc,
        T& var, std::optional<T> defval=std::nullopt
       ) {
@@ -135,7 +140,19 @@ public:
         opt=app->add_option(("--"+cmdNameVec.at(0)).c_str(), var, desc.c_str())->capture_default_str();//->expected(0,-1); //->each(lambda);
       }
       if (defval && opt != nullptr){
-          opt->default_val(*defval);
+         std::stringstream ss;
+         static constexpr bool h= (std::is_same<std::remove_cv<std::remove_reference<T>>, std::string>::value); 
+         static constexpr bool isVec = (is_vector<T>{});
+         static constexpr bool n = (std::is_floating_point<T>::value);
+         //fixes issue with default val precision BUT doesnt fix it for vectors for currently.
+         //however it only applies if the the default value was not given as a variable rather than a literal (if even possible)
+         if constexpr ( n && !h && !isVec) {
+            ss << std::setprecision(std::numeric_limits<double>::digits10 + 1) << *defval;
+            std::cout << name << " and " << ss.str() << std::endl;
+            opt->default_val(ss.str());
+         } else {
+            opt->default_val(*defval);
+         } 
       } 
 
       return opt;
