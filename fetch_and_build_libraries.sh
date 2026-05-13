@@ -4,16 +4,18 @@ set -e   # Abort on error
 
 WORKSPACE=`pwd`
 
-if [[ z$VLASIATOR_ARCH != "z" ]]; then
-   PLATFORM=-$VLASIATOR_ARCH
+if [[ z$1 != "z" ]]; then
+   PLATFORM=-$1
+   echo "Using platform $PLATFORM as provided to the script."
 else
-   if [[ z$1 != "z" ]]; then
-      PLATFORM=-$1
+   if [[ z$VLASIATOR_ARCH != "z" ]]; then
+      PLATFORM=-$VLASIATOR_ARCH
+      echo "Using platform $PLATFORM as detected from VLASIATOR_ARCH."
    else
       PLATFORM=""
+      echo "No explicit $PLATFORM set. If this is not intended, pass an argument to this script or set VLASIATOR_ARCH."
    fi
 fi
-echo "Using platform $PLATFORM"
 
 if [[ $PLATFORM == "-hile_cpu" || $PLATFORM == "-hile_gpu" ]]; then
    # Regular subdirectory instead of on /tmp
