@@ -6,3 +6,4 @@ module load PAPI/7.1.0-GCCcore-13.2.0
 module load CUDA/12.6.0
 module load CMake/3.27.6-GCCcore-13.2.0
 
+module load git
