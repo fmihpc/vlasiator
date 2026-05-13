@@ -137,7 +137,7 @@ elif [[ $PLATFORM == "-leonardo_dcgp_intel" ]]; then
 #    sed -i 's/mpiicpc/mpiicpc -cxx=icpx/g' src/Makefile
 #    sed -i 's/mpiicpc/mpiicpc -cxx=icpx/g' src/driver/Makefile
 elif [[ $PLATFORM == "-hile_cpu" ||  $PLATFORM == "-hile_gpu" || $PLATFORM == "-lumi_2403" ]]; then
-    cmake ../Trilinos -DCMAKE_INSTALL_PREFIX=$WORKSPACE/libraries${PLATFORM} -DTPL_ENABLE_MPI=ON -DTrilinos_ENABLE_Zoltan=ON -DZoltan_ENABLE_ULLONG_IDS:Bool=ON -DCMAKE_C_COMPILER=cc -DCMAKE_CXX_COMPILER=CC -DCMAKE_FORTRAN_COMPILER=ftn
+    cmake ../Trilinos -DCMAKE_INSTALL_PREFIX=$WORKSPACE/libraries${PLATFORM} -DTPL_ENABLE_MPI=ON -DTrilinos_ENABLE_Zoltan=ON -DZoltan_ENABLE_ULLONG_IDS:Bool=ON -DCMAKE_C_COMPILER=cc -DCMAKE_CXX_COMPILER=CC -DCMAKE_Fortran_COMPILER=ftn
 elif [[ $PLATFORM == "-roihu_cpu_aocc" ]]; then
     /projappl/project_2001659/pfaukemp/CPU/vlasiator-libraries/libraries-roihu_cpu/bin/cmake \
     ../Trilinos -DCMAKE_INSTALL_PREFIX=$WORKSPACE/libraries${PLATFORM} -DTPL_ENABLE_MPI=ON -DTrilinos_ENABLE_Zoltan=ON -DZoltan_ENABLE_ULLONG_IDS:Bool=ON -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpic++ -DCMAKE_C_FLAGS:STRING="-fPIC" -DCMAKE_CXX_FLAGS:STRING="-fPIC"
