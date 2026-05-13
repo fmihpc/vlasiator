@@ -83,11 +83,12 @@ namespace SBC {
    Real Ionosphere::ridleyParallelConductivity; /*!< Constant parallel conductivity in the Ridley conductivity model */
    Real Ionosphere::couplingTimescale;          /*!< Magnetosphere->Ionosphere coupling timescale (seconds) */
    Real Ionosphere::couplingInterval;           /*!< Ionosphere update interval */
-   int Ionosphere::solveCount;                  /*!< Counter of the number of solvings */
+   int  Ionosphere::solveCount;                 /*!< Counter of the number of solvings */
    Real Ionosphere::backgroundIonisation;       /*!< Background ionisation due to stellar UV and cosmic rays */
-   int Ionosphere::solverMaxIterations;
+   bool Ionosphere::useEigenSolver;
+   int  Ionosphere::solverMaxIterations;
    Real Ionosphere::solverRelativeL2ConvergenceThreshold;
-   int Ionosphere::solverMaxFailureCount;
+   int  Ionosphere::solverMaxFailureCount;
    Real Ionosphere::solverMaxErrorGrowthFactor;
    bool Ionosphere::solverPreconditioning;
    bool Ionosphere::solverUseMinimumResidualVariant;
@@ -1218,9 +1219,6 @@ namespace SBC {
             }
          } else if (ionosphereGrid.ionizationModel == Juusola2025) {
 
-            const static int NODE_CONSTRAINT_REDUCTION = 1;
-            const static int ELEMENT_CONSTRAINT_REDUCTION = 1;
-
             // Ionosoheric Sigma calculation functions from
             // Juusola et al. 2025.
             // Coefficients are in ionosphere_tables.h
@@ -1373,7 +1371,6 @@ namespace SBC {
                      int localC = 0, localI = 0, localJ = 0;
                      for (int c = 0; c < 3; c++) {
                         if (element.corners[c] == n) {
-                           localC = c;
                            localI = (c + 1) % 3;
                            gridI = element.corners[localI];
                            localJ = (c + 2) % 3;
@@ -1418,7 +1415,6 @@ namespace SBC {
             elementDivFreeCurrent.resize(elements.size());
             for (uint el = 0; el < elements.size(); el++) {
                std::array<uint32_t, 3>& corners = elements[el].corners;
-               Real A = elementArea(el);
                Eigen::Vector3d r0(nodes[corners[0]].x.data());
                Eigen::Vector3d r1(nodes[corners[1]].x.data());
                Eigen::Vector3d r2(nodes[corners[2]].x.data());
@@ -1456,7 +1452,6 @@ namespace SBC {
             vJ = solver.solve(vRHS1);
             for (uint el = 0; el < elements.size(); el++) {
                std::array<uint32_t, 3>& corners = elements[el].corners;
-               Real A = elementArea(el);
 
                Eigen::Vector3d r0(nodes[corners[0]].x.data());
                Eigen::Vector3d r1(nodes[corners[1]].x.data());
@@ -2507,52 +2502,62 @@ namespace SBC {
          }
       }
 
-      Eigen::SparseMatrix<Real> potentialSolverMatrix(nodes.size(), nodes.size());
+      if(Ionosphere::useEigenSolver) {
+         // BiCGSTAB solver from Eigen
+         Eigen::SparseMatrix<Real> potentialSolverMatrix(nodes.size(), nodes.size());
+         Eigen::VectorXd vRightHand(nodes.size()), vPhi(nodes.size());
 
-      Eigen::VectorXd vRightHand(nodes.size()), vPhi(nodes.size());
-
-      for (uint n = 0; n < nodes.size(); n++) {
-         for (uint m = 0; m < nodes[n].numDepNodes; m++) {
-            potentialSolverMatrix.insert(n, nodes[n].dependingNodes[m]) = nodes[n].dependingCoeffs[m];
+         for (uint n = 0; n < nodes.size(); n++) {
+            for (uint m = 0; m < nodes[n].numDepNodes; m++) {
+               potentialSolverMatrix.insert(n, nodes[n].dependingNodes[m]) = nodes[n].dependingCoeffs[m];
+            }
+            vRightHand[n] = nodes[n].parameters[ionosphereParameters::SOURCE];
          }
-         vRightHand[n] = nodes[n].parameters[ionosphereParameters::SOURCE];
-      }
 
-      potentialSolverMatrix.makeCompressed();
+         potentialSolverMatrix.makeCompressed();
 
-      Eigen::BiCGSTAB<Eigen::SparseMatrix<Real>> solver;
+         Eigen::BiCGSTAB<Eigen::SparseMatrix<Real>> solver;
 
-      solver.compute(potentialSolverMatrix);
+         solver.compute(potentialSolverMatrix);
 
-      vPhi = solver.solve(vRightHand);
+         vPhi = solver.solve(vRightHand);
 
-      for (uint n = 0; n < nodes.size(); n++) {
-         nodes[n].parameters[ionosphereParameters::SOLUTION] = vPhi[n];
-      }
+         for (uint n = 0; n < nodes.size(); n++) {
+            nodes[n].parameters[ionosphereParameters::SOLUTION] = vPhi[n];
+         }
 
-      nIterations = solver.iterations();
+         nIterations = solver.iterations();
 
-      residual = solver.error();
+         residual = solver.error();
 
-      for (uint n = 0; n < nodes.size(); n++) {
+         for (uint n = 0; n < nodes.size(); n++) {
 
-         Node& N = nodes[n];
+            Node& N = nodes[n];
 
-         if (N.x[2] >= 0) {
-            if (N.parameters.at(ionosphereParameters::SOLUTION) < minPotentialN) {
-               minPotentialN = N.parameters.at(ionosphereParameters::SOLUTION);
-            }
-            if (N.parameters.at(ionosphereParameters::SOLUTION) > maxPotentialN) {
-               maxPotentialN = N.parameters.at(ionosphereParameters::SOLUTION);
-            }
-         } else {
-            if (N.parameters.at(ionosphereParameters::SOLUTION) < minPotentialS) {
-               minPotentialS = N.parameters.at(ionosphereParameters::SOLUTION);
-            }
-            if (N.parameters.at(ionosphereParameters::SOLUTION) > maxPotentialS) {
-               maxPotentialS = N.parameters.at(ionosphereParameters::SOLUTION);
+            if (N.x[2] >= 0) {
+               if (N.parameters.at(ionosphereParameters::SOLUTION) < minPotentialN) {
+                  minPotentialN = N.parameters.at(ionosphereParameters::SOLUTION);
+               }
+               if (N.parameters.at(ionosphereParameters::SOLUTION) > maxPotentialN) {
+                  maxPotentialN = N.parameters.at(ionosphereParameters::SOLUTION);
+               }
+            } else {
+               if (N.parameters.at(ionosphereParameters::SOLUTION) < minPotentialS) {
+                  minPotentialS = N.parameters.at(ionosphereParameters::SOLUTION);
+               }
+               if (N.parameters.at(ionosphereParameters::SOLUTION) > maxPotentialS) {
+                  maxPotentialS = N.parameters.at(ionosphereParameters::SOLUTION);
+               }
             }
          }
+      } else {
+         // Our own BiCG implementation in solveInternal, like in GUMICS' implementation.
+         do {
+            solveInternal(nIterations, nRestarts, residual, minPotentialN, maxPotentialN, minPotentialS, maxPotentialS);
+            if(Ionosphere::solverToggleMinimumResidualVariant) {
+               Ionosphere::solverUseMinimumResidualVariant = !Ionosphere::solverUseMinimumResidualVariant;
+            }
+         } while (residual > Ionosphere::solverRelativeL2ConvergenceThreshold && nIterations < Ionosphere::solverMaxIterations);
       }
    }
 
@@ -2679,7 +2684,7 @@ namespace SBC {
 #endif
             for (uint n = 0; n < nodes.size(); n++) {
                Node& N = nodes[n];
-               const iSolverReal incr = N.openFieldLine * N.parameters[ionosphereParameters::RRESIDUAL];
+               const iSolverReal incr = N.parameters[ionosphereParameters::ZPARAM] * N.parameters[ionosphereParameters::RRESIDUAL];
 #ifdef IONOSPHERE_SORTED_SUMS
                if (incr < 0) {
                   thread_set_neg.insert(incr);
@@ -2718,7 +2723,7 @@ namespace SBC {
                #pragma omp for
                for (uint n = 0; n < nodes.size(); n++) {
                   Node& N = nodes[n];
-                  N.parameters[ionosphereParameters::PPARAM] = N.openFieldLine;
+                  N.parameters[ionosphereParameters::PPARAM] = N.parameters[ionosphereParameters::ZPARAM];
                   N.parameters[ionosphereParameters::PPPARAM] = N.parameters[ionosphereParameters::ZZPARAM];
                }
             } else {
@@ -2728,7 +2733,7 @@ namespace SBC {
                for (uint n = 0; n < nodes.size(); n++) {
                   Node& N = nodes[n];
                   N.parameters[ionosphereParameters::PPARAM] *= bk;
-                  N.parameters[ionosphereParameters::PPARAM] += N.openFieldLine;
+                  N.parameters[ionosphereParameters::PPARAM] += N.parameters[ionosphereParameters::ZPARAM];
                   N.parameters[ionosphereParameters::PPPARAM] *= bk;
                   N.parameters[ionosphereParameters::PPPARAM] += N.parameters[ionosphereParameters::ZZPARAM];
                }
@@ -2757,7 +2762,7 @@ namespace SBC {
             for (uint n = 0; n < nodes.size(); n++) {
                Node& N = nodes[n];
                iSolverReal zparam = Atimes(n, ionosphereParameters::PPARAM, false);
-               N.openFieldLine = zparam;
+               N.parameters[ionosphereParameters::ZPARAM] = zparam;
                iSolverReal incr = zparam * N.parameters[ionosphereParameters::PPPARAM];
 #ifdef IONOSPHERE_SORTED_SUMS
                if (incr < 0) {
@@ -2847,7 +2852,7 @@ namespace SBC {
                Node& N = nodes[n];
                // Calculate residual of the new solution. The faster way to do this would be
                //
-               // iSolverReal newresid = N.parameters[ionosphereParameters::RESIDUAL] - ak * N.openFieldLine;
+               // iSolverReal newresid = N.parameters[ionosphereParameters::RESIDUAL] - ak * N.parameters[ionosphereParameters::ZPARAM];
                // and
                // N.parameters[ionosphereParameters::RRESIDUAL] -= ak * N.parameters[ionosphereParameters::ZZPARAM];
                //
@@ -2885,7 +2890,7 @@ namespace SBC {
             #pragma omp for
             for (uint n = 0; n < nodes.size(); n++) {
                Node& N = nodes[n];
-               N.openFieldLine = Asolve(n, ionosphereParameters::RESIDUAL, false);
+               N.parameters[ionosphereParameters::ZPARAM] = Asolve(n, ionosphereParameters::RESIDUAL, false);
             }
 
             // See if this solved the potential better than before
@@ -2984,6 +2989,7 @@ namespace SBC {
       Readparameters::add("ionosphere.backgroundIonisation", "Background ionoisation due to cosmic rays (mho)", 0.5);
       Readparameters::add("ionosphere.fixedSigmaP", "Fixed Pedersen conductivity value for the whole shell, if ionizationModel is 'fixedSigma'", 10.);
       Readparameters::add("ionosphere.fixedSigmaH", "Fixed Hall conductivity value for the whole shell, if ionizationModel is 'fixedSigma'", 0.);
+      Readparameters::add("ionosphere.useEigenSolver", "Whether to use Eigen's BiCGSTAB solver over our home-grown BiCG implementation", false);
       Readparameters::add("ionosphere.solverMaxIterations", "Maximum number of iterations for the conjugate gradient solver", 2000);
       Readparameters::add("ionosphere.solverRelativeL2ConvergenceThreshold", "Convergence threshold for the relative L2 metric", 1e-6);
       Readparameters::add("ionosphere.solverMaxFailureCount", "Maximum number of iterations allowed to diverge before restarting the ionosphere solver", 5);
@@ -3053,6 +3059,7 @@ namespace SBC {
       Readparameters::get("ionosphere.ridleyParallelConductivity", ridleyParallelConductivity);
       Readparameters::get("ionosphere.fibonacciNodeNum", fibonacciNodeNum);
       Readparameters::get("ionosphere.gridFilePath", path);
+      Readparameters::get("ionosphere.useEigenSolver", useEigenSolver);
       Readparameters::get("ionosphere.solverMaxIterations", solverMaxIterations);
       Readparameters::get("ionosphere.solverRelativeL2ConvergenceThreshold", solverRelativeL2ConvergenceThreshold);
       Readparameters::get("ionosphere.solverMaxFailureCount", solverMaxFailureCount);
@@ -3828,7 +3835,8 @@ namespace SBC {
             cell.prepare_to_receive_blocks(popID);
 
             // Set the reservation value (capacity is increased in add_velocity_blocks
-            const Realf minValue = cell.getVelocityBlockMinValue(popID);
+
+            // const Realf minValue = cell.getVelocityBlockMinValue(popID);
 
             // fills v-space into target
 
@@ -3926,7 +3934,7 @@ namespace SBC {
             cell.prepare_to_receive_blocks(popID);
 
             // Set the reservation value (capacity is increased in add_velocity_blocks
-            const Realf minValue = cell.getVelocityBlockMinValue(popID);
+            // const Realf minValue = cell.getVelocityBlockMinValue(popID);
 
             // fills v-space into target
 
@@ -4047,7 +4055,7 @@ namespace SBC {
          templateCell.prepare_to_receive_blocks(popID);
 
          // Set the reservation value (capacity is increased in add_velocity_blocks
-         const Realf minValue = templateCell.getVelocityBlockMinValue(popID);
+         // const Realf minValue = templateCell.getVelocityBlockMinValue(popID);
 
          // fills v-space into target
 
