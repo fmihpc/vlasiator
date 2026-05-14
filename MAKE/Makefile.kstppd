@@ -68,7 +68,7 @@ LIB_PAPI = -L$(LIBRARY_PREFIX)/lib/ -lpapi
 INC_JEMALLOC = -I$(LIBRARY_PREFIX)/jemalloc/include
 LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/jemalloc/lib -ljemalloc
 
-LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/lib -lphiprof
+LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/lib -Wl,-rpath,$(LIBRARY_PREFIX)/phiprof/lib -lphiprof
 INC_PROFILE = -I$(LIBRARY_PREFIX)/include
 
 INC_VECTORCLASS = -isystem ./submodules/vectorclass/ -isystem ./submodules/vectorclass-addon/vector3d/
@@ -81,4 +81,4 @@ INC_OCTREE_COMPRESSOR = -I./vdf_compression/include
 LIB_OCTREE_COMPRESSOR = -L./vdf_compression/lib -ltoctree_compressor
 
 INC_NN_COMPRESSOR = -I./vdf_compression/lib/usr/local/include/tinyAI
-LIB_NN_COMPRESSOR= -L/home/kstppd/dev/asterix/build -L/home/kstppd/software/spdlog/build/ -lvlasiator_vdf_compressor_nn -lcudart_static  -lcublas -lspdlog -lnvToolsExt 
+LIB_NN_COMPRESSOR = -L/home/kstppd/dev/asterix/build -Wl,-rpath,/home/kstppd/dev/asterix/build -lvlasiator_vdf_compressor_nn

@@ -280,35 +280,38 @@ float compress_vdfs_fourier_mlp(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geome
 
 std::vector<std::vector<std::pair<CellID, Real>>>
 clusterVDFs(const std::vector<CellID>& local_cells, const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-            uint popID) {
+            uint popID, bool single_cluster = false) {
    std::vector<Real> non_maxwellianity(local_cells.size(), 0.0);
    std::transform(local_cells.begin(), local_cells.end(), non_maxwellianity.begin(),
                   [&](const auto& cid) { return get_Non_MaxWellianity(mpiGrid[cid], popID); });
    std::vector<std::pair<CellID, Real>> sorted_vdf(local_cells.size());
    for (std::size_t i = 0; i < local_cells.size(); ++i) {
-      sorted_vdf[i] = std::pair<CellID, Real>{local_cells[i], non_maxwellianity[i]};
+      sorted_vdf[i] = {local_cells[i], non_maxwellianity[i]};
    }
-   std::sort(sorted_vdf.begin(), sorted_vdf.end(),
-             [=](std::pair<CellID, Real>& a, std::pair<CellID, Real>& b) { return a.second < b.second; });
+   std::sort(sorted_vdf.begin(), sorted_vdf.end(), [](const auto& a, const auto& b) { return a.second < b.second; });
+   if (single_cluster) {
+      return sorted_vdf;
+   }
    std::vector<std::vector<std::pair<CellID, Real>>> clusters;
    std::vector<std::pair<CellID, Real>> current_cluster;
+
    for (const auto& pair : sorted_vdf) {
       if (current_cluster.empty()) {
          current_cluster.push_back(pair);
+         continue;
+      }
+      const Real last_value = current_cluster.back().second;
+      const Real margin = Real(0.2) * std::max(last_value, pair.second);
+      if (std::fabs(last_value - pair.second) <= margin) {
+         current_cluster.push_back(pair);
       } else {
-         Real last_value = current_cluster.back().second;
-         Real margin = 0.2f * std::max(last_value, pair.second);
-         if (std::fabs(last_value - pair.second) <= margin) {
-            current_cluster.push_back(pair);
-         } else {
-            clusters.push_back(current_cluster);
-            current_cluster.clear();
-            current_cluster.push_back(pair);
-         }
+         clusters.push_back(std::move(current_cluster));
+         current_cluster.clear();
+         current_cluster.push_back(pair);
       }
    }
    if (!current_cluster.empty()) {
-      clusters.push_back(current_cluster);
+      clusters.push_back(std::move(current_cluster));
    }
    return clusters;
 }
@@ -338,8 +341,9 @@ float compress_vdfs_fourier_mlp_clustered(dccrg::Dccrg<SpatialCell, dccrg::Carte
          }
          local_cells.push_back(c);
       }
-      const auto clusters = clusterVDFs(local_cells, mpiGrid, popID);
-      std::cout << "Generated " << clusters.size() << " clusters" << std::endl;
+      const auto clusters = clusterVDFs(local_cells, mpiGrid, popID, true);
+      // printf("Local cells for this training pass = %zu\n",local_cells.size());
+      // std::cout << "Generated " << clusters.size() << " clusters" << std::endl;
 
       bytes.resize(clusters.size());
 #pragma omp parallel for reduction(+ : local_compression_achieved)
