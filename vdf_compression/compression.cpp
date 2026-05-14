@@ -290,7 +290,7 @@ clusterVDFs(const std::vector<CellID>& local_cells, const dccrg::Dccrg<SpatialCe
    }
    std::sort(sorted_vdf.begin(), sorted_vdf.end(), [](const auto& a, const auto& b) { return a.second < b.second; });
    if (single_cluster) {
-      return sorted_vdf;
+      return {sorted_vdf};
    }
    std::vector<std::vector<std::pair<CellID, Real>>> clusters;
    std::vector<std::pair<CellID, Real>> current_cluster;
