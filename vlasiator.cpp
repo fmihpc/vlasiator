@@ -154,7 +154,7 @@ bool cellTimeclassIsCorrect(SpatialCell* cell, const Real buffer=1.0) {
 
    // if we want to change cell timeclasses before the actual limit is reached
    if (buffer != 1.0) {
-      if (cellDt*buffer > P::timeclassDt[cell->parameters[CellParams::TIMECLASS]]) {
+      if (cellDt > buffer*P::timeclassDt[cell->parameters[CellParams::TIMECLASS]]) {
          //std::cerr << "cell timeclass is correct" << std::endl;
          return true;
       } else {
@@ -578,6 +578,11 @@ void calculateGlobalTcVariables(Real fsdt, Real globalMaxDt) {
       // TODO figure this out if needed
       //std::cerr << "timeclassrange (" << (timeclassRange) << ") bigger than initialmaxtimeclass (" << P::initialMaxTimeclass << "), aborting" << std::endl;
       //abort();
+   }
+
+   if (P::tc_test_type == 1) {
+      P::currentMaxTimeclass = P::initialMaxTimeclass;
+      return;
    }
 
    if(P::tcOverrideTimeclass > -1 && P::tc_test_type != 0 && P::tc_test_type != 6){
@@ -1977,15 +1982,23 @@ int simulate(int argn,char* args[]) {
 
          // variable to help change timeclasses before the actual solver limit comes up
          // i.e., if variable is 0.95, add cell timeclass to be increased, when its dt reaches 95% of solver limit
-         const Real dtcheckbuffer = 0.95;
+         const Real dtcheckbuffer = 0.97;
 
          //std::vector<CellID> badTcCells = checkCellTimeclasses(mpiGrid);
          std::vector<CellID> badTcCells = checkCellTimeclasses(mpiGrid, dtcheckbuffer);
+         std::vector<CellID> reallyBadTcCells = checkCellTimeclasses(mpiGrid);
+
+         if (reallyBadTcCells.size() > 0) {
+            std::cout << "cells got really bad, aborting...\n";
+            abort();
+         }
 
          if (badTcCells.size() != 0  || cellsToUpgradeNextTimeStep.size() != 0) {         
 
             if (P::fractionalTimestep == 0) {
                //frac timestep is 0, we can change timeclasses right away, and there are no 
+
+               logFile << "\n (TC) TIMECLASS CHANGE INCOMING\n";
 
                //master vector of all cells to update
                std::vector<CellID> allCellsToUpdate;
@@ -2003,6 +2016,9 @@ int simulate(int argn,char* args[]) {
                allCellsToUpdate.assign( s.begin(), s.end() );
 
                increaseTimeclass(mpiGrid, allCellsToUpdate, additionalTimeclassCreated);
+
+               logFile << "\n (TC) TIMECLASS CHANGE DONE\n";
+
 
             } else { // frac timestep is not 0, add cells to be changed next timestep
 
@@ -2046,7 +2062,7 @@ int simulate(int argn,char* args[]) {
 
          // variable to help change timeclasses before the actual solver limit comes up
          // i.e., if variable is 0.95, add cell timeclass to be increased, when its dt reaches 95% of solver limit
-         const Real dtcheckbuffer = 0.95;
+         const Real dtcheckbuffer = 0.98;
 
          //std::vector<CellID> badTcCells = checkCellTimeclasses(mpiGrid);
          std::vector<CellID> badTcCells = checkCellTimeclasses(mpiGrid, dtcheckbuffer);
