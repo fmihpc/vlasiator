@@ -947,7 +947,9 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
                SpatialCell* SC = mpiGrid[cells[c]];
                Real dt_cell;
                if(dt < 0.0) { // Revert to previous real time, stored in cell
-                     dt_cell = SC->parameters[CellParams::TIME_R] - P::t;
+                     //dt_cell = SC->parameters[CellParams::TIME_R] - P::t;
+                     dt_cell = dt*SC->get_tc_dt();
+
                   }
                else { // dt is a factor of 0.5 or 1.0; so dt_cell is local timestep * dt factor
                      dt_cell = dt*SC->get_tc_dt();
