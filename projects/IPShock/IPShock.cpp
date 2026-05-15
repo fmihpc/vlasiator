@@ -92,42 +92,6 @@ namespace projects {
    void IPShock::getParameters() {
       // Project::getParameters();
 
-      typedef Readparameters RP;
-      //RP::get("IPShock.BX0u", this->B0u[0]);
-      //RP::get("IPShock.BY0u", this->B0u[1]);
-      //RP::get("IPShock.BZ0u", this->B0u[2]);
-      //RP::get("IPShock.BX0d", this->B0d[0]);
-      //RP::get("IPShock.BY0d", this->B0d[1]);
-      //RP::get("IPShock.BZ0d", this->B0d[2]);
-      //RP::get("IPShock.Width", this->Shockwidth);
-
-      //RP::get("IPShock.AMR_L1width", this->AMR_L1width);
-      //RP::get("IPShock.AMR_L2width", this->AMR_L2width);
-      //RP::get("IPShock.AMR_L3width", this->AMR_L3width);
-      //RP::get("IPShock.AMR_L4width", this->AMR_L4width);
-
-      // Per-population parameters
-      // for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-      //    const std::string& pop = getObjectWrapper().particleSpecies[i].name;
-      //    IPShockSpeciesParameters sP;
-      //
-      //    //RP::get(pop + "_IPShock.VX0u", sP.V0u[0]);
-      //    //RP::get(pop + "_IPShock.VY0u", sP.V0u[1]);
-      //    //RP::get(pop + "_IPShock.VZ0u", sP.V0u[2]);
-      //    //RP::get(pop + "_IPShock.rhou", sP.DENSITYu);
-      //    //RP::get(pop + "_IPShock.Temperatureu", sP.TEMPERATUREu);
-      //
-      //    //RP::get(pop + "_IPShock.VX0d", sP.V0d[0]);
-      //    //RP::get(pop + "_IPShock.VY0d", sP.V0d[1]);
-      //    //RP::get(pop + "_IPShock.VZ0d", sP.V0d[2]);
-      //    //RP::get(pop + "_IPShock.rhod", sP.DENSITYd);
-      //    //RP::get(pop + "_IPShock.Temperatured", sP.TEMPERATUREd);
-      //
-      //    //RP::get(pop + "_IPShock.maxwCutoff", sP.maxwCutoff);
-      //
-      //    speciesParams.push_back(sP);
-      // }
-
       int myRank;
 
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
@@ -156,11 +120,18 @@ namespace projects {
          //std::cerr << "Width = " << this->Shockwidth << std::endl;
       }
       */
+      //NOTE: This could be refactored but not really worth it when speciesParams is of size ~1-10 usually
 
       /* 
          Now allows flow and field both in z and y -directions. As assuming we're
          in the dHT frame, all flow and magnetic field should be in a single plane.
       */
+      typedef Readparameters RP;
+      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
+         IPShockSpeciesParameters* sP=speciesParamsRead.at(i);
+         speciesParams.push_back(*sP);
+      }
+
 
       /* Magnitude of tangential B-field and flow components */
       this->B0utangential = sqrt(this->B0u[1]*this->B0u[1] + this->B0u[2]*this->B0u[2]);
