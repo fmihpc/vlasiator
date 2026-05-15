@@ -390,6 +390,7 @@ public:
    static bool fullHelp;
    static bool versionRequested;
    static bool legacyHelp;
+   static bool checkCfg;
    static std::vector<std::string> populations;
 
 private:

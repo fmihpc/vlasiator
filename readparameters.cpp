@@ -32,6 +32,7 @@ using namespace std;
 bool Readparameters::helpRequested = false;
 bool Readparameters::fullHelp = false;
 bool Readparameters::legacyHelp = false;
+bool Readparameters::checkCfg = false;
 bool Readparameters::versionRequested = false;
 vector<string> Readparameters::populations = {};
 CLI::App app_new{"Usage: main [options (options given on the command line override "
@@ -236,10 +237,10 @@ void Readparameters::addDefaultParameters() {
       //Remove the original CLI11-made flag, since we want to replace it with helpRequested.
       app->remove_option(app->get_help_ptr());
       Readparameters::addFlag("--help", "print this help message", Readparameters::helpRequested);
-      Readparameters::addFlag("--allhelp","print the full help without subcommand categorization", Readparameters::fullHelp);
+      Readparameters::addFlag("--fullHelp","print the full help without subcommand categorization", Readparameters::fullHelp);
       Readparameters::addFlag("--legacyHelp","print all the options as a long list", Readparameters::legacyHelp);
       Readparameters::addFlag("--version", "print version information", Readparameters::versionRequested);
-
+      Readparameters::addFlag("--checkCfg","flag whether to validate the config file",Readparameters::checkCfg); 
       // // Parameters which set the names of the configuration file(s):
       // descriptions->add_options()(
       //     "global_config", PO::value<string>(&global_config_file_name)->default_value(""),

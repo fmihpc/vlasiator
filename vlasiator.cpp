@@ -25,6 +25,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <cmath>
+#include <mpi.h>
 #include <vector>
 #include <sstream>
 #include <ctime>
@@ -273,7 +274,7 @@ int simulate(int argn,char* args[]) {
 
    getObjectWrapper().addParameters();
    P::addParameters();
-   sysBoundaryContainer.addParameters();
+   sysBoundaryContainer.addSysBoundaryParameters(); //add parameter for bonudary.boundaries
 
 
     auto app = readparameters.get_app();
@@ -304,7 +305,7 @@ int simulate(int argn,char* args[]) {
     //this can probably be removed if one does run_callback() to individual options, see parseComposing(), but should we?
    readparameters.parse(true);
    getObjectWrapper().getPopulationParameters(); //particleSpecies is populated here from paritcleSpeciesRead
-   sysBoundaryContainer.getParameters();
+   sysBoundaryContainer.addParameters(); //add the parameters for parsed boundary.boundaries
    projects::createProject();
    
    readparameters.parse(false); // 2nd parsing for specific population parameters
@@ -314,11 +315,14 @@ int simulate(int argn,char* args[]) {
 
    Project* project = getObjectWrapper().project;
    // getObjectWrapper().project = project; (Already set in createProject)
-   sysBoundaryContainer.addParamTest(); //this is now here incase some sysbounadary changes parameter during getParameters, that would be
+   sysBoundaryContainer.getParameters(); //this is now here incase some sysbounadary changes parameter during getParameters, that would be
                                         // read into some project parameters, for example how it is currently with magnetosphere an ionosphereRadius
-   // sysBoundaryContainer.getParameters();
    project->getParameters();
-
+   if (Readparameters::checkCfg){
+      std::cout << "Config valid" << std::endl;
+      MPI_Finalize();
+      exit(0);
+   }
    // project->printPopulations();
    #ifdef USE_GPU
    // Activate device, create streams
