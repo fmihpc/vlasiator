@@ -99,9 +99,10 @@ uint64_t get_node_free_memory(){
                break;
             }
          } else {
-            // Skip to neww line
-            auto _id=fscanf(in_file, "%*[^\n]\n");
-            (void)_id;
+            //Skip  line
+            if (fscanf(in_file, "%*[^\n]\n") == EOF) {
+               break;
+            }
          }
       }
       fclose(in_file);
@@ -109,7 +110,6 @@ uint64_t get_node_free_memory(){
 
    return mem_proc_free;
 }
-
 /*! Measures memory consumption and writes it into logfile.
  *  Collective operation on MPI_COMM_WORLD
  *  extra_bytes is used for additional buffer for the high water mark,
