@@ -46,7 +46,7 @@ namespace SBC {
 
    Inflow::Inflow() : OuterBoundaryCondition() {}
    Inflow::~Inflow() { }
-
+   
    void Inflow::initSysBoundary(creal& t, Project& project) {
       // The array of bool describes which of the faces are to have inflow boundary
       // conditions, in the order of x+, x-, y+, y-, z+, z-.
@@ -369,6 +369,25 @@ namespace SBC {
    }
 
    void Inflow::getFaces(bool* faces) {
+      //in case the face is not yet initialized (for example during getParameters)
+      std::fill_n(facesToProcess, 6, false);
+      for (auto& it : this->faceList) {
+         if (it == "x+") {
+            facesToProcess[0] = true;
+         } else if (it == "x-") {
+            facesToProcess[1] = true;
+         } else if (it == "y+") {
+            facesToProcess[2] = true;
+         } else if (it == "y-") {
+            facesToProcess[3] = true;
+         } else if (it == "z+") {
+            facesToProcess[4] = true;
+         } else if (it == "z-") {
+            facesToProcess[5] = true;
+         }
+      }
+
+
       for (uint i = 0; i < 6; i++) {
          faces[i] = facesToProcess[i];
       }
