@@ -3181,7 +3181,6 @@ namespace SBC {
         }
         this->speciesParams.at(i)=*sP;
       }
-      std::cout << "TEST=" << Ionosphere::recombAlpha << std::endl;
    }
 
    void Ionosphere::initSysBoundary(
