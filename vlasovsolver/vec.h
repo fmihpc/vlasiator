@@ -220,6 +220,7 @@ typedef Vec16fb Vecb;
 #define VECL 16
 #define VPREC 4
 #ifndef VEC_PER_PLANE
+const int VEC_PER_PLANE = (WID*WID/VECL);
 #endif
 #ifndef VEC_PER_BLOCK
 const int VEC_PER_BLOCK = (WID*VEC_PER_PLANE);

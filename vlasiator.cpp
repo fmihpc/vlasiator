@@ -1040,7 +1040,8 @@ int simulate(int argn,char* args[]) {
                   "restart",
                   (uint)P::t,
                   true, // add the date of the file to the name
-                  P::restartStripeFactor,P::systemWriteRestartCompressed) == false ) {
+                  P::restartStripeFactor,
+                  P::systemWriteRestartCompressed) == false ) {
             logFile << "(IO): ERROR Failed to write restart!" << endl << writeVerbose;
             cerr << "FAILED TO WRITE RESTART" << endl;
          }
@@ -1076,7 +1077,8 @@ int simulate(int argn,char* args[]) {
                   "recover",
                   recoverCounter % P::recoverMaxFiles,
                   false, // overwrite so do not put date in file name
-                  P::restartStripeFactor,P::systemWriteRecoveryCompressed) == false ) {
+                  P::restartStripeFactor,
+                  P::systemWriteRecoveryCompressed) == false ) {
             logFile << "(IO): ERROR Failed to write recover!" << endl << writeVerbose;
             cerr << "FAILED TO WRITE RECOVER" << endl;
          }
