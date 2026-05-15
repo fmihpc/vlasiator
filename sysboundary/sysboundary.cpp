@@ -77,7 +77,7 @@ SysBoundary::~SysBoundary() {
  * SysBoundaryConditions implemented in the code in order to have them appear also in the
  * help.
  */
-void SysBoundary::addParameters() {
+void SysBoundary::addSysBoundaryParameters() {
    Readparameters::add(
        "boundaries.boundary",
        "List of boundary condition (BC) types to be used. Each boundary condition to be used has to be on a new line "
@@ -97,33 +97,43 @@ void SysBoundary::addParameters() {
  * SysBoundaryCondition's initialization function.
  */
 //Should be renamed to add
-void SysBoundary::getParameters() {
+void SysBoundary::addParameters() {
 
    vector<string>::const_iterator it;
+
+  if (Readparameters::helpRequested) {
+    sysBoundaryCondList={"Outflow","Maxwellian","Copysphere","Ionosphere"};
+  }
+   
    for (it = sysBoundaryCondList.begin(); it != sysBoundaryCondList.end(); it++) {
-      if (*it == "Outflow" || *it == "outflow" or Readparameters::helpRequested ) {
+      if (*it == "Outflow" || *it == "outflow" ) {
          SBC::Outflow* bc = new SBC::Outflow();
          bc->addParameters();
          sysBoundaries.push_back(bc);
          indexToSysBoundary[bc->getIndex()] = bc;
       }
-      if (*it == "Maxwellian" || *it == "maxwellian" or Readparameters::helpRequested ) {
+      else if (*it == "Maxwellian" || *it == "maxwellian" ) {
          SBC::Maxwellian* bc = new SBC::Maxwellian();
          bc->addParameters();
          sysBoundaries.push_back(bc);
          indexToSysBoundary[bc->getIndex()] = bc;
       }
-      if (*it == "Copysphere" || *it == "copysphere" or Readparameters::helpRequested ) {
+      else if (*it == "Copysphere" || *it == "copysphere" ) {
          SBC::Copysphere* bc = new SBC::Copysphere();
          bc->addParameters();
          sysBoundaries.push_back(bc);
          indexToSysBoundary[bc->getIndex()] = bc;
       }
-      if (*it == "Ionosphere" || *it == "ionosphere" or Readparameters::helpRequested ) {
+      else if (*it == "Ionosphere" || *it == "ionosphere" ) {
          SBC::Ionosphere* bc = new SBC::Ionosphere();
          bc->addParameters();
          sysBoundaries.push_back(bc);
          indexToSysBoundary[bc->getIndex()] = bc;
+      }
+      else {
+         std::ostringstream msg;
+         msg << "Unknown type of boundary read: " << *it;
+         abort_mpi(msg.str());
       }
    }
 }
@@ -136,48 +146,15 @@ void SysBoundary::getParameters() {
  * \param t Current time
  * \retval success If true, the given SBC::SysBoundaryCondition was added successfully.
  */
-void SysBoundary::addParamTest() {
-   for (auto& b : sysBoundaries)  {
-     b->getParameters();
-   }
-}
-void SysBoundary::addSysBoundary(SBC::SysBoundaryCondition* bc, Project& project, creal& t) {
-   // Initialize the boundary condition
-   stringstream timername;
-   timername<<"Initialize system boundary condition "<<bc->getName();
-   phiprof::Timer timer {timername.str()};
-   // bc->getParameters();
-   bc->initSysBoundary(t, project);
-   timer.stop();
-
-   // sysBoundaries.push_back(bc);
-   // if (sysBoundaries.size() > 1) {
-   //    sysBoundaries.sort(precedenceSort);
-   // }
-
-   // This assumes that only one instance of each type is created.
-   // indexToSysBoundary[bc->getIndex()] = bc;
-}
-
-/*!\brief Initialise all system boundary conditions actually used.
- *
- * This function loops through the list of system boundary conditions listed as to be used
- * in the configuration file/command line arguments. For each of these it adds the
- * corresponding instance and updates the member isDynamic to determine whether any
- * SysBoundaryCondition is dynamic in time.
- *
- * \param project Project object
- * \param t Current time
- * \retval success If true, the initialisation of all system boundaries succeeded.
- * \sa addSysBoundary
- */
-void SysBoundary::initSysBoundaries(Project& project, creal& t) {
-   int myRank;
-   MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
+void SysBoundary::getParameters() {
+  //Note as thow hy getParameters isn't done in initSysBoundary, reason is that this is called way earlier than that
+  //and as such it's nicer to have it fail early if something is amiss.
+  //also the config checking leverages on this fact too.
    vector<string>::const_iterator it;
    for (auto& b : sysBoundaries)  {
-     this->addSysBoundary(b, project, t);
-     b->setPeriodicity(periodic);
+     b->getParameters();
+    //somehow get the faceList for example proton_outflow or maxwellian.face, and check if periodic or not
+    //probably should set the facesToProcess during read?
    }
    if (sysBoundaryCondList.size() == 0) {
       if (!periodic[0] && !Readparameters::helpRequested) {
@@ -190,7 +167,6 @@ void SysBoundary::initSysBoundaries(Project& project, creal& t) {
          abort_mpi("Non-periodic in z but no boundary condtion loaded!");
       }
    }
-
    for (it = sysBoundaryCondList.begin(); it != sysBoundaryCondList.end(); it++) {
       if (*it == "Outflow" || *it == "outflow") {
 
@@ -251,6 +227,37 @@ void SysBoundary::initSysBoundaries(Project& project, creal& t) {
          msg << "Unknown type of boundary read: " << *it;
          abort_mpi(msg.str());
       }
+  }
+}
+// void SysBoundary::initSysBoundary(SBC::SysBoundaryCondition* bc, Project& project, creal& t) {
+//    // Initialize the boundary condition
+//
+// }
+
+/*!\brief Initialise all system boundary conditions actually used.
+ *
+ * This function loops through the list of system boundary conditions listed as to be used
+ * in the configuration file/command line arguments. For each of these it adds the
+ * corresponding instance and updates the member isDynamic to determine whether any
+ * SysBoundaryCondition is dynamic in time.
+ *
+ * \param project Project object
+ * \param t Current time
+ * \retval success If true, the initialisation of all system boundaries succeeded.
+ * \sa addSysBoundary
+ */
+void SysBoundary::initSysBoundaries(Project& project, creal& t) {
+   int myRank;
+   MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
+   vector<string>::const_iterator it;
+   for (auto& b : sysBoundaries)  {
+     // this->initSysBoundary(b, project, t);
+     stringstream timername;
+     timername<<"Initialize system boundary condition "<<b->getName();
+     phiprof::Timer timer {timername.str()};
+     b->initSysBoundary(t, project);
+     timer.stop();
+     b->setPeriodicity(periodic);
    }
 
    if (sysBoundaries.size() > 1) {

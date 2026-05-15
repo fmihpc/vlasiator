@@ -57,10 +57,10 @@ class SysBoundary {
    ~SysBoundary();
 
    void addParameters();
+   void addSysBoundaryParameters();
    void getParameters();
-   void addParamTest();
 
-   void addSysBoundary(
+   void initSysBoundary(
                        SBC::SysBoundaryCondition* sbc,
                        Project& project,
                        creal& t
