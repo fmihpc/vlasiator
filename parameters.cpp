@@ -1,4 +1,4 @@
-/*
+/*S
  * This file is part of Vlasiator.
  * Copyright 2010-2016 Finnish Meteorological Institute
  *
@@ -592,15 +592,15 @@ bool P::addParameters() {
    RP::add("fieldtracing.max_allowed_z", "Trace for z coordinates smaller than this limit (in m).", LARGE_REAL);
 
    //Asterix - VDF Compression
-   RP::add("Asterix.mlp_layers", string("Hidden layer architecture for MLP"),"128,128,128");
-   RP::add("Asterix.tol", string("Compression reconstruction tolerance"),1e-5);
-   RP::add("Asterix.octree_tolerance", string("Compression reconstruction tolerance for octree"),1e-4);
-   RP::add("Asterix.max_epochs", string("Max epochs per VDF"),50);
-   RP::add("Asterix.fourier_order", string("Fourier Order"),64);
-   RP::add("Asterix.interval", string("Compression interval in seconds"),1.0);
-   RP::add("Asterix.state", string("Compression toggle"),false);
-   RP::add("Asterix.method", string("Compression toggle"),"ZFP");
-   RP::add("Asterix.max_vdfs_per_nn",string("Max vdfs in multi regression mode") ,1000000000);
+   RP::add("Asterix.mlp_layers", string("Hidden layer architecture (neuron count per hidden layer) for MLP"),"128,256,128");
+   RP::add("Asterix.tol", string("MLP Compression reconstruction tolerance"),1e-4);
+   RP::add("Asterix.octree_tolerance", string("OCTREE Compression reconstruction tolerance"),1e-4);
+   RP::add("Asterix.max_epochs", string("Max MLP epochs"),50);
+   RP::add("Asterix.fourier_order", string("Fourier Feature Order"),64);
+   RP::add("Asterix.interval", string("Compression interval in seconds [Deprecated]"),1.0);
+   RP::add("Asterix.state", string("Boolean Asterix compression toggle"),false);
+   RP::add("Asterix.method", string("Compression method string"),"ZFP");
+   RP::add("Asterix.max_vdfs_per_nn",string("Max vdfs per MLP in multi regression mode") ,std::numeric_limits<std::size_t>::max());
    return true;
 }
 
