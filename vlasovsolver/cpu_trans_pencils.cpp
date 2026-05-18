@@ -1,4 +1,5 @@
 #include "../grid.h"
+#include "definitions.h"
 using namespace std;
 using namespace spatial_cell;
 
@@ -1174,10 +1175,14 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
    if (debug) {
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
    }
-
+   int neighborhood;
    // These neighborhoods no longer include the AMR addition beyond the regular vlasov stencil
-   const int neighborhood = getNeighborhood(dimension,P::vlasovSolverGhostTranslateExtent);
+   if (P::vlasovSolverGhostTranslate) {
+      neighborhood = getNeighborhood(dimension,P::vlasovSolverGhostTranslateExtent);
+   } else {
+      neighborhood = getNeighborhood(dimension,VLASOV_STENCIL_WIDTH);
 
+   }
 // #pragma omp parallel for
    for (uint i=0; i<propagatedCells.size(); i++) {
       const CellID celli = propagatedCells[i];
@@ -1338,8 +1343,15 @@ void check_ghost_cells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>
                        setOfPencils& pencils,
                        const uint dimension) {
 
+
    const bool debug = true;
-   int neighborhood = getNeighborhood(dimension,P::vlasovSolverGhostTranslateExtent);
+   int neighborhood;
+   if (P::vlasovSolverGhostTranslate) {
+      getNeighborhood(dimension,P::vlasovSolverGhostTranslateExtent);
+   } else {
+      getNeighborhood(dimension,VLASOV_STENCIL_WIDTH);
+
+   }
 
    int myRank;
    if (debug) {
@@ -1791,7 +1803,6 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
       }
    }
    // std::cerr << __FILE__ <<":"<<__LINE__<<" calling printPencilsFunc for dim "<<dimension <<"\n";
-   
    // printPencilsFunc(DimensionPencils[dimension],dimension,myRank,mpiGrid);
    // std::cerr << __FILE__ <<":"<<__LINE__<<" returned from printPencilsFunc for dim "<<dimension <<"\n";
 
