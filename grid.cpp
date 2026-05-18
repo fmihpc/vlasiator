@@ -1418,14 +1418,14 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    }
    neighborhood.clear();
 
-   for (int d = -VLASOV_STENCIL_WIDTH-3; d <= VLASOV_STENCIL_WIDTH+3; d++) {
-      if (d != 0) {
-         neighborhood.insert({{d, 0, 0}});
-      }
-   }
-   for (auto it : neighborhood){
-      all_neighborhoods.emplace(it);
-   }
+   // for (int d = -VLASOV_STENCIL_WIDTH-3; d <= VLASOV_STENCIL_WIDTH+3; d++) {
+   //    if (d != 0) {
+   //       neighborhood.insert({{d, 0, 0}});
+   //    }
+   // }
+   // for (auto it : neighborhood){
+   //    all_neighborhoods.emplace(it);
+   // }
    stencil2.stop();
    phiprof::Timer stencil3 {"Stencils init 3"};
 
@@ -1560,8 +1560,8 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
          std::cerr << "Failed to add neighborhood Neighborhoods::VLASOV_SOLVER_X_GHOST \n";
          abort();
       }
-      
 
+      
       neighborhood.clear();
       for (int d = -VLASOV_STENCIL_WIDTH-1; d <= VLASOV_STENCIL_WIDTH+1; d++) {
          if (d != 0) {
@@ -1598,7 +1598,7 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
             neighborhood.insert({{0, dy, 0}});
          }
       }
-      
+
       // Then: full + GT extensions in X from Y-translated cells
       for (int dy = -P::vlasovSolverGhostTranslateExtent; dy <= (int)P::vlasovSolverGhostTranslateExtent; dy++){
          for (int dx = -VLASOV_STENCIL_WIDTH-1; dx <= VLASOV_STENCIL_WIDTH+1; dx++){
@@ -1857,7 +1857,7 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    if (P::vlasovSolverGhostTranslate) {
       // One extra layer for translation of ghost cells
       full_neighborhood_size++;
-      if (P::currentMaxTimeclass > 0){
+      if (P::initialMaxTimeclass > 0){
          full_neighborhood_size = max(full_neighborhood_size, 3+P::timeclassOuterHaloExtent+P::timeclassExactHaloExtent);
       }
    }

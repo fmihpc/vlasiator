@@ -1050,6 +1050,8 @@ void Parameters::getParameters() {
    RP::get("gridbuilder.dt", P::dt0);
 
    RP::get("gridbuilder.initial_timeclass_max", P::initialMaxTimeclass);
+   //set current max timeclass to initial timeclass max, do initializer functions know we are using timeclasses
+   P::currentMaxTimeclass = initialMaxTimeclass;
    RP::get("gridbuilder.timeclass_buffer", P::timeclassBuffer);
    RP::get("gridbuilder.static_timeclasses", P::staticTimeclasses);
    RP::get("gridbuilder.timeclass_dtmodifier", P::timeclassDtModifier);
