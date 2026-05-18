@@ -713,8 +713,8 @@ Project* createProject() {
     } else if (Parameters::projectName=="Riemann1") {
         project=new projects::Riemann1();
 
-    } else if (Parameters::projectName=="TestHall") {
-        project=new projects::TestHall();
+    } else if (Parameters::projectName=="testHall") {
+        project=new projects::testHall();
 
     } else if (Parameters::projectName=="Larmor") {
         project=new projects::Larmor();
