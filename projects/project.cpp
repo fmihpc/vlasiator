@@ -740,7 +740,7 @@ Project* createProject() {
     } else if (Parameters::projectName=="Distributions") {
         project=new projects::Distributions();
 
-    } else if (Parameters::projectName=="Dispersion") {
+    } else if (Parameters::projectName=="Diffusion") {
         project=new projects::Diffusion();
 
     } else {
