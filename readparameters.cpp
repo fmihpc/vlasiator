@@ -163,7 +163,7 @@ void Readparameters::parse(bool extras) {
             if (optName.back()=='+') {
               subcom=optName.substr(0,optName.size()-3);
               if (!isSubComParsed[subcom]) {
-                invalidOptions+="["+subcom+"]";
+                invalidOptions+="["+subcom+"]\n";
                 lastSubcomValid=false;
               }
               continue;
@@ -237,10 +237,10 @@ void Readparameters::addDefaultParameters() {
       //Remove the original CLI11-made flag, since we want to replace it with helpRequested.
       app->remove_option(app->get_help_ptr());
       Readparameters::addFlag("--help", "print this help message", Readparameters::helpRequested);
-      Readparameters::addFlag("--fullHelp","print the full help without subcommand categorization", Readparameters::fullHelp);
-      Readparameters::addFlag("--legacyHelp","print all the options as a long list", Readparameters::legacyHelp);
+      Readparameters::addFlag("--full_help","print the full help without subcommand categorization", Readparameters::fullHelp);
+      Readparameters::addFlag("--legacy_help","print all the options as a long list", Readparameters::legacyHelp);
       Readparameters::addFlag("--version", "print version information", Readparameters::versionRequested);
-      Readparameters::addFlag("--checkCfg","flag whether to validate the config file",Readparameters::checkCfg); 
+      Readparameters::addFlag("--check_cfg","flag whether to validate the config file",Readparameters::checkCfg); 
       // // Parameters which set the names of the configuration file(s):
       // descriptions->add_options()(
       //     "global_config", PO::value<string>(&global_config_file_name)->default_value(""),

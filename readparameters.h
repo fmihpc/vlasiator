@@ -264,8 +264,20 @@ public:
                   MASTER_RANK, MPI_COMM_WORLD);
 
         auto opt= getOption(commandName);
+
+        int n = std::count(optVal.begin(), optVal.end(), ',');
+        bool isValid=true;
+
+        if (optVal!="[]" && n==0) n=1; //This means we have one argument
+
         if (opt->get_items_expected()==0 && optVal=="[]") {
           continue;
+        } else if ((opt->get_items_expected_max() < n || opt->get_items_expected_min() > n )) {
+          std::cerr << "Option "<<commandName<<" expected " << opt->get_items_expected() << " argument(s), but found " <<n<<"." <<std::endl;
+          isValid=false;
+        }  
+        if (!isValid){
+          abort();
         }
 
         opt->clear();
