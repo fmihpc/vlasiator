@@ -266,10 +266,10 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
    const uint nAllCells = allCells.size();
 
 
-   double sum = 0;
-   for (auto bd: mpiGrid[16]->get_velocity_blocks(popID,timeclass)->getDataVector_raw()){
-      sum+=bd;
-   }
+   // double sum = 0;
+   // for (auto bd: mpiGrid[16]->get_velocity_blocks(popID,timeclass)->getDataVector_raw()){
+   //    sum+=bd;
+   // }
    // std::cerr << dimension <<" cell 16 tc "<< timeclass<< " pre-trans sum " << sum << " with " << mpiGrid[16]->get_velocity_blocks(popID)->size() <<" blocks\n";
 
    // init cellid_transpose (moved here to take advantage of the omp parallel region)
@@ -326,7 +326,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
          for (vmesh::LocalID block_i=0; block_i< cvmesh->size(); ++block_i) {
             thread_unionOfBlocksSet.insert(cvmesh->getGlobalID(block_i));
          }
-         
+
          // for (auto tc : (*cell)->requested_timeclass_ghosts){
          // if ((mpiGrid[cellid])->requested_timeclass_ghosts.count(timeclass) > 0){// && (*cell)->get_tc() > timeclass){
          //    std::cout << "\tChecked ghost data in cell " << (mpiGrid[cellid])->parameters[CellParams::CELLID] << "\n";
@@ -394,7 +394,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
                for (int b = 0; b < L; b++) {
                   // Get cell pointer and local block id
                   SpatialCell* srcCell = mpiGrid[DimensionPencils[dimension].ids[start + b]];
-                  
+
                   // Need to sort timeclasses etc before the following call! (also get rid of ghost vmesh there?)
                   vmesh::VelocityMesh* velmesh;
                   vmesh::VelocityBlockContainer* velblocks;
@@ -413,15 +413,13 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
                   // Store block data pointer for both loading of data and writing back to the cell
                      // if (blocki == 0){
                      //    std::cout << "Loading cell " << (int)srcCell->parameters[CellParams::CELLID]<<"\n";
-                     //    std::cout << "velmesh size = " << velmesh->size() <<"\n"; 
+                     //    std::cout << "velmesh size = " << velmesh->size() <<"\n";
                      //    std::cout << "cell tc " << srcCell->get_tc() << ", pencil tc " <<  DimensionPencils[dimension].timeclasses[pencili] << ", tc req count " << srcCell->get_all_ghosts().count(timeclass)<<"\n";
                      //    std::cout << "cellBlockData " << cellBlockData.size() << "\n";
                      // }
                   if (blockLID != srcCell->invalid_local_id()) {
-                  // if (blockLID != velmesh->invalidLocalID()){
                      // Get data pointer
                      cellBlockData[start + b] = srcCell->get_data(blockLID,popID, timeclass);
-
                      // // cellBlockData[start + b] = velblocks->getData(blockLID); // This breaks for now
                      // if (srcCell->get_tc() != DimensionPencils[dimension].timeclasses[pencili] && srcCell->requested_timeclass_ghosts.count(timeclass) > 0){
                      //    if (blocki == 0) {
@@ -457,7 +455,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
                   }
                   continue;
                }
-               
+
                pencilBlocksCount.at(pencili) = nonEmptyBlocks;
                // Transpose and copy block data from cells to source buffer
                Vec* blockDataSource = blockDataBuffer.data() + start*WID3/VECL;
@@ -482,9 +480,8 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
                   }
                }
                for (uint targeti = DimensionPencils[dimension].idsStart[pencili]; targeti < DimensionPencils[dimension].idsStart[pencili]+DimensionPencils[dimension].lengthOfPencils[pencili]; ++targeti){
-                  // for (CellID target_cell_id: DimensionPencils[dimension].getIds(pencili)){//DimensionPencils[dimension].ids[pencili]) {
                   CellID target_cell_id = DimensionPencils[dimension].ids[targeti];
-      
+
                   SpatialCell* target_cell = mpiGrid[target_cell_id];
                   // if(blocki==0)
                   // std::cout <<target_cell_id << " cellBlockData " << cellBlockData.size() << "\n";
@@ -515,11 +512,11 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
                      //    std::cout << __FILE__ << ":" << __LINE__ << " " <<target_cell_id << " invalid " << cellBlockData.size() << "\n";
          
                      // }
-         
+
                      if (blockLID != vmesh::VelocityMesh::invalidLocalID()) {
                         bool donotZero = false;
                         // Get a pointer to the block data
-                        
+
                         Realf* blockData = NULL;
                         // if (blocki == 0){
                         //    std::cout  << " target tc " << target_cell->get_tc() << " for " << target_cell_id <<"\n";
@@ -549,7 +546,6 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
                         //    donotZero = true;
                         // }
 
-
                         if(blockData && !donotZero){
                            if(blocki == 0)
                            {
@@ -577,7 +573,6 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
 
             phiprof::Timer propagateTimer {propagateTimerId};
             for (uint pencili : DimensionPencils[dimension].pencilsInBin[currentBin]) {
-
                // Skip pencils without blocks
                if (pencilBlocksCount.at(pencili) == 0 || DimensionPencils[dimension].timeclasses[pencili] != timeclass) {
                   // std::cout << "Skipped pencili " << pencili << "\n";
@@ -607,7 +602,8 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
                   // }
                   // std::cout << "\n";
                }
-               
+
+
                propagatePencil(pencilDZ,
                               blockDataSource,
                               dimension,
@@ -625,10 +621,11 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
       } // Loop over blocks
 
    } // closes pragma omp parallel
-   sum = 0;
-   for (auto bd: mpiGrid[16]->get_velocity_blocks(popID, timeclass)->getDataVector_raw()){
-      sum+=bd;
-   }
+
+   // sum = 0;
+   // for (auto bd: mpiGrid[16]->get_velocity_blocks(popID, timeclass)->getDataVector_raw()){
+   //    sum+=bd;
+   // }
    // std::cerr << "cell 16 tc "<< timeclass <<" post-trans sum " << sum << " with " << mpiGrid[16]->get_velocity_blocks(popID)->size() <<" blocks\n";
    return true;
 }

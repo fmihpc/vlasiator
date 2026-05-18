@@ -668,7 +668,7 @@ void calculateAcceleration(const uint popID,const int globalMaxSubcycles,const i
    // }
    // std::cout << "\n";
    // for (size_t c=0; c<propagatedCells.size(); ++c) {
-      // std::cout << "Accelerating payload at fract " << P::fractionalTimestep << ", cells(timeclass,dt,): \n\t";
+      // std::cout << "Accelerating payload at fract " << P::fractionalTimestep << ", cells(timeclass,dt,): \n\t"; }
    // for(auto& payload:acceleratedCells){
       
    //    std::cout << payload.cellptr->get_cellid() <<"("<< payload.timeclass << ", " << payload.dt <<") ";
@@ -678,7 +678,7 @@ void calculateAcceleration(const uint popID,const int globalMaxSubcycles,const i
       
       
       const CellID cellID = payload.cellptr->get_cellid();
-      const Real maxVdt = payload.cellptr->get_max_v_dt(popID);//mpiGrid[cellID]->get_max_v_dt(popID);//*mpiGrid[cellID]->parameters[CellParams::TIMECLASSDT];
+      const Real maxVdt = payload.cellptr->get_max_v_dt(popID);//mpiGrid[cellID]->get_max_v_dt(popID);
       Real celldt = payload.dt;//dt*mpiGrid[cellID]->get_tc_dt();
 
       
@@ -702,7 +702,6 @@ void calculateAcceleration(const uint popID,const int globalMaxSubcycles,const i
       pop.subcycleDt = thisSubcycleDt;
    }
 
-      
       //generate pseudo-random order which is always the same irrespective of parallelization, restarts, etc.
       //std::default_random_engine rndState;
       // set seed, initialise generator and get value. The order is the same
@@ -729,7 +728,7 @@ void calculateAcceleration(const uint popID,const int globalMaxSubcycles,const i
       }
    }
    semilagAccTimer.stop();
-   
+
    //global adjust after each subcycle to keep number of blocks managable. Even the ones not
    //accelerating anyore participate. It is important to keep
    //the spatial dimension to make sure that we do not loose
@@ -887,7 +886,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
                            const vector<CellID>& cellsToAccelerate
                           ) {
    typedef Parameters P;
-   const vector<CellID>& cells = getLocalCells();   
+   const vector<CellID>& cells = getLocalCells();
    set<CellID> cellsToPropagateSet;
    vector<CellID> cellsToPropagateVector;
    int myRank;
@@ -899,7 +898,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
       // because the boundary conditions may have altered the velocity space,
       // and to update changes in no-content blocks during translation.
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-// std::cerr << __FILE__<<":"<<__LINE__<< " calling adjustVelocityBlocks at t = " 
+// std::cerr << __FILE__<<":"<<__LINE__<< " calling adjustVelocityBlocks at t = "
 //          << P::t << ", preparing to receive; len cells = " << cells.size() <<
 //          "\n";
          for (int tc = 0; tc <= P::currentMaxTimeclass; tc++){ // Filter to necessary tcs
@@ -909,7 +908,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
    } else {
       // Fairly ugly but no goto
       phiprof::Timer accTimer {"semilag-acc"};
-      
+
       /* merged down
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          for(auto c : cells){
@@ -931,7 +930,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
          int globalMaxSubcycles;
 
          // Set active population
-         SpatialCell::setCommunicatedSpecies(popID);
+         SpatialCell::setCommunicatedSpecies(popID); // FIXME: should this have a timeclass argument?
 
          vector<AccelerationPayload> propagatePayloads; // <timeclass, SpatialCell*, dt, subcycle step>
 
@@ -993,14 +992,14 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
                      // maxSubcycles = max((int)getAccelerationSubcycles(SC->get_max_v_dt(popID), dt_cell), maxSubcycles);
                      // spatial_cell::Population& pop = SC->get_population(popID);
                      // pop.ACCSUBCYCLES = getAccelerationSubcycles(SC->get_max_v_dt(popID), dt_cell);
-   #ifdef USE_GPU
+                     #ifdef USE_GPU
                      #pragma omp critical
                      {
                         if (blockCount > gpuMaxBlockCount) {
                            gpuMaxBlockCount = blockCount;
                         }
                      }
-   #endif                  
+                     #endif                  
                } // if propagate loop
             } // for loop over cells
          } // if !accelerateSpecificCells
@@ -1058,14 +1057,14 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
                      // maxSubcycles = max((int)getAccelerationSubcycles(SC->get_max_v_dt(popID), dt_cell), maxSubcycles);
                      // spatial_cell::Population& pop = SC->get_population(popID);
                      // pop.ACCSUBCYCLES = getAccelerationSubcycles(SC->get_max_v_dt(popID), dt_cell);
-   #ifdef USE_GPU
+                     #ifdef USE_GPU
                      #pragma omp critical
                      {
                         if (blockCount > gpuMaxBlockCount) {
                            gpuMaxBlockCount = blockCount;
                         }
                      }
-   #endif                  
+                     #endif                  
                } // if propagate loop
             } // for loop over cells
          } // else accelerateSpecificCells
@@ -1086,7 +1085,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
          gpu_vlasov_allocate(gpuMaxBlockCount);
          gpu_acc_allocate(gpuMaxBlockCount);
          verificationTimer.stop();
-#endif         
+#endif
 
          // Compute global maximum for number of subcycles
          // std::cerr << __FILE__ <<":"<<__LINE__<<" " <<myRank <<": maxSubcycles = " << maxSubcycles <<"\n";
@@ -1094,7 +1093,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
          // std::cerr << __FILE__ <<":"<<__LINE__<<" " <<myRank <<": globalMaxSubcycles = " << globalMaxSubcycles <<"\n";
          // propagatedCells = std::vector<CellID>(cellsToPropagateSet.begin(),cellsToPropagateSet.end());
          std::vector<CellID> propagatedCells = std::vector<CellID>(); // so that it compiles, REMOVE
-         
+
          // propagatedCells = std::vector<AccelerationPayload>(propagatePayloads.begin(),propagatePayloads.end());
          // substep global max times
          for(int step=0; step<globalMaxSubcycles; ++step) {
@@ -1107,7 +1106,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
                      temp.push_back(payload);
                   }
                }
-               
+
                propagatePayloads.swap(temp);
             }
             // Accelerate population over one subcycle step
@@ -1119,9 +1118,9 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
          } // for-loop over acceleration substeps
 
          // final adjust for all cells, also fixing remote cells.
-// std::cerr << __FILE__<<":"<<__LINE__<< " calling adjustVelocityBlocks at t = " 
+// std::cerr << __FILE__<<":"<<__LINE__<< " calling adjustVelocityBlocks at t = "
 //          << P::t << ", preparing to receive; len cells = " << cells.size() <<
-//          "\n";        
+//          "\n";
          // for(auto tc:timeclasses_handled){
          for (int tc = 0; tc <= P::currentMaxTimeclass; tc++){ // Filter to necessary tcs - adjustVelocityBlocks comms need COMM-WORLD yet
             adjustVelocityBlocks(mpiGrid, cells, true, popID, tc);
@@ -1134,7 +1133,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 
    // std::cout << "---------------------------- ACC finished --------------------\n";
 
-   
+
    //converting cellsToPropagateSet to vector
    for (auto cell : cellsToPropagateSet) {
       cellsToPropagateVector.push_back(cell);

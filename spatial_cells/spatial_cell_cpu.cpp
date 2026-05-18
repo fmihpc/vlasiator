@@ -872,7 +872,7 @@ namespace spatial_cell {
    }
 
    void SpatialCell::printMeshSizes() {
-      cerr << "SC::printMeshSizes:" << endl;
+      cerr << "SC::printMeshSizes: for cell " << get_cellid() << endl;
       for (size_t p=0; p<populations.size(); ++p) {
          cerr << "\t pop " << p << " " << get_velocity_mesh(p)->size() << ' ' << get_velocity_blocks(p)->size() << endl;
       }
