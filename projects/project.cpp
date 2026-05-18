@@ -714,7 +714,7 @@ Project* createProject() {
         project=new projects::Riemann1();
 
     } else if (Parameters::projectName=="testHall") {
-        project=new projects::testHall();
+        project=new projects::TestHall();
 
     } else if (Parameters::projectName=="Larmor") {
         project=new projects::Larmor();
