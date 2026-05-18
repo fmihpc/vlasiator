@@ -737,6 +737,12 @@ Project* createProject() {
     } else if (Parameters::projectName=="Shocktest") {
         project=new projects::Shocktest();
 
+    } else if (Parameters::projectName=="Distributions") {
+        project=new projects::Distributions();
+
+    } else if (Parameters::projectName=="Dispersion") {
+        project=new projects::Diffusion();
+
     } else {
         cerr << "Unknown project name! = "<<Parameters::projectName << endl;
         abort();
