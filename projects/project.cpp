@@ -743,6 +743,9 @@ Project* createProject() {
     } else if (Parameters::projectName=="Dispersion") {
         project=new projects::Dispersion();
 
+    } else if (Parameters::projectName=="Template") {
+        project=new projects::Template();
+
     } else {
         cerr << "Unknown project name! = "<<Parameters::projectName << endl;
         abort();
