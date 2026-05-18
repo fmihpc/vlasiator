@@ -66,28 +66,11 @@ namespace projects {
    }
    
    void Shocktest::getParameters(){
-      // Project::getParameters();
 
       if(getObjectWrapper().particleSpecies.size() > 1) {
          std::cerr << "The selected project does not support multiple particle populations! Aborting in " << __FILE__ << " line " << __LINE__ << std::endl;
          abort();
       }
-      this->rho[this->LEFT] = {NAN};
-      this->T[this->LEFT] = {NAN};
-      this->Vx[this->LEFT] = {NAN};
-      this->Vy[this->LEFT] = {NAN};
-      this->Vz[this->LEFT] = {NAN};
-      this->Bx[this->LEFT] = {NAN};
-      this->By[this->LEFT] = {NAN};
-      this->Bz[this->LEFT] = {NAN};
-      this->rho[this->RIGHT] = {NAN};
-      this->T[this->RIGHT] = {NAN};
-      this->Vx[this->RIGHT] = {NAN};
-      this->Vy[this->RIGHT] = {NAN};
-      this->Vz[this->RIGHT] = {NAN};
-      this->Bx[this->RIGHT] = {NAN};
-      this->By[this->RIGHT] = {NAN};
-      this->Bz[this->RIGHT] = {NAN};
 
       typedef Readparameters RP;
    }
