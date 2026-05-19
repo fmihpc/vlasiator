@@ -29,14 +29,13 @@
 #include "../../readparameters.h"
 #include "../../backgroundfield/backgroundfield.h"
 #include "../../backgroundfield/constantfield.hpp"
-#include "../../common.h"
 #include "../../object_wrapper.h"
-#include "../../readparameters.h"
 
 #include "MultiPeak.h"
 
 using namespace std;
 using namespace spatial_cell;
+
 
 Real projects::MultiPeak::rhoRnd;
 
