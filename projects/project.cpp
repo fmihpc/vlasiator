@@ -82,7 +82,6 @@ namespace projects {
 
    void Project::getParameters() {
       typedef Readparameters RP;
-      //seed no handled in createProject
    }
 
    /** Initialize the Project. Velocity mesh and particle population
@@ -204,7 +203,7 @@ namespace projects {
       logFile << "(PROJECT): Loaded particle populations are:" << endl;
 
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-         const species::Species& spec =getObjectWrapper().particleSpecies[popID];
+         const species::Species& spec = getObjectWrapper().particleSpecies[popID];
          logFile << "Population #" << popID << endl;
          logFile << "\t name             : '" << spec.name << "'" << endl;
          logFile << "\t charge           : '" << spec.charge << "'" << endl;
@@ -656,7 +655,8 @@ Project* createProject() {
         projects::Dispersion* _Dispersion = new projects::Dispersion();
         projects::Shock* _Shock = new projects::Shock();
         projects::Shocktest* _Shocktest = new projects::Shocktest();
-
+        projects::Distributions* _Distributions=new projects::Distributions();
+      
         _Multipeak->addCommonParameters();
         _Multipeak->addParameters();
         _Losscone->addParameters();
@@ -664,6 +664,7 @@ Project* createProject() {
         _Flowthrough->addParameters();
         _test_fp->addParameters();
         _Firehose->addParameters();
+        _Distributions->addParameters();
         _Diffusion->addParameters();
         _Harris->addParameters();
         _Riemann1->addParameters();

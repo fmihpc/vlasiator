@@ -155,7 +155,6 @@ namespace SBC {
       static std::vector<CopysphereSpeciesParameters> speciesParams;
       static std::vector<CopysphereSpeciesParameters*> speciesParamsRead;
       bool zeroPerB;
-      uint reapply;
       
       spatial_cell::SpatialCell templateCell;
 

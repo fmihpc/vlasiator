@@ -575,7 +575,7 @@ namespace SBC {
    public:
       Ionosphere();
       virtual ~Ionosphere();
-      
+
       void addParameters();
       virtual void getParameters() override;
 

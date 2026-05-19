@@ -31,6 +31,7 @@
 #include "../../backgroundfield/constantfield.hpp"
 #include "../../object_wrapper.h"
 
+
 #include "MultiPeak.h"
 
 using namespace std;
@@ -108,7 +109,7 @@ void MultiPeak::getParameters() {
    }
 }
 
- Realf MultiPeak::fillPhaseSpace(spatial_cell::SpatialCell *cell,
+  Realf MultiPeak::fillPhaseSpace(spatial_cell::SpatialCell *cell,
                                        const uint popID,
                                        const uint nRequested
       ) const {

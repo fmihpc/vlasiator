@@ -45,7 +45,6 @@
 
 #include <Eigen/Dense>
 #include <unsupported/Eigen/SparseExtra>
-#include <vector>
 #include "../fieldtracing/fieldtracing.h"
 #include "ionosphere_tables.h"
 
@@ -101,7 +100,6 @@ namespace SBC {
    enum Ionosphere::IonosphereConductivityModel Ionosphere::conductivityModel;
    Real Ionosphere::fixedSigmaH;
    Real Ionosphere::fixedSigmaP;
-
 
    // Offset field aligned currents so their sum is 0
    void SphericalTriGrid::offset_FAC() {

@@ -46,7 +46,6 @@ namespace SBC {
 
    Inflow::Inflow() : OuterBoundaryCondition() {}
    Inflow::~Inflow() { }
-   
    void Inflow::initSysBoundary(creal& t, Project& project) {
       // The array of bool describes which of the faces are to have inflow boundary
       // conditions, in the order of x+, x-, y+, y-, z+, z-.

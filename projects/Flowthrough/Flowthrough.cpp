@@ -99,7 +99,6 @@ namespace projects {
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
         this->speciesParams.push_back(*this->speciesParamsRead.at(i));
       }
-
    }
    Real Flowthrough::getCorrectNumberDensity(spatial_cell::SpatialCell* cell,const uint popID) const {
       const FlowthroughSpeciesParameters& sP = speciesParams[popID];

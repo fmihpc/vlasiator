@@ -53,28 +53,30 @@ namespace SBC {
       Readparameters::add("outflow.faceNoFields", "List of faces on which no field outflow boundary conditions are to be applied ([xyz][+-]).",this->faceNoFieldsList);
       Readparameters::add<uint>("outflow.precedence", "Precedence value of the outflow system boundary condition (integer), the higher the stronger.", this->precedence,4);
       Readparameters::add<bool>("outflow.reapplyUponRestart", "If 0 (default), keep going with the state existing in the restart file. If 1, calls again applyInitialState. Can be used to change boundary condition behaviour during a run.", this->applyUponRestart,false);
-
+      //Fill the arrays with default values
+      /* The array of bool describes which of the x+, x-, y+, y-, z+, z- faces are to have outflow system boundary conditions.
+       * A true indicates the corresponding face will have outflow.
+       * The 6 elements correspond to x+, x-, y+, y-, z+, z- respectively.
+       */
+      for(uint i=0; i<6; i++) {
+        facesToProcess[i] = false;
+        facesToSkipFields[i] = false;
+        facesToReapply[i] = false;
+      }
       // Per-population parameters
-      for(uint i=0; i < getObjectWrapper().particleSpecies.size(); i++) {
+      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
         const string& pop = getObjectWrapper().particleSpecies[i].name;
         
         OutflowSpeciesParameters* sP = new OutflowSpeciesParameters {{true,true,true,true,true,true},{0,0,0,0,0,0},std::vector<std::string>{""},0.0};
 
         this->speciesParamsRead.push_back(sP);
+        // Unless we find out otherwise, we assume that this species will not be treated at any boundary
         for(int j=0; j<6; j++) {
           sP->facesToSkipVlasov[j] = true;
         }
         sP->faceVlasovScheme={0,0,0,0,0,0};
         Readparameters::add(pop + "_outflow.reapplyFaceUponRestart", "List of faces on which outflow boundary conditions are to be reapplied upon restart ([xyz][+-]).",sP->faceToReapplyUponRestartList);
-        //TODO maybe pointless if it is done in getParam?
-        // std::function<void(const string)> lambda_fun=[this](const string face){  
-        //   if(face == "x+") { this->facesToProcess[0] = true;}// sP.facesToSkipVlasov[0] = false; }  This processing has to be done laters
-        //   if(face == "x-") { this->facesToProcess[1] = true;}// sP.facesToSkipVlasov[1] = false; }
-        //   if(face == "y+") { this->facesToProcess[2] = true;}// sP.facesToSkipVlasov[2] = false; }
-        //   if(face == "y-") { this->facesToProcess[3] = true;}// sP.facesToSkipVlasov[3] = false; }
-        //   if(face == "z+") { this->facesToProcess[4] = true;}// sP.facesToSkipVlasov[4] = false; }
-        //   if(face == "z-") { this->facesToProcess[5] = true;}// sP.facesToSkipVlasov[5] = false; }
-        // };
+
         Readparameters::add<vector<string>>(pop + "_outflow.face", "List of faces on which outflow boundary conditions are to be applied ([xyz][+-]).",this->faceList);
         Readparameters::add<string>(pop + "_outflow.vlasovScheme_face_x+", "Scheme to use on the face x+ (Copy, None)", this->vlasovSysBoundarySchemeName[0],"Copy");
         Readparameters::add<string>(pop + "_outflow.vlasovScheme_face_x-", "Scheme to use on the face x- (Copy, None)", this->vlasovSysBoundarySchemeName[1],"Copy");
@@ -93,16 +95,7 @@ namespace SBC {
       // Per-species parameters
       this->speciesParams.resize(getObjectWrapper().particleSpecies.size());
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-        // const string& pop = getObjectWrapper().particleSpecies[i].name;
         OutflowSpeciesParameters* sP=this->speciesParamsRead.at(i);
-
-        // Unless we find out otherwise, we assume that this species will not be treated at any boundary
-        // for(int j=0; j<6; j++) {
-        //   sP.facesToSkipVlasov[j] = true;
-        // }
-
-        vector<string> thisSpeciesFaceList;
-        //Readparameters::get(pop + "_outflow.face", thisSpeciesFaceList);
 
         for(auto& face :this->faceList) {
           if(face == "x+") { this->facesToProcess[0] = true; sP->facesToSkipVlasov[0] = false; }
@@ -132,16 +125,6 @@ namespace SBC {
       creal& t,
       Project &project
    ) {
-      /* The array of bool describes which of the x+, x-, y+, y-, z+, z- faces are to have outflow system boundary conditions.
-       * A true indicates the corresponding face will have outflow.
-       * The 6 elements correspond to x+, x-, y+, y-, z+, z- respectively.
-       */
-      // for(uint i=0; i<6; i++) {
-      //    facesToProcess[i] = false;
-      //    facesToSkipFields[i] = false;
-      //    facesToReapply[i] = false;
-      // }
-      //
 
       dynamic = false;
 
