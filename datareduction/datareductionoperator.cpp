@@ -522,7 +522,7 @@ namespace DRO {
       boundaryLayer = (int)cell->sysBoundaryLayer;
       return true;
    }
-   
+
    // MLPepochs
    MLPepochs::MLPepochs(cuint _popID): DataReductionOperator(),popID(_popID) {
       popName=getObjectWrapper().particleSpecies[popID].name;
@@ -536,15 +536,14 @@ namespace DRO {
       for (uint i = 0; i < sizeof(int); ++i) buffer[i] = ptr[i];
       return true;
    }
-   
-   
+
    bool MLPepochs::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "uint";
       dataSize = sizeof(uint32_t);
       vectorSize = 1;
       return true;
    }
-   
+
    bool MLPepochs::reduceDiagnostic(const SpatialCell* cell,Real* buffer) {
       *buffer = 1.0 * epochs;
       return true;
@@ -554,8 +553,7 @@ namespace DRO {
       epochs = cell->get_population(popID).mlp_epochs;
       return true;
    }
-   
-   
+
    // MLPerror
    MLPerror::MLPerror(cuint _popID): DataReductionOperator(),popID(_popID) {
       popName=getObjectWrapper().particleSpecies[popID].name;
@@ -563,7 +561,7 @@ namespace DRO {
    MLPerror::~MLPerror() { }
 
    std::string MLPerror::getName() const {return popName + "/mlp_error";}
-   
+
    bool MLPerror::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
       dataSize = sizeof(float);
@@ -576,7 +574,7 @@ namespace DRO {
       for (uint i = 0; i < sizeof(int); ++i) buffer[i] = ptr[i];
       return true;
    }
-   
+
    bool MLPerror::reduceDiagnostic(const SpatialCell* cell,Real* buffer) {
       *buffer = 1.0 * error;
       return true;

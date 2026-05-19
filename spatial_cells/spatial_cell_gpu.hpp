@@ -273,7 +273,7 @@ __global__ static void resize_and_empty_kernel (
       vmesh::VelocityBlockContainer *blockContainer;  /**< Velocity block data.*/
       std::vector<char> compressed_state_buffer;                     /**< Used by OCTREE and ZFP to store comprresed state representation of the VDF of this sc*/
       float mlp_error = {std::numeric_limits<float>::max()};         /**< Stores the loss function error of the MLP that was used for compression*/
-      uint32_t mlp_epochs = {0};                                     /**< Store the number of epochs that the MLP was trained for*/  
+      uint32_t mlp_epochs = {0};                                     /**< Store the number of epochs that the MLP was trained for*/
 
       /* pointers to device copies of vmesh and vbc */
       vmesh::VelocityMesh *dev_vmesh;

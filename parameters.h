@@ -84,9 +84,9 @@ struct Parameters {
    static std::vector<Real> systemWriteTimeInterval; /*!< Interval in simusecond for output for each class*/
    static std::vector<int>
        systemWriteDistributionWriteStride; /*!< Every this many cells write out their velocity space in each class. */
-   static bool systemWriteDistributionCompressed; /*Will apply ASTERIX compression to VDFs in bulk files*/ 
-   static bool systemWriteRestartCompressed;      /*Will apply ASTERIX compression to VDFs in restart files*/ 
-   static bool systemWriteRecoveryCompressed;     /*Will apply ASTERIX compression to VDFs in recovery files*/ 
+   static bool systemWriteDistributionCompressed; /*Will apply ASTERIX compression to VDFs in bulk files*/
+   static bool systemWriteRestartCompressed;      /*Will apply ASTERIX compression to VDFs in restart files*/
+   static bool systemWriteRecoveryCompressed;     /*Will apply ASTERIX compression to VDFs in recovery files*/
    static std::vector<int>
        systemWriteDistributionWriteXlineStride; /*!< Every this many lines of cells along the x direction write out
                                                    their velocity space in each class. */

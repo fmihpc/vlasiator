@@ -246,7 +246,7 @@ namespace DRO {
       Real rank;
       int mpiRank;
    };
-   
+
    class MLPepochs: public DataReductionOperator {
    public:
       MLPepochs(cuint popID);
@@ -262,7 +262,7 @@ namespace DRO {
       uint popID;
       std::string popName;
    };
-   
+
    class MLPerror: public DataReductionOperator {
    public:
       MLPerror(cuint popID);
@@ -631,7 +631,7 @@ namespace DRO {
       std::string popName;
       int nBins;
    };
-      
+
    // Precipitation directional differential number flux (along line)
    class VariablePrecipitationLineDiffFlux: public DataReductionOperatorHasParameters {
    public:

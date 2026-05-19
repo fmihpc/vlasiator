@@ -2,21 +2,21 @@ CMP = mpiCC
 LNK = mpiCC
 
 #======== Vectorization ==========
-#Set vector backend type for vlasov solvers, sets precision and length. 
-#Options: 
+#Set vector backend type for vlasov solvers, sets precision and length.
+#Options:
 # AVX:      VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
 # AVX512:   VEC8D_AGNER, VEC16F_AGNER
 # Fallback: VEC4D_FALLBACK, VEC4F_FALLBACK, VEC8F_FALLBACK
 
 ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
-#Single-precision        
+#Single-precision
         VECTORCLASS = VEC8F_AGNER
 else
 #Double-precision
         VECTORCLASS = VEC8D_AGNER
 endif
 
-FLAGS = 
+FLAGS =
 
 # NOTES on compiler flags:
 # CXXFLAGS is for compiler flags, they are always used
@@ -27,7 +27,7 @@ FLAGS =
 CC_BRAND = gcc
 CC_BRAND_VERSION = 11.4.0
 CXXFLAGS += -g -O3 -fopenmp -funroll-loops -std=c++20 -W -Wall -Wno-unused -fabi-version=0 -Wall -Wpedantic -mfma -march=native -mavx2
-not_parallel_tools: CXXFLAGS += -march=native -mno-avx2 -mavx 
+not_parallel_tools: CXXFLAGS += -march=native -mno-avx2 -mavx
 testpackage: CXXFLAGS = -g -O2 -fopenmp -funroll-loops -std=c++20 -fabi-version=0
 not_parallel_tools: CC_BRAND_VERSION = 4.9.2-noavx2
 
@@ -37,16 +37,16 @@ LDFLAGS = -L./target/release/ -L./vdf_compression/cuda_mlp
 LIB_MPI = -lgomp
 
 # TODO: WIP
-LIB_MPI = -lgomp -lmlp_compress -lmlp_cuda_compress -lzfp -lpapi 
+LIB_MPI = -lgomp -lmlp_compress -lmlp_cuda_compress -lzfp -lpapi
 
-BOOST_VERSION = 
+BOOST_VERSION =
 #MPI_BRAND = mpt
 #MPI_VERSION = 2.22
 MPI_BRAND = openmpi
 MPI_VERSION = 4.1.2
-ZOLTAN_VERSION = 
-SILO_VERSION = 
-JEMALLOC_VERSION = 
+ZOLTAN_VERSION =
+SILO_VERSION =
+JEMALLOC_VERSION =
 LIBRARY_PREFIX = /home/jkataja/opt/
 
 

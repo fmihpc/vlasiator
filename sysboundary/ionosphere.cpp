@@ -367,7 +367,7 @@ namespace SBC {
    }
 
    // Read an arbitrary ionosphere grid, in either Wavefront OBJ
-   // or VTK ASCII format. 
+   // or VTK ASCII format.
    // The file should contain only a single triangle grid (and be otherwise
    // reasonable for use as an ionosphere mesh)
    void SphericalTriGrid::initializeGridFromFile(string pathString) {

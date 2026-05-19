@@ -42,7 +42,7 @@
 
 extern Logger logFile;
 #define ASTERIX_USE_GPU
-#define MEMPOOL_BYTES 60ul*1024ul*1024ul*1024ul 
+#define MEMPOOL_BYTES 60ul*1024ul*1024ul*1024ul
 using namespace ASTERIX;
 using namespace spatial_cell;
 
@@ -319,7 +319,7 @@ clusterVDFs(const std::vector<CellID>& local_cells, const dccrg::Dccrg<SpatialCe
 float compress_vdfs_fourier_mlp_clustered(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                           size_t number_of_spatial_cells, bool update_weights, std::vector<std::vector<char>>&bytes,
                                           uint32_t downsampling_factor) {
-   
+
    //Memory allocation
    //TODO remove later
    int myRank;
@@ -385,9 +385,9 @@ float compress_vdfs_fourier_mlp_clustered(dccrg::Dccrg<SpatialCell, dccrg::Carte
          for (const auto sc:span){
             mpiGrid[sc]->get_population(popID).mlp_error=static_cast<float>(error);
             mpiGrid[sc]->get_population(popID).mlp_epochs = epochs;
-         } 
+         }
          assert(network_size == nn_mem_footprint_bytes && "Mismatch betweeen estimated and actual network size!!!");
-         
+
          bytes.at(i).resize(b.total_serialized_size_bytes());
          b.serialize_into(reinterpret_cast<unsigned char*>(bytes.at(i).data()));
          free(b._network_weights);
@@ -477,7 +477,7 @@ float compress_vdfs_octree(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>&
            case TOCTREE_COMPRESS_STAT_SUCCESS:
              break;
            case TOCTREE_COMPRESS_STAT_FAIL_TOL:
-             logFile << "(VDF COMPRESSION INFO): T-Octree failed to reach tolerance " << 
+             logFile << "(VDF COMPRESSION INFO): T-Octree failed to reach tolerance " <<
                P::octree_tolerance << " in " << maxiter << " iterations (cid " << cid <<")\n";
              break;
            default:
@@ -487,7 +487,7 @@ float compress_vdfs_octree(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>&
 
          //Copy compressed state to SC
          sc->get_population(popID).compressed_state_buffer.resize(n_bytes+sizeof(std::size_t) +vdf.blocks_to_ignore.size()*sizeof(vmesh::GlobalID)+3*sizeof(std::size_t)+6*sizeof(Real),0);
-         
+
          std::size_t ignored_blocks=vdf.blocks_to_ignore.size();
          std::size_t write_index=0;
          std::memcpy(sc->get_population(popID).compressed_state_buffer.data()+write_index,&ignored_blocks,sizeof(std::size_t));

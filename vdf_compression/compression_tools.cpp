@@ -195,7 +195,7 @@ ASTERIX::OrderedVDF ASTERIX::extract_pop_vdf_from_spatial_cell_ordered_min_bbox_
    std::size_t ny = std::ceil((vlims[4] - vlims[1]) / target_dvy);
    std::size_t nz = std::ceil((vlims[5] - vlims[2]) / target_dvz);
    // printf("VDF min box is %zu , %zu %zu \n ", nx, ny, nz);
-   
+
    std::unordered_set<vmesh::GlobalID> ignore_list;
    for (std::size_t k = 0; k < nz; ++k) {
       for (std::size_t j = 0; j < ny; ++j) {
@@ -209,7 +209,7 @@ ASTERIX::OrderedVDF ASTERIX::extract_pop_vdf_from_spatial_cell_ordered_min_bbox_
          }
       }
    }
-   
+
    Realf* data = blockContainer->getData();
    std::vector<Realf> vspace(nx * ny * nz, Realf(0));
    for (std::size_t n = 0; n < total_blocks; ++n) {

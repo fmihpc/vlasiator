@@ -391,21 +391,21 @@ bool _readBlockDataCompressionNone(vlsv::ParallelReader & file,
 
    avgAttribs.push_back(make_pair("mesh",spatMeshName));
    avgAttribs.push_back(make_pair("name",popName));
-   
-    //Get block id array info and store them into blockIdAttribs, lockIdByteSize, blockIdDataType, blockIdVectorSize
-  list<pair<string,string> > blockIdAttribs;
-  uint64_t blockIdVectorSize, blockIdByteSize;
-  vlsv::datatype::type blockIdDataType;
-  blockIdAttribs.push_back( make_pair("mesh", spatMeshName));
-  blockIdAttribs.push_back( make_pair("name", popName));
-  if (file.getArrayInfo("BLOCKIDS",blockIdAttribs,arraySize,blockIdVectorSize,blockIdDataType,blockIdByteSize) == false ){
-    logFile << "(RESTART) ERROR: Failed to read BLOCKCOORDINATES array info " << endl << write;
-    return false;
-  }
-    if(file.getArrayInfo("BLOCKVARIABLE",avgAttribs,arraySize,avgVectorSize,dataType,byteSize) == false ){
-    logFile << "(RESTART) ERROR: Failed to read BLOCKVARIABLE array info " << endl << write;
-    return false;
-  }
+
+   //Get block id array info and store them into blockIdAttribs, lockIdByteSize, blockIdDataType, blockIdVectorSize
+   list<pair<string,string> > blockIdAttribs;
+   uint64_t blockIdVectorSize, blockIdByteSize;
+   vlsv::datatype::type blockIdDataType;
+   blockIdAttribs.push_back( make_pair("mesh", spatMeshName));
+   blockIdAttribs.push_back( make_pair("name", popName));
+   if (file.getArrayInfo("BLOCKIDS",blockIdAttribs,arraySize,blockIdVectorSize,blockIdDataType,blockIdByteSize) == false ){
+     logFile << "(RESTART) ERROR: Failed to read BLOCKCOORDINATES array info " << endl << write;
+     return false;
+   }
+     if(file.getArrayInfo("BLOCKVARIABLE",avgAttribs,arraySize,avgVectorSize,dataType,byteSize) == false ){
+     logFile << "(RESTART) ERROR: Failed to read BLOCKVARIABLE array info " << endl << write;
+     return false;
+   }
 
    //Some routine error checks:
    if( avgVectorSize!=WID3 ){
@@ -471,7 +471,7 @@ bool _readBlockDataCompressionNone(vlsv::ParallelReader & file,
    delete[] avgBuffer;
    #endif
    delete[] blockIdBuffer;
-   return success;  
+   return success;
 }
 #ifdef ASTERIX_ZFP
 
@@ -487,7 +487,7 @@ bool _readBlockDataCompressionZFP(vlsv::ParallelReader & file,
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    std::function<vmesh::GlobalID(vmesh::GlobalID)> blockIDremapper,
    const uint popID){
-   
+
    uint64_t arraySize;
    uint64_t avgVectorSize;
    vlsv::datatype::type dataType;
@@ -496,44 +496,42 @@ bool _readBlockDataCompressionZFP(vlsv::ParallelReader & file,
    bool success=true;
    const string popName = getObjectWrapper().particleSpecies[popID].name;
    const string tagName = "BLOCKIDS";
-   
+
    avgAttribs.push_back(make_pair("mesh",spatMeshName));
    avgAttribs.push_back(make_pair("name",popName));
-   
-    //Get block id array info and store them into blockIdAttribs, lockIdByteSize, blockIdDataType, blockIdVectorSize
-  list<pair<string,string> > blockIdAttribs,bytesPerCellAttribs;
-  uint64_t blockIdVectorSize, blockIdByteSize;
-  vlsv::datatype::type blockIdDataType;
-  blockIdAttribs.push_back( make_pair("mesh", spatMeshName));
-  blockIdAttribs.push_back( make_pair("name", popName));
-  bytesPerCellAttribs.push_back( make_pair("mesh", spatMeshName));
-  bytesPerCellAttribs.push_back( make_pair("name", popName));
 
-   
-  uint64_t bytesPerCellArraySize;
-  uint64_t bytesPerCellVectorSize;
-  uint64_t bytesPerCellByteSize;
-  
-  if (file.getArrayInfo("BYTESPERCELL",blockIdAttribs,bytesPerCellArraySize,bytesPerCellVectorSize,dataType,bytesPerCellByteSize) == false ){
-    logFile << "(RESTART) ERROR: Failed to read BLOCKCOORDINATES array info " << endl << write;
-    return false;
-  } 
- 
-  if (file.getArrayInfo("BLOCKIDS",blockIdAttribs,arraySize,blockIdVectorSize,blockIdDataType,blockIdByteSize) == false ){
-    logFile << "(RESTART) ERROR: Failed to read BLOCKCOORDINATES array info " << endl << write;
-    return false;
-  }
-    if(file.getArrayInfo("BLOCKVARIABLE",avgAttribs,arraySize,avgVectorSize,dataType,byteSize) == false ){
-    logFile << "(RESTART) ERROR: Failed to read BLOCKVARIABLE array info " << endl << write;
-    return false;
-  }
+   //Get block id array info and store them into blockIdAttribs, lockIdByteSize, blockIdDataType, blockIdVectorSize
+   list<pair<string,string> > blockIdAttribs,bytesPerCellAttribs;
+   uint64_t blockIdVectorSize, blockIdByteSize;
+   vlsv::datatype::type blockIdDataType;
+   blockIdAttribs.push_back( make_pair("mesh", spatMeshName));
+   blockIdAttribs.push_back( make_pair("name", popName));
+   bytesPerCellAttribs.push_back( make_pair("mesh", spatMeshName));
+   bytesPerCellAttribs.push_back( make_pair("name", popName));
 
-  if (!file.readParameter("VDF_BYTE_SIZE",byteSize )){
-     logFile<<"ERROR: Failed to read parameter VDF_BYTE_SIZE"<<std::endl<<write;
+   uint64_t bytesPerCellArraySize;
+   uint64_t bytesPerCellVectorSize;
+   uint64_t bytesPerCellByteSize;
+
+   if (file.getArrayInfo("BYTESPERCELL",blockIdAttribs,bytesPerCellArraySize,bytesPerCellVectorSize,dataType,bytesPerCellByteSize) == false ){
+     logFile << "(RESTART) ERROR: Failed to read BLOCKCOORDINATES array info " << endl << write;
      return false;
-  }
+   }
 
- 
+   if (file.getArrayInfo("BLOCKIDS",blockIdAttribs,arraySize,blockIdVectorSize,blockIdDataType,blockIdByteSize) == false ){
+     logFile << "(RESTART) ERROR: Failed to read BLOCKCOORDINATES array info " << endl << write;
+     return false;
+   }
+     if(file.getArrayInfo("BLOCKVARIABLE",avgAttribs,arraySize,avgVectorSize,dataType,byteSize) == false ){
+     logFile << "(RESTART) ERROR: Failed to read BLOCKVARIABLE array info " << endl << write;
+     return false;
+   }
+
+   if (!file.readParameter("VDF_BYTE_SIZE",byteSize )){
+      logFile<<"ERROR: Failed to read parameter VDF_BYTE_SIZE"<<std::endl<<write;
+      return false;
+   }
+
    //Some routine error checks:
    if( avgVectorSize!=1 ){
       logFile << "(RESTART) ERROR: ZFP VectorSize should be 1." << endl << write;
@@ -543,11 +541,11 @@ bool _readBlockDataCompressionZFP(vlsv::ParallelReader & file,
       logFile << "(RESTART) ERROR: Bad avgs bytesize at " << __FILE__ << " " << __LINE__ << endl << write;
       return false;
    }
-  
+
    std::vector<std::size_t> bytesPerCell(fileCells.size(),{0});
    vmesh::GlobalID * blockIdBuffer = new vmesh::GlobalID[blockIdVectorSize * localBlocks]; //blockids of all cells
 
-   //Read bytes per cells. Every taks reads the whole array becasue it is needed for offsets and such later on 
+   //Read bytes per cells. Every taks reads the whole array becasue it is needed for offsets and such later on
    if (file.readArray("BYTESPERCELL", bytesPerCellAttribs, 0, fileCells.size(), reinterpret_cast<char*>(bytesPerCell.data()) ) == false) {
       cerr << "ERROR, failed to read BYTESPERCELL in " << __FILE__ << ":" << __LINE__ << endl;
       success = false;
@@ -559,21 +557,21 @@ bool _readBlockDataCompressionZFP(vlsv::ParallelReader & file,
    std::exclusive_scan(bytesPerCell.begin()+localCellStartOffset,bytesPerCell.begin()+localCellStartOffset+localCells ,localScanBytesPerCell.begin(),0ull);
    std::size_t n_compressed_bytes=std::accumulate(&bytesPerCell[localCellStartOffset],&bytesPerCell[localCellStartOffset+localCells],0ull);
    std::vector<char>compressed_bytes(n_compressed_bytes);
-  
+
 
    if (file.readArray("BLOCKIDS", blockIdAttribs, localBlockStartOffset, localBlocks, (char*)blockIdBuffer ) == false) {
       cerr << "ERROR, failed to read BLOCKIDS in " << __FILE__ << ":" << __LINE__ << endl;
       success = false;
    }
    std::cout<<"REading n bytres"<<n_compressed_bytes<<std::endl;
-   
+
    if (file.readArray("BLOCKVARIABLE", avgAttribs, scanBytesPerCell[localCellStartOffset], n_compressed_bytes, compressed_bytes.data()) == false) {
       cerr << "ERROR, failed to read BLOCKVARIABLE in " << __FILE__ << ":" << __LINE__ << endl;
       success = false;
    }
-   
+
    uint64_t blockBufferOffset=0;
-   //Go through all spatial cells     
+   //Go through all spatial cells
    vector<vmesh::GlobalID> blockIdsInCell; //blockIds in a particular cell, temporary usage
    Real sparse = getObjectWrapper().particleSpecies[popID].sparseMinValue;
    for(uint64_t i=0; i<localCells; i++) {
@@ -593,7 +591,6 @@ bool _readBlockDataCompressionZFP(vlsv::ParallelReader & file,
       fileReal* data = new fileReal[nBlocksInCell*WID3];
       if (!data){
          std::runtime_error("ERROR: failed to allocate memory for reading in compressed VDFs.");
-         
       }
       if constexpr (sizeof(fileReal) == sizeof(float)) {
          std::vector<float> vdf_vals =
@@ -614,11 +611,10 @@ bool _readBlockDataCompressionZFP(vlsv::ParallelReader & file,
       delete[] data;
       blockBufferOffset += nBlocksInCell; //jump to location of next local cell
    }
-   
-   delete[] blockIdBuffer;
-   return success;  
-}
 
+   delete[] blockIdBuffer;
+   return success;
+}
 #endif //ASTERIX_ZFP
 
 #ifdef ASTERIX_OCTREE
@@ -634,7 +630,7 @@ bool _readBlockDataCompressionOCTREE(vlsv::ParallelReader & file,
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    std::function<vmesh::GlobalID(vmesh::GlobalID)> blockIDremapper,
    const uint popID){
-   
+
    uint64_t arraySize;
    uint64_t avgVectorSize;
    vlsv::datatype::type dataType;
@@ -643,36 +639,36 @@ bool _readBlockDataCompressionOCTREE(vlsv::ParallelReader & file,
    bool success=true;
    const string popName = getObjectWrapper().particleSpecies[popID].name;
    const string tagName = "BLOCKIDS";
-   
+
    avgAttribs.push_back(make_pair("mesh",spatMeshName));
    avgAttribs.push_back(make_pair("name",popName));
-   
-    //Get block id array info and store them into blockIdAttribs, lockIdByteSize, blockIdDataType, blockIdVectorSize
-  list<pair<string,string> > blockIdAttribs,bytesPerCellAttribs;
-  uint64_t blockIdVectorSize, blockIdByteSize;
-  vlsv::datatype::type blockIdDataType;
-  blockIdAttribs.push_back( make_pair("mesh", spatMeshName));
-  blockIdAttribs.push_back( make_pair("name", popName));
-  bytesPerCellAttribs.push_back( make_pair("mesh", spatMeshName));
-  bytesPerCellAttribs.push_back( make_pair("name", popName));
-  
-  uint64_t bytesPerCellArraySize;
-  uint64_t bytesPerCellVectorSize;
-  uint64_t bytesPerCellByteSize;
-  
-  if (file.getArrayInfo("BYTESPERCELL",blockIdAttribs,bytesPerCellArraySize,bytesPerCellVectorSize,dataType,bytesPerCellByteSize) == false ){
-    logFile << "(RESTART) ERROR: Failed to read BLOCKCOORDINATES array info " << endl << write;
-    return false;
-  } 
- 
-  if(file.getArrayInfo("BLOCKVARIABLE",avgAttribs,arraySize,avgVectorSize,dataType,byteSize) == false ){
-    logFile << "(RESTART) ERROR: Failed to read BLOCKVARIABLE array info " << endl << write;
-    return false;
-  }
-  if (!file.readParameter("VDF_BYTE_SIZE",byteSize )){
-     logFile<<"ERROR: Failed to read parameter VDF_BYTE_SIZE"<<std::endl<<write;
+
+   //Get block id array info and store them into blockIdAttribs, lockIdByteSize, blockIdDataType, blockIdVectorSize
+   list<pair<string,string> > blockIdAttribs,bytesPerCellAttribs;
+   uint64_t blockIdVectorSize, blockIdByteSize;
+   vlsv::datatype::type blockIdDataType;
+   blockIdAttribs.push_back( make_pair("mesh", spatMeshName));
+   blockIdAttribs.push_back( make_pair("name", popName));
+   bytesPerCellAttribs.push_back( make_pair("mesh", spatMeshName));
+   bytesPerCellAttribs.push_back( make_pair("name", popName));
+
+   uint64_t bytesPerCellArraySize;
+   uint64_t bytesPerCellVectorSize;
+   uint64_t bytesPerCellByteSize;
+
+   if (file.getArrayInfo("BYTESPERCELL",blockIdAttribs,bytesPerCellArraySize,bytesPerCellVectorSize,dataType,bytesPerCellByteSize) == false ){
+     logFile << "(RESTART) ERROR: Failed to read BLOCKCOORDINATES array info " << endl << write;
      return false;
-  }
+   }
+
+   if(file.getArrayInfo("BLOCKVARIABLE",avgAttribs,arraySize,avgVectorSize,dataType,byteSize) == false ){
+     logFile << "(RESTART) ERROR: Failed to read BLOCKVARIABLE array info " << endl << write;
+     return false;
+   }
+   if (!file.readParameter("VDF_BYTE_SIZE",byteSize )){
+      logFile<<"ERROR: Failed to read parameter VDF_BYTE_SIZE"<<std::endl<<write;
+      return false;
+   }
 
    //Some routine error checks:
    if( avgVectorSize!=1 ){
@@ -683,10 +679,9 @@ bool _readBlockDataCompressionOCTREE(vlsv::ParallelReader & file,
       logFile << "(RESTART) ERROR: Bad avgs bytesize at " << __FILE__ << " " << __LINE__ << endl << write;
       return false;
    }
-   
 
    std::vector<std::size_t> bytesPerCell(fileCells.size(),{0});
-   //Read bytes per cells. Every taks reads the whole array becasue it is needed for offsets and such later on 
+   //Read bytes per cells. Every taks reads the whole array becasue it is needed for offsets and such later on
    if (file.readArray("BYTESPERCELL", bytesPerCellAttribs, 0, fileCells.size(), reinterpret_cast<char*>(bytesPerCell.data()) ) == false) {
       cerr << "ERROR, failed to read BYTESPERCELL in " << __FILE__ << ":" << __LINE__ << endl;
       success = false;
@@ -698,8 +693,7 @@ bool _readBlockDataCompressionOCTREE(vlsv::ParallelReader & file,
    std::exclusive_scan(bytesPerCell.begin()+localCellStartOffset,bytesPerCell.begin()+localCellStartOffset+localCells ,localScanBytesPerCell.begin(),0ull);
    std::size_t n_compressed_bytes=std::accumulate(&bytesPerCell[localCellStartOffset],&bytesPerCell[localCellStartOffset+localCells],0ull);
    std::vector<char>compressed_bytes(n_compressed_bytes);
-  
-   
+
    if (file.readArray("BLOCKVARIABLE", avgAttribs, scanBytesPerCell[localCellStartOffset], n_compressed_bytes, compressed_bytes.data()) == false) {
       cerr << "ERROR, failed to read BLOCKVARIABLE in " << __FILE__ << ":" << __LINE__ << endl;
       success = false;
@@ -727,7 +721,7 @@ bool _readBlockDataCompressionOCTREE(vlsv::ParallelReader & file,
 
 
       Real dv= (bbox_lims[3]-bbox_lims[0])/(Realf)bbox_shape[0];
-     
+
       const std::size_t inflated_size=bbox_shape[0]*bbox_shape[1]*bbox_shape[2];
       ASTERIX::OrderedVDF vdf{.blocks_to_ignore=blocks_to_ignore,.sparse_vdf_bytes=0,
                                .vdf_vals=std::vector<Realf>(inflated_size,0),
@@ -753,7 +747,7 @@ bool _readBlockDataCompressionOCTREE(vlsv::ParallelReader & file,
       ASTERIX::overwrite_pop_spatial_cell_vdf(sc, popID, vdf);
       sc->adjustSingleCellVelocityBlocks(popID);
    }
-   return success;  
+   return success;
 }
 #endif //ASTERIX_OCTREE
 
@@ -770,12 +764,12 @@ bool _readBlockDataCompressionMLP(vlsv::ParallelReader & file,
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    std::function<vmesh::GlobalID(vmesh::GlobalID)> blockIDremapper,
    const uint popID){
-   
+
    bool success=true;
    const string popName = getObjectWrapper().particleSpecies[popID].name;
    list<pair<string,string> > attribs;
    attribs.push_back(make_pair("name",popName));
-   
+
    int nFileRanks;
    if (!file.readParameter("numWritingRanks",nFileRanks)){
       logFile <<"ERROR: Could not read numWritingRanks from restart file!";
@@ -795,7 +789,6 @@ bool _readBlockDataCompressionMLP(vlsv::ParallelReader & file,
    }
    const std::size_t nmlps = std::accumulate(nclusters.cbegin(),nclusters.cend(),0ull);
 
-    
    //Read in headers
    std::vector<std::size_t> scanBytesPerCell(nFileRanks);
    std::exclusive_scan(nbytes.cbegin(), nbytes.cend(),scanBytesPerCell.begin(),0ull);
@@ -820,18 +813,17 @@ bool _readBlockDataCompressionMLP(vlsv::ParallelReader & file,
       if (nmlps>(std::size_t)nFileRanks){
          nbytes=nbytes_multi_mlp_case;
       }
-   }   
+   }
 
    //We rebuild nbytes here if we have MLP_MULTI ie nmlps>nFileRanks
    if (nmlps>(std::size_t)nFileRanks){
       scanBytesPerCell.resize(nmlps);
       std::exclusive_scan(nbytes.cbegin(), nbytes.cend(),scanBytesPerCell.begin(),0ull);
-      
    }
-   
+
    //Read in cids
    std::vector<std::vector<CellID>> mlp_cids(nmlps);
-   {   
+   {
       std::size_t cnt=0;
       for (std::size_t i=0;i<(std::size_t)nFileRanks;++i){
          for (std::size_t cluster=0;cluster<nclusters[i];++cluster){
@@ -847,7 +839,7 @@ bool _readBlockDataCompressionMLP(vlsv::ParallelReader & file,
 
    std::unordered_map<CellID ,std::size_t> cid2mlp_map;
    std::unordered_set<std::size_t> mlp_lookup;
-   
+
    for (std::size_t i=0; i<localCells;++i){
       CellID cid= fileCells[localCellStartOffset + i]; //spatial cell id
       if (mpiGrid[cid]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
@@ -873,7 +865,7 @@ bool _readBlockDataCompressionMLP(vlsv::ParallelReader & file,
 
    std::size_t global_n_reads={0};
    const std::size_t local_n_reads=lookup.size();
-   
+
    MPI_Allreduce(
     &local_n_reads,
     &global_n_reads,
@@ -885,21 +877,21 @@ bool _readBlockDataCompressionMLP(vlsv::ParallelReader & file,
 
 
    const Real sparse = getObjectWrapper().particleSpecies[popID].sparseMinValue;
-   
+
    //Finally we know where to look at to reconstruct our local VDFs. Let's do it:
    for (std::size_t i=0;i<global_n_reads;++i){
       if (i<local_n_reads){
          const auto id=lookup.at(i);
 
          //Make room for this mlp state
-         std::vector<char> mlp_bytes( nbytes.at(id) );   
+         std::vector<char> mlp_bytes( nbytes.at(id) );
 
          //Read it in
          if (file.readArray("BLOCKVARIABLE", attribs, scanBytesPerCell[id], nbytes[id], mlp_bytes.data()) == false) {
             cerr << "ERROR, failed to read MLP BYTES in " << __FILE__ << ":" << __LINE__ << endl;
             return false;
          }
-         
+
          //Reconstruct this Union
          ASTERIX::PhaseSpaceUnion<Realf> b(reinterpret_cast<unsigned char*>(mlp_bytes.data()));
          ASTERIX::decompressPhaseSpace<Realf>(b);
@@ -939,12 +931,12 @@ bool _readBlockDataCompressionMLP(vlsv::ParallelReader & file,
          }
       }
    }
-   return success;  
+   return success;
 }
 
 #endif // ASTERIX_MLP
 
-/** Read velocity block mesh data and distribution function data belonging to this process 
+/** Read velocity block mesh data and distribution function data belonging to this process
  * for the given particle species. This function must be called simultaneously by all processes.
  * @param file VLSV reader with input file open.
  * @param spatMeshName Name of the spatial mesh.
@@ -1192,7 +1184,7 @@ bool readBlockData(
       // Calculate the offset from which this process starts reading block data
       uint64_t myOffset = 0;
       for (int64_t i=0; i<mpiGrid.get_rank(); ++i) myOffset += offsetArray[i];
-      
+
       if (!file.readParameter("VDF_BYTE_SIZE",byteSize)){
          logFile << "(RESTART): This must be a non Asterix Restart" << endl << write;
          if (file.getArrayInfo("BLOCKVARIABLE",attribs,arraySize,vectorSize,dataType,byteSize) == false) {

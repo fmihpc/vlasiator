@@ -67,7 +67,7 @@ uint P::zcells_ini = numeric_limits<uint>::max();
 Real P::t = 0;
 Real P::t_min = 0;
 Real P::t_max = LARGE_REAL;
-Real P::dt_ceil = -1.0; 
+Real P::dt_ceil = -1.0;
 Real P::dt = NAN;
 Real P::vlasovSolverMaxCFL = NAN;
 Real P::vlasovSolverMinCFL = NAN;
@@ -98,7 +98,7 @@ vector<Real> P::systemWriteTimeInterval;
 vector<int> P::systemWriteDistributionWriteStride;
 bool P::systemWriteDistributionCompressed;
 bool P::systemWriteRestartCompressed;
-bool P::systemWriteRecoveryCompressed;      
+bool P::systemWriteRecoveryCompressed;
 vector<int> P::systemWriteDistributionWriteXlineStride;
 vector<int> P::systemWriteDistributionWriteYlineStride;
 vector<int> P::systemWriteDistributionWriteZlineStride;
@@ -232,8 +232,8 @@ std::size_t P::mlp_fourier_order;
 std::size_t P::mlp_max_epochs;
 Real P::mlp_tollerance;
 Real P::octree_tolerance;
-std::string P::mlpLayer; 
-Real P::compression_interval; 
+std::string P::mlpLayer;
+Real P::compression_interval;
 bool P::doCompress=false;
 std::string P::method_str;
 P::ASTERIX_COMPRESSION_METHODS P::vdf_compression_method;
@@ -958,7 +958,7 @@ void Parameters::getParameters() {
    RP::get("Asterix.state",P::doCompress);
    RP::get("Asterix.method",P::method_str);
    RP::get("Asterix.max_vdfs_per_nn",P::max_vdfs_per_nn);
-   
+
    if (P::doCompress){
       #ifdef ASTERIX_MLP
       if(P::method_str == "MLP") {
@@ -1005,7 +1005,7 @@ void Parameters::getParameters() {
       std::vector<std::size_t> result;
       std::string clean_str;
       std::copy_if(str.begin(), str.end(), std::back_inserter(clean_str), [](unsigned char c) {
-         return !std::isspace(c);    
+         return !std::isspace(c);
       });
 
       std::stringstream ss(clean_str);

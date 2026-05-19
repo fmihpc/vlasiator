@@ -343,9 +343,8 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
 bool writeVspaceDataCompressionNone(const uint popID,Writer& vlsvWriter,
                                    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                    const std::vector<CellID>& cells,std::size_t totalBlocks, MPI_Comm comm){
-   
-   
-   const int cmp=P::vdf_compression_method;   
+
+   const int cmp=P::vdf_compression_method;
    vlsvWriter.writeParameter("COMPRESSION",&cmp);
    bool success=true;
    const string popName      = getObjectWrapper().particleSpecies[popID].name;
@@ -381,10 +380,9 @@ bool writeVspaceDataCompressionNone(const uint popID,Writer& vlsvWriter,
       vector<vmesh::GlobalID>().swap(velocityBlockIds);
    }
 
-   
    attribs.clear();
    attribs["mesh"] = spatMeshName;
-   attribs["name"] = popName;   
+   attribs["name"] = popName;
    attribs["compression"] = "None";
    const string datatype_avgs = "float";
    const uint64_t arraySize_avgs = totalBlocks;
@@ -400,7 +398,7 @@ bool writeVspaceDataCompressionNone(const uint popID,Writer& vlsvWriter,
    for (size_t cell = 0; cell<cells.size(); ++cell) {
       // Get the spatial cell
       SpatialCell* SC = mpiGrid[cells[cell]];
-      
+
       // Get the number of blocks in this cell
       const uint64_t arrayElements = SC->get_number_of_velocity_blocks(popID);
       char* arrayToWrite = reinterpret_cast<char*>(SC->get_data(popID));
@@ -413,30 +411,29 @@ bool writeVspaceDataCompressionNone(const uint popID,Writer& vlsvWriter,
    }
    // Write the subarrays
    vlsvWriter.endMultiwrite("BLOCKVARIABLE", attribs);
-      
+
    if (globalSuccess(success,"(MAIN) writeGrid: ERROR: Failed to fill temporary velocityBlockData array",MPI_COMM_WORLD) == false) {
       vlsvWriter.close();
       return false;
    }
 
- return success;  
+   return success;
 }
 
 #ifdef ASTERIX_ZFP
 bool writeVspaceDataCompressionZFP(const uint popID,Writer& vlsvWriter,
                                    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                    const std::vector<CellID>& cells,std::size_t totalBlocks, MPI_Comm comm){
-   
-   
+
    bool success=true;
 
    //Write the compression method used in this file
-   const int cmp=P::vdf_compression_method;   
+   const int cmp=P::vdf_compression_method;
    if(!vlsvWriter.writeParameter("COMPRESSION",&cmp)){
       logFile<<"ERROR: Failed to write COMPRESSION parameter in vlsv file"<<std::endl<<write;
       return false;
    }
-   
+
    const string popName      = getObjectWrapper().particleSpecies[popID].name;
    const string spatMeshName = "SpatialGrid";
    map<string,string> attribs;
@@ -474,10 +471,10 @@ bool writeVspaceDataCompressionZFP(const uint popID,Writer& vlsvWriter,
    for (const auto& cid:cells){
       totalElements+=mpiGrid[cid]->get_population(popID).compressed_state_buffer.size();
    }
-   
+
    attribs.clear();
    attribs["mesh"] = spatMeshName;
-   attribs["name"] = popName;    
+   attribs["name"] = popName;
    attribs["compression"] = "ZFP";
    const string datatype_avgs = "uint"; //TODO why dont we have pure bytes in vlsv??
    const uint64_t arraySize_avgs = totalElements;
@@ -493,7 +490,7 @@ bool writeVspaceDataCompressionZFP(const uint popID,Writer& vlsvWriter,
    for (size_t cell = 0; cell<cells.size(); ++cell) {
       // Get the spatial cell
       SpatialCell* SC = mpiGrid[cells[cell]];
-      
+
       // Get the number of blocks in this cell
       const uint64_t arrayElements = SC->get_population(popID).compressed_state_buffer.size();
       char* arrayToWrite = reinterpret_cast<char*>(SC->get_population(popID).compressed_state_buffer.data());
@@ -506,13 +503,13 @@ bool writeVspaceDataCompressionZFP(const uint popID,Writer& vlsvWriter,
    }
    // Write the subarrays
    vlsvWriter.endMultiwrite("BLOCKVARIABLE", attribs);
-      
+
    if (globalSuccess(success,"(MAIN) writeGrid: ERROR: Failed to fill temporary velocityBlockData array",MPI_COMM_WORLD) == false) {
       vlsvWriter.close();
       return false;
    }
 
- return success;  
+   return success;
 }
 #endif //ASTERIX_ZFP
 
@@ -521,10 +518,9 @@ bool writeVspaceDataCompressionZFP(const uint popID,Writer& vlsvWriter,
 bool writeVspaceDataCompressionOCTREE(const uint popID,Writer& vlsvWriter,
                                    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                    const std::vector<CellID>& cells,std::size_t totalBlocks, MPI_Comm comm){
-   
-   
+
    //Write the compression method used in this file
-   const int cmp=P::vdf_compression_method;   
+   const int cmp=P::vdf_compression_method;
    if (!vlsvWriter.writeParameter("COMPRESSION",&cmp)){
       logFile<<"ERROR: Failed to write COMPRESSION parameter in vlsv file"<<std::endl<<write;
       return false;
@@ -554,7 +550,7 @@ bool writeVspaceDataCompressionOCTREE(const uint popID,Writer& vlsvWriter,
    for (size_t cell = 0; cell<cells.size(); ++cell) {
       // Get the spatial cell
       SpatialCell* SC = mpiGrid[cells[cell]];
-      
+
       // Get the number of blocks in this cell
       const uint64_t arrayElements = SC->get_population(popID).compressed_state_buffer.size();
       char* arrayToWrite = reinterpret_cast<char*>(SC->get_population(popID).compressed_state_buffer.data());
@@ -567,13 +563,13 @@ bool writeVspaceDataCompressionOCTREE(const uint popID,Writer& vlsvWriter,
    }
    // Write the subarrays
    vlsvWriter.endMultiwrite("BLOCKVARIABLE", attribs);
-      
+
    if (globalSuccess(success,"(MAIN) writeGrid: ERROR: Failed to fill temporary velocityBlockData array",MPI_COMM_WORLD) == false) {
       vlsvWriter.close();
       return false;
    }
 
- return success;  
+   return success;
 }
 #endif //ASTERIX_OCTREE
 
@@ -581,17 +577,16 @@ bool writeVspaceDataCompressionOCTREE(const uint popID,Writer& vlsvWriter,
 bool writeVspaceDataCompressionMLP(const uint popID,Writer& vlsvWriter,
                                    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                    const std::vector<CellID>& cells,std::vector<std::vector<char>>&mlp_bytes,std::size_t totalBlocks, MPI_Comm comm){
-   
-   
+
    //Write the compression method used in this file
    const string popName      = getObjectWrapper().particleSpecies[popID].name;
    const string spatMeshName = "SpatialGrid";
-   const int cmp=P::vdf_compression_method;   
+   const int cmp=P::vdf_compression_method;
    if (!vlsvWriter.writeParameter("COMPRESSION",&cmp)){
       logFile<<"ERROR: Failed to write COMPRESSION parameter in vlsv file"<<std::endl<<write;
       return false;
    }
-   const int fourier_order=P::mlp_fourier_order;   
+   const int fourier_order=P::mlp_fourier_order;
    if (!vlsvWriter.writeParameter("FOURIER_ORDER",&fourier_order)){
       logFile<<"ERROR: Failed to write FOURIER_ORDER parameter in vlsv file"<<std::endl<<write;
       return false;
@@ -623,9 +618,9 @@ bool writeVspaceDataCompressionMLP(const uint popID,Writer& vlsvWriter,
    for (const auto& b: mlp_bytes){
       const auto arrayElements = b.size();
       if (arrayElements>0){
-         vlsvWriter.addMultiwriteUnit(b.data(), arrayElements); 
+         vlsvWriter.addMultiwriteUnit(b.data(), arrayElements);
       }else{
-         vlsvWriter.addMultiwriteUnit(nullptr, 0); 
+         vlsvWriter.addMultiwriteUnit(nullptr, 0);
       }
    }
    vlsvWriter.endMultiwrite("BLOCKVARIABLE", attribs);
@@ -633,14 +628,14 @@ bool writeVspaceDataCompressionMLP(const uint popID,Writer& vlsvWriter,
       vlsvWriter.close();
       return false;
    }
- return success;  
+   return success;
 }
 #endif //ASTERIX_MLP
 
 bool writeVelocityDistributionDataAsterix(const uint popID,Writer& vlsvWriter,
                                    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                    const std::vector<CellID>& cells,std::vector<std::vector<char>>&bytes,MPI_Comm comm) {
-   // Write velocity blocks and related data. 
+   // Write velocity blocks and related data.
    // In restart we just write velocity grids for all cells.
    // First write global Ids of those cells which write velocity blocks (here: all cells):
    map<string,string> attribs;
@@ -672,14 +667,14 @@ bool writeVelocityDistributionDataAsterix(const uint popID,Writer& vlsvWriter,
          logFile<<"ERROR: Failed to write mlp bytes per rank to restart file"<<endl<<write;
          return false;
       }
-      
+
       const std::size_t mlp_clusters_per_rank=bytes.size();
       if (!vlsvWriter.writeArray<std::size_t>("MLP_CLUSTERS_PER_RANK",attribs,1,1,&mlp_clusters_per_rank)){
          logFile<<"ERROR: Failed to write mlp cluster per rank to restart file"<<endl<<write;
          return false;
       }
    }
-   
+
    // The name of the mesh is "SpatialGrid"
    attribs["mesh"] = spatMeshName;
 
@@ -709,7 +704,7 @@ bool writeVelocityDistributionDataAsterix(const uint popID,Writer& vlsvWriter,
    attribs["mesh"] = getObjectWrapper().particleSpecies[popID].name;
    attribs["type"] = vlsv::mesh::STRING_UCD_AMR;
 
-   // stringstream is necessary here to correctly convert refLevelMaxAllowed (hardcoded to zero now) into a string 
+   // stringstream is necessary here to correctly convert refLevelMaxAllowed (hardcoded to zero now) into a string
    stringstream ss;
    //ss << static_cast<unsigned int>(vmesh::getMeshWrapper()->velocityMeshes->at(meshID).refLevelMaxAllowed);
    ss << static_cast<unsigned int>(0);
@@ -744,7 +739,7 @@ bool writeVelocityDistributionDataAsterix(const uint popID,Writer& vlsvWriter,
       if (vlsvWriter.writeArray("MESH_NODE_CRDS_Y",attribs,0,1,crds) == false) success = false;
       if (vlsvWriter.writeArray("MESH_NODE_CRDS_Z",attribs,0,1,crds) == false) success = false;
    }
-   
+
    const std::size_t vdf_byte_size=sizeof(Realf);
    if (!vlsvWriter.writeParameter<size_t>("VDF_BYTE_SIZE",&vdf_byte_size)){
       logFile<<"ERROR: Failed to write compression type parameter in vlsv!"<<endl<<write;
@@ -777,7 +772,7 @@ bool writeVelocityDistributionDataAsterix(const uint popID,Writer& vlsvWriter,
          std::cout<<"ABORT DEFAULT"<<std::endl;
          break;
    }
-   
+
    if (success ==false) {
       logFile << "(MAIN) writeGrid: ERROR occurred when writing BLOCKVARIABLE f" << endl << writeVerbose;
    }
@@ -2109,13 +2104,12 @@ bool writeRestart(
    const uint& fileIndex,
    const bool dateInFileName,
    const int& stripe,
-   bool compress_vdfs) 
+   bool compress_vdfs)
 {
    // Writes a restart
    bool success = true;
    int myRank;
-   
-   
+
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
    phiprof::Timer barrierEnteringTimer {"BarrierEnteringWriteRestart", {"MPI","Barrier"}};
    MPI_Barrier(MPI_COMM_WORLD);
@@ -2126,7 +2120,7 @@ bool writeRestart(
    //deallocate blocks in remote cells to decrease memory load
    deallocateRemoteCellBlocks(mpiGrid);
    deallocateTimer.stop();
-   
+
    // Get the current time.
    // Avoid different times on different processes!
    char currentDate[80];
