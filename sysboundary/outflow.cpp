@@ -45,7 +45,7 @@
 using namespace std;
 
 namespace SBC {
-   Outflow::Outflow(): OuterBoundaryCondition() {}
+   Outflow::Outflow(): OuterBoundaryCondition() { }
    Outflow::~Outflow() { }
 
    void Outflow::addParameters() {

@@ -1066,7 +1066,6 @@ void Parameters::getParameters() {
       cerr << __FILE__ << ":" << __LINE__ << " ERROR: Unknown value for fieldtracing.fieldLineTracer: " << tracerString << endl;
       abort();
    }
-
 }
 
 

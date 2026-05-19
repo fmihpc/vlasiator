@@ -69,8 +69,7 @@ namespace species {
       Real precipitationEmin;                  /*!< Lowest energy channel (in keV) for precipitation differential flux evaluation. Default 0.1. */
       Real precipitationEmax;                  /*!< Highest energy channel (in keV) for precipitation differential flux evaluation. Default 100. */
       Real precipitationLossConeAngle;         /*!< Fixed loss cone opening angle (in deg) for precipitation differential flux evaluation. Default 10. */
-    
-    
+ 
       Species();
       Species(const Species& other); //this is partial copy
       Species& operator=(const Species& other)=default;

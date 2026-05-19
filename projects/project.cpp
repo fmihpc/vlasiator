@@ -21,7 +21,6 @@
  */
 
 #include "project.h"
-#include <complex>
 #include <cstdlib>
 #include "../common.h"
 #include "../parameters.h"
@@ -30,7 +29,6 @@
 #include "../logger.h"
 #include "../object_wrapper.h"
 #include "../velocity_mesh_parameters.h"
-#include <omp.h>
 
 #include "Alfven/Alfven.h"
 #include "Diffusion/Diffusion.h"
