@@ -957,7 +957,10 @@ void Parameters::getParameters() {
    P::dx_ini = (P::xmax - P::xmin) / P::xcells_ini;
    P::dy_ini = (P::ymax - P::ymin) / P::ycells_ini;
    P::dz_ini = (P::zmax - P::zmin) / P::zcells_ini;
-
+   if ((P::dx_ini != P::dy_ini) || (P::dy_ini!=P::dz_ini)) {
+    cerr << "ERROR: Spatial cells are non cubic! " << endl;
+    MPI_Abort(MPI_COMM_WORLD, 1);
+   }
 
 
    if (P::dynamicTimestep)
