@@ -109,189 +109,205 @@ void MultiPeak::getParameters() {
    }
 }
 
-Realf MultiPeak::fillPhaseSpace(spatial_cell::SpatialCell* cell, const uint popID, const uint nRequested) const {
-   const MultiPeakSpeciesParameters& sP = speciesParams[popID];
-   // Fetch spatial cell center coordinates
-   const Real x = cell->parameters[CellParams::XCRD] + 0.5 * cell->parameters[CellParams::DX];
-   const Real y = cell->parameters[CellParams::YCRD] + 0.5 * cell->parameters[CellParams::DY];
-   const Real z = cell->parameters[CellParams::ZCRD] + 0.5 * cell->parameters[CellParams::DZ];
+ Realf MultiPeak::fillPhaseSpace(spatial_cell::SpatialCell *cell,
+                                       const uint popID,
+                                       const uint nRequested
+      ) const {
+      const MultiPeakSpeciesParameters& sP = speciesParams[popID];
+      // Fetch spatial cell center coordinates
+      const Real x  = cell->parameters[CellParams::XCRD] + 0.5*cell->parameters[CellParams::DX];
+      const Real y  = cell->parameters[CellParams::YCRD] + 0.5*cell->parameters[CellParams::DY];
+      const Real z  = cell->parameters[CellParams::ZCRD] + 0.5*cell->parameters[CellParams::DZ];
 
-   const Real mass = getObjectWrapper().particleSpecies[popID].mass;
+      const Real mass = getObjectWrapper().particleSpecies[popID].mass;
 
-   Real rhoFactor = 1.0;
-   switch (densityModel) {
-   case Uniform:
-      rhoFactor = 1.0;
-      break;
-   case TestCase:
-      rhoFactor = 1.0;
-      if ((x >= 3.9e5 && x <= 6.1e5) && (y >= 3.9e5 && y <= 6.1e5)) {
-         rhoFactor = 1.5;
+      Real rhoFactor = 1.0;
+      switch (densityModel) {
+         case Uniform:
+            rhoFactor = 1.0;
+            break;
+         case TestCase:
+            rhoFactor = 1.0;
+            if ((x >= 3.9e5 && x <= 6.1e5) && (y >= 3.9e5 && y <= 6.1e5)) {
+               rhoFactor = 1.5;
+            }
+            break;
+         default:
+            rhoFactor = 1.0;
+            break;
       }
-      break;
-   default:
-      rhoFactor = 1.0;
-      break;
-   }
-   // device-accessable variables
-   const Real rhoRndDev = rhoRnd;
-   uint nPeaks = sP.numberOfPeaks;
-#define MAXPEAKS 10
-   if (nPeaks > MAXPEAKS) {
-      std::cerr << " ERROR in " << __FILE__ << ":" << __LINE__ << ": max number of supported peaks is " << MAXPEAKS
-                << " (got " << nPeaks << ")" << std::endl;
-      std::cerr << " Truncating peaks at " << MAXPEAKS << "!" << std::endl;
-      nPeaks = MAXPEAKS;
-   }
-   Real VxDev[MAXPEAKS], VyDev[MAXPEAKS], VzDev[MAXPEAKS], TxDev[MAXPEAKS], TyDev[MAXPEAKS], TzDev[MAXPEAKS],
-       rhoDev[MAXPEAKS], rhoPertAbsAmpDev[MAXPEAKS];
-   for (uint i = 0; i < MAXPEAKS; ++i) {
-      if (i >= nPeaks) {
-         break;
+      // device-accessable variables
+      const Real rhoRndDev = rhoRnd;
+      uint nPeaks = sP.numberOfPeaks;
+      #define MAXPEAKS 10
+      if (nPeaks > MAXPEAKS) {
+         std::cerr<<" ERROR in "<<__FILE__<<":"<<__LINE__<<": max number of supported peaks is "<<MAXPEAKS<<" (got "<<nPeaks<<")"<<std::endl;
+         std::cerr<<" Truncating peaks at "<<MAXPEAKS<<"!"<<std::endl;
+         nPeaks = MAXPEAKS;
       }
-      VxDev[i] = sP.Vx[i];
-      VyDev[i] = sP.Vy[i];
-      VzDev[i] = sP.Vz[i];
-      TxDev[i] = sP.Tx[i];
-      TyDev[i] = sP.Ty[i];
-      TzDev[i] = sP.Tz[i];
-      rhoDev[i] = sP.rho[i];
-      rhoPertAbsAmpDev[i] = sP.rhoPertAbsAmp[i];
-   }
-
-#ifdef USE_GPU
-   vmesh::VelocityMesh* vmesh = cell->dev_get_velocity_mesh(popID);
-   vmesh::VelocityBlockContainer* VBC = cell->dev_get_velocity_blocks(popID);
-#else
-   vmesh::VelocityMesh* vmesh = cell->get_velocity_mesh(popID);
-   vmesh::VelocityBlockContainer* VBC = cell->get_velocity_blocks(popID);
-#endif
-   // Loop over blocks
-   Realf rhosum = 0;
-   arch::parallel_reduce<arch::null>(
-       {WID, WID, WID, nRequested},
-       ARCH_LOOP_LAMBDA(const uint i, const uint j, const uint k, const uint initIndex, Realf* lsum) {
-          vmesh::GlobalID* GIDlist = vmesh->getGrid()->data();
-          Realf* bufferData = VBC->getData();
-          const vmesh::GlobalID blockGID = GIDlist[initIndex];
-          // Calculate parameters for new block
-          Real blockCoords[6];
-          vmesh->getBlockInfo(blockGID, &blockCoords[0]);
-          creal vxBlock = blockCoords[0];
-          creal vyBlock = blockCoords[1];
-          creal vzBlock = blockCoords[2];
-          creal dvxCell = blockCoords[3];
-          creal dvyCell = blockCoords[4];
-          creal dvzCell = blockCoords[5];
-          ARCH_INNER_BODY(i, j, k, initIndex, lsum) {
-             Realf value = 0;
-             for (uint ipeak = 0; ipeak < nPeaks; ++ipeak) {
-                creal vx = vxBlock + (i + 0.5) * dvxCell - VxDev[ipeak];
-                creal vy = vyBlock + (j + 0.5) * dvyCell - VyDev[ipeak];
-                creal vz = vzBlock + (k + 0.5) * dvzCell - VzDev[ipeak];
-                value += TriMaxwellianPhaseSpaceDensity(
-                    vx, vy, vz, TxDev[ipeak], TyDev[ipeak], TzDev[ipeak],
-                    (rhoDev[ipeak] + rhoPertAbsAmpDev[ipeak] * rhoRndDev) * rhoFactor, mass);
-             }
-             bufferData[initIndex * WID3 + k * WID2 + j * WID + i] = value;
-             // lsum[0] += value;
-          };
-       },
-       rhosum);
-   return rhosum;
-}
-
-/* Evaluates local SpatialCell properties for the project and population,
-   then evaluates the phase-space density at the given coordinates.
-   Used as a probe for projectTriAxisSearch.
-*/
-Realf MultiPeak::probePhaseSpace(spatial_cell::SpatialCell* cell, const uint popID, Real vx_in, Real vy_in,
-                                 Real vz_in) const {
-   const MultiPeakSpeciesParameters& sP = speciesParams[popID];
-   // Fetch spatial cell center coordinates
-   const Real x = cell->parameters[CellParams::XCRD] + 0.5 * cell->parameters[CellParams::DX];
-   const Real y = cell->parameters[CellParams::YCRD] + 0.5 * cell->parameters[CellParams::DY];
-   const Real z = cell->parameters[CellParams::ZCRD] + 0.5 * cell->parameters[CellParams::DZ];
-
-   const Real mass = getObjectWrapper().particleSpecies[popID].mass;
-
-   Real rhoFactor = 1.0;
-   switch (densityModel) {
-   case Uniform:
-      rhoFactor = 1.0;
-      break;
-   case TestCase:
-      rhoFactor = 1.0;
-      if ((x >= 3.9e5 && x <= 6.1e5) && (y >= 3.9e5 && y <= 6.1e5)) {
-         rhoFactor = 1.5;
+      Real VxDev[MAXPEAKS], VyDev[MAXPEAKS], VzDev[MAXPEAKS], TxDev[MAXPEAKS], TyDev[MAXPEAKS], TzDev[MAXPEAKS], rhoDev[MAXPEAKS], rhoPertAbsAmpDev[MAXPEAKS];
+      for (uint i=0; i<MAXPEAKS; ++i) {
+         if (i >= nPeaks) {
+            break;
+         }
+         VxDev[i] = sP.Vx[i];
+         VyDev[i] = sP.Vy[i];
+         VzDev[i] = sP.Vz[i];
+         TxDev[i] = sP.Tx[i];
+         TyDev[i] = sP.Ty[i];
+         TzDev[i] = sP.Tz[i];
+         rhoDev[i] = sP.rho[i];
+         rhoPertAbsAmpDev[i] = sP.rhoPertAbsAmp[i];
       }
-      break;
-   default:
-      rhoFactor = 1.0;
-      break;
+
+      #ifdef USE_GPU
+      vmesh::VelocityMesh *vmesh = cell->dev_get_velocity_mesh(popID);
+      vmesh::VelocityBlockContainer* VBC = cell->dev_get_velocity_blocks(popID);
+      #else
+      vmesh::VelocityMesh *vmesh = cell->get_velocity_mesh(popID);
+      vmesh::VelocityBlockContainer* VBC = cell->get_velocity_blocks(popID);
+      #endif
+      // Loop over blocks
+      Realf rhosum = 0;
+      arch::parallel_reduce<arch::null>(
+         {WID, WID, WID, nRequested},
+         ARCH_LOOP_LAMBDA (const uint i, const uint j, const uint k, const uint initIndex, Realf *lsum ) {
+            vmesh::GlobalID *GIDlist = vmesh->getGrid()->data();
+            Realf* bufferData = VBC->getData();
+            const vmesh::GlobalID blockGID = GIDlist[initIndex];
+            // Calculate parameters for new block
+            Real blockCoords[6];
+            vmesh->getBlockInfo(blockGID,&blockCoords[0]);
+            creal vxBlock = blockCoords[0];
+            creal vyBlock = blockCoords[1];
+            creal vzBlock = blockCoords[2];
+            creal dvxCell = blockCoords[3];
+            creal dvyCell = blockCoords[4];
+            creal dvzCell = blockCoords[5];
+            ARCH_INNER_BODY(i, j, k, initIndex, lsum) {
+               Realf value = 0;
+               for (uint ipeak=0; ipeak<nPeaks; ++ipeak) {
+                  creal vx = vxBlock + (i+0.5)*dvxCell - VxDev[ipeak];
+                  creal vy = vyBlock + (j+0.5)*dvyCell - VyDev[ipeak];
+                  creal vz = vzBlock + (k+0.5)*dvzCell - VzDev[ipeak];
+                  value += TriMaxwellianPhaseSpaceDensity(
+                     vx,vy,vz,
+                     TxDev[ipeak],TyDev[ipeak],TzDev[ipeak],
+                     (rhoDev[ipeak] + rhoPertAbsAmpDev[ipeak] * rhoRndDev) * rhoFactor,
+                     mass);
+               }
+               bufferData[initIndex*WID3 + k*WID2 + j*WID + i] = value;
+               //lsum[0] += value;
+            };
+         }, rhosum);
+      return rhosum;
    }
 
-   Realf value = 0;
-   for (uint i = 0; i < sP.numberOfPeaks; ++i) {
-      creal vx = vx_in - sP.Vx[i];
-      creal vy = vy_in - sP.Vy[i];
-      creal vz = vz_in - sP.Vz[i];
-      value += TriMaxwellianPhaseSpaceDensity(vx, vy, vz, sP.Tx[i], sP.Ty[i], sP.Tz[i],
-                                              sP.rho[i] + sP.rhoPertAbsAmp[i] * rhoRnd * rhoFactor, mass);
+   /* Evaluates local SpatialCell properties for the project and population,
+      then evaluates the phase-space density at the given coordinates.
+      Used as a probe for projectTriAxisSearch.
+   */
+   Realf MultiPeak::probePhaseSpace(spatial_cell::SpatialCell *cell,
+                                        const uint popID,
+                                        Real vx_in, Real vy_in, Real vz_in
+      ) const {
+      const MultiPeakSpeciesParameters& sP = speciesParams[popID];
+      // Fetch spatial cell center coordinates
+      const Real x  = cell->parameters[CellParams::XCRD] + 0.5*cell->parameters[CellParams::DX];
+      const Real y  = cell->parameters[CellParams::YCRD] + 0.5*cell->parameters[CellParams::DY];
+      const Real z  = cell->parameters[CellParams::ZCRD] + 0.5*cell->parameters[CellParams::DZ];
+
+      const Real mass = getObjectWrapper().particleSpecies[popID].mass;
+
+      Real rhoFactor = 1.0;
+      switch (densityModel) {
+         case Uniform:
+            rhoFactor = 1.0;
+            break;
+         case TestCase:
+            rhoFactor = 1.0;
+            if ((x >= 3.9e5 && x <= 6.1e5) && (y >= 3.9e5 && y <= 6.1e5)) {
+               rhoFactor = 1.5;
+            }
+            break;
+         default:
+            rhoFactor = 1.0;
+            break;
+      }
+
+      Realf value = 0;
+      for (uint i=0; i<sP.numberOfPeaks; ++i) {
+         creal vx = vx_in - sP.Vx[i];
+         creal vy = vy_in - sP.Vy[i];
+         creal vz = vz_in - sP.Vz[i];
+         value += TriMaxwellianPhaseSpaceDensity(
+            vx,vy,vz,
+            sP.Tx[i],sP.Ty[i],sP.Tz[i],
+            sP.rho[i] + sP.rhoPertAbsAmp[i] * rhoRnd * rhoFactor,
+            mass);
+      }
+      return value;
    }
-   return value;
-}
 
-void MultiPeak::calcCellParameters(spatial_cell::SpatialCell* cell, creal& t) {
-   std::default_random_engine rndState;
-   setRandomCellSeed(cell, rndState);
-   rhoRnd = 0.5 - getRandomNumber(rndState);
-}
+   void MultiPeak::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
+      std::default_random_engine rndState;
+      setRandomCellSeed(cell,rndState);
+      rhoRnd = 0.5 - getRandomNumber(rndState);
+   }
 
-void MultiPeak::setProjectBField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
-                                 FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
-                                 FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
-   ConstantField bgField;
-   bgField.initialize(this->Bx, this->By, this->Bz);
+   void MultiPeak::setProjectBField(
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
+   ) {
+      ConstantField bgField;
+      bgField.initialize(this->Bx,
+                         this->By,
+                         this->Bz);
 
-   setBackgroundField(bgField, BgBGrid);
+      setBackgroundField(bgField, BgBGrid);
 
-   if (!P::isRestart) {
-      auto localSize = perBGrid.getLocalSize().data();
+      if(!P::isRestart) {
+         auto localSize = perBGrid.getLocalSize().data();
 
 #pragma omp parallel for collapse(3)
-      for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
-         for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
-            for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
-               const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
-               std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
-               const int64_t cellid = perBGrid.GlobalIDForCoords(x, y, z);
-               std::default_random_engine rndState;
-               setRandomSeed(cellid, rndState);
+         for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
+            for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
+               for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
+                  const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
+                  std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
+                  const int64_t cellid = perBGrid.GlobalIDForCoords(x, y, z);
+                  std::default_random_engine rndState;
+                  setRandomSeed(cellid,rndState);
 
-               if (this->lambda != 0.0) {
-                  cell->at(fsgrids::bfield::PERBX) = this->dBx * cos(2.0 * M_PI * xyz[0] / this->lambda);
-                  cell->at(fsgrids::bfield::PERBY) = this->dBy * sin(2.0 * M_PI * xyz[0] / this->lambda);
-                  cell->at(fsgrids::bfield::PERBZ) = this->dBz * cos(2.0 * M_PI * xyz[0] / this->lambda);
+                  if (this->lambda != 0.0) {
+                     cell->at(fsgrids::bfield::PERBX) = this->dBx*cos(2.0 * M_PI * xyz[0] / this->lambda);
+                     cell->at(fsgrids::bfield::PERBY) = this->dBy*sin(2.0 * M_PI * xyz[0] / this->lambda);
+                     cell->at(fsgrids::bfield::PERBZ) = this->dBz*cos(2.0 * M_PI * xyz[0] / this->lambda);
+                  }
+
+                  cell->at(fsgrids::bfield::PERBX) += this->magXPertAbsAmp * (0.5 - getRandomNumber(rndState));
+                  cell->at(fsgrids::bfield::PERBY) += this->magYPertAbsAmp * (0.5 - getRandomNumber(rndState));
+                  cell->at(fsgrids::bfield::PERBZ) += this->magZPertAbsAmp * (0.5 - getRandomNumber(rndState));
                }
-
-               cell->at(fsgrids::bfield::PERBX) += this->magXPertAbsAmp * (0.5 - getRandomNumber(rndState));
-               cell->at(fsgrids::bfield::PERBY) += this->magYPertAbsAmp * (0.5 - getRandomNumber(rndState));
-               cell->at(fsgrids::bfield::PERBZ) += this->magZPertAbsAmp * (0.5 - getRandomNumber(rndState));
             }
          }
       }
    }
-}
 
-std::vector<std::array<Real, 3>> MultiPeak::getV0(creal x, creal y, creal z, const uint popID) const {
-   const MultiPeakSpeciesParameters& sP = speciesParams[popID];
-   vector<std::array<Real, 3>> centerPoints;
-   for (uint i = 0; i < sP.numberOfPeaks; i++) {
-      array<Real, 3> point{{sP.Vx[i], sP.Vy[i], sP.Vz[i]}};
-      centerPoints.push_back(point);
+   std::vector<std::array<Real, 3> > MultiPeak::getV0(
+                                                creal x,
+                                                creal y,
+                                                creal z,
+                                                const uint popID
+                                               ) const {
+      const MultiPeakSpeciesParameters& sP = speciesParams[popID];
+      vector<std::array<Real, 3> > centerPoints;
+      for(uint i=0; i<sP.numberOfPeaks; i++) {
+         array<Real, 3> point {{sP.Vx[i], sP.Vy[i], sP.Vz[i]}};
+         centerPoints.push_back(point);
+      }
+      return centerPoints;
    }
-   return centerPoints;
-}
 
-} // namespace projects
+}// namespace projects
