@@ -25,7 +25,6 @@
 #include <cstdlib>
 #include <iostream>
 #include <cmath>
-#include <mpi.h>
 #include <vector>
 #include <sstream>
 #include <ctime>
@@ -276,18 +275,15 @@ int simulate(int argn,char* args[]) {
    P::addParameters();
    sysBoundaryContainer.addSysBoundaryParameters(); //add parameter for bonudary.boundaries
 
-
-    auto app = readparameters.get_app();
-    //we have to handle particle species separately because we need the full number of particle species
-    //during the population init
-    readparameters.parse(true);
-    getObjectWrapper().populationsParsed=true;
-    if (Readparameters::fullHelp or Readparameters::legacyHelp) {
-      Readparameters::helpRequested=true;
-    }
-    if (Readparameters::helpRequested) {
-      getObjectWrapper().addHelp();
-    }
+   auto app = readparameters.get_app();
+   readparameters.parse(true); //true to ignore config extras
+   getObjectWrapper().populationsParsed=true;
+   if (Readparameters::fullHelp or Readparameters::legacyHelp) {
+     Readparameters::helpRequested=true;
+   }
+   if (Readparameters::helpRequested) {
+     getObjectWrapper().addHelp();
+   }
 
    bool hasVersionOption = readparameters.versionMessage();
    MPI_Bcast(&hasVersionOption, sizeof(bool), MPI_BYTE, 0, MPI_COMM_WORLD);
@@ -295,26 +291,21 @@ int simulate(int argn,char* args[]) {
      MPI_Finalize();
      exit(0);
    }
-    //issue: objetwrapper.AddParameters adds the parameters during parse
-    //but the callback works such that those added parameters do not make it to that parse
-    //thus they need to be double parse later,
-    //this means that line below getPopulationParameters do not have the parameters read yet
-    //but having it here would simplify createProject and getParameters and no need to change stuff in spatial cells
-    //momentary fix: triple parse:D
-    //strangely this also seems to only be issue for the non master MPI rnaks
-    //this can probably be removed if one does run_callback() to individual options, see parseComposing(), but should we?
-   readparameters.parse(true);
-   getObjectWrapper().getPopulationParameters(); //particleSpecies is populated here from paritcleSpeciesRead
-   sysBoundaryContainer.addParameters(); //add the parameters for parsed boundary.boundaries
+   //objectwrapper.AddParameters adds the parameters during parse
+   //but the callback works such that those added parameters do not make it to the parse above, so
+   //Second parse to get the population specific parameters read.  
+   readparameters.parse(true); 
+   getObjectWrapper().getPopulationParameters(); //particleSpecies is populated here from particleSpeciesRead
+   sysBoundaryContainer.addParameters(); //add the parameters for parsed boundary.boundaries boundaries, including population specific ones
    projects::createProject();
    
-   readparameters.parse(false); // 2nd parsing for specific population parameters
+   readparameters.parse(false); // Final parse
    readparameters.helpMessage(); // Call after last parse, exits after printing help if help requested 
    Readparameters::parseComposing(); //has to be done afterwards, will do callbacks on the final addComposing values that are parsed here
    P::getParameters();
 
    Project* project = getObjectWrapper().project;
-   // getObjectWrapper().project = project; (Already set in createProject)
+
    sysBoundaryContainer.getParameters(); //this is now here incase some sysbounadary changes parameter during getParameters, that would be
                                         // read into some project parameters, for example how it is currently with magnetosphere an ionosphereRadius
    project->getParameters();

@@ -46,7 +46,7 @@ namespace projects {
       virtual ~Magnetosphere();
       
       virtual bool initialize(void) override;
-      void addParameters(void);
+      virtual void addParameters(void) override;
       virtual void getParameters(void) override;
       virtual void setProjectBField(
          FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,

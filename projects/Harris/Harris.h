@@ -39,7 +39,7 @@ namespace projects {
       virtual ~Harris();
 
       virtual bool initialize(void) override;
-      void addParameters(void);
+      virtual void addParameters(void) override;
       virtual void getParameters(void) override;
       virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) override;
       virtual void setProjectBField(

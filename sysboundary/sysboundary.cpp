@@ -96,7 +96,6 @@ void SysBoundary::addSysBoundaryParameters() {
  * getParameters for each actually used system boundary condition is called by each
  * SysBoundaryCondition's initialization function.
  */
-//Should be renamed to add
 void SysBoundary::addParameters() {
 
    vector<string>::const_iterator it;

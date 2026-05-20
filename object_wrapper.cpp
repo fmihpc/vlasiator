@@ -11,8 +11,7 @@
 
 bool ObjectWrapper::addParameters() {
    typedef Readparameters RP;
-   // Parameters needed to create particle populations
-   //NOTE was this still necessary?
+   //This could also be else where but is neat.
    std::function<void(const std::string)> lambda_fun = [this](std::string s) {
         if ( ! this->populationsParsed ) {
           this->initpop(s);
