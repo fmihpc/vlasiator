@@ -763,18 +763,18 @@ void vamr_transfer_values(
 			          for (int i3=0; i3<2; ++i3) {
 			            for (int j3=0; j3<2; ++j3) {
 			              for (int k3=0; k3<2; ++k3) {
-							 if(dataraf[localIDraf*WID3+cellIndex(2*i2+i3,2*j2+j3,2*k2+k3)]>minValue){
+						//	 if(dataraf[localIDraf*WID3+cellIndex(2*i2+i3,2*j2+j3,2*k2+k3)]>minValue){
 				              data[localID*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)]+= dataraf[localIDraf*WID3+cellIndex(2*i2+i3,2*j2+j3,2*k2+k3)]/8.0;
-				              summ+=1.0;
+				        /*      summ+=1.0;
 			                }else{
 								 dataraf[localIDraf*WID3+cellIndex(2*i2+i3,2*j2+j3,2*k2+k3)]=datasave;
-							}
+							}*/
 			              }
 			            }
 			          }
-			          if (summ!=8.0){
+			      /*   if (summ!=8.0){
 			            data[localID*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)]=datasave;
-			          }
+			          } */
 					/*}else{
 				     for (int i3=0; i3<2; ++i3) {
 				    	for (int j3=0; j3<2; ++j3) {
@@ -865,3 +865,5 @@ void vamr_transfer_values(
      };
    };
   }
+
+
