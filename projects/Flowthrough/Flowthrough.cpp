@@ -85,7 +85,6 @@ namespace projects {
    void Flowthrough::getParameters(){
       int myRank;
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-      typedef Readparameters RP;
 
       if (densityModelString == "Maxwellian") densityModel = Maxwellian;
       else if (densityModelString == "SheetMaxwellian") densityModel = SheetMaxwellian;

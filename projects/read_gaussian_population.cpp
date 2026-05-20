@@ -51,8 +51,6 @@ namespace projects {
    }
 
    bool ReadGaussianPopulation::getParameters(const std::string& prefix,projects::GaussianPopulation& populations) {
-      // Read values of input variables
-      typedef Readparameters RP;
       
       // Do some sanity check on input variables
       bool success = true;

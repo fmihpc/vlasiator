@@ -70,16 +70,15 @@ namespace projects {
       baseClassInitialized = false;
    }
 
-   Project::~Project() {}
+   Project::~Project() { }
 
    void Project::addCommonParameters() {
-      typedef Readparameters RP;
 
       Readparameters::add<uint>("Project_common.seed", "Seed for the RNG", this->seed,42);
    }
 
    void Project::getParameters() {
-      typedef Readparameters RP;
+      //Unused currently
    }
 
    /** Initialize the Project. Velocity mesh and particle population

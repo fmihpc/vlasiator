@@ -146,14 +146,12 @@ void SysBoundary::addParameters() {
  * \retval success If true, the given SBC::SysBoundaryCondition was added successfully.
  */
 void SysBoundary::getParameters() {
-  //Note as thow hy getParameters isn't done in initSysBoundary, reason is that this is called way earlier than that
+  //Note as the getParameters isn't done in initSysBoundary, reason is that this is called way earlier than that
   //and as such it's nicer to have it fail early if something is amiss.
   //also the config checking leverages on this fact too.
    vector<string>::const_iterator it;
    for (auto& b : sysBoundaries)  {
      b->getParameters();
-    //somehow get the faceList for example proton_outflow or maxwellian.face, and check if periodic or not
-    //probably should set the facesToProcess during read?
    }
    if (sysBoundaryCondList.size() == 0) {
       if (!periodic[0] && !Readparameters::helpRequested) {
@@ -228,10 +226,6 @@ void SysBoundary::getParameters() {
       }
   }
 }
-// void SysBoundary::initSysBoundary(SBC::SysBoundaryCondition* bc, Project& project, creal& t) {
-//    // Initialize the boundary condition
-//
-// }
 
 /*!\brief Initialise all system boundary conditions actually used.
  *

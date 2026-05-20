@@ -67,7 +67,7 @@ namespace SBC {
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
         const string& pop = getObjectWrapper().particleSpecies[i].name;
         
-        OutflowSpeciesParameters* sP = new OutflowSpeciesParameters {{true,true,true,true,true,true},{0,0,0,0,0,0},std::vector<std::string>{""},0.0};
+        OutflowSpeciesParameters* sP = new OutflowSpeciesParameters;
 
         this->speciesParamsRead.push_back(sP);
         // Unless we find out otherwise, we assume that this species will not be treated at any boundary

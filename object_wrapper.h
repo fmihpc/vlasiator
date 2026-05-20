@@ -39,6 +39,7 @@ namespace projects {
 #endif
 
 #include "particle_species.h"
+#include "projects/project.h"
 #include "sysboundary/sysboundary.h"
 
 struct ObjectWrapper {
