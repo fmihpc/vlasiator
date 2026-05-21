@@ -84,8 +84,10 @@ void vamr_transfer_values(
    const std::vector<CellID>& cells,
    const uint popID);
 
- void changeRefined(spatial_cell::SpatialCell* cell,
-		    const uint popID);
+void changeRefined(spatial_cell::SpatialCell* cell,
+	const uint popID);
+
+void RefinedVamr(spatial_cell::SpatialCell* cell);
 
 // ***** TEMPLATE FUNCTION DEFINITIONS ***** //
 
