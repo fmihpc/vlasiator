@@ -70,7 +70,11 @@ public:
          CLI::App* sub = nullptr;
 
          if (!isSubComParsed[subcom]) {
-            sub = app->add_subcommand(subcom, "");
+            if (subcommandDescriptions.find(subcom)!=subcommandDescriptions.end()) {
+              sub = app->add_subcommand(subcom, subcommandDescriptions[subcom]);
+            } else {
+              sub = app->add_subcommand(subcom, "");
+            }
          } else {
             sub = app->get_subcommand(subcom);
          };
@@ -348,6 +352,7 @@ public:
    static bool legacyHelp;
    static bool checkCfg;
    static std::vector<std::string> populations;
+   static std::map<std::string, std::string> subcommandDescriptions;
 
 private:
    static inline std::vector<std::string> parseCommandName(const std::string& name) {
@@ -369,7 +374,6 @@ private:
    static int argc;    /**< How many entries argv contains.*/
    static char** argv; /**< Pointer to char* array containing command line parameters.*/
    static CLI::App* app;
-
    static std::map<std::string, std::string> options;
    static std::map<std::string, std::string> optionsComposing;
    static std::map<std::string, bool> isOptionParsed;

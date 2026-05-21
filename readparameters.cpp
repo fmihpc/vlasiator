@@ -45,6 +45,7 @@ map<string, string> Readparameters::options;
 map<string, string> Readparameters::optionsComposing;
 map<string, bool> Readparameters::isOptionParsed;
 map<string, bool> Readparameters::isSubComParsed;
+map<string, string> Readparameters::subcommandDescriptions;
 
 /** Constructor for class ReadParameters.
  * The constructor defines some default parameters and parses the input files.
@@ -59,6 +60,8 @@ Readparameters::Readparameters(int cmdargc, char* cmdargv[]) {
 
    if (rank == MASTER_RANK) {
       addDefaultParameters();
+      subcommandDescriptions["io"]="I/O options";
+      subcommandDescriptions["gridbuilder"]="Spatial grid options";
       app->set_config("--run_config","config.cfg","Configuration file, when passing multiple configuration files, with precedence last to first, so configs passed last will be overridden by the configs passed to it first.");
    }
    MPI_Bcast(&Readparameters::helpRequested, sizeof(bool), MPI_BYTE, 0, MPI_COMM_WORLD);
