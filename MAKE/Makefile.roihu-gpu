@@ -21,6 +21,8 @@ LNK = nvcc -ccbin mpic++
 
 VECTORCLASS = VEC_FALLBACK_GENERIC
 
+USE_CUDA=1
+
 # GNU flags:
 CXXFLAGS = -g -O3 -x cu -std=c++20 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_90a,code=sm_90a --cudart shared --generate-line-info -line-info -Xcompiler="-fopenmp" -Xcompiler="-fpermissive" -maxrregcount 24 -Wno-deprecated-declarations -diag-suppress 63
 testpackage: CXXFLAGS = -g -O2 -x cu -std=c++20 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_90a,code=sm_90a --cudart shared --generate-line-info -line-info -Xcompiler="-fopenmp" -Xcompiler="-fpermissive" -maxrregcount 24 -Wno-deprecated-declarations -diag-suppress 63
