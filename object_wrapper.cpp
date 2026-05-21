@@ -1,11 +1,9 @@
 #include "object_wrapper.h"
 #include <CLI11.hpp>
 #include "particle_species.h"
-#include "projects/project.h"
 #include "readparameters.h"
 #include "velocity_mesh_parameters.h"
 #include <array>
-#include <functional>
 #include <iostream>
 #include <string>
 
@@ -20,7 +18,6 @@ bool ObjectWrapper::addHelp() {
    if (RP::helpRequested) { // dummy name for the help message
       RP::populations.clear();
       RP::populations.push_back("POPULATION");
-      this->initpop("POPULATION");
    }
    return true;
 }
