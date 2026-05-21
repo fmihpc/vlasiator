@@ -25,6 +25,7 @@
 */
 
 #include <cstdlib>
+#include <filesystem>
 #include <iostream>
 #include <iomanip> // for setprecision()
 #include <cmath>
@@ -1408,7 +1409,7 @@ bool writeGrid(
    phiprof::Timer writeReducedTimer {"writeGrid-reduced"};
    // Create a name for the output file and open it with VLSVWriter:
    stringstream fname;
-   fname << P::systemWritePath.at(outputFileTypeIndex) << "/" << P::systemWriteName.at(outputFileTypeIndex) << ".";
+   fname << P::systemWritePath.at(outputFileTypeIndex) << P::systemWriteName.at(outputFileTypeIndex) << ".";
    fname.width(7);
    fname.fill('0');
    fname << P::systemWrites.at(outputFileTypeIndex) << ".vlsv";

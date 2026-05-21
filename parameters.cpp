@@ -25,6 +25,8 @@
 #include "particle_species.h"
 #include "readparameters.h"
 #include <algorithm>
+#include <cstddef>
+#include <filesystem>
 #include <cstdlib>
 #include <iostream>
 #include <limits>
@@ -694,18 +696,7 @@ void Parameters::getParameters() {
       for (uint i = 0; i < P::systemWriteName.size(); i++) {
          P::systemWritePath.push_back(string("./"));
       }
-   } else {
-      for (uint i = 0; i < P::systemWritePath.size(); i++) {
-         if (access(&(P::systemWritePath.at(i)[0]), W_OK) != 0) {
-            if (myRank == MASTER_RANK) {
-               cerr << "ERROR " << P::systemWriteName.at(i) << " write path " << P::systemWritePath.at(i)
-                    << " not writeable, defaulting to local directory." << endl;
-            }
-            P::systemWritePath.at(i) = prefix;
-         }
-      }
    }
-
    bool includefSaved = false;
    for(uint i=0; i<maxSize; i++) {
       if(P::systemWriteDistributionWriteStride[i] != 0 ||
@@ -720,6 +711,30 @@ void Parameters::getParameters() {
          includefSaved = true;
       }
    }
+   for (size_t i=0;i<P::systemWriteName.size();i++) {
+    auto slashIndx=P::systemWriteName.at(i).find("/");
+    if (systemWritePath.at(i).back()!='/') {
+      systemWritePath.at(i)+='/';
+    }
+    while (slashIndx!=string::npos) {
+      P::systemWritePath.at(i)+=P::systemWriteName.at(i).substr(0,slashIndx)+"/";
+      P::systemWriteName.at(i)=P::systemWriteName.at(i).substr(slashIndx+1,P::systemWriteName.at(i).size());
+      slashIndx=P::systemWriteName.at(i).find("/");
+    }
+    
+    std::filesystem::create_directories(P::systemWritePath.at(i));
+   }
+   //Bit pointless but doesn't hurt
+   for (uint i = 0; i < P::systemWritePath.size(); i++) {
+      if (access(&(P::systemWritePath.at(i)[0]), W_OK) != 0) {
+          if (myRank == MASTER_RANK) {
+            cerr << "ERROR " << P::systemWriteName.at(i) << " write path " << P::systemWritePath.at(i)
+                  << " not writeable, defaulting to local directory." << endl;
+          }
+          P::systemWritePath.at(i) = prefix;
+      }
+   }
+   
 
 
    vector<string> mpiioKeys, mpiioValues;
