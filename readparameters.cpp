@@ -26,7 +26,6 @@
 #include <algorithm>
 
 using namespace std;
-// namespace PO = boost::program_options;
 
 // Initialize static member of class ReadParameters
 bool Readparameters::helpRequested = false;
@@ -38,8 +37,6 @@ vector<string> Readparameters::populations = {};
 CLI::App app_new{"Usage: main [options (options given on the command line override "
                  "options given everywhere else)], where options are:","vlasiator"};
 CLI::App* Readparameters::app = &app_new;
-// PO::options_description* Readparameters::descriptions = NULL;
-// PO::variables_map* Readparameters::variables = NULL;
 
 string Readparameters::global_config_file_name = "";
 string Readparameters::user_config_file_name = "";
@@ -65,13 +62,8 @@ Readparameters::Readparameters(int cmdargc, char* cmdargv[]) {
    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
    if (rank == MASTER_RANK) {
-      // variables = new PO::variables_map;
       addDefaultParameters();
-      app->set_config("--run_config","config.cfg","Configuration file.");
-      // auto config_base = app.get_config_formatter_base();  
-      // Read options from command line, first time for help message parsing, second time in parse() below.
-      // PO::store(PO::command_line_parser(argc, argv).options(*descriptions).allow_unregistered().run(), *variables);
-      // PO::notify(*variables);
+      app->set_config("--run_config","config.cfg","Configuration file, when passing multiple configuration files, with precedence last to first, so configs passed last will be overridden by the configs passed to it first.");
    }
    MPI_Bcast(&Readparameters::helpRequested, sizeof(bool), MPI_BYTE, 0, MPI_COMM_WORLD);
 }
@@ -133,15 +125,13 @@ std::string Readparameters::versionInfo() { return getVersion(); }
 /** Helper wrapper function to get the config info
    @return std string with the config information
  */
-std::string Readparameters::configInfo() { return getConfig(run_config_file_name.c_str()); }
+std::string Readparameters::configInfo() { return getConfig(app->get_config_ptr()->as<std::string>().c_str()); }
 
 /** Request Parameters to reparse input file(s). This function needs to be
  * called after new options have been added via Parameters:add functions.
  * Otherwise the values of the new options are not read. This is a collective
  * function, all processes have to see it.
- * @param needsRunConfig Whether or not this program can run without a runconfig
- * file (esm: vlasiator can't, but particle pusher can).
- * @param allowUnknown true if unregistered options are parsed without error.
+ * @param extras true if unregistered options are parsed without error.
  * @return True if input file(s) were parsed successfully.
  */
 void Readparameters::parse(bool extras) {
@@ -181,14 +171,12 @@ void Readparameters::parse(bool extras) {
          exit(1);
       }
    }
-  
     std::string conf;
     int confsize;
 
     if (rank == MASTER_RANK) {
         conf = app->config_to_str();
         confsize = conf.size();
-
     }
 
     MPI_Bcast(&confsize, 1, MPI_INT,
@@ -222,14 +210,12 @@ void Readparameters::parse(bool extras) {
 
       parsed_conf.erase(remove(parsed_conf.begin(), parsed_conf.end(), '"'), parsed_conf.end());
       app->allow_extras(extras);
-
       app->parse(parsed_conf);
-
     }
 }
 
 
-// add names of input files
+/** Add basic program parameters **/
 void Readparameters::addDefaultParameters() {
    int rank;
    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
