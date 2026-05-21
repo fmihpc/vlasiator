@@ -57,7 +57,7 @@ FIELDSOLVER ?= ldz_main
 # COMPFLAGS += -DFS_1ST_ORDER_TIME
 
 #Skip deprecated C++ bindings from OpenMPI
-COMPFLAGS += -D OMPI_SKIP_MPICXX
+# COMPFLAGS += -DVLASIATOR_ALLOW_MCA_OMPIO
 # Allow MCA io to be set to ompio, otherwise the code is overriding and setting ^ompio. (OpenMPI only, no effect with other MPI implementations.)
 COMPFLAGS += -DVLASIATOR_ALLOW_MCA_OMPIO
 
