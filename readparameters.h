@@ -396,7 +396,7 @@ public:
    
    static std::string configInfo();
 
-   static void parse(bool main=false);
+   static void parse(bool extras=false);
 
    static bool helpRequested;
    static bool fullHelp;

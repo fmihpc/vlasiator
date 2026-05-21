@@ -11,21 +11,14 @@
 
 bool ObjectWrapper::addParameters() {
    typedef Readparameters RP;
-   //This could also be else where but is neat.
-   std::function<void(const std::string)> lambda_fun = [this](std::string s) {
-        if ( ! this->populationsParsed ) {
-          this->initpop(s);
-        }
-   };
-   RP::add_each_lambda("ParticlePopulations", "Name of the simulated particle populations (string)", RP::populations,
-                       lambda_fun);//->force_callback(false);
-
+   RP::add("ParticlePopulations", "Name of the simulated particle populations (string)", RP::populations);
    return true;
 }
 bool ObjectWrapper::addHelp() {
 
    typedef Readparameters RP;
    if (RP::helpRequested) { // dummy name for the help message
+      RP::populations.clear();
       RP::populations.push_back("POPULATION");
       this->initpop("POPULATION");
    }
@@ -142,7 +135,10 @@ void ObjectWrapper::initpop(std::string pop) {
 }
 
 bool ObjectWrapper::addPopulationParameters() {
-  //currently unused
+  typedef Readparameters RP;
+  for (auto pop : RP::populations){
+    this->initpop(pop);
+  }
   return true;
 }
 

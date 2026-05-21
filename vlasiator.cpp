@@ -291,6 +291,7 @@ int simulate(int argn,char* args[]) {
      MPI_Finalize();
      exit(0);
    }
+   getObjectWrapper().addPopulationParameters(); 
    //objectwrapper.AddParameters adds the parameters during parse
    //but the callback works such that those added parameters do not make it to the parse above, so
    //Second parse to get the population specific parameters read.  
