@@ -184,22 +184,19 @@ bool ObjectWrapper::getPopulationParameters() {
 
       /* Special handling of WID=8; halve the number of blocks */
       int myRank;
-      MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
-      if ((WID == 8 && P::adaptGPUWID)) {
+      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+      if ((WID==8 && P::adaptGPUWID)) {
          // First verify that we can halve the value2
-         if ((vMesh.gridLength[0] % 2 == 0) && (vMesh.gridLength[1] % 2 == 0) && (vMesh.gridLength[2] % 2 == 0)) {
+         if ((vMesh.gridLength[0]%2==0) && (vMesh.gridLength[1]%2==0) && (vMesh.gridLength[2]%2==0)) {
             vMesh.gridLength[0] /= 2;
             vMesh.gridLength[1] /= 2;
             vMesh.gridLength[2] /= 2;
-            if (myRank == MASTER_RANK) {
-               std::cerr << " Note: Using WID=8; Halving velocity block counts per dimension. Deactivate with "
-                            "parameter adaptGPUWID=false."
-                         << std::endl;
+            if(myRank==MASTER_RANK) {
+               std::cerr<<" Note: Using WID=8; Halving velocity block counts per dimension. Deactivate with parameter adaptGPUWID=false."<<std::endl;
             }
          } else {
-            if (myRank == MASTER_RANK) {
-               std::cerr << " Warning: Using WID=8 but odd number of velocity blocks! Cannot halve the blocks count."
-                         << std::endl;
+            if(myRank==MASTER_RANK) {
+               std::cerr<<" Warning: Using WID=8 but odd number of velocity blocks! Cannot halve the blocks count."<<std::endl;
             }
          }
       }
@@ -219,8 +216,6 @@ bool ObjectWrapper::getPopulationParameters() {
 
       getObjectWrapper().particleSpecies.resize(getObjectWrapper().particleSpeciesRead.size());
       getObjectWrapper().particleSpecies.at(i)=species;
-
-
    }
 
    return true;
