@@ -38,10 +38,6 @@ CLI::App app_new{"Usage: main [options (options given on the command line overri
                  "options given everywhere else)], where options are:","vlasiator"};
 CLI::App* Readparameters::app = &app_new;
 
-string Readparameters::global_config_file_name = "";
-string Readparameters::user_config_file_name = "";
-string Readparameters::run_config_file_name = "";
-
 int Readparameters::argc;
 char** Readparameters::argv;
 
