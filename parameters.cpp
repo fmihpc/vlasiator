@@ -25,7 +25,6 @@
 #include "particle_species.h"
 #include "readparameters.h"
 #include <algorithm>
-#include <cstddef>
 #include <filesystem>
 #include <cstdlib>
 #include <iostream>
