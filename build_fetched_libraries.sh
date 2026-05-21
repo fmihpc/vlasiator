@@ -125,7 +125,7 @@ elif [[ $PLATFORM == "-arm64" ]]; then
     ../Zoltan/configure --prefix=$WORKSPACE/libraries${PLATFORM} --enable-mpi --with-mpi-compilers --with-gnumake --with-id-type=ullong --build=arm-linux-gnu --host=arm-linux-gnu CC=mpicc CXX=mpic++
 elif [[ $PLATFORM == "-appleM1" || $PLATFORM == "-meluxina" ]]; then
     ../Zoltan/configure --prefix=$WORKSPACE/libraries${PLATFORM} --enable-mpi --with-mpi-compilers --with-gnumake --with-id-type=ullong CC=mpicc CXX=mpic++
-elif [[ $PLATFORM == "-frankenstein_hopper2_cuda" ]]; then
+elif [[ $PLATFORM == "-frankenstein_hopper2_cuda" || $PLATFORM == "-roihu-gpu" ]]; then
     ../Zoltan/configure --prefix=$WORKSPACE/libraries${PLATFORM} --enable-mpi --build=aarch64-unknown-linux-gnu --with-mpi-compilers --with-gnumake --with-id-type=ullong CC=mpicc CXX=mpic++
 elif [[ $PLATFORM == "-leonardo_dcgp_intel" ]]; then
     ../Zoltan/configure --prefix=$WORKSPACE/libraries${PLATFORM} --enable-mpi --with-mpi-compilers --with-gnumake --with-id-type=ullong CC="mpiicc -cc=icx" CXX="mpiicpc -cxx=icpx"
