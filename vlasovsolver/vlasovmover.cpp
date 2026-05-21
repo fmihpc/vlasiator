@@ -483,7 +483,8 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
  * @param mpiGrid Parallel grid library.
  * @param dt Time step.*/
 void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                           const Real dt
+                           const Real dt,
+			  			   const bool ShouldRefined
                           ) {
    typedef Parameters P;
    const vector<CellID>& cells = getLocalCells();
@@ -583,6 +584,12 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
    }
 
    if (P::activateVamr){
+	 if (ShouldRefined){
+       for (size_t c=0; c<cells.size(); ++c) {
+	 	SpatialCell* SC = mpiGrid[cells[c]];
+	 	RefinedVamr(SC);
+       }
+     }
      for (uint popID=(getObjectWrapper().particleSpecies.size()-1); popID>0; --popID) {
        //Transfert the info from popID to popID-1
        if(getObjectWrapper().particleSpecies[popID].RefinementLevel>0){
