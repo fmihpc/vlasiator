@@ -89,6 +89,8 @@ void changeRefined(spatial_cell::SpatialCell* cell,
 
 void RefinedVamr(spatial_cell::SpatialCell* cell);
 
+void RefinedV2(spatial_cell::SpatialCell* cell);
+
 // ***** TEMPLATE FUNCTION DEFINITIONS ***** //
 
 /** Calculate the zeroth and first velocity moments for the given
