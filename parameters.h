@@ -133,6 +133,7 @@ struct Parameters {
    static bool propagateVlasovTranslation;  /*!< If true, distribution function is propagated in ordinary space during
                                                the simulation.*/
 
+   static bool activateVamr;                /*!< If true, the velocity mesh refinement is activated.*/
    static Real maxWaveVelocity;         /*!< Maximum wave velocity allowed in LDZ. */
    static uint maxFieldSolverSubcycles; /*!< Maximum allowed field solver subcycles. */
    static Real resistivity;             /*!< Resistivity in Ohm's law eta*J term. */

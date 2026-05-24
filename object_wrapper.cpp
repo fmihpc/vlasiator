@@ -65,7 +65,9 @@ bool ObjectWrapper::addPopulationParameters() {
      RP::add(pop + "_vspace.vx_length","Initial number of velocity blocks in vx-direction.",1);
      RP::add(pop + "_vspace.vy_length","Initial number of velocity blocks in vy-direction.",1);
      RP::add(pop + "_vspace.vz_length","Initial number of velocity blocks in vz-direction.",1);
-     RP::add(pop + "_vspace.max_refinement_level","Maximum allowed mesh refinement level.", 1);
+     RP::add(pop + "_vspace.max_refinement_level","Old maximum allowed mesh refinement level.", 1);
+     RP::add(pop + "_vspace.vamr_refinement_level","New maximum allowed mesh refinement level.", 0);
+     RP::add(pop + "_vspace.vamr_minValue","MinValue ratio between vamr grids.", 1);
 
      // Thermal / suprathermal parameters
      Readparameters::add(pop + "_thermal.vx", "Center coordinate for the maxwellian distribution. Used for calculating the suprathermal moments.", -500000.0);
@@ -93,6 +95,42 @@ bool ObjectWrapper::addPopulationParameters() {
 bool ObjectWrapper::getPopulationParameters() {
    typedef Readparameters RP;
 
+   if(P::activateVamr) {
+     const int nbpop = getObjectWrapper().particleSpecies.size();
+     int k =0;
+   
+     for(unsigned int j =0; j < nbpop; j++) {
+       species::Species& species=getObjectWrapper().particleSpecies[j+k];
+       vmesh::MeshParameters& vMesh=vmesh::getMeshWrapper()->velocityMeshesCreation->at(j+k);      
+       const std::string& pop = species.name;
+       RP::get(pop + "_vspace.vamr_refinement_level",  species.MaxRefinementLevel);
+       species.velocityMesh=j+k;
+       if ( species.MaxRefinementLevel > 0) {
+	 species.RefinementLevel=0;
+	 for (int l=0; l< species.MaxRefinementLevel; ++l) {
+	   species::Species newSpecies;
+	   vmesh::MeshParameters newVMesh;
+     	 
+	   newSpecies.name = newVMesh.name = pop; // + std::to_string(j+1); Put only in the output files
+	   newSpecies.velocityMesh = j+k+1;
+	   getObjectWrapper().particleSpecies.insert(getObjectWrapper().particleSpecies.begin()+j+k+1, newSpecies);
+	   vmesh::getMeshWrapper()->velocityMeshesCreation->insert(vmesh::getMeshWrapper()->velocityMeshesCreation->begin() +j+k+1,newVMesh);
+
+	   species::Species& species2=getObjectWrapper().particleSpecies[j+k+1];
+	   vmesh::MeshParameters& vMesh2=vmesh::getMeshWrapper()->velocityMeshesCreation->at(j+k+1);
+	 
+	   species2.RefinementLevel=l+1;
+	   species2.MaxRefinementLevel= species.MaxRefinementLevel;
+	   
+	   k+=1;
+	 }
+       }else {
+	 species.MaxRefinementLevel=0;
+	 species.RefinementLevel=0;
+       }
+     }
+   }
+      
    // Particle population parameters
    for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
 
@@ -144,6 +182,17 @@ bool ObjectWrapper::getPopulationParameters() {
       RP::get(pop + "_vspace.vx_length",vMesh.gridLength[0]);
       RP::get(pop + "_vspace.vy_length",vMesh.gridLength[1]);
       RP::get(pop + "_vspace.vz_length",vMesh.gridLength[2]);
+
+      // Vamr parameters that are saved in species
+      RP::get(pop + "_vspace.vamr_minValue",species.minValueRefinementShift);
+
+      if(P::activateVamr && species.RefinementLevel>0) {
+	vMesh.gridLength[0] *= (1u << species.RefinementLevel);
+	vMesh.gridLength[1] *= (1u << species.RefinementLevel);
+	vMesh.gridLength[2] *= (1u << species.RefinementLevel);
+	species.sparseMinValue *= std::pow(species.minValueRefinementShift, species.RefinementLevel);
+      }
+      
       if(vMesh.gridLength[0] > MAX_BLOCKS_PER_DIM  ||
             vMesh.gridLength[1] > MAX_BLOCKS_PER_DIM  ||
             vMesh.gridLength[2] > MAX_BLOCKS_PER_DIM ) {

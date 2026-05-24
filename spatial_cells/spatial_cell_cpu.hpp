@@ -248,6 +248,10 @@ namespace spatial_cell {
       const Realf* get_data(const uint popID) const;
       Realf* get_data(const vmesh::LocalID& blockLID,const uint popID);
       const Realf* get_data(const vmesh::LocalID& blockLID,const uint popID) const;
+      uint8_t* get_refined(const uint popID);
+      const uint8_t* get_refined(const uint popID) const;
+      uint8_t* get_refined(const vmesh::LocalID& blockLID,const uint popID);
+      const uint8_t* get_refined(const vmesh::LocalID& blockLID,const uint popID) const;
       Real* get_block_parameters(const uint popID);
       const Real* get_block_parameters(const uint popID) const;
       Real* get_block_parameters(const vmesh::LocalID& blockLID,const uint popID);
@@ -440,6 +444,26 @@ namespace spatial_cell {
          return null_block_data.data();
       }
       return populations[popID].blockContainer->getData(blockLID);
+   }
+
+   inline uint8_t* SpatialCell::get_refined(const uint popID) {
+      debug_population_check(popID);
+      return populations[popID].blockContainer->getRefined();
+   }
+
+   inline const uint8_t* SpatialCell::get_refined(const uint popID) const {
+      debug_population_check(popID);
+      return populations[popID].blockContainer->getRefined();
+   }
+
+   inline uint8_t* SpatialCell::get_refined(const vmesh::LocalID& blockLID,const uint popID) {
+      debug_population_check(popID,blockLID);
+      return populations[popID].blockContainer->getRefined(blockLID);
+   }
+
+   inline const uint8_t* SpatialCell::get_refined(const vmesh::LocalID& blockLID,const uint popID) const {
+      debug_population_check(popID,blockLID);
+      return populations[popID].blockContainer->getRefined(blockLID);
    }
 
    inline Real* SpatialCell::get_block_parameters(const uint popID) {

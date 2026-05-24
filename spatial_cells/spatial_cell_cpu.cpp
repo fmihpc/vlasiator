@@ -412,6 +412,11 @@ namespace spatial_cell {
             block_lengths.push_back(sizeof(Realf) * WID3 * populations[activePopID].blockContainer->size());
          }
 
+         if ((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_REFINED) !=0) {
+            displacements.push_back((uint8_t*) get_refined(activePopID) - (uint8_t*) this);
+            block_lengths.push_back(sizeof(uint8_t) * WID3 * populations[activePopID].blockContainer->size());
+         }
+
          if ((SpatialCell::mpi_transfer_type & Transfer::NEIGHBOR_VEL_BLOCK_DATA) != 0) {
             /*We are actually transferring the data of a
             * neighbor. The values of neighbor_block_data

@@ -54,6 +54,7 @@ namespace spatial_cell {
       static const uint64_t VEL_BLOCK_LIST_STAGE1    = (1ull<<2);
       static const uint64_t VEL_BLOCK_LIST_STAGE2    = (1ull<<3);
       static const uint64_t VEL_BLOCK_DATA           = (1ull<<4);
+      static const uint64_t VEL_BLOCK_REFINED        = (1ull<<5);
       static const uint64_t VEL_BLOCK_PARAMETERS     = (1ull<<6);
       static const uint64_t VEL_BLOCK_WITH_CONTENT_STAGE1  = (1ull<<7);
       static const uint64_t VEL_BLOCK_WITH_CONTENT_STAGE2  = (1ull<<8);

@@ -68,6 +68,9 @@ namespace species {
       Real precipitationEmin;                  /*!< Lowest energy channel (in keV) for precipitation differential flux evaluation. Default 0.1. */
       Real precipitationEmax;                  /*!< Highest energy channel (in keV) for precipitation differential flux evaluation. Default 100. */
       Real precipitationLossConeAngle;         /*!< Fixed loss cone opening angle (in deg) for precipitation differential flux evaluation. Default 10. */
+      int RefinementLevel;                      /**< The level of refinement of this vmesh with 0 the coarsest velocity grid */
+      int MaxRefinementLevel;                   /**< The maximum level of refinement of the velocity grid of this population */
+      Real minValueRefinementShift;             /**< The ratio in minValue between velocitygrid level */
 
       Species();
       Species(const Species& other);
