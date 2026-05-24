@@ -100,6 +100,13 @@ namespace SBC {
          cint k,
          cuint component
       ) override { std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondGradPeElectricField called!" << std::endl;}
+      virtual void fieldSolverBoundaryCondHyperElectricField(
+         FsGrid< std::array<Real, fsgrids::ehyper::N_EHYPER>, FS_STENCIL_WIDTH> & EHyperGrid,
+         cint i,
+         cint j,
+         cint k,
+         cuint component
+      ) override { std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondHyperElectricField called!" << std::endl;};
       void fieldSolverBoundaryCondDerivatives(
          FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
          FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,

@@ -131,9 +131,11 @@ bool P::fieldSolverDiffusiveEterms = true;
 bool P::fieldSolverFiniteDifferencingAtBoundaries = false;
 uint P::ohmHallTerm = 0;
 uint P::ohmGradPeTerm = 0;
+uint P::ohmHyperTerm = 0;
 Real P::electronTemperature = 0.0;
 Real P::electronDensity = 0.0;
 Real P::electronPTindex = 1.0;
+Real P::ohmHyperFactor = 1.0;
 
 string P::restartFileName = string("");
 bool P::isRestart = false;
@@ -364,6 +366,10 @@ bool P::addParameters() {
        "fieldsolver.ohmGradPeTerm",
        "Enable/choose spatial order of the electron pressure gradient term in Ohm's law. 0: off, 1: 1st spatial order.",
        0);
+   RP::add(
+       "fieldsolver.ohmHyperTerm",
+       "Enable/choose spatial order of the hyperresistivity term in Ohm's law. 0: off, 1: 1st spatial order.",
+       0);
    RP::add("fieldsolver.electronTemperature",
            "Upstream (anchor point) electron temperature to be used for the electron pressure gradient term (K).", 0.0);
    RP::add("fieldsolver.electronDensity",
@@ -376,6 +382,10 @@ bool P::addParameters() {
            "The maximum CFL limit for field propagation. Used to set timestep if dynamic_timestep is true.", 0.5);
    RP::add("fieldsolver.minCFL",
            "The minimum CFL limit for field propagation. Used to set timestep if dynamic_timestep is true.", 0.4);
+   RP::add(
+       "fieldsolver.ohmHyperFactor",
+       "Factor to multiply hyperresistivity term by, with larger values meaning damping becomes strong at larger scales. Default: 1 (grid scale)",
+       1.0);
 
    RP::add(
        "fieldsolver.manualFsGridDecompositionX",
@@ -434,7 +444,7 @@ bool P::addParameters() {
                         "vg_boundarytype fg_boundarytype vg_boundarylayer fg_boundarylayer " +
                         "populations_vg_blocks vg_f_saved " + "populations_vg_acceleration_subcycles " +
                         "vg_e_vol fg_e_vol " +
-                        "fg_e_hall vg_e_gradpe fg_b_vol vg_b_vol vg_b_background_vol vg_b_perturbed_vol " +
+                        "fg_e_hall fg_e_hyper vg_e_gradpe fg_b_vol vg_b_vol vg_b_background_vol vg_b_perturbed_vol " +
                         "vg_pressure fg_pressure populations_vg_ptensor " + "vg_b_vol_derivatives fg_derivs " +
                         "ig_fac ig_latitude ig_chi0 ig_cellarea ig_upmappedarea ig_sigmap ig_sigmah ig_sigmaparallel ig_rhon " +
                         "ig_electrontemp ig_solverinternals ig_upmappednodecoords ig_upmappedb ig_openclosed ig_potential "+
@@ -1010,11 +1020,13 @@ void Parameters::getParameters() {
    RP::get("fieldsolver.finiteDifferencingAtBoundaries",P::fieldSolverFiniteDifferencingAtBoundaries);
    RP::get("fieldsolver.ohmHallTerm", P::ohmHallTerm);
    RP::get("fieldsolver.ohmGradPeTerm", P::ohmGradPeTerm); // Which order solver to use for fieldsolver eGradPe term (supported: 0 for off, 1 for first-order)
+   RP::get("fieldsolver.ohmHyperTerm", P::ohmHyperTerm); // Which order solver to use for fieldsolver hyperresistivity term (supported: 0 for off, 1 for first-order)
    RP::get("fieldsolver.electronTemperature", P::electronTemperature); // Electron temperature associated with anchor point, e.g. incoming solar wind
    RP::get("fieldsolver.electronDensity", P::electronDensity); // Electron density associated with anchor point, e.g. incoming solar wind
    RP::get("fieldsolver.electronPTindex", P::electronPTindex); // Polytropic index for solving electron equation of state to use in eGradPe term
    RP::get("fieldsolver.maxCFL", P::fieldSolverMaxCFL);
    RP::get("fieldsolver.minCFL", P::fieldSolverMinCFL);
+   RP::get("fieldsolver.ohmHyperFactor", P::ohmHyperFactor); // Multiplier for hyperresistivity electric field. Larger values mean damping becomes strong at larger scales. Default: 1 (grid scale)
 
    // manual FsGrid decomposition should be complete with three values. If at least one is set but all are not set, abort
    if ((RP::isSet("fieldsolver.manualFsGridDecompositionX")||RP::isSet("fieldsolver.manualFsGridDecompositionY")||RP::isSet("fieldsolver.manualFsGridDecompositionZ")) &&

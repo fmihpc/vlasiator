@@ -140,6 +140,7 @@ struct Parameters {
                                order, 2: 2nd spatial order. */
    static uint ohmGradPeTerm; /*!< Enable/choose spatial order of the electron pressure gradient term in Ohm's law. 0:
                                  off, 1: 1st spatial order. */
+   static uint ohmHyperTerm; /*!< Enable/choose spatial order of the hyperresistivity term in Ohm's law. 0: off, 1: 1st spatial order*/
    static Real electronTemperature; /*!< Upstream electron temperature to be used for the electron pressure gradient
                                        term (K). */
    static Real
@@ -157,6 +158,8 @@ struct Parameters {
    static Real hallMinimumRhom; /*!< Minimum mass density value used in the field solver.*/
    static Real hallMinimumRhoq; /*!< Minimum charge density value used for the Hall and electron pressure gradient terms
                                    in the Lorentz force and in the field solver.*/
+
+   static Real ohmHyperFactor; /*!< Factor to multiply hyperresistivity term by. 1 corresponds to the wavelength where damping becomes strong matching the grid scale*/
 
    static std::string loadBalanceAlgorithm; /*!< Algorithm to be used for load balance.*/
    static std::map<std::string, std::string> loadBalanceOptions;  // Other Load balancing options

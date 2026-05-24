@@ -132,6 +132,7 @@ namespace DRO {
                       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
                       FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
                       FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::ehyper::N_EHYPER>, FS_STENCIL_WIDTH> & EHyperGrid,
                       FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
                       FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
                       FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
@@ -150,7 +151,7 @@ namespace DRO {
       attribs["variableLaTeX"]=variableLaTeX;
 
       std::vector<double> varBuffer =
-         lambda(perBGrid,EGrid,EHallGrid,EGradPeGrid,momentsGrid,dPerBGrid,dMomentsGrid,BgBGrid,volGrid,technicalGrid);
+         lambda(perBGrid,EGrid,EHallGrid,EGradPeGrid,EHyperGrid,momentsGrid,dPerBGrid,dMomentsGrid,BgBGrid,volGrid,technicalGrid);
 
       std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
       int vectorSize;
