@@ -22,6 +22,9 @@
 
 #include <cstdlib>
 #include <iostream>
+#include <string_view>
+#include "variable_dictionary.h"
+#include <optional>
 
 #include "datareducer.h"
 #include "../common.h"
@@ -30,6 +33,39 @@
 #include "../fieldtracing/fieldtracing.h"
 
 using namespace std;
+
+namespace {
+
+// https://en.wikipedia.org/wiki/Levenshtein_distance#Iterative_with_full_matrix
+std::size_t levenshtein_dist(std::string_view a, std::string_view b) noexcept {
+   const std::size_t m = a.size();
+   const std::size_t n = b.size();
+   std::vector<std::vector<std::size_t>> dist_table(m + 1, std::vector<std::size_t>(n + 1));
+   for (std::size_t i = 0; i <= m; ++i) {
+      dist_table[i][0] = i;
+   }
+   for (std::size_t j = 0; j <= n; ++j) {
+      dist_table[0][j] = j;
+   }
+   for (std::size_t i = 1; i <= m; ++i) {
+      for (std::size_t j = 1; j <= n; ++j) {
+         if (a[i - 1] == b[j - 1]) {
+            dist_table[i][j] = dist_table[i - 1][j - 1];
+         } else {
+            dist_table[i][j] =
+                std::min({dist_table[i - 1][j] + 1, dist_table[i][j - 1] + 1, dist_table[i - 1][j - 1] + 1});
+         }
+      }
+   }
+   return dist_table[m][n];
+}
+
+std::optional<std::string_view> spell_check(std::string_view user_wrong_input) {
+   const auto best_match = std::ranges::min_element(
+       output_var_list, {}, [&](auto const& var) { return levenshtein_dist(user_wrong_input, var); });
+   return best_match ? std::optional<std::string_view>{*best_match} : std::nullopt;
+}
+} // namespace
 
 void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosticReducer)
 {
@@ -3662,11 +3698,18 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(P::systemWriteAllDROs) {
          break; // from the loop
       }
-      // After all the continue; statements one should never land here.
+      // After all the continue statements one should never land here.
       int myRank;
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
       if (myRank == MASTER_RANK) {
-         std::cerr << __FILE__ << ":" << __LINE__ << ": The output variable " << *it << " is not defined." << std::endl;
+         if (const auto best_match = spell_check(*it)) {
+            std::cerr << __FILE__ << ":" << __LINE__ << ": The output variable " << *it
+                      << " is not defined. Did you mean " << *best_match <<"?"<< std::endl;
+
+         } else { // old way
+            std::cerr << __FILE__ << ":" << __LINE__ << ": The output variable " << *it << " is not defined."
+                      << std::endl;
+         }
       }
       MPI_Finalize();
       exit(1);
@@ -3758,7 +3801,14 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       int myRank;
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
       if (myRank == MASTER_RANK) {
-         std::cerr << __FILE__ << ":" << __LINE__ << ": The diagnostic variable " << *it << " is not defined." << std::endl;
+         if (const auto best_match = spell_check(*it)) {
+            std::cerr << __FILE__ << ":" << __LINE__ << ": The diagnostic  variable " << *it
+                      << " is not defined. Did you mean " << *best_match<<"?" << std::endl;
+
+         } else { // old way
+            std::cerr << __FILE__ << ":" << __LINE__ << ": The diagnostic  variable " << *it << " is not defined."
+                      << std::endl;
+         }
       }
       MPI_Finalize();
       exit(1);
