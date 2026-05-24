@@ -37,6 +37,12 @@
 #define NAN 0
 #endif
 
+#define WARN(MSG) do {                                         \
+    fprintf(stderr, "************************************\n"); \
+    fprintf(stderr, "WARNING: %s\n", (MSG));                   \
+    fprintf(stderr, "************************************\n"); \
+} while (0)
+
 using namespace std;
 
 typedef Parameters P;
@@ -1157,6 +1163,15 @@ void Parameters::getParameters() {
    } else {
       cerr << __FILE__ << ":" << __LINE__ << " ERROR: Unknown value for fieldtracing.fieldLineTracer: " << tracerString << endl;
       abort();
+   }
+
+   //Sanity check on MASTER RANK only. If we have field trcing enabled and not in a
+   // Magnetosphere project issue a warning. The run will probably crash
+   // soon
+   if (myRank == MASTER_RANK){
+      if (RP::field_exists("fieldtracing") && P::projectName != "Magnetosphere" ) {
+         WARN("WARNING: You have enabled Field Line Tracing in a non Magnetosphere project. The code will likely crash soon!");
+      }
    }
 }
 
