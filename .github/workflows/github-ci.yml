@@ -6,6 +6,9 @@ on:
     branches : ["dev","master"]
   pull_request:
     branches: ["dev","master"]
+  schedule:
+    - cron: '0 0 * * TUE'
+      timezone: "Europe/Helsinki"
   # ... or when the workflow is started manually
   workflow_dispatch:
 
