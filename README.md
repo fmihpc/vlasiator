@@ -1,6 +1,4 @@
 
-![](https://github.com/fmihpc/vlasiator/blob/master/doc/artwork/logo_black.png?raw=true)
-
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://github.com/fmihpc/vlasiator/blob/master/doc/artwork/logo_black.png">
   <source media="(prefers-color-scheme: light)" srcset="https://github.com/fmihpc/vlasiator/blob/master/doc/artwork/logo_white.png">
