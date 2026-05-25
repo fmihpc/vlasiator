@@ -1064,7 +1064,7 @@ void RefinedV2(spatial_cell::SpatialCell* cell){
   //create the cells if needed
   for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
 
-    if(getObjectWrapper().particleSpecies[popID].MaxRefinementLevel>0 && getObjectWrapper().particleSpecies[popID].RefinementLevel<getObjectWrapper().particleSpecies[popID].MaxRefinementLevel){
+    if(getObjectWrapper().particleSpecies[popID].MaxRefinementLevel>0 ){
 
       vmesh::VelocityMesh* vmesh  = cell->get_velocity_mesh(popID);
       vmesh::LocalID Localsize= vmesh->size();
