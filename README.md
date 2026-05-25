@@ -1,6 +1,12 @@
 
 ![](https://github.com/fmihpc/vlasiator/blob/master/doc/artwork/logo_black.png?raw=true)
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/fmihpc/vlasiator/blob/master/doc/artwork/logo_black.png">
+  <source media="(prefers-color-scheme: light)" srcset="https://github.com/fmihpc/vlasiator/blob/master/doc/artwork/logo_white.png">
+  <img src="https://github.com/fmihpc/vlasiator/blob/master/doc/artwork/logo_black.png">
+</picture>
+
 Vlasiator - ten letters you can count on
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.10600112.svg)](https://doi.org/10.5281/zenodo.10600112)
