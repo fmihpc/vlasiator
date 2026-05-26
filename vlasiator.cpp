@@ -1855,7 +1855,6 @@ int simulate(int argn,char* args[]) {
          if (P::dynamicTimestep) {
             if (P::dynamicTimeclasses) { // yes timeclasses, yes dynamic base dt, yes dynamic timeclasses
 
-
                std::vector<CellID> badTcCells = checkCellTimeclasses(mpiGrid);
 
                // if base dt and a cell's timeclass want to change, what do
@@ -1887,14 +1886,6 @@ int simulate(int argn,char* args[]) {
                   //continue;
                   break; // we use break, since we want to restart the full loop, not the fractional timeclass loop 
                   //addTimedBarrier("barrier-new-dt-set");
-               }
-
-               // cells that need to change right this instant (i.e., no dt buffer)
-               std::vector<CellID> reallyBadTcCells = checkCellTimeclasses(mpiGrid);
-
-               if (reallyBadTcCells.size() > 0) {
-                  std::cout << "cells got really bad, aborting...\n";
-                  abort();
                }
 
                if (badTcCells.size() != 0  || cellsToUpgradeNextTimeStep.size() != 0) {         
