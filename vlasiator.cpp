@@ -1870,14 +1870,17 @@ int simulate(int argn,char* args[]) {
                   //propagate velocity space back to real-time
                   if( P::propagateVlasovAcceleration ) {
                      // Back half dt to real time, forward by new half dt
-                     calculateAcceleration(mpiGrid,-0.5*P::dt + 0.5*newDt);
+                     calculateAcceleration(mpiGrid,-0.5);
                   }
-                  else {
-                     //zero step to set up moments _v
-                     calculateAcceleration(mpiGrid, 0.0);
-                  }
-
                   P::dt=newDt;
+                  updateTimeclassDts(newDt);
+
+                  if( P::propagateVlasovAcceleration ) {
+                     // Back half dt to real time, forward by new half dt
+                     calculateAcceleration(mpiGrid,0.5);
+                  } else {
+                     calculateAcceleration(mpiGrid,0.0);
+                  }
 
                   logFile <<" dt changed to "<<P::dt <<"s, distribution function was half-stepped to real-time and back"<<endl<<writeVerbose;
                   updateDtimer.stop();
@@ -1936,20 +1939,29 @@ int simulate(int argn,char* args[]) {
                   //propagate velocity space back to real-time
                   if( P::propagateVlasovAcceleration ) {
                      // Back half dt to real time, forward by new half dt
-                     calculateAcceleration(mpiGrid,-0.5*P::dt + 0.5*newDt);
+                     calculateAcceleration(mpiGrid,-0.5);
                   }
-                  else {
-                     //zero step to set up moments _v
-                     calculateAcceleration(mpiGrid, 0.0);
-                  }
-
                   P::dt=newDt;
+                  updateTimeclassDts(newDt);
+
+                  if( P::propagateVlasovAcceleration ) {
+                     // Back half dt to real time, forward by new half dt
+                     calculateAcceleration(mpiGrid,0.5);
+                  } else {
+                     calculateAcceleration(mpiGrid,0.0);
+                  }
 
                   logFile <<" dt changed to "<<P::dt <<"s, distribution function was half-stepped to real-time and back"<<endl<<writeVerbose;
                   updateDtimer.stop();
                   //continue;
                   break; // we use break, since we want to restart the full loop, not the fractional timeclass loop 
                   //addTimedBarrier("barrier-new-dt-set");
+               }
+               // check if any cell timeclass need to change, if yes, abort
+               std::vector<CellID> badTcCells = checkCellTimeclasses(mpiGrid);
+               if (badTcCells.size() != 0) {
+                  std::cerr << "cell timeclass want to change, aborting...\n";
+                  abort();
                }
             }
          } else { 
@@ -1972,25 +1984,28 @@ int simulate(int argn,char* args[]) {
       } else { // no timeclasses
          if (P::dynamicTimestep) { // no timeclasses, yes dynamic timestep
 
-            if(dtIsChanged) {
-               phiprof::Timer updateDtimer {"update-dt"};
-               //propagate velocity space back to real-time
-               if( P::propagateVlasovAcceleration ) {
-                  // Back half dt to real time, forward by new half dt
-                  calculateAcceleration(mpiGrid,-0.5*P::dt + 0.5*newDt);
-               }
-               else {
-                  //zero step to set up moments _v
-                  calculateAcceleration(mpiGrid, 0.0);
-               }
+               if (dtIsChanged) {
+                  phiprof::Timer updateDtimer {"update-dt"};
+                  //propagate velocity space back to real-time
+                  if( P::propagateVlasovAcceleration ) {
+                     // Back half dt to real time, forward by new half dt
+                     calculateAcceleration(mpiGrid,-0.5);
+                  }
+                  P::dt=newDt;
+                  updateTimeclassDts(newDt);
 
-               P::dt=newDt;
+                  if( P::propagateVlasovAcceleration ) {
+                     // Back half dt to real time, forward by new half dt
+                     calculateAcceleration(mpiGrid,0.5);
+                  } else {
+                     calculateAcceleration(mpiGrid,0.0);
+                  }
 
-               logFile <<" dt changed to "<<P::dt <<"s, distribution function was half-stepped to real-time and back"<<endl<<writeVerbose;
-               updateDtimer.stop();
-               continue; //
-               //addTimedBarrier("barrier-new-dt-set");
-            }
+                  logFile <<" dt changed to "<<P::dt <<"s, distribution function was half-stepped to real-time and back"<<endl<<writeVerbose;
+                  updateDtimer.stop();
+                  continue;
+                  //addTimedBarrier("barrier-new-dt-set");
+               }
 
          } else { // no timeclasses, no dynamic timestep
             // do nothing
