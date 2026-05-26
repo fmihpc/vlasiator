@@ -70,7 +70,9 @@ Real P::dt0 = NAN;
 int P::initialMaxTimeclass = 0;
 int P::timeclassBuffer = 0;
 bool P::dynamicTimeclasses = true;
-Real P::timeclassDtModifier = 1.0;
+Real P::timeclassDomainModifier = 1.0;
+Real P::dtUpdateModifier = 1.0;
+Real P::dtSettingModifier = 1.0;
 int P::currentMaxTimeclass = 0;
 bool P::tcRankwise = false;
 bool P::forcedConvection = false;
@@ -378,7 +380,9 @@ bool P::addParameters() {
    RP::add("gridbuilder.tcRankwise", "Use timeclasses at MPI rank level insted of cell-wise timeclasses.", false);
    RP::add("gridbuilder.timeclass_buffer", "Number of buffer timeclasses.", 0);
    RP::add("gridbuilder.static_timeclasses", "True if timeclass changes should abort", 0);
-   RP::add("gridbuilder.timeclass_dtmodifier", "modifier to tcdts", 1.0);
+   RP::add("gridbuilder.dtSettingModifier", "modifier to setting dt lengths", 1.0);
+   RP::add("gridbuilder.dtUpdatingModifier", "modifier to updating dt lengths", 1.0);
+   RP::add("gridbuilder.timeclass_domain_modifier", "modifier to tc domain sizes", 1.0);
    RP::add("gridbuilder.forcedConvection", "Force a convection velocity of 200 km/s along +x [false]", false);
 
    RP::add("gridbuilder.tc_test_type", "Enumerated tc test", 0);
@@ -1054,7 +1058,9 @@ void Parameters::getParameters() {
    P::currentMaxTimeclass = initialMaxTimeclass;
    RP::get("gridbuilder.timeclass_buffer", P::timeclassBuffer);
    RP::get("gridbuilder.dynamic_timeclasses", P::dynamicTimeclasses);
-   RP::get("gridbuilder.timeclass_dtmodifier", P::timeclassDtModifier);
+   RP::get("gridbuilder.dtSettingModifier", P::dtSettingModifier);
+   RP::get("gridbuilder.dtUpdatingModifier", P::dtUpdateModifier);
+   RP::get("gridbuilder.timeclass_domain_modifier", P::timeclassDomainModifier);
    RP::get("gridbuilder.tcRankwise", P::tcRankwise);
    RP::get("gridbuilder.forcedConvection", P::forcedConvection);
 

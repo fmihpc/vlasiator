@@ -143,7 +143,7 @@ inline bool isDtTooSmall(Real dt, Real rdt, Real vdt, Real fsdt){
 }
 
 // assume that maxrdt and maxvdt are updated before calling
-bool cellTimeclassIsCorrect(SpatialCell* cell, const Real buffer=1.0) {
+bool cellTimeclassIsCorrect(SpatialCell* cell) {
 
    Real cellDt;
    if (cell->parameters[CellParams::MAXVDT] != 0.0) {
@@ -153,8 +153,8 @@ bool cellTimeclassIsCorrect(SpatialCell* cell, const Real buffer=1.0) {
    }
 
    // if we want to change cell timeclasses before the actual limit is reached
-   if (buffer != 1.0) {
-      if (cellDt > buffer*P::timeclassDt[cell->parameters[CellParams::TIMECLASS]]) {
+   if (P::dtUpdateModifier != 1.0) {
+      if (cellDt > P::dtUpdateModifier*P::timeclassDt[cell->parameters[CellParams::TIMECLASS]]) {
          //std::cerr << "cell timeclass is correct" << std::endl;
          return true;
       } else {
@@ -204,7 +204,7 @@ bool cellIsTimeclassRelevant(SpatialCell* cell) {
 // recalculates all cellwise tc limits
 
 // skips over cells that are certain boundaries as defined above, as those should not affect timestep length
-std::vector<CellID> checkCellTimeclasses(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, const Real buffer = 1.0) {
+std::vector<CellID> checkCellTimeclasses(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
 
    std::vector<CellID> retVec = {};
    const vector<CellID>& cells = getLocalCells();
@@ -212,7 +212,7 @@ std::vector<CellID> checkCellTimeclasses(dccrg::Dccrg<SpatialCell,dccrg::Cartesi
    for (vector<CellID>::const_iterator cell_id=cells.begin(); cell_id!=cells.end(); ++cell_id) {
    
       if ((cellIsTimeclassRelevant(mpiGrid[*cell_id]))) {
-         if (!(cellTimeclassIsCorrect(mpiGrid[*cell_id]),buffer)) {
+         if (!(cellTimeclassIsCorrect(mpiGrid[*cell_id]))) {
             retVec.push_back(*cell_id);
          }
       }
@@ -242,7 +242,7 @@ void assignCellTimeclass(SpatialCell* cell, const double cellDt) {
    }
 
    // should this be a ceiling instead of floor??
-   double dtdiff = int(log2((cellDt * P::timeclassDtModifier)/baseTcDt));
+   double dtdiff = int(log2((cellDt * P::timeclassDomainModifier)/baseTcDt));
    int cellTimeClass = max(0.0,(P::currentMaxTimeclass - P::timeclassBuffer) - max(0.0, dtdiff));
 
    //std::cout << "assigning tc " << cellTimeClass << " for cell " << cell->get_cellid() << " with tcdt " << P::timeclassDt[cellTimeClass] << std::endl;
@@ -286,7 +286,7 @@ void updateTimeclassDts(Real fsdt) {
    logFile << std::endl;
    logFile << "(TC) timeclassDts set to " << std::endl;
    for(int i = 0; i <= P::currentMaxTimeclass; ++i){
-      newTimeclassDts[i] = fsdt*pow(2,P::currentMaxTimeclass - i)*P::timeclassDtModifier;
+      newTimeclassDts[i] = fsdt*pow(2,P::currentMaxTimeclass - i)*P::dtSettingModifier;
       logFile << newTimeclassDts[i] << "s, ";
    }
    logFile << std::endl;
@@ -512,8 +512,8 @@ void handleChangingofDt(const std::vector<Real>& dtMaxGlobal, bool& isChanged, R
    isChanged = false;
 
       // reduce/increase dt if it is too high for any of the three propagators or too low for all propagators
-   if (isDtTooLarge(P::timeclassDt[P::currentMaxTimeclass - P::timeclassBuffer], dtMaxGlobal[0],dtMaxGlobal[1],dtMaxGlobal[2]) ||
-          isDtTooSmall(P::timeclassDt[P::currentMaxTimeclass - P::timeclassBuffer], dtMaxGlobal[0],dtMaxGlobal[1],dtMaxGlobal[2])) {
+   if (isDtTooLarge(P::dtUpdateModifier * P::timeclassDt[P::currentMaxTimeclass - P::timeclassBuffer], dtMaxGlobal[0],dtMaxGlobal[1],dtMaxGlobal[2]) ||
+          isDtTooSmall(P::dtUpdateModifier * P::timeclassDt[P::currentMaxTimeclass - P::timeclassBuffer], dtMaxGlobal[0],dtMaxGlobal[1],dtMaxGlobal[2])) {
 
 
       if (P::fractionalTimestep != 0) {
@@ -530,6 +530,8 @@ void handleChangingofDt(const std::vector<Real>& dtMaxGlobal, bool& isChanged, R
       newDt = meanVlasovCFL * dtMaxGlobal[0];
       newDt = min(newDt, meanVlasovCFL * dtMaxGlobal[1] * P::maxSlAccelerationSubcycles);
       newDt = min(newDt, meanFieldsCFL * dtMaxGlobal[2] * P::maxFieldSolverSubcycles);
+
+      newDt *= P::dtSettingModifier;
 
       logFile << "(TIMESTEP) New dt = " << newDt << " computed on step " << P::tstep << " at " << P::t
               << "s   Maximum possible dt (not including  vlasovsolver CFL " << P::vlasovSolverMinCFL << "-"
@@ -1853,10 +1855,8 @@ int simulate(int argn,char* args[]) {
          if (P::dynamicTimestep) {
             if (P::dynamicTimeclasses) { // yes timeclasses, yes dynamic base dt, yes dynamic timeclasses
 
-               // variable to help change timeclasses before the actual solver limit comes up
-               // i.e., if variable is 0.95, add cell timeclass to be increased, when its dt reaches 95% of solver limit
-               const Real dtcheckbuffer = 0.97;
-               std::vector<CellID> badTcCells = checkCellTimeclasses(mpiGrid, dtcheckbuffer);
+
+               std::vector<CellID> badTcCells = checkCellTimeclasses(mpiGrid);
 
                // if base dt and a cell's timeclass want to change, what do
                if (dtIsChanged && badTcCells.size() != 0) {
