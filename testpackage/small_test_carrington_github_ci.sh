@@ -34,7 +34,7 @@ module load PMIx/4.2.6-GCCcore-13.2.0
 module load PAPI/7.1.0-GCCcore-13.2.0
 module load Boost/1.83.0-GCC-13.2.0
 #module load xthi
-export UCX_NET_DEVICES=eth4,eth5,mlx5_0:1 # This is important for multi-node performance!
+export UCX_NET_DEVICES=eth5,mlx5_0:1 # This is important for multi-node performance!
 
 # send JOB ID to output usable by CI eg to scancel this job
 echo "SLURM_JOB_ID=$SLURM_JOB_ID" >> $GITHUB_OUTPUT
