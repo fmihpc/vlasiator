@@ -69,7 +69,7 @@ Real P::dt = NAN;
 Real P::dt0 = NAN;
 int P::initialMaxTimeclass = 0;
 int P::timeclassBuffer = 0;
-bool P::staticTimeclasses = false;
+bool P::dynamicTimeclasses = true;
 Real P::timeclassDtModifier = 1.0;
 int P::currentMaxTimeclass = 0;
 bool P::tcRankwise = false;
@@ -1053,7 +1053,7 @@ void Parameters::getParameters() {
    //set current max timeclass to initial timeclass max, do initializer functions know we are using timeclasses
    P::currentMaxTimeclass = initialMaxTimeclass;
    RP::get("gridbuilder.timeclass_buffer", P::timeclassBuffer);
-   RP::get("gridbuilder.static_timeclasses", P::staticTimeclasses);
+   RP::get("gridbuilder.dynamic_timeclasses", P::dynamicTimeclasses);
    RP::get("gridbuilder.timeclass_dtmodifier", P::timeclassDtModifier);
    RP::get("gridbuilder.tcRankwise", P::tcRankwise);
    RP::get("gridbuilder.forcedConvection", P::forcedConvection);
