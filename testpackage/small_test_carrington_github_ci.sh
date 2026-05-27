@@ -39,6 +39,10 @@ module load Boost/1.83.0-GCC-13.2.0
 export UCX_TLS=dc_mlx5 
 export UCX_NET_DEVICES=mlx5_0:1
 
+export OMPI_MCA_btl='^uct,ofi'
+export OMPI_MCA_pml='ucx'
+export OMPI_MCA_mtl='^ofi'
+
 # send JOB ID to output usable by CI eg to scancel this job
 echo "SLURM_JOB_ID=$SLURM_JOB_ID" >> $GITHUB_OUTPUT
 
