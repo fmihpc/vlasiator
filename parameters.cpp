@@ -1000,6 +1000,13 @@ void Parameters::getParameters() {
       MPI_Abort(MPI_COMM_WORLD,-1);
    }
 
+   //If we need to compress files force the sparsity in the VLSV files
+   const bool force_sparsity_in_output =
+       P::systemWriteRestartCompressed || P::systemWriteDistributionCompressed || P::systemWriteRecoveryCompressed;
+   if (force_sparsity_in_output) {
+      P::outputVariableList.emplace_back("populations_minvalue");
+   }
+   
    //Parse MLP Layer string
    auto parseToSize_T = [](const std::string& str) -> std::vector<size_t> {
       std::vector<std::size_t> result;
