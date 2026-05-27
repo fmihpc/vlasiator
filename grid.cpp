@@ -871,7 +871,7 @@ void prepareAMRLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
    int myRank;
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
 
-   if (P::currentMaxTimeclass > 0) {
+   if (P::currentMaxTimeclass > 0 || P::vlasovSolverGhostTranslate) {
       const vector<CellID>& localCells = getLocalCells();
       // std::cerr << __FILE__<<":" << __LINE__ <<"\n";
       const vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(Neighborhoods::FULL);
