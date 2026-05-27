@@ -379,7 +379,7 @@ bool P::addParameters() {
    RP::add("gridbuilder.initial_timeclass_max", "Maximum number of timeclasses.", 0);
    RP::add("gridbuilder.tcRankwise", "Use timeclasses at MPI rank level insted of cell-wise timeclasses.", false);
    RP::add("gridbuilder.timeclass_buffer", "Number of buffer timeclasses.", 0);
-   RP::add("gridbuilder.static_timeclasses", "True if timeclass changes should abort", 0);
+   RP::add("gridbuilder.dynamic_timeclasses", "True if timeclass changes should abort", 0);
    RP::add("gridbuilder.dtSettingModifier", "modifier to setting dt lengths", 1.0);
    RP::add("gridbuilder.dtUpdatingModifier", "modifier to updating dt lengths", 1.0);
    RP::add("gridbuilder.timeclass_domain_modifier", "modifier to tc domain sizes", 1.0);

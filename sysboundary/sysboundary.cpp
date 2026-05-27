@@ -690,6 +690,7 @@ void SysBoundary::applySysBoundaryVlasovConditions(
    // Loop over existing particle species
    for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID) {
       for (int timeclass = 0; timeclass <= P::currentMaxTimeclass; ++timeclass){
+         std::cerr << "updating for tc " << timeclass << "\n";
          SpatialCell::setCommunicatedSpecies(popID, timeclass);
          // update lists in neighborhood
          updateRemoteVelocityBlockLists(mpiGrid, popID, Neighborhoods::SYSBOUNDARIES, timeclass);
@@ -711,6 +712,7 @@ void SysBoundary::applySysBoundaryVlasovConditions(
 
             if (SC->get_timeclass_turn_v() == true) {
                timeclassCells.push_back(cellID);
+               std::cerr << "pushed back\n";
             }
          }
 

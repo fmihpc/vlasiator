@@ -841,6 +841,10 @@ namespace SBC {
       templateCell.parameters[CellParams::P_11_R] = templateCell.parameters[CellParams::P_11];
       templateCell.parameters[CellParams::P_22_R] = templateCell.parameters[CellParams::P_22];
       templateCell.parameters[CellParams::P_33_R] = templateCell.parameters[CellParams::P_33];
+      templateCell.parameters[CellParams::P_23_R] = templateCell.parameters[CellParams::P_23];
+      templateCell.parameters[CellParams::P_13_R] = templateCell.parameters[CellParams::P_13];
+      templateCell.parameters[CellParams::P_12_R] = templateCell.parameters[CellParams::P_12];
+
       templateCell.parameters[CellParams::RHOM_V] = templateCell.parameters[CellParams::RHOM];
       templateCell.parameters[CellParams::VX_V] = templateCell.parameters[CellParams::VX];
       templateCell.parameters[CellParams::VY_V] = templateCell.parameters[CellParams::VY];
@@ -849,6 +853,57 @@ namespace SBC {
       templateCell.parameters[CellParams::P_11_V] = templateCell.parameters[CellParams::P_11];
       templateCell.parameters[CellParams::P_22_V] = templateCell.parameters[CellParams::P_22];
       templateCell.parameters[CellParams::P_33_V] = templateCell.parameters[CellParams::P_33];
+      templateCell.parameters[CellParams::P_23_V] = templateCell.parameters[CellParams::P_23];
+      templateCell.parameters[CellParams::P_13_V] = templateCell.parameters[CellParams::P_13];
+      templateCell.parameters[CellParams::P_12_V] = templateCell.parameters[CellParams::P_12];
+
+      templateCell.parameters[CellParams::RHOM_R_PREV] = templateCell.parameters[CellParams::RHOM];
+      templateCell.parameters[CellParams::VX_R_PREV] = templateCell.parameters[CellParams::VX];
+      templateCell.parameters[CellParams::VY_R_PREV] = templateCell.parameters[CellParams::VY];
+      templateCell.parameters[CellParams::VZ_R_PREV] = templateCell.parameters[CellParams::VZ];
+      templateCell.parameters[CellParams::RHOQ_R_PREV] = templateCell.parameters[CellParams::RHOQ];
+      templateCell.parameters[CellParams::P_11_R_PREV] = templateCell.parameters[CellParams::P_11];
+      templateCell.parameters[CellParams::P_22_R_PREV] = templateCell.parameters[CellParams::P_22];
+      templateCell.parameters[CellParams::P_33_R_PREV] = templateCell.parameters[CellParams::P_33];
+      templateCell.parameters[CellParams::P_23_R_PREV] = templateCell.parameters[CellParams::P_23];
+      templateCell.parameters[CellParams::P_13_R_PREV] = templateCell.parameters[CellParams::P_13];
+      templateCell.parameters[CellParams::P_12_R_PREV] = templateCell.parameters[CellParams::P_12];
+
+      templateCell.parameters[CellParams::RHOM_V_PREV] = templateCell.parameters[CellParams::RHOM];
+      templateCell.parameters[CellParams::VX_V_PREV] = templateCell.parameters[CellParams::VX];
+      templateCell.parameters[CellParams::VY_V_PREV] = templateCell.parameters[CellParams::VY];
+      templateCell.parameters[CellParams::VZ_V_PREV] = templateCell.parameters[CellParams::VZ];
+      templateCell.parameters[CellParams::RHOQ_V_PREV] = templateCell.parameters[CellParams::RHOQ];
+      templateCell.parameters[CellParams::P_11_V_PREV] = templateCell.parameters[CellParams::P_11];
+      templateCell.parameters[CellParams::P_22_V_PREV] = templateCell.parameters[CellParams::P_22];
+      templateCell.parameters[CellParams::P_33_V_PREV] = templateCell.parameters[CellParams::P_33];
+      templateCell.parameters[CellParams::P_23_V_PREV] = templateCell.parameters[CellParams::P_23];
+      templateCell.parameters[CellParams::P_13_V_PREV] = templateCell.parameters[CellParams::P_13];
+      templateCell.parameters[CellParams::P_12_V_PREV] = templateCell.parameters[CellParams::P_12];
+
+      templateCell.parameters[CellParams::RHOM_R_PREV_PREV] = templateCell.parameters[CellParams::RHOM];
+      templateCell.parameters[CellParams::VX_R_PREV_PREV] = templateCell.parameters[CellParams::VX];
+      templateCell.parameters[CellParams::VY_R_PREV_PREV] = templateCell.parameters[CellParams::VY];
+      templateCell.parameters[CellParams::VZ_R_PREV_PREV] = templateCell.parameters[CellParams::VZ];
+      templateCell.parameters[CellParams::RHOQ_R_PREV_PREV] = templateCell.parameters[CellParams::RHOQ];
+      templateCell.parameters[CellParams::P_11_R_PREV_PREV] = templateCell.parameters[CellParams::P_11];
+      templateCell.parameters[CellParams::P_22_R_PREV_PREV] = templateCell.parameters[CellParams::P_22];
+      templateCell.parameters[CellParams::P_33_R_PREV_PREV] = templateCell.parameters[CellParams::P_33];
+      templateCell.parameters[CellParams::P_23_R_PREV_PREV] = templateCell.parameters[CellParams::P_23];
+      templateCell.parameters[CellParams::P_13_R_PREV_PREV] = templateCell.parameters[CellParams::P_13];
+      templateCell.parameters[CellParams::P_12_R_PREV_PREV] = templateCell.parameters[CellParams::P_12];
+
+      templateCell.parameters[CellParams::RHOM_V_PREV_PREV] = templateCell.parameters[CellParams::RHOM];
+      templateCell.parameters[CellParams::VX_V_PREV_PREV] = templateCell.parameters[CellParams::VX];
+      templateCell.parameters[CellParams::VY_V_PREV_PREV] = templateCell.parameters[CellParams::VY];
+      templateCell.parameters[CellParams::VZ_V_PREV_PREV] = templateCell.parameters[CellParams::VZ];
+      templateCell.parameters[CellParams::RHOQ_V_PREV_PREV] = templateCell.parameters[CellParams::RHOQ];
+      templateCell.parameters[CellParams::P_11_V_PREV_PREV] = templateCell.parameters[CellParams::P_11];
+      templateCell.parameters[CellParams::P_22_V_PREV_PREV] = templateCell.parameters[CellParams::P_22];
+      templateCell.parameters[CellParams::P_33_V_PREV_PREV] = templateCell.parameters[CellParams::P_33];
+      templateCell.parameters[CellParams::P_23_V_PREV_PREV] = templateCell.parameters[CellParams::P_23];
+      templateCell.parameters[CellParams::P_13_V_PREV_PREV] = templateCell.parameters[CellParams::P_13];
+      templateCell.parameters[CellParams::P_12_V_PREV_PREV] = templateCell.parameters[CellParams::P_12];
    }
 
    void Copysphere::setCellFromTemplate(SpatialCell* cell,const uint popID) {
