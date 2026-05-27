@@ -1000,13 +1000,6 @@ void Parameters::getParameters() {
       MPI_Abort(MPI_COMM_WORLD,-1);
    }
 
-   //If we need to compress files force the sparsity in the VLSV files
-   const bool force_sparsity_in_output =
-       P::systemWriteRestartCompressed || P::systemWriteDistributionCompressed || P::systemWriteRecoveryCompressed;
-   if (force_sparsity_in_output) {
-      P::outputVariableList.emplace_back("populations_minvalue");
-   }
-   
    //Parse MLP Layer string
    auto parseToSize_T = [](const std::string& str) -> std::vector<size_t> {
       std::vector<std::size_t> result;
@@ -1201,6 +1194,14 @@ void Parameters::getParameters() {
    // Insert vg_f_saved to the list if necessary
    if(includefSaved) {
       P::outputVariableList.push_back("vg_f_saved");
+   }
+   
+   //If we need to compress files force the sparsity in the VLSV files
+   const bool force_sparsity_in_output =
+       P::systemWriteRestartCompressed || P::systemWriteDistributionCompressed || P::systemWriteRecoveryCompressed;
+   if (force_sparsity_in_output) {
+      P::outputVariableList.emplace_back("populations_minvalue");
+      P::outputVariableList.emplace_back("populations_EffectiveSparsityThreshold");
    }
 
    // Filter duplicate variable names
