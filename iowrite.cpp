@@ -337,7 +337,6 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
 
             totalBlocks+=SC->get_number_of_velocity_blocks(popID, timeclass);
             blocksPerCell.push_back(SC->get_number_of_velocity_blocks(popID, timeclass));
-            std::cerr << timeclass << " cell " << cells[cell] << " has " << SC->get_number_of_velocity_blocks(popID, timeclass) << " vs " << velblocksghost->size() <<  std::endl;
          // }
          // else{
             // vmesh::VelocityBlockContainer<vmesh::LocalID>* velblocksghost = &emptyvmesh;
@@ -345,7 +344,7 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
             // blocksPerCell.push_back(0);
          // }
       }
-      std::cerr << "timeclass " << timeclass << " total ghost blocks to write: " << totalBlocks << std::endl;
+ 
 
 
       attribs.clear();
@@ -2257,4 +2256,3 @@ bool writeDiagnostic(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
    if (myRank == MASTER_RANK) diagnostic << endl << write;
    return true;
 }
-
