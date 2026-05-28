@@ -47,7 +47,7 @@
 #include "toctree_compressor.h"
 #endif
 #ifdef ASTERIX_MLP
-#include "lib/usr/local/include/tinyAI/genericTsPool.h"
+#include "genericTsPool.h"
 #endif
 #ifdef ASTERIX_ZFP
 #include <zfp.h>
