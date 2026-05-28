@@ -690,7 +690,6 @@ void SysBoundary::applySysBoundaryVlasovConditions(
    // Loop over existing particle species
    for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID) {
       for (int timeclass = 0; timeclass <= P::currentMaxTimeclass; ++timeclass){
-         std::cerr << "updating for tc " << timeclass << "\n";
          SpatialCell::setCommunicatedSpecies(popID, timeclass);
          // update lists in neighborhood
          updateRemoteVelocityBlockLists(mpiGrid, popID, Neighborhoods::SYSBOUNDARIES, timeclass);
@@ -706,17 +705,22 @@ void SysBoundary::applySysBoundaryVlasovConditions(
          vector<CellID> localCells;
          vector<CellID> timeclassCells;
 
+         getBoundaryCellList(mpiGrid, mpiGrid.get_local_cells_not_on_process_boundary(Neighborhoods::SYSBOUNDARIES), localCells);
+
          for (size_t c=0; c<localCells.size(); c++) {
             const CellID cellID = localCells[c];
             SpatialCell* SC = mpiGrid[cellID];
 
             if (SC->get_timeclass_turn_v() == true) {
                timeclassCells.push_back(cellID);
-               std::cerr << "pushed back\n";
             }
          }
 
-         getBoundaryCellList(mpiGrid, mpiGrid.get_local_cells_not_on_process_boundary(Neighborhoods::SYSBOUNDARIES), localCells);
+         std::cerr << "size of localCells: " << localCells.size() << "\n";
+         std::cerr << "size of timeclassCells: " << timeclassCells.size() << "\n";
+
+
+         //getBoundaryCellList(mpiGrid, mpiGrid.get_local_cells_not_on_process_boundary(Neighborhoods::SYSBOUNDARIES), localCells);
 
    #pragma omp parallel for
          for (uint i = 0; i < localCells.size(); i++) {
@@ -752,6 +756,9 @@ void SysBoundary::applySysBoundaryVlasovConditions(
                timeclassBoundaryCells.push_back(cellID);
             }
          }
+
+         std::cerr << "size of boundaryCells: " << boundaryCells.size() << "\n";
+         std::cerr << "size of timeclassBoundaryCells: " << timeclassBoundaryCells.size() << "\n";
 
    #pragma omp parallel for
          for (uint i = 0; i < boundaryCells.size(); i++) {
