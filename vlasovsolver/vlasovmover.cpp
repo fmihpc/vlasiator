@@ -891,6 +891,11 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
             adjustVelocityBlocks(mpiGrid, cells, true, popID, tc);
          }
       }
+      // Needed to calculate _V moments afterwards for the local cells
+      // TODO also for ghost cells?
+      for (auto c : cells){
+         cellsToPropagateSet.insert(c);
+      }
    } else {
       // Fairly ugly but no goto
       phiprof::Timer accTimer {"semilag-acc"};
