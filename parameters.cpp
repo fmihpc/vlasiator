@@ -592,11 +592,11 @@ bool P::addParameters() {
    RP::add("fieldtracing.max_allowed_z", "Trace for z coordinates smaller than this limit (in m).", LARGE_REAL);
 
    //Asterix - VDF Compression
-   RP::add("Asterix.mlp_layers", string("Hidden layer architecture (neuron count per hidden layer) for MLP"),"128,256,128");
+   RP::add("Asterix.mlp_layers", string("Hidden layer architecture (neuron count per hidden layer) for MLP"),"32,32,32");
    RP::add("Asterix.tol", string("MLP Compression reconstruction tolerance"),1e-4);
-   RP::add("Asterix.octree_tolerance", string("OCTREE Compression reconstruction tolerance"),1e-4);
+   RP::add("Asterix.octree_tolerance", string("OCTREE Compression reconstruction tolerance"),1e-3);
    RP::add("Asterix.max_epochs", string("Max MLP epochs"),50);
-   RP::add("Asterix.fourier_order", string("Fourier Feature Order"),64);
+   RP::add("Asterix.fourier_order", string("Fourier Feature Order"),32);
    RP::add("Asterix.interval", string("Compression interval in seconds [Deprecated]"),1.0);
    RP::add("Asterix.state", string("Boolean Asterix compression toggle"),false);
    RP::add("Asterix.method", string("Compression method string"),"ZFP");
