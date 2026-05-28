@@ -187,7 +187,9 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    int myRank;MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
 
    MPI_Allreduce(&(dtMaxLocal[0]), &(dtMaxGlobal[0]), 3, MPI_Type<Real>(), MPI_MIN, MPI_COMM_WORLD);
-   MPI_Allreduce(&(dtMinMaxLocal[0]), &(dtMinMaxGlobal[0]), 3, MPI_Type<Real>(), MPI_MAX, MPI_COMM_WORLD);
+   if(P::maxTimeclass ==0){
+      MPI_Allreduce(&(dtMinMaxLocal[0]), &(dtMinMaxGlobal[0]), 3, MPI_Type<Real>(), MPI_MAX, MPI_COMM_WORLD);
+   }
 
    // If any of the solvers are disabled there should be no limits in timespace from it
    if (!P::propagateVlasovTranslation)
@@ -238,7 +240,7 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       fsdt = P::dt;
    }
    // This is the full range of timeclasses that could be used based on the physical environment
-   int timeclassRange = int(log2(baseDt/fsdt));
+   int timeclassRange = max(int(log2(baseDt/fsdt)),0);
    // ... and we need to clamp that with the parameter for number of MaxTimeclasses
    P::currentMaxTimeclass = min(P::maxTimeclass, timeclassRange);
    if(P::tcOverrideTimeclass > -1){

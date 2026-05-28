@@ -1206,7 +1206,7 @@ void interpolateMomentsForTimeclasses(
 
       // ^^ this determines which true moments are used for interpolation.
 
-      if (timeclass == P::currentMaxTimeclass) {
+      if (P::maxTimeclass == 0 || timeclass == P::currentMaxTimeclass) {
          // calculateInterpolatedVelocityMoments functionality here, if timeclass is the max one.
          if (dt2) {
 

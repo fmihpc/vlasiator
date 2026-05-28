@@ -1176,8 +1176,17 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
    }
 
    // These neighborhoods no longer include the AMR addition beyond the regular vlasov stencil
-   const int neighborhood = getNeighborhood(dimension,P::vlasovSolverGhostTranslateExtent);
-
+   int neighborhood;
+   if (P::vlasovSolverGhostTranslate){
+      neighborhood=getNeighborhood(dimension,P::vlasovSolverGhostTranslateExtent);
+   }
+   else if (P::maxTimeclass > 0){
+      neighborhood=getNeighborhood(dimension,P::vlasovSolverGhostTranslateExtent);
+   }
+   else{
+      neighborhood=getNeighborhood(dimension,VLASOV_STENCIL_WIDTH);
+   }
+//module purge; module load GCC/13.2.0; module load OpenMPI/4.1.6-GCC-13.2.0 ; module load PMIx/4.2.6-GCCcore-13.2.0; module load PAPI/7.1.0-GCCcore-13.2.0; module load Boost/1.83.0-GCC-13.2.0
 // #pragma omp parallel for
    for (uint i=0; i<propagatedCells.size(); i++) {
       const CellID celli = propagatedCells[i];
@@ -1339,7 +1348,13 @@ void check_ghost_cells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>
                        const uint dimension) {
 
    const bool debug = true;
-   int neighborhood = getNeighborhood(dimension,P::vlasovSolverGhostTranslateExtent);
+   int neighborhood;
+   if(P::vlasovSolverGhostTranslate){
+      neighborhood=getNeighborhood(dimension,P::vlasovSolverGhostTranslateExtent);
+   }
+   else{
+      neighborhood=getNeighborhood(dimension,VLASOV_STENCIL_WIDTH);
+   }
 
    int myRank;
    if (debug) {
@@ -1674,7 +1689,7 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
             abort();
       }
       // std::cerr<< __FILE__<<":"<<__LINE__<<"\n";
-      if (P::currentMaxTimeclass >= 0) {
+      if (P::currentMaxTimeclass > 0) {
          // std::cerr<< __FILE__<<":"<<__LINE__<<"\n";
          for (int i = 0; i <= P::currentMaxTimeclass; ++i){
             tc_propagatedCells.push_back(vector<CellID>());
@@ -1700,31 +1715,37 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
             propagatedCells.push_back(localCells[c]);
          }
       }
-      for (int i = 0; i <= P::currentMaxTimeclass; ++i){
-         tc_propagatedCells.push_back(vector<CellID>());
-         for (size_t c=0; c<localCells.size(); ++c) {
-            if (do_translate_cell(mpiGrid[localCells[c]]) && mpiGrid[localCells[c]]->parameters[CellParams::TIMECLASS]==i) {
-               tc_propagatedCells[i].push_back(localCells[c]);
+      if(P::currentMaxTimeclass > 0){
+         for (int i = 0; i <= P::currentMaxTimeclass; ++i){
+            tc_propagatedCells.push_back(vector<CellID>());
+            for (size_t c=0; c<localCells.size(); ++c) {
+               if (do_translate_cell(mpiGrid[localCells[c]]) && mpiGrid[localCells[c]]->parameters[CellParams::TIMECLASS]==i) {
+                  tc_propagatedCells[i].push_back(localCells[c]);
+               }
             }
          }
       }
    }
 
-   // std::cerr<< __FILE__<<":"<<__LINE__<<"\n";
-
    phiprof::Timer getSeedIdsTimer {"getSeedIds"};
    vector<std::pair<int,CellID>> seedIds;
-   if (P::currentMaxTimeclass >= 0) {
-      int maxt = 0;
-      for (int timeclass = 0; timeclass <= P::currentMaxTimeclass; ++timeclass){
-         // std::cout << "getting seedids for timeclass " << timeclass <<", cells prop:\n";
-         // for(auto c : tc_propagatedCells[timeclass]) std::cout << c << " ";
-         // std::cout << "\n";
-         getSeedIds(mpiGrid, tc_propagatedCells[timeclass], dimension, seedIds, timeclass);
-         getSeedIdsTimer.stop();
-         maxt = timeclass;
+   if(P::vlasovSolverGhostTranslate){
+      if (P::currentMaxTimeclass > 0) {
+         int maxt = 0;
+         for (int timeclass = 0; timeclass <= P::currentMaxTimeclass; ++timeclass){
+            // std::cout << "getting seedids for timeclass " << timeclass <<", cells prop:\n";
+            // for(auto c : tc_propagatedCells[timeclass]) std::cout << c << " ";
+            // std::cout << "\n";
+            getSeedIds(mpiGrid, tc_propagatedCells[timeclass], dimension, seedIds, timeclass);
+      
+            maxt = timeclass;
+         }
       }
    }
+   else{
+      getSeedIds(mpiGrid, propagatedCells, dimension, seedIds, 0);
+   }
+   getSeedIdsTimer.stop();
    if (printSeeds) {
       for (int rank=0; rank<mpi_size; ++rank) {
          MPI_Barrier(MPI_COMM_WORLD);     /// one is here
@@ -1770,7 +1791,7 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
 #pragma omp for schedule(guided,8)
       for (uint i=0; i<seedIds.size(); i++) {
          cuint seedId = seedIds[i].second;
-         if (seedIds[i].first == 1) exit = true;
+         // if (seedIds[i].first == 1) exit = true;
          // Construct pencils from the seedIds into a set of pencils.
          buildPencilsWithNeighbors(mpiGrid, thread_pencils, seedIds[i], ids, dimension, path, seedIds);
       }

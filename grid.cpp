@@ -665,7 +665,6 @@ void transferInParts(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
                cell->clear(popID,true, timeclass);
                }
             }
-         
 
             if (refinement) {
                // Old cells removed by refinement
@@ -870,7 +869,7 @@ void prepareAMRLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
    int myRank;
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
 
-   if (P::maxTimeclass >= 0) {
+   if (P::maxTimeclass > 0) {
       const vector<CellID>& localCells = getLocalCells();
       // std::cerr << __FILE__<<":" << __LINE__ <<"\n";
       const vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(Neighborhoods::FULL);

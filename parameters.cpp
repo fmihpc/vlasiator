@@ -1044,6 +1044,7 @@ void Parameters::getParameters() {
    RP::get("gridbuilder.dt", P::dt0);
 
    RP::get("gridbuilder.timeclass_max", P::maxTimeclass);
+   P::currentMaxTimeclass = P::maxTimeclass;
    RP::get("gridbuilder.tcRankwise", P::tcRankwise);
    RP::get("gridbuilder.forcedConvection", P::forcedConvection);
 
@@ -1244,5 +1245,3 @@ void Parameters::getParameters() {
       abort();
    }
 }
-
-
