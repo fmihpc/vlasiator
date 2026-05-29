@@ -443,7 +443,7 @@ void calculateSpatialTranslation(
          int mod = 1 << (P::currentMaxTimeclass - tc);
          if((P::fractionalTimestep % mod) == 0){
             // std::cout << "rank " << myRank << ": " << tc_propagated_cells[tc].size() << " cells: calculateSpatialTranslation tc " << tc << " by dt " << P::timeclassDt[tc] <<"\n";
-            if (P::vlasovSolverGhostTranslate) ) {
+            if (P::vlasovSolverGhostTranslate) {
                // Local translation without interim communication
                calculateSpatialGhostTranslation(
                   mpiGrid,
