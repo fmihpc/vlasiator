@@ -353,35 +353,6 @@ void calculateSpatialTranslation(
       remoteTargetCellsz = mpiGrid.get_remote_cells_on_process_boundary(Neighborhoods::VLASOV_SOLVER_TARGET_Z);
    }
 
-   // std::cout << "setting up tc cell vectors \n";
-   // Figure out which spatial cells are translated,
-   // result independent of particle species.
-   // If performing ghost translation, this is used for LB.
-   // for (size_t c=0; c<localCells.size(); ++c) {
-   //    int cellTC = (int)mpiGrid[localCells[c]]->parameters[CellParams::TIMECLASS];
-      
-   //    if (do_translate_cell(mpiGrid[localCells[c]],-1)) {
-   //       tc_propagated_cell_sets[cellTC].insert(localCells[c]);
-   //    }
-   //    for (auto i: mpiGrid[localCells[c]]->requested_timeclass_ghosts){
-   //       tc_propagated_cell_sets[i].insert(localCells[c]);
-   //    }
-   //    if (do_translate_cell(mpiGrid[localCells[c]],-1) &&
-   //        mpiGrid[localCells[c]]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-   //          tc_target_cell_sets[cellTC].insert(localCells[c]);
-   //    }
-   //    for (auto i: mpiGrid[localCells[c]]->requested_timeclass_ghosts){
-   //       if(mpiGrid[localCells[c]]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY)
-   //          tc_propagated_cell_sets[i].insert(localCells[c]);
-   //    }
-   // }
-
-
-   // for (int tc = 0; tc <= P::maxTimeclass; tc++)
-   // {
-   //    std::cout << "" << tc << " cellvector size "<< tc_propagated_cells[tc].size()<<" \n";
-      
-   // }
    // Figure out which spatial cells are translated,
    // result independent of particle species.
    // If performing ghost translation, this is used for LB.
