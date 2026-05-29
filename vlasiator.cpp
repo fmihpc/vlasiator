@@ -1500,6 +1500,10 @@ int simulate(int argn,char* args[]) {
          P::t-P::dt <= P::t_max+DT_EPSILON &&
          wallTimeRestartCounter <= P::exitAfterRestarts) {
 
+      logFile << "some parameters: \n";
+      logFile << P::currentMaxTimeclass << " " << P::initialMaxTimeclass << " " << P::timeclassDt.at(0) << " " << P::dt << "\n";  
+
+
       //std::cout << "start of main simulation loop, below dt, timeclassDts, currentmaxtimeclass" << std::endl;
       //std::cout << P::dt << std::endl;
       for (auto i: P::timeclassDt) {

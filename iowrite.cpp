@@ -708,6 +708,10 @@ bool writeCommonGridData(
    if( vlsvWriter.writeParameter("xcells_ini", &P::xcells_ini) == false ) { return false; }
    if( vlsvWriter.writeParameter("ycells_ini", &P::ycells_ini) == false ) { return false; }
    if( vlsvWriter.writeParameter("zcells_ini", &P::zcells_ini) == false ) { return false; }
+
+   if( vlsvWriter.writeParameter("currentmaxtimeclass", &P::currentMaxTimeclass) == false ) { return false; }
+
+
    // Although the stored velocity meshes already include block size information, the parameter WID
    // is also stored for ease of reading in post-processing.
    const int writewid = WID;
@@ -1945,24 +1949,40 @@ bool writeRestart(
    phiprof::Timer reducedTimer {"reduceddataIO"};
    //write out DROs we need for restarts
    DataReducer restartReducer;
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("moments",CellParams::RHOM,5));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("moments_dt2",CellParams::RHOM_DT2,5));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("moments_r",CellParams::RHOM_R,5));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("moments_v",CellParams::RHOM_V,5));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("moments_r_prev",CellParams::RHOM_R_PREV,5));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("moments_v_prev",CellParams::RHOM_V_PREV,5));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("moments_r_prev_prev",CellParams::RHOM_R_PREV_PREV,5));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("moments_v_prev_prev",CellParams::RHOM_V_PREV_PREV,5));
 
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("pressure",CellParams::P_11,3));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("pressure_dt2",CellParams::P_11_DT2,3));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("pressure_r",CellParams::P_11_R,3));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("pressure_v",CellParams::P_11_V,3));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("pressure_r_prev",CellParams::P_11_R_PREV,3));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("pressure_v_prev",CellParams::P_11_V_PREV,3));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("pressure_r_prev_prev",CellParams::P_11_R_PREV_PREV,3));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("pressure_v_prev_prev",CellParams::P_11_V_PREV_PREV,3));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("densities",CellParams::RHOM,2));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("pressure",CellParams::P_11,6));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("bulkvelocities",CellParams::VX,3));
 
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("densities_dt2",CellParams::RHOM_DT2,2));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("pressure_dt2",CellParams::P_11_DT2,6));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("bulkvelocities_dt2",CellParams::VX_DT2,3));
+
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("densities_r",CellParams::RHOM_R,2));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("pressure_r",CellParams::P_11_R,6));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("bulkvelocities_r",CellParams::VX_R,3));
+
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("densities_v",CellParams::RHOM_V,2));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("pressure_v",CellParams::P_11_V,6));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("bulkvelocities_v",CellParams::VX_V,3));
+
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("densities_r_prev",CellParams::RHOM_R_PREV,2));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("pressure_r_prev",CellParams::P_11_R_PREV,6));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("bulkvelocities_r_prev",CellParams::VX_R_PREV,3));
+
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("densities_v_prev",CellParams::RHOM_V_PREV,2));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("pressure_v_prev",CellParams::P_11_V_PREV,6));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("bulkvelocities_v_prev",CellParams::VX_V_PREV,3));
+
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("densities_r_prev_prev",CellParams::RHOM_R_PREV_PREV,2));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("pressure_r_prev_prev",CellParams::P_11_R_PREV_PREV,6));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("bulkvelocities_r_prev_prev",CellParams::VX_R_PREV_PREV,3));
+
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("densities_v_prev_prev",CellParams::RHOM_V_PREV,2));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("pressure_v_prev_prev",CellParams::P_11_V_PREV_PREV,6));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("bulkvelocities_v_prev_prev",CellParams::VX_V_PREV_PREV,3));
+
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("timeclass",CellParams::TIMECLASS,1));
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("LB_weight",CellParams::LBWEIGHTCOUNTER,1));
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("max_v_dt",CellParams::MAXVDT,1));
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("max_r_dt",CellParams::MAXRDT,1));
