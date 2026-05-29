@@ -376,15 +376,7 @@ void calculateSpatialTranslation(
    //    }
    // }
 
-   // TC propagation lists, TODO move out of here somewhere sensible and less often called
-   if (P::maxTimeclass > 0) {
-      for (int tc = 0; tc <= P::maxTimeclass; tc++)
-      {
-         // std::cout << "initing up tc " << tc << " vectors \n";
-         tc_propagated_cells[tc] = vector<CellID>(tc_propagated_cell_sets[tc].begin(),tc_propagated_cell_sets[tc].end());
-         // tc_target_cells[tc] = vector<CellID>(tc_target_cell_sets[tc].begin(),tc_target_cell_sets[tc].end());
-      }
-   }
+
    // for (int tc = 0; tc <= P::maxTimeclass; tc++)
    // {
    //    std::cout << "" << tc << " cellvector size "<< tc_propagated_cells[tc].size()<<" \n";
@@ -403,14 +395,21 @@ void calculateSpatialTranslation(
       // One more element to count the sums
       nPencils.resize(local_propagated_cells.size()+1, 0);
    }
-   computeTimer.stop();
-
-   if (P::maxTimeclass <= 0) {
+   // TC propagation lists, TODO move out of here somewhere sensible and less often called
+   if (P::maxTimeclass > 0) {
+      for (int tc = 0; tc <= P::maxTimeclass; tc++)
+      {
+         // std::cout << "initing up tc " << tc << " vectors \n";
+         tc_propagated_cells[tc] = vector<CellID>(tc_propagated_cell_sets[tc].begin(),tc_propagated_cell_sets[tc].end());
+         // tc_target_cells[tc] = vector<CellID>(tc_target_cell_sets[tc].begin(),tc_target_cell_sets[tc].end());
+      }
+   } else {
       // If we are not using timeclasses, we can just use the local_propagated_cells vector
       // for all the calculations.
       
       tc_propagated_cells.push_back(local_propagated_cells);
    }
+   computeTimer.stop();
 
    //
    if (dt == 0.0 && initializationOrLB == false) {
@@ -473,9 +472,8 @@ void calculateSpatialTranslation(
          int mod = 1 << (P::currentMaxTimeclass - tc);
          if((P::fractionalTimestep % mod) == 0){
             // std::cout << "rank " << myRank << ": " << tc_propagated_cells[tc].size() << " cells: calculateSpatialTranslation tc " << tc << " by dt " << P::timeclassDt[tc] <<"\n";
-            if (P::vlasovSolverGhostTranslate && (P::amrMaxSpatialRefLevel > 0) ) {
+            if (P::vlasovSolverGhostTranslate) ) {
                // Local translation without interim communication
-               // Not yet implemented for non-AMR solver
                calculateSpatialGhostTranslation(
                   mpiGrid,
                   tc_propagated_cells[tc], // Used for LB
