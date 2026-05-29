@@ -587,7 +587,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 	 if (ShouldRefined){
        for (size_t c=0; c<cells.size(); ++c) {
 	 	SpatialCell* SC = mpiGrid[cells[c]];
-	 	RefinedVamr(SC);
+	 	RefinedOrder1(SC);
        }
      }
      for (uint popID=(getObjectWrapper().particleSpecies.size()-1); popID>0; --popID) {
