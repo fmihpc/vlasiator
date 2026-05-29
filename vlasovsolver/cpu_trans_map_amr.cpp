@@ -416,14 +416,13 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
                      velmesh = target_cell->get_velocity_mesh(popID, timeclass);
                      velblocks = target_cell->get_velocity_blocks(popID, timeclass);
                      vmesh::LocalID blockLID;
-                     blockLID = target_cell->get_velocity_block_local_id(blockGID, popID,timeclass);
+                     blockLID = target_cell->get_velocity_block_local_id(blockGID, popID, timeclass);
 
                      if (blockLID != vmesh::VelocityMesh::invalidLocalID()) {
-                        bool donotZero = false;
                         // Get a pointer to the block data
                         Realf* blockData = NULL;
                         blockData = target_cell->get_data(blockLID, popID, timeclass);
-                        if(blockData && !donotZero){
+                        if(blockData){
                            memset(blockData, 0, WID3*sizeof(Realf));
                         }
                      }
@@ -436,10 +435,8 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
             for (uint pencili : DimensionPencils[dimension].pencilsInBin[currentBin]) {
                // Skip pencils without blocks
                if (pencilBlocksCount.at(pencili) == 0 || DimensionPencils[dimension].timeclasses[pencili] != timeclass) {
-                  // std::cout << "Skipped pencili " << pencili << "\n";
                   continue;
                }
-               // std::cout << "cellBlockData " << cellBlockData.size() << "\n";
                // sourceVecData => targetBlockData[this pencil])
                const int L = DimensionPencils[dimension].lengthOfPencils[pencili];
                const int start = DimensionPencils[dimension].idsStart[pencili];
