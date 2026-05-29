@@ -963,7 +963,7 @@ void RefinedVamr(spatial_cell::SpatialCell* cell){
 }
 
 
-void RefinedV2(spatial_cell::SpatialCell* cell){
+void RefinedOrder1(spatial_cell::SpatialCell* cell){
   
   std::unordered_set<vmesh::GlobalID> ListBlockExist[getObjectWrapper().particleSpecies.size()];
   
@@ -973,54 +973,479 @@ void RefinedV2(spatial_cell::SpatialCell* cell){
        
       vmesh::VelocityMesh* vmesh    = cell->get_velocity_mesh(popID);
       vmesh::VelocityMesh* vmeshraf    = cell->get_velocity_mesh(popID+1);
-      uint8_t *refined =cell->get_velocity_blocks(popID)->getRefined();  
       Realf *data = cell->get_velocity_blocks(popID)->getData();
       
       for (vmesh::LocalID localID=0; localID<vmesh->size(); ++localID) { 
-	vmesh::GlobalID globalID = vmesh->getGlobalID(localID);
-	vmesh::LocalID Indices[3];
-	vmesh->getIndices(globalID, Indices[0], Indices[1], Indices[2]);
+		vmesh::GlobalID globalID = vmesh->getGlobalID(localID);
+		vmesh::LocalID Indices[3];
+		vmesh->getIndices(globalID, Indices[0], Indices[1], Indices[2]);
 
-	if (getObjectWrapper().particleSpecies[popID].RefinementLevel==0) {
-	  ListBlockExist[popID].insert(globalID);
-	}
+		if (getObjectWrapper().particleSpecies[popID].RefinementLevel==0) {
+	  		ListBlockExist[popID].insert(globalID);
+		}
       
-	//loop over the future refinement block
-	for (int i=0; i<2; ++i) {
-	  for (int j=0; j<2; ++j) {
-	    for (int k=0; k<2; ++k) {
-	      Realf Datagros = 0; 
+		//loop over the future refinement block
+		for (int i=0; i<2; ++i) {
+	  	  for (int j=0; j<2; ++j) {
+	    	for (int k=0; k<2; ++k) {
+	      	  Realf Datagros = 0; 
 	   
-	      for (int i2=0; i2<2; ++i2) {
-		for (int j2=0; j2<2; ++j2) {
-		  for (int k2=0; k2<2; ++k2) {
-		    Datagros += data[localID*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)];
-		  }
-		}
-	      }
-	      Datagros/=8;
+	          for (int i2=0; i2<2; ++i2) {
+				for (int j2=0; j2<2; ++j2) {
+		       	  for (int k2=0; k2<2; ++k2) {
+		    	    Datagros += data[localID*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)];
+		  		  }
+				}
+	      	  }
+	      	  Datagros/=8;
 	    	      	     		    
-	      Realf D = abs( data[localID*WID3+cellIndex(1+i,1+j,1+k)] - Datagros ); // The idea is to always have the central cell	   
+	      	  Realf D = abs( data[localID*WID3+cellIndex(1+i,1+j,1+k)] - Datagros ); // The idea is to always have the central cell	   
 
-	      vmesh::LocalID Indicesraf[3];
-	      Indicesraf[0] = 2*Indices[0]+i ;
-	      Indicesraf[1] = 2*Indices[1]+j ;
-	      Indicesraf[2] = 2*Indices[2]+k ;
+	      	  vmesh::LocalID Indicesraf[3];
+	      	  Indicesraf[0] = 2*Indices[0]+i;
+	      	  Indicesraf[1] = 2*Indices[1]+j;
+	      	  Indicesraf[2] = 2*Indices[2]+k;
 
-	      vmesh::GlobalID globalIDraf=vmeshraf->getGlobalID(Indicesraf);
-	      if (globalIDraf==  vmeshraf->invalidGlobalID()) {
-		std::cout<< " GlobalID bug not normal"  <<std::endl;
-	      }else{	    
-		if (D > cell->getVelocityBlockMinValue(0)){
-		  // We should create a new cell for R+1
-		  ListBlockExist[popID+1].insert(globalIDraf);
-		}
-	      }
-	      
+	     	  vmesh::GlobalID globalIDraf=vmeshraf->getGlobalID(Indicesraf);
+	      	  if (globalIDraf==  vmeshraf->invalidGlobalID()) {
+			    //std::cout<< " GlobalID bug not normal"  <<std::endl;
+	      	  }else{	    
+				if (D > cell->getVelocityBlockMinValue(0)){
+		  		  // We should create a new cell for R+1
+		  		  ListBlockExist[popID+1].insert(globalIDraf);
+				}
+	      	  }
+	      	
+	    	}
+	  	 }
+	  } 
+
+    }
+    
+   }
+    
+  }
+
+  //We will now ensure that each level R+1 exist on the level R with the proper ghost cells between both
+  
+  for (int popID=(getObjectWrapper().particleSpecies.size()-2); popID>-1; --popID) {
+
+    if(getObjectWrapper().particleSpecies[popID].MaxRefinementLevel>0 && getObjectWrapper().particleSpecies[popID].RefinementLevel<getObjectWrapper().particleSpecies[popID].MaxRefinementLevel){
+
+      vmesh::VelocityMesh* vmesh    = cell->get_velocity_mesh(popID);
+      vmesh::VelocityMesh* vmeshraf = cell->get_velocity_mesh(popID+1);
+      
+      for (vmesh::GlobalID globalIDraf : ListBlockExist[popID+1]) {
 	
+	    vmesh::LocalID Indicesraf[3];
+		vmeshraf->getIndices(globalIDraf, Indicesraf[0], Indicesraf[1], Indicesraf[2]);
+
+		vmesh::LocalID Indices[3];
+		Indices[0] = Indicesraf[0]/2;
+		Indices[1] = Indicesraf[1]/2;
+		Indices[2] = Indicesraf[2]/2;
+	
+		int addWidthV = 0; //getObjectWrapper().particleSpecies[popID].sparseBlockAddWidthV; //plus l'écart de block entre 2 grilles
+		for (int offset_vx=-addWidthV;offset_vx<=addWidthV;offset_vx++) {
+	  	  for (int offset_vy=-addWidthV;offset_vy<=addWidthV;offset_vy++) {
+	    	for (int offset_vz=-addWidthV;offset_vz<=addWidthV;offset_vz++) {
+	      	  const vmesh::GlobalID globalID = vmesh->getGlobalID(Indices[0]+offset_vx,Indices[1]+offset_vy,Indices[2]+offset_vz);
+	      	  ListBlockExist[popID].insert(globalID);
+	    	}
+	  	  }
+		}
+      }
+
+    }
+  }
+
+  //create the cells if needed
+  for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+
+    if(getObjectWrapper().particleSpecies[popID].MaxRefinementLevel>0 ){
+
+      vmesh::VelocityMesh* vmesh  = cell->get_velocity_mesh(popID);
+      vmesh::LocalID Localsize= vmesh->size();
+      
+      for (vmesh::LocalID localID=0; localID<(Localsize-1); ++localID) { //If the blocks don't need to exist anymore, they are removed
+		vmesh::GlobalID globalID = vmesh->getGlobalID(localID);
+		vmesh::VelocityMesh* vmesh  = cell->get_velocity_mesh(popID); 
+		if (ListBlockExist[popID].find(globalID) == ListBlockExist[popID].end()) {
+	  	  cell->remove_velocity_block(globalID,popID);
+	      Localsize-=1;
+	      localID-=1;	    
 	    }
+      }
+
+      
+      if(popID!=0){
+	      
+		for (vmesh::GlobalID globalID : ListBlockExist[popID]) {
+	  
+	  	  if(cell->add_velocity_block(globalID,popID)){ //True if it's a new block
+	        //need to adapt the creation to the level of refinement needed
+   	        vmesh::VelocityMesh* vmesh    = cell->get_velocity_mesh(popID);
+	 	    vmesh::VelocityMesh* vmeshgros= cell->get_velocity_mesh(popID-1);
+		    Realf *datagros = cell->get_velocity_blocks(popID-1)->getData();
+		    Realf *data     = cell->get_velocity_blocks(popID)->getData(); 
+			  
+	        vmesh::LocalID Indices[3];
+	        vmesh->getIndices(globalID, Indices[0], Indices[1], Indices[2]);
+	        int i = Indices[0]%2;
+	        int j = Indices[1]%2;
+	        int k = Indices[2]%2;
+	    
+	    	vmesh::LocalID Indicesgros[3];
+	    	Indicesgros[0] = (Indices[0]-i)/2;
+	    	Indicesgros[1] = (Indices[1]-j)/2;
+	    	Indicesgros[2] = (Indices[2]-k)/2;
+
+		    vmesh::GlobalID globalIDgros=vmeshgros->getGlobalID(Indicesgros);
+		    vmesh::LocalID  localIDgros=vmeshgros->getLocalID(globalIDgros);
+	    	vmesh::LocalID  localIDcreated=vmesh->getLocalID(globalID);
+	  
+	    	for (int i2=0; i2<2; ++i2) {
+	      	  for (int j2=0; j2<2; ++j2) {
+				for (int k2=0; k2<2; ++k2) {
+		  		  data[localIDcreated*WID3+cellIndex(2*i2,2*j2,2*k2)]=datagros[localIDgros*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)];
+		  		  data[localIDcreated*WID3+cellIndex(2*i2+1,2*j2,2*k2)]=datagros[localIDgros*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)];
+		  		  data[localIDcreated*WID3+cellIndex(2*i2,2*j2+1,2*k2)]=datagros[localIDgros*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)];
+		 		  data[localIDcreated*WID3+cellIndex(2*i2,2*j2,2*k2+1)]=datagros[localIDgros*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)];
+		  		  data[localIDcreated*WID3+cellIndex(2*i2+1,2*j2+1,2*k2)]=datagros[localIDgros*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)];
+		  		  data[localIDcreated*WID3+cellIndex(2*i2+1,2*j2,2*k2+1)]=datagros[localIDgros*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)];
+		  		  data[localIDcreated*WID3+cellIndex(2*i2,2*j2+1,2*k2+1)]=datagros[localIDgros*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)];
+		  		  data[localIDcreated*WID3+cellIndex(2*i2+1,2*j2+1,2*k2+1)]=datagros[localIDgros*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)];
+				}
+	      	  }
+	    	} 
+	  
+	  	}
+
 	  }
-	} 
+
+    }else{
+	  for (vmesh::GlobalID globalID : ListBlockExist[popID]) {
+	    cell->add_velocity_block(globalID,popID);
+	  }
+    }
+      
+  }
+  }
+      
+}
+
+void RefinedOrder3(spatial_cell::SpatialCell* cell){
+  
+  std::unordered_set<vmesh::GlobalID> ListBlockExist[getObjectWrapper().particleSpecies.size()];
+
+  Realf M[3][3][3];
+  Realf A[3] = {1/8, 1, -1/8};
+
+  for (int i0 = 0; i0 < 3; i0++) {
+    for (int j0 = 0; j0 < 3; j0++) {
+      for (int k0 = 0; k0 < 3; k0++) {
+		M[i0][j0][k0] = A[i0] * A[j0] * A[k0];
+      }
+    }
+  }
+  
+  for (int popID=(getObjectWrapper().particleSpecies.size()-2); popID>-1; --popID) {
+
+    if(getObjectWrapper().particleSpecies[popID].MaxRefinementLevel>0 && getObjectWrapper().particleSpecies[popID].RefinementLevel<getObjectWrapper().particleSpecies[popID].MaxRefinementLevel){
+       
+      vmesh::VelocityMesh* vmesh    = cell->get_velocity_mesh(popID);
+      vmesh::VelocityMesh* vmeshraf    = cell->get_velocity_mesh(popID+1);
+      Realf *data = cell->get_velocity_blocks(popID)->getData();
+      
+      for (vmesh::LocalID localID=0; localID<vmesh->size(); ++localID) { 
+		vmesh::GlobalID globalID = vmesh->getGlobalID(localID);
+		vmesh::LocalID Indices[3];
+		vmesh->getIndices(globalID, Indices[0], Indices[1], Indices[2]);
+
+		if (getObjectWrapper().particleSpecies[popID].RefinementLevel==0) {
+	  	  ListBlockExist[popID].insert(globalID);
+		}
+      
+	    //loop over the future refinement block
+		for (int i=0; i<2; ++i) {
+	  	  for (int j=0; j<2; ++j) {
+	    	for (int k=0; k<2; ++k) {
+	      	  Realf Datagros = 0; 
+	   
+	      	  for (int i2=0; i2<2; ++i2) {
+				for (int j2=0; j2<2; ++j2) {
+		  		  for (int k2=0; k2<2; ++k2) {
+		    		Datagros += data[localID*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)];
+		  		  }
+				}
+	      	  }
+	      	  Datagros/=8;
+	    	      	     		    
+	      	  Realf D = abs( data[localID*WID3+cellIndex(1+i,1+j,1+k)] - Datagros ); // The idea is to always have the central cell	   
+
+	      	  vmesh::LocalID Indicesraf[3];
+	      	  Indicesraf[0] = 2*Indices[0]+i ;
+	      	  Indicesraf[1] = 2*Indices[1]+j ;
+	      	  Indicesraf[2] = 2*Indices[2]+k ;
+
+		      vmesh::GlobalID globalIDraf=vmeshraf->getGlobalID(Indicesraf);
+		      if (globalIDraf==  vmeshraf->invalidGlobalID()) {
+				//std::cout<< " GlobalID bug not normal"  <<std::endl;
+	      	  }else{	    
+				if (D > cell->getVelocityBlockMinValue(0)){
+				// We should create a new cell for R+1
+		  		  ListBlockExist[popID+1].insert(globalIDraf);
+				}
+	      	  }
+	      
+	    	}
+	  	  }
+		} 
+
+      }
+    
+    }
+    
+  }
+
+  //We will now ensure that each level R+1 exist on the level R with the proper ghost cells between both
+  
+  for (int popID=(getObjectWrapper().particleSpecies.size()-2); popID>-1; --popID) {
+
+    if(getObjectWrapper().particleSpecies[popID].MaxRefinementLevel>0 && getObjectWrapper().particleSpecies[popID].RefinementLevel<getObjectWrapper().particleSpecies[popID].MaxRefinementLevel){
+
+      vmesh::VelocityMesh* vmesh    = cell->get_velocity_mesh(popID);
+      vmesh::VelocityMesh* vmeshraf  = cell->get_velocity_mesh(popID+1);
+      
+      for (vmesh::GlobalID globalIDraf : ListBlockExist[popID+1]) {
+	
+		vmesh::LocalID Indicesraf[3];
+		vmeshraf->getIndices(globalIDraf, Indicesraf[0], Indicesraf[1], Indicesraf[2]);
+
+		vmesh::LocalID Indices[3];
+		Indices[0] = Indicesraf[0]/2;
+		Indices[1] = Indicesraf[1]/2;
+		Indices[2] = Indicesraf[2]/2;
+	
+		int addWidthV = 1;//getObjectWrapper().particleSpecies[popID].sparseBlockAddWidthV; //plus l'écart de block entre 2 grilles
+		for (int offset_vx=-addWidthV;offset_vx<=addWidthV;offset_vx++) {
+	 	  for (int offset_vy=-addWidthV;offset_vy<=addWidthV;offset_vy++) {
+	    	for (int offset_vz=-addWidthV;offset_vz<=addWidthV;offset_vz++) {
+	      	  const vmesh::GlobalID globalID = vmesh->getGlobalID(Indices[0]+offset_vx,Indices[1]+offset_vy,Indices[2]+offset_vz);
+	      	  if (globalID==  vmesh->invalidGlobalID()) {
+				//std::cout<< " GlobalID bug not normal" << "Indices[0]+offset_vx" << Indices[0]+offset_vx << "Indices[1]+offset_vy " << Indices[1]+offset_vy << "Indices[1]+offset_vy" << Indices[2]+offset_vz <<std::endl;
+	      	  }
+	      	  ListBlockExist[popID].insert(globalID);
+	    	}
+	  	  }
+		}
+      }
+
+    }
+  }
+
+  //create the cells if needed
+  for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+
+    if(getObjectWrapper().particleSpecies[popID].MaxRefinementLevel>0){
+
+      vmesh::VelocityMesh* vmeshinit  = cell->get_velocity_mesh(popID);
+      vmesh::LocalID Localsize= vmeshinit->size();
+      
+      for (vmesh::LocalID localID=0; localID<Localsize; ++localID) { //If the blocks don't need to exist anymore, they are removed
+		vmesh::VelocityMesh* vmeshinit2  = cell->get_velocity_mesh(popID);
+		vmesh::GlobalID globalID = vmeshinit2->getGlobalID(localID);
+		if (ListBlockExist[popID].find(globalID) == ListBlockExist[popID].end()) {
+	  	  cell->remove_velocity_block(globalID,popID);
+	  	  Localsize-=1;
+	  	  localID-=1;	    
+		}
+      }
+
+      
+      if(popID!=0){
+	      
+		for (vmesh::GlobalID globalID : ListBlockExist[popID]) {
+	  
+	 	  if(cell->add_velocity_block(globalID,popID)){
+	    	//True if it's a new block
+	    	//need to adapt the creation to the level of refinement needed
+	   		vmesh::VelocityMesh* vmesh  = cell->get_velocity_mesh(popID);
+	    	vmesh::VelocityMesh* vmeshgros  = cell->get_velocity_mesh(popID-1);
+	    	Realf *datagros = cell->get_velocity_blocks(popID-1)->getData();
+	    	Realf *data = cell->get_velocity_blocks(popID)->getData(); 
+
+	    	vmesh::LocalID  localIDcreated=vmesh->getLocalID(globalID);
+	    	if (localIDcreated==  vmesh->invalidLocalID()) {
+	      	  //std::cout<< " localIDcreated bug not normal"  <<std::endl;
+	    	}
+	    
+	    	vmesh::LocalID Indices[3];
+	    	vmesh->getIndices(globalID, Indices[0], Indices[1], Indices[2]);
+	    	int i = Indices[0]%2;
+	    	int j = Indices[1]%2;
+	    	int k = Indices[2]%2;
+
+	    	vmesh::LocalID Indicesgrosinit[3];
+	    	Indicesgrosinit[0] = (Indices[0]-i)/2;
+	    	Indicesgrosinit[1] = (Indices[1]-j)/2;
+	    	Indicesgrosinit[2] = (Indices[2]-k)/2;
+
+	    	for (int i2=0; i2<2; ++i2) {
+	      	  for (int j2=0; j2<2; ++j2) {
+				for (int k2=0; k2<2; ++k2) {
+
+		  		  for (int i4=-1; i4<2; ++i4){
+		    		for (int j4=-1; j4<2; ++j4){
+		      		  for (int k4=-1; k4<2; ++k4){
+			      
+						int i5=2*i+i2+i4;//*(1-2*i3);
+						int j5=2*j+j2+j4;
+						int k5=2*k+k2+k4;
+
+						vmesh::LocalID Indicesgros[3];
+						Indicesgros[0] = Indicesgrosinit[0];
+						Indicesgros[1] = Indicesgrosinit[1];
+						Indicesgros[2] = Indicesgrosinit[2];
+			 
+						if(i5<0){
+			  			  Indicesgros[0]-= 1;
+						}else if(i5> WID-1){
+			  			  Indicesgros[0]+= 1;
+						}
+			
+						if(j5<0){
+			  			  Indicesgros[1]-= 1;
+						}else if(j5> WID-1){
+			  			  Indicesgros[1]+= 1;
+						}
+			
+						if(k5<0){
+			  			  Indicesgros[2]-= 1;
+						}else if(k5> WID-1){
+			  			  Indicesgros[2]+= 1;
+						}
+
+						vmesh::GlobalID globalIDgros=vmeshgros->getGlobalID(Indicesgros);
+						if (globalIDgros==  vmeshgros->invalidGlobalID()) {
+			 			  //std::cout<< " GlobalID bug not normal"<< "Indices[0] " << Indices[0] << "Indicesgros[0] "<< Indicesgros[0] << " GlobalID " << globalID << " PopID " << popID <<std::endl;
+						}
+	     
+						vmesh::LocalID  localIDgros=vmeshgros->getLocalID(globalIDgros);
+						if (localIDgros==  vmeshgros->invalidLocalID()) {
+			  			  //std::cout<< " localIDgros bug not normal"<< "Indices[0] " << Indices[0] << "Indicesgros[0] "<< Indicesgros[0] << " GlobalIDgros " << globalIDgros << " i5, j5, k5 " << i5 << " " << j5 << " " << k5 << " "  <<std::endl;
+						}
+
+						i5 = (i5 + WID)%WID;
+						j5 = (j5 + WID)%WID;
+						k5 = (k5 + WID)%WID;
+
+						if (i5<0 || i5>(WID-1) || j5<0 || j5>(WID-1) ||  k5<0 || k5>(WID-1) ) {
+			  			  //std::cout<< " localidgros bug not normal"<< "Indices[0] " << Indices[0] << "Indicesgros[0] "<< Indicesgros[0] << " GlobalIDgros " << globalIDgros << " i5, j5, k5 " << i5 << " " << j5 << " " << k5 << " "  <<std::endl;
+						}
+			
+						Realf contribution=datagros[localIDgros*WID3+cellIndex(i5,j5,k5)];
+
+						data[localIDcreated*WID3+cellIndex(2*i2,2*j2,2*k2)]+=M[i4+1][j4+1][k4+1]*contribution;
+						data[localIDcreated*WID3+cellIndex(2*i2+1,2*j2,2*k2)]+=M[-i4+1][j4+1][k4+1]*contribution;
+						data[localIDcreated*WID3+cellIndex(2*i2,2*j2+1,2*k2)]+=M[i4+1][-j4+1][k4+1]*contribution;
+						data[localIDcreated*WID3+cellIndex(2*i2,2*j2,2*k2+1)]+=M[i4+1][j4+1][-k4+1]*contribution;
+						data[localIDcreated*WID3+cellIndex(2*i2+1,2*j2+1,2*k2)]+=M[-i4+1][-j4+1][k4+1]*contribution;
+						data[localIDcreated*WID3+cellIndex(2*i2+1,2*j2,2*k2+1)]+=M[-i4+1][j4+1][-k4+1]*contribution;
+						data[localIDcreated*WID3+cellIndex(2*i2,2*j2+1,2*k2+1)]+=M[i4+1][-j4+1][-k4+1]*contribution;
+						data[localIDcreated*WID3+cellIndex(2*i2+1,2*j2+1,2*k2+1)]+=M[-i4+1][-j4+1][-k4+1]*contribution;
+				       
+		      		  }		
+		    		}
+		  		  }
+		  
+				}
+	      	  }
+	    	} 
+
+	  	  }
+	  
+		}
+
+      }else{ //popID=0
+		for (vmesh::GlobalID globalID : ListBlockExist[popID]) {
+	  	  cell->add_velocity_block(globalID,popID);
+		}
+      }
+      
+    }
+  }
+      
+}
+
+
+void RefinedOrder5(spatial_cell::SpatialCell* cell){
+  
+  std::unordered_set<vmesh::GlobalID> ListBlockExist[getObjectWrapper().particleSpecies.size()];
+
+  Realf M[5][5][5];
+  Realf A[5] = {3/128, 11/64, 1, -11/64, -3/128};
+
+  for (int i0 = 0; i0 < 5; i0++) {
+    for (int j0 = 0; j0 < 5; j0++) {
+      for (int k0 = 0; k0 < 5; k0++) {
+		M[i0][j0][k0] = A[i0] * A[j0] * A[k0];
+      }
+    }
+  }
+  
+  for (int popID=(getObjectWrapper().particleSpecies.size()-2); popID>-1; --popID) {
+
+    if(getObjectWrapper().particleSpecies[popID].MaxRefinementLevel>0 && getObjectWrapper().particleSpecies[popID].RefinementLevel<getObjectWrapper().particleSpecies[popID].MaxRefinementLevel){
+       
+      vmesh::VelocityMesh* vmesh    = cell->get_velocity_mesh(popID);
+      vmesh::VelocityMesh* vmeshraf    = cell->get_velocity_mesh(popID+1);
+      Realf *data = cell->get_velocity_blocks(popID)->getData();
+      
+      for (vmesh::LocalID localID=0; localID<vmesh->size(); ++localID) { 
+		vmesh::GlobalID globalID = vmesh->getGlobalID(localID);
+		vmesh::LocalID Indices[3];
+		vmesh->getIndices(globalID, Indices[0], Indices[1], Indices[2]);
+
+		if (getObjectWrapper().particleSpecies[popID].RefinementLevel==0) {
+	  	  ListBlockExist[popID].insert(globalID);
+		}
+      
+	 	//loop over the future refinement block
+		for (int i=0; i<2; ++i) {
+	  	  for (int j=0; j<2; ++j) {
+	    	for (int k=0; k<2; ++k) {
+	      	  Realf Datagros = 0; 
+	   
+	      	  for (int i2=0; i2<2; ++i2) {
+				for (int j2=0; j2<2; ++j2) {
+		  		  for (int k2=0; k2<2; ++k2) {
+		    		Datagros += data[localID*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)];
+		  		  }
+				}
+	      	  }
+	      	  Datagros/=8;
+	    	      	     		    
+	      	  Realf D = abs( data[localID*WID3+cellIndex(1+i,1+j,1+k)] - Datagros ); // The idea is to always have the central cell	   
+
+	      	  vmesh::LocalID Indicesraf[3];
+	      	  Indicesraf[0] = 2*Indices[0]+i ;
+	      	  Indicesraf[1] = 2*Indices[1]+j ;
+	      	  Indicesraf[2] = 2*Indices[2]+k ;
+
+	      	  vmesh::GlobalID globalIDraf=vmeshraf->getGlobalID(Indicesraf);
+	      	  if (globalIDraf==  vmeshraf->invalidGlobalID()) {
+				//std::cout<< " GlobalID bug not normal"  <<std::endl;
+	      	  }else{	    
+				if (D > cell->getVelocityBlockMinValue(0)){
+		  		  // We should create a new cell for R+1
+		  		  ListBlockExist[popID+1].insert(globalIDraf);
+				}
+	      	  }
+		
+	    	}
+	  	  }
+		} 
 
       }
     
@@ -1039,24 +1464,27 @@ void RefinedV2(spatial_cell::SpatialCell* cell){
       
       for (vmesh::GlobalID globalIDraf : ListBlockExist[popID+1]) {
 	
-	vmesh::LocalID Indicesraf[3];
-	vmeshraf->getIndices(globalIDraf, Indicesraf[0], Indicesraf[1], Indicesraf[2]);
+		vmesh::LocalID Indicesraf[3];
+		vmeshraf->getIndices(globalIDraf, Indicesraf[0], Indicesraf[1], Indicesraf[2]);
 
-	vmesh::LocalID Indices[3];
-	Indices[0] = Indicesraf[0]/2;
-	Indices[1] = Indicesraf[1]/2;
-	Indices[2] = Indicesraf[2]/2;
+		vmesh::LocalID Indices[3];
+		Indices[0] = Indicesraf[0]/2;
+		Indices[1] = Indicesraf[1]/2;
+		Indices[2] = Indicesraf[2]/2;
 	
-	int addWidthV = getObjectWrapper().particleSpecies[popID].sparseBlockAddWidthV; //plus l'écart de block entre 2 grilles
-	for (int offset_vx=-addWidthV;offset_vx<=addWidthV;offset_vx++) {
-	  for (int offset_vy=-addWidthV;offset_vy<=addWidthV;offset_vy++) {
-	    for (int offset_vz=-addWidthV;offset_vz<=addWidthV;offset_vz++) {
-	      const vmesh::GlobalID globalID = vmesh->getGlobalID(Indices[0]+offset_vx,Indices[1]+offset_vy,Indices[2]+offset_vz);
-	      ListBlockExist[popID].insert(globalID);
-	    }
-	  }
-	}
-      }
+		int addWidthV = 1;//getObjectWrapper().particleSpecies[popID].sparseBlockAddWidthV; //plus l'écart de block entre 2 grilles
+		  for (int offset_vx=-addWidthV;offset_vx<=addWidthV;offset_vx++) {
+	  		for (int offset_vy=-addWidthV;offset_vy<=addWidthV;offset_vy++) {
+	    	  for (int offset_vz=-addWidthV;offset_vz<=addWidthV;offset_vz++) {
+	      		const vmesh::GlobalID globalID = vmesh->getGlobalID(Indices[0]+offset_vx,Indices[1]+offset_vy,Indices[2]+offset_vz);
+	      		if (globalID==  vmesh->invalidGlobalID()) {
+				  std::cout<< " GlobalID bug not normal" << "Indices[0]+offset_vx" << Indices[0]+offset_vx << "Indices[1]+offset_vy " << Indices[1]+offset_vy << "Indices[1]+offset_vy" << Indices[2]+offset_vz <<std::endl;
+	      		}
+	      		ListBlockExist[popID].insert(globalID);
+	    	  }
+	  		}
+		  }
+        }
 
     }
   }
@@ -1064,73 +1492,128 @@ void RefinedV2(spatial_cell::SpatialCell* cell){
   //create the cells if needed
   for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
 
-    if(getObjectWrapper().particleSpecies[popID].MaxRefinementLevel>0 ){
+    if(getObjectWrapper().particleSpecies[popID].MaxRefinementLevel>0){
 
-      vmesh::VelocityMesh* vmesh  = cell->get_velocity_mesh(popID);
-      vmesh::LocalID Localsize= vmesh->size();
+      vmesh::VelocityMesh* vmeshinit  = cell->get_velocity_mesh(popID);
+      vmesh::LocalID Localsize= vmeshinit->size();
       
-      for (vmesh::LocalID localID=0; localID<(Localsize-1); ++localID) { //If the blocks don't need to exist anymore, they are removed
-	vmesh::GlobalID globalID = vmesh->getGlobalID(localID);
-	if (ListBlockExist[popID].find(globalID) == ListBlockExist[popID].end()) {
-	  cell->remove_velocity_block(globalID,popID);
-	  Localsize-=1;
-	  localID-=1;	    
-	}
+      for (vmesh::LocalID localID=0; localID<Localsize; ++localID) { //If the blocks don't need to exist anymore, they are removed
+		vmesh::VelocityMesh* vmeshinit2  = cell->get_velocity_mesh(popID);
+		vmesh::GlobalID globalID = vmeshinit2->getGlobalID(localID);
+		if (ListBlockExist[popID].find(globalID) == ListBlockExist[popID].end()) {
+	  	  cell->remove_velocity_block(globalID,popID);
+	  	  Localsize-=1;
+	  	  localID-=1;	    
+		}
       }
-
       
       if(popID!=0){
-	vmesh::VelocityMesh* vmeshgros    = cell->get_velocity_mesh(popID-1);
-	Realf *datagros = cell->get_velocity_blocks(popID-1)->getData();
-	Realf *data = cell->get_velocity_blocks(popID)->getData(); 
 	      
-	for (vmesh::GlobalID globalID : ListBlockExist[popID]) {
+		for (vmesh::GlobalID globalID : ListBlockExist[popID]) {
 	  
-	  if(cell->add_velocity_block(globalID,popID)){ //True if it's a new block
-	    //need to adapt the creation to the level of refinement needed
-	 
-	    vmesh::LocalID Indices[3];
-	    vmesh->getIndices(globalID, Indices[0], Indices[1], Indices[2]);
-	    int i = Indices[0]%2;
-	    int j = Indices[1]%2;
-	    int k = Indices[2]%2;
-	    
-	    vmesh::LocalID Indicesgros[3];
-	    Indicesgros[0] = (Indices[0]-i)/2;
-	    Indicesgros[1] = (Indices[1]-j)/2;
-	    Indicesgros[2] = (Indices[2]-k)/2;
+	  	if(cell->add_velocity_block(globalID,popID)){
+	      //True if it's a new block
+	      //need to adapt the creation to the level of refinement needed
+	      vmesh::VelocityMesh* vmesh  = cell->get_velocity_mesh(popID);
+	      vmesh::VelocityMesh* vmeshgros  = cell->get_velocity_mesh(popID-1);
+	      Realf *datagros = cell->get_velocity_blocks(popID-1)->getData();
+	      Realf *data = cell->get_velocity_blocks(popID)->getData(); 
 
-	    vmesh::GlobalID globalIDgros=vmeshgros->getGlobalID(Indicesgros);
-	    vmesh::LocalID  localIDgros=vmeshgros->getLocalID(globalIDgros);
-	    vmesh::LocalID  localIDcreated=vmesh->getLocalID(globalID);
-	  
-	    for (int i2=0; i2<2; ++i2) {
-	      for (int j2=0; j2<2; ++j2) {
-		for (int k2=0; k2<2; ++k2) {
-		  data[localIDcreated*WID3+cellIndex(2*i2,2*j2,2*k2)]=datagros[localIDgros*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)];
-		  data[localIDcreated*WID3+cellIndex(2*i2+1,2*j2,2*k2)]=datagros[localIDgros*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)];
-		  data[localIDcreated*WID3+cellIndex(2*i2,2*j2+1,2*k2)]=datagros[localIDgros*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)];
-		  data[localIDcreated*WID3+cellIndex(2*i2,2*j2,2*k2+1)]=datagros[localIDgros*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)];
-		  data[localIDcreated*WID3+cellIndex(2*i2+1,2*j2+1,2*k2)]=datagros[localIDgros*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)];
-		  data[localIDcreated*WID3+cellIndex(2*i2+1,2*j2,2*k2+1)]=datagros[localIDgros*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)];
-		  data[localIDcreated*WID3+cellIndex(2*i2,2*j2+1,2*k2+1)]=datagros[localIDgros*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)];
-		  data[localIDcreated*WID3+cellIndex(2*i2+1,2*j2+1,2*k2+1)]=datagros[localIDgros*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)];
-		}
+	      vmesh::LocalID  localIDcreated=vmesh->getLocalID(globalID);
+	      if (localIDcreated==  vmesh->invalidLocalID()) {
+	    	std::cout<< " localIDcreated bug not normal"  <<std::endl;
 	      }
-	    } 
+	    
+	      vmesh::LocalID Indices[3];
+	      vmesh->getIndices(globalID, Indices[0], Indices[1], Indices[2]);
+	      int i = Indices[0]%2;
+	      int j = Indices[1]%2;
+	      int k = Indices[2]%2;
+
+	      vmesh::LocalID Indicesgrosinit[3];
+	      Indicesgrosinit[0] = (Indices[0]-i)/2;
+	      Indicesgrosinit[1] = (Indices[1]-j)/2;
+	      Indicesgrosinit[2] = (Indices[2]-k)/2;
+
+	      for (int i2=0; i2<2; ++i2) {
+	        for (int j2=0; j2<2; ++j2) {
+			  for (int k2=0; k2<2; ++k2) {
+
+		  		for (int i4=-2; i4<3; ++i4){
+		    	  for (int j4=-2; j4<3; ++j4){
+		      		for (int k4=-2; k4<3; ++k4){
+			      
+					  int i5=2*i+i2+i4;//*(1-2*i3);
+					  int j5=2*j+j2+j4;
+					  int k5=2*k+k2+k4;
+
+					  vmesh::LocalID Indicesgros[3];
+					  Indicesgros[0] = Indicesgrosinit[0];
+					  Indicesgros[1] = Indicesgrosinit[1];
+					  Indicesgros[2] = Indicesgrosinit[2];
+			 
+					  if(i5<0){
+			  			Indicesgros[0]-= 1;
+					  }else if(i5> WID-1){
+			  			Indicesgros[0]+= 1;
+					  }
+			
+					  if(j5<0){
+			  			Indicesgros[1]-= 1;
+					  }else if(j5> WID-1){
+			  			Indicesgros[1]+= 1;
+					  }
+			
+					  if(k5<0){
+			  			Indicesgros[2]-= 1;
+					  }else if(k5> WID-1){
+			  			Indicesgros[2]+= 1;
+					  }
+
+					  vmesh::GlobalID globalIDgros=vmeshgros->getGlobalID(Indicesgros);
+					  if (globalIDgros==  vmeshgros->invalidGlobalID()) {
+			  			std::cout<< " GlobalID bug not normal"<< "Indices[0] " << Indices[0] << "Indicesgros[0] "<< Indicesgros[0] << " GlobalID " << globalID << " PopID " << popID <<std::endl;
+					  }
+	     
+					  vmesh::LocalID  localIDgros=vmeshgros->getLocalID(globalIDgros);
+					  if (localIDgros==  vmeshgros->invalidLocalID()) {
+			  			std::cout<< " localIDgros bug not normal"<< "Indices[0] " << Indices[0] << "Indicesgros[0] "<< Indicesgros[0] << " GlobalIDgros " << globalIDgros << " i5, j5, k5 " << i5 << " " << j5 << " " << k5 << " "  <<std::endl;
+					  }
+
+					  i5 = (i5 + WID)%WID;
+					  j5 = (j5 + WID)%WID;
+		 			  k5 = (k5 + WID)%WID;
+			
+					  Realf contribution=datagros[localIDgros*WID3+cellIndex(i5,j5,k5)];
+
+					  data[localIDcreated*WID3+cellIndex(2*i2,2*j2,2*k2)]+=M[i4+2][j4+2][k4+2]*contribution;
+					  data[localIDcreated*WID3+cellIndex(2*i2+1,2*j2,2*k2)]+=M[-i4+2][j4+2][k4+2]*contribution;
+					  data[localIDcreated*WID3+cellIndex(2*i2,2*j2+1,2*k2)]+=M[i4+2][-j4+2][k4+2]*contribution;
+					  data[localIDcreated*WID3+cellIndex(2*i2,2*j2,2*k2+1)]+=M[i4+2][j4+2][-k4+2]*contribution;
+					  data[localIDcreated*WID3+cellIndex(2*i2+1,2*j2+1,2*k2)]+=M[-i4+2][-j4+2][k4+2]*contribution;
+					  data[localIDcreated*WID3+cellIndex(2*i2+1,2*j2,2*k2+1)]+=M[-i4+2][j4+2][-k4+2]*contribution;
+					  data[localIDcreated*WID3+cellIndex(2*i2,2*j2+1,2*k2+1)]+=M[i4+2][-j4+2][-k4+2]*contribution;
+					  data[localIDcreated*WID3+cellIndex(2*i2+1,2*j2+1,2*k2+1)]+=M[-i4+2][-j4+2][-k4+2]*contribution;
+				       
+		      		}		
+		    	  }
+		  		}
+		  
+			  }
+	  		}
+		  } 
+
+  		}
 	  
 	  }
 
-	}
-
-      }else{
-
-	for (vmesh::GlobalID globalID : ListBlockExist[popID]) {
-	  cell->add_velocity_block(globalID,popID);
-	}
-      }
+	}else{ //popID=0
+   	  for (vmesh::GlobalID globalID : ListBlockExist[popID]) {
+      	cell->add_velocity_block(globalID,popID);
+  	  }
+  	}
       
-    }
-    }
+  }
+}
       
 }
