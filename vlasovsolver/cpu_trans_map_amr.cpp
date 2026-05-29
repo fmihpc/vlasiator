@@ -402,29 +402,25 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
 
             phiprof::Timer memsetTimer {memsetTimerId};
             // reset blocks in all non-sysboundary neighbor spatial cells for this block id
-            for (uint pencili : DimensionPencils[dimension].pencilsInBin[currentBin]) {
-               if (DimensionPencils[dimension].timeclasses[pencili] != timeclass) {
+            for (CellID target_cell_id: DimensionPencils[dimension].targetCellsInBin[currentBin]) {
+               if (DimensionPencils[dimension].activeBinTimeclasses[currentBin].count(timeclass) == 0) {
                   continue;
                }
-               for (uint targeti = DimensionPencils[dimension].idsStart[pencili]; targeti < DimensionPencils[dimension].idsStart[pencili]+DimensionPencils[dimension].lengthOfPencils[pencili]; ++targeti){
-                  CellID target_cell_id = DimensionPencils[dimension].ids[targeti];
+               SpatialCell* target_cell = mpiGrid[target_cell_id];
+               if (target_cell){
+                  vmesh::LocalID blockLID;
+                  blockLID = target_cell->get_velocity_block_local_id(blockGID, popID, timeclass);
 
-                  SpatialCell* target_cell = mpiGrid[target_cell_id];
-                  if (target_cell){
-                     vmesh::LocalID blockLID;
-                     blockLID = target_cell->get_velocity_block_local_id(blockGID, popID, timeclass);
-
-                     if (blockLID != vmesh::VelocityMesh::invalidLocalID()) {
-                        // Get a pointer to the block data
-                        Realf* blockData = NULL;
-                        blockData = target_cell->get_data(blockLID, popID, timeclass);
-                        if(blockData){
-                           memset(blockData, 0, WID3*sizeof(Realf));
-                        }
+                  if (/*DimensionPencils[dimension].targetRatios[targeti] > 0 &&*/ blockLID != vmesh::VelocityMesh::invalidLocalID()) {
+                     // Get a pointer to the block data
+                     Realf* blockData = target_cell->get_data(blockLID, popID, timeclass);
+                     if(blockData){
+                        memset(blockData, 0, WID3*sizeof(Realf));
                      }
                   }
                }
             }
+            
             memsetTimer.stop();
 
             phiprof::Timer propagateTimer {propagateTimerId};
