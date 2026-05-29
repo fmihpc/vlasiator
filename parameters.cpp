@@ -123,6 +123,7 @@ bool P::propagateField = true;
 
 bool P::dynamicTimestep = true;
 bool P::activateVamr = false;
+uint P::vAMRrefineStep = 5;
 
 Real P::maxWaveVelocity = 0.0;
 uint P::maxFieldSolverSubcycles = 0.0;
@@ -308,6 +309,7 @@ bool P::addParameters() {
    RP::add("activate_vamr",
            "Activate the velocity mesh refinement. If true, it is activated and some more inputs are needed. ",
            false);
+   RP::add("vamr_refineStep","Number of steps between each velocity refinement check", 5);
    RP::add("hallMinimumRho",
            "Minimum rho value used for the Hall and electron pressure gradient terms in the Lorentz force and in the "
            "field solver. Default is very low and has no effect in practice.",
@@ -781,6 +783,7 @@ void Parameters::getParameters() {
    RP::get("propagate_vlasov_translation", P::propagateVlasovTranslation);
    RP::get("dynamic_timestep", P::dynamicTimestep);
    RP::get("activate_vamr", P::activateVamr);
+   RP::get("vamr_refineStep", P::vAMRrefineStep);
    Real hallRho;
    RP::get("hallMinimumRho", hallRho);
    P::hallMinimumRhom = hallRho * physicalconstants::MASS_PROTON;
