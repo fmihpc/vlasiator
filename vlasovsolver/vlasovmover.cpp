@@ -650,13 +650,13 @@ void calculateAcceleration(const uint popID,const int globalMaxSubcycles,const i
    // set seed, initialise generator and get value. The order is the same
    // for all cells, but varies with timestep.
    std::default_random_engine rndState;
-   rndState.seed(P::tstep+ P::fractionalTimestep); // WARNING this formulation actually has some correlations (P::tstep + P::fractionalTimestep can do aliasing...)
+   rndState.seed(P::tstep);
+   //rndState.seed(P::tstep + P::fractionalTimestep); // WARNING this formulation actually has some correlations (P::tstep + P::fractionalTimestep can do aliasing...)
    #ifndef DEBUG_TIMECLASSES
       uint map_order=std::uniform_int_distribution<>(0,2)(rndState);
    #else
       uint map_order=1;
    #endif
-   map_order=1;
    // Semi-Lagrangian acceleration for those cells which are subcycled
    // std::cout << "Propagating (ACC) cells ";
    // #pragma omp parallel for schedule(dynamic,1)
