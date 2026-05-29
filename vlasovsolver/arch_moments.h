@@ -89,7 +89,11 @@ void changeRefined(spatial_cell::SpatialCell* cell,
 
 void RefinedVamr(spatial_cell::SpatialCell* cell);
 
-void RefinedV2(spatial_cell::SpatialCell* cell);
+void RefinedOrder1(spatial_cell::SpatialCell* cell);
+
+void RefinedOrder3(spatial_cell::SpatialCell* cell);
+
+void RefinedOrder5(spatial_cell::SpatialCell* cell);
 
 // ***** TEMPLATE FUNCTION DEFINITIONS ***** //
 
