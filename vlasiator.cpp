@@ -1344,11 +1344,20 @@ int simulate(int argn,char* args[]) {
       
       phiprof::Timer vspaceTimer {"Velocity-space"};
       if ( P::propagateVlasovAcceleration ) {
-         calculateAcceleration(mpiGrid,P::dt,true);
-         addTimedBarrier("barrier-after-ad just-blocks");
-      } else {
-         //zero step to set up moments _v
-         calculateAcceleration(mpiGrid, 0.0,true);
+		if(P::activateVamr && (P::tstep % P::vAMRrefineStep) == 0){
+	  	  calculateAcceleration(mpiGrid,P::dt, true);
+		}else{
+	  	  calculateAcceleration(mpiGrid,P::dt, false);
+		}
+		//std::cout<< " check 4  " <<std::endl;
+		addTimedBarrier("barrier-after-ad just-blocks");
+      }else{
+      	//zero step to set up moments _v
+		if(P::activateVamr && (P::tstep % P::vAMRrefineStep) == 0){
+	  	  calculateAcceleration(mpiGrid, 0.0,true);
+		}else{
+	  	  calculateAcceleration(mpiGrid, 0.0,false);
+		}
       }
       vspaceTimer.stop(computedCells, "Cells");
       addTimedBarrier("barrier-after-acceleration");
