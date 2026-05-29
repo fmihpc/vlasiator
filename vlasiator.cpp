@@ -209,17 +209,17 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    localDt = meanVlasovCFL * dtMaxLocal[0];
    localDt = min(localDt,meanVlasovCFL * dtMaxLocal[1] * P::maxSlAccelerationSubcycles);
    localDt = min(localDt,meanFieldsCFL * dtMaxLocal[2] * P::maxFieldSolverSubcycles);
-   if (myRank == MASTER_RANK) cout << "localDt " << localDt <<"\n";
+   if (myRank == MASTER_RANK && P::maxTimeclass > 0) cout << "localDt " << localDt <<"\n";
    // newDt: max dt globally, at the highest timeclass
    newDt = meanVlasovCFL * dtMaxGlobal[0];
    newDt = min(newDt,meanVlasovCFL * dtMaxGlobal[1] * P::maxSlAccelerationSubcycles);
    newDt = min(newDt,meanFieldsCFL * dtMaxGlobal[2] * P::maxFieldSolverSubcycles);
-   if (myRank == MASTER_RANK) cout << "newDt " << newDt <<"\n";
+   if (myRank == MASTER_RANK && P::maxTimeclass > 0) cout << "newDt " << newDt <<"\n";
    // baseDt: longest max dt of any rank
    baseDt = meanVlasovCFL * dtMinMaxGlobal[0];
    baseDt = min(baseDt,meanVlasovCFL * dtMinMaxGlobal[1] * P::maxSlAccelerationSubcycles);
    baseDt = min(baseDt,meanFieldsCFL * dtMinMaxGlobal[2] * P::maxFieldSolverSubcycles);   
-   if (myRank == MASTER_RANK) cout << "baseDt " << baseDt <<"\n";
+   if (myRank == MASTER_RANK && P::maxTimeclass > 0) cout << "baseDt " << baseDt <<"\n";
 
    Real fsdt; // newDt/new field solver timestep
    if (P::dynamicTimestep) {
@@ -254,10 +254,14 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       newTimeclassDts[i] = fsdt*pow(2,P::currentMaxTimeclass - min(i,P::currentMaxTimeclass));
    }
 
-   if (myRank == MASTER_RANK) cout << "dtrange: " << timeclassRange << ", newDt = " << newDt <<
+   if (myRank == MASTER_RANK  && P::maxTimeclass > 0){   
+      cout << "dtrange: " << timeclassRange << ", newDt = " << newDt <<
     ", baseDt = " << baseDt << ", fsdt " << fsdt << ", current max tc "<< P::currentMaxTimeclass<< std::endl;
+   }
    baseDt = fsdt*pow(2, P::currentMaxTimeclass);
-   if (myRank == MASTER_RANK) cout << "for new baseDt = " << baseDt << std::endl;
+   if (myRank == MASTER_RANK && P::maxTimeclass > 0){
+      cout << "for new baseDt = " << baseDt << std::endl;
+   }
    
    // TODO handle changing P::currentMaxTimeclass!
 
@@ -315,7 +319,6 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       }
    }
    else if(P::tc_test_type == 2 || P::tc_test_type == 3 || P::tc_test_type == 4){ 
-      std::cerr << "TC test 2\n";
       if(P::maxTimeclass > 2){
          std::cerr << "This test works best with timeclass 1 or 2\n";
          // abort();
@@ -537,7 +540,9 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    } else {
       subcycleDt = P::dt;
    }
-   if (myRank == MASTER_RANK) std::cerr << "Difference between new fs_dt/maxTC dt and initial given dt = " << std::scientific << P::dt - P::dt0 << "\n";
+   if (myRank == MASTER_RANK && P::maxTimeclass > 0) {
+      std::cerr << "Difference between new fs_dt/maxTC dt and initial given dt = " << std::scientific << P::dt - P::dt0 << endl;
+   }
 
    // Subcycle if field solver dt < global dt (including CFL) (new or old dt hence the hassle with subcycleDt
    if (meanFieldsCFL * dtMaxGlobal[2] < subcycleDt && P::propagateField) {
@@ -1570,12 +1575,10 @@ int simulate(int argn,char* args[]) {
             }
             abort();
          }
-         std::cout << "Computing new dts\n";
+         // logfile << "Computing new dts" << endl;
          computeNewTimeStep(mpiGrid, technicalGrid, newDt, dtIsChanged, newTimeclassDts);
-         // if (P::vlasovSolverGhostTranslate) {
-         //    getGhostNeighborsforTC(mpiGrid, cells);
-         // }
-         if(myRank == MASTER_RANK){
+
+         if(myRank == MASTER_RANK && P::maxTimeclass > 0){
             std::cout << "timeclass dts = ";
             for(int i = 0; i <= P::maxTimeclass; ++i){
                std::cout << i <<": " << newTimeclassDts[i] << "s, ";
