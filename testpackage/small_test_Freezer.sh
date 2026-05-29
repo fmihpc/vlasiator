@@ -7,7 +7,7 @@ run_command_tools="mpirun -n 1"
 t=8
 export OMP_NUM_THREADS=$t
 
-bin="../vlsasiator"
+bin="../vlasiator"
 diffbin="../vlsvdiff_DP"
 
 
@@ -17,7 +17,7 @@ create_verification_files=0
 
 
 #folder for all reference data 
-reference_dir="/scratch/testpackage/dev/"
+reference_dir="/scratch/testpackage/"
 #compare agains which revision. This can be a proper version string, or "current", which should be a symlink to the
 #proper most recent one
 reference_revision="current"
