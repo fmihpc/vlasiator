@@ -486,7 +486,7 @@ namespace projects {
                VZ = sP.V0d[2];
             }
          }
-      
+      }
 
       // Disable compiler warnings: (unused variables but the function is inherited)
       (void)y;
