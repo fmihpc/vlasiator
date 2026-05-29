@@ -411,10 +411,6 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
 
                   SpatialCell* target_cell = mpiGrid[target_cell_id];
                   if (target_cell){
-                     vmesh::VelocityMesh* velmesh;
-                     vmesh::VelocityBlockContainer* velblocks;
-                     velmesh = target_cell->get_velocity_mesh(popID, timeclass);
-                     velblocks = target_cell->get_velocity_blocks(popID, timeclass);
                      vmesh::LocalID blockLID;
                      blockLID = target_cell->get_velocity_block_local_id(blockGID, popID, timeclass);
 
