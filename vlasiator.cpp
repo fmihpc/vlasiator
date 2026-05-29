@@ -1883,8 +1883,7 @@ int simulate(int argn,char* args[]) {
 
                   logFile <<" dt changed to "<<P::dt <<"s, distribution function was half-stepped to real-time and back"<<endl<<writeVerbose;
                   updateDtimer.stop();
-                  //continue;
-                  break; // we use break, since we want to restart the full loop, not the fractional timeclass loop 
+                  continue;
                   //addTimedBarrier("barrier-new-dt-set");
                }
 
@@ -1944,8 +1943,7 @@ int simulate(int argn,char* args[]) {
 
                   logFile <<" dt changed to "<<P::dt <<"s, distribution function was half-stepped to real-time and back"<<endl<<writeVerbose;
                   updateDtimer.stop();
-                  //continue;
-                  break; // we use break, since we want to restart the full loop, not the fractional timeclass loop 
+                  continue;
                   //addTimedBarrier("barrier-new-dt-set");
                }
                // check if any cell timeclass need to change, if yes, abort
