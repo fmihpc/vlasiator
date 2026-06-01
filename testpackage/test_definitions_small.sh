@@ -260,6 +260,18 @@ variable_components[${index}]="0 0 1 2 0 1 2"
 single_cell[${index}]=1
 ((index+=1))
 
+#######
+# 3D INFLOW TESTS (26)
+#######
+
+# 26 Timevarying inflow test
+test_name[${index}]="Timevarying_inflow_3D"
+comparison_vlsv[${index}]="bulk.0000001.vlsv bulk.0000002.vlsv bulk.0000003.vlsv bulk.0000004.vlsv bulk.0000005.vlsv bulk.0000006.vlsv "
+comparison_phiprof[${index}]="phiprof_0.txt"
+variable_names[${index}]="proton/vg_v proton/vg_v proton/vg_v fg_b fg_b fg_b"
+variable_components[${index}]="0 1 2 0 1 2"
+(
+
 # choose tests to run (default: all tests)
 run_tests=( )
 for (( c=1; c<$index; c++ ))
