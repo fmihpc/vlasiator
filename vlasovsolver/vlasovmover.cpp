@@ -370,8 +370,7 @@ void calculateSpatialTranslation(
    }
    // TC propagation lists, TODO move out of here somewhere sensible and less often called
    computeTimer.stop();
-
-   if (P::currentMaxTimeclass <= 0) {
+   if (P::currentMaxTimeclass > 0) {
       for (int tc = 0; tc <= P::currentMaxTimeclass; tc++)
       {
          // std::cout << "initing up tc " << tc << " vectors \n";
