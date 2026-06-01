@@ -1711,7 +1711,7 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
             abort();
       }
       // std::cerr<< __FILE__<<":"<<__LINE__<<"\n";
-      if (P::currentMaxTimeclass > 0) {
+      if (P::currentMaxTimeclass >= 0) {
          // std::cerr<< __FILE__<<":"<<__LINE__<<"\n";
          for (int i = 0; i <= P::currentMaxTimeclass; ++i){
             tc_propagatedCells.push_back(vector<CellID>());
@@ -1737,7 +1737,7 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
             propagatedCells.push_back(localCells[c]);
          }
       }
-      if(P::currentMaxTimeclass > 0){
+      if(P::currentMaxTimeclass >= 0){
          for (int i = 0; i <= P::currentMaxTimeclass; ++i){
             tc_propagatedCells.push_back(vector<CellID>());
             for (size_t c=0; c<localCells.size(); ++c) {
@@ -1752,7 +1752,7 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
    phiprof::Timer getSeedIdsTimer {"getSeedIds"};
    vector<std::pair<int,CellID>> seedIds;
    if(P::vlasovSolverGhostTranslate){
-      if (P::currentMaxTimeclass > 0) {
+      if (P::currentMaxTimeclass >= 0) {
          int maxt = 0;
          for (int timeclass = 0; timeclass <= P::currentMaxTimeclass; ++timeclass){
             // std::cout << "getting seedids for timeclass " << timeclass <<", cells prop:\n";
