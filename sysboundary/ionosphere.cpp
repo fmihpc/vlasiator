@@ -1902,12 +1902,6 @@ namespace SBC {
                continue;
             }
 
-            // Local cell
-            auto lfsc = getLocalFsGridCellIndexForCoord(fsgrid, nodes[n].xMapped);
-            if (lfsc[0] == -1 || lfsc[1] == -1 || lfsc[2] == -1) {
-               continue;
-            }
-
             // Iterate through the elements touching that node
             for (uint e = 0; e < nodes[n].numTouchingElements; e++) {
                // Also sum up touching elements' areas and upmapped areas to compress
@@ -1920,8 +1914,73 @@ namespace SBC {
             // corners.  Prevent areas from being multiply-counted
             nodeAreaGeometric /= 3.;
 
-            // Calc curlB, note division by DX one line down
-            const std::array<Real, 3> curlB = interpolateCurlB(perb, dperb, technical, fsgrid, FieldTracing::fieldTracingParameters.reconstructionCoefficientsCache, lfsc[0], lfsc[1], lfsc[2], nodes[n].xMapped);
+            int samplingFAC = 0;
+            std::array<Real, 3> curlB;
+            std::array<FsGridTools::FsIndex_t,3> lfsc = getLocalFsGridCellIndexForCoord(fsgrid, nodes[n].xMapped);
+            // Local cell
+            if(lfsc[0] == -1 || lfsc[1] == -1 || lfsc[2] == -1) {
+               continue;
+            }
+            if (samplingFAC == 0 || true){
+               // Calc curlB, note division by DX one line down
+               curlB = interpolateCurlB(
+                  perb,
+                  dperb,
+                  technical,
+                  fsgrid,
+                  FieldTracing::fieldTracingParameters.reconstructionCoefficientsCache,
+                  lfsc[0],lfsc[1],lfsc[2],
+                  nodes[n].xMapped
+               );
+            }
+            else if (samplingFAC == 1){
+               curlB = {0,0,0};
+               std::vector<std::array<double, 3>> sample_pts;
+               std::vector<double> weights;
+               std::vector<std::array<FsGridTools::FsIndex_t,3>> lfscs;
+
+               double weightsum = 0.0;
+               double dx = technicalGrid.DX/2;
+               for (int x = -1; x < 2; ++x){
+                  for (int y = -1; y < 2; ++y){
+                     for (int z = -1; z < 2; ++z){
+                        std::array<double, 3> pt = {nodes[n].xMapped[0] + x*dx,
+                                              nodes[n].xMapped[1] + y*dx,
+                                              nodes[n].xMapped[2] + z*dx};
+                        std::array<FsGridTools::FsIndex_t,3> lfsc_stencil = getLocalFsGridCellIndexForCoord(technicalGrid, pt);
+                        if(lfsc_stencil[0] == -1 || lfsc_stencil[1] == -1 || lfsc_stencil[2] == -1) {
+                           continue;
+                        }
+                        sample_pts.push_back(pt);
+                        lfscs.push_back(lfsc_stencil);
+                        weights.push_back(1.0);
+                        weightsum+=weights.back();
+                     }
+                  }
+               }
+               // extra safety, should be covered anyway before
+               if (sample_pts.size()==0){
+                  continue;
+               }
+               for (int i = 0; i < weights.size(); ++i){
+                  std::array<Real, 3> curlB_temp = interpolateCurlB(
+                     perb,
+                     dperb,
+                     technical,
+                     fsgrid,
+                     FieldTracing::fieldTracingParameters.reconstructionCoefficientsCache,
+                     lfscs[i][0],lfscs[i][1],lfscs[i][2],
+                     sample_pts[i]
+                  );
+                  for(int ii = 0; ii<3; ++ii){
+                     curlB[ii] += curlB_temp[ii]*weights[i]/weightsum[i];
+                  }
+               }
+            }
+            else{
+               cerr << "(IONOSPHERE) Unknown FAC sampling mode \"" << samplingFAC << "\". Aborting." << endl;
+               abort();
+            }
 
             // Dot curl(B) with normalized B, scale by ratio of B(ionosphere)/B(upmapped),
             // multiply by geometric area around ionosphere node to obtain current from density
