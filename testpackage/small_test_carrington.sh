@@ -6,11 +6,11 @@
 # test short medium 20min1d 3d
 #SBATCH -p short
 #SBATCH --exclusive
-#SBATCH --nodes=1
-#SBATCH -c 4                 # CPU cores per task
-#SBATCH -n 16                  # number of tasks
+##SBATCH --nodes=1
+#SBATCH -c 1                 # CPU cores per task
+#SBATCH -n 1                  # number of tasks
 #SBATCH --mem-per-cpu=5G
-#SBATCH --hint=multithread
+##SBATCH --hint=multithread
 
 # If 1, the reference vlsv files are generated
 # if 0 then we check the v1 against reference files
@@ -20,8 +20,7 @@ create_verification_files=0
 reference_dir="/turso/group/spacephysics/vlasiator/testpackage/"
 cd $SLURM_SUBMIT_DIR
 
-bin="/proj/USERNAME/BINARYNAME"
-diffbin="/turso/group/spacephysics/vlasiator/testpackage/vlsvdiff_DP_carrington"
+diffbin="../vlsvdiff_DP"
 
 #compare agains which revision
 #reference_revision="CI_reference"
@@ -34,8 +33,12 @@ module load PMIx/4.2.6-GCCcore-13.2.0
 module load PAPI/7.1.0-GCCcore-13.2.0
 module load Boost/1.83.0-GCC-13.2.0
 #module load xthi
-export UCX_NET_DEVICES=eth5 # This is important for multi-node performance!
+export UCX_TLS=dc_mlx5
+export UCX_NET_DEVICES=mlx5_0:1
 
+export OMPI_MCA_btl='^uct,ofi'
+export OMPI_MCA_pml='ucx'
+export OMPI_MCA_mtl='^ofi'
 #Carrington has 2 x 16 cores per node, plus hyperthreading
 ht=2
 t=$SLURM_CPUS_PER_TASK
@@ -59,6 +62,14 @@ echo "Running $exec on $SLURM_NTASKS mpi tasks, with $t threads per task on $SLU
 source test_definitions_small.sh
 wait
 # Run tests
-source run_tests.sh
-wait 
+for n in {0..100}; do
+  bin="../vlasiator --map_order_shift $n"
+  source run_tests.sh
+
+  wait 
+  # mv logfile.txt logfile_$n.txt
+  
+  cd $SLURM_SUBMIT_DIR
+  # wait
+done
 

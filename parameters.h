@@ -228,6 +228,7 @@ struct Parameters {
    static std::vector<Realf> amrBoxCenterY;
    static std::vector<Realf> amrBoxCenterZ;
    static std::vector<int> amrBoxMaxLevel;
+   static int mapOrderShift;
    static bool amrTransShortPencils;        /*!< Use short or long pencils in AMR translation.*/
    static std::vector<std::string> blurPassString;
    static std::vector<int> numPasses;

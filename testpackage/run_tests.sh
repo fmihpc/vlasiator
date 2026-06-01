@@ -12,7 +12,7 @@ tabs $tabseq &> /dev/null # suppress special character output, list matches expa
 reference_dir=$( readlink -f $reference_dir )
 run_dir=$( readlink -f $run_dir )_$( date +%Y.%m.%d_%H.%M.%S)
 reference_revision_parsed=$( readlink -f $reference_dir/$reference_revision )
-bin=$( readlink -f $bin )
+# bin=$( readlink -f "$bin" )
 diffbin=$( readlink -f $diffbin )
 test_dir=$( readlink -f $test_dir)
 

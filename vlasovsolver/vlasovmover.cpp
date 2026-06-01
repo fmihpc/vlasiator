@@ -20,6 +20,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#include <cassert>
 #include <cstdlib>
 #include <iostream>
 #include <vector>
@@ -422,7 +423,8 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
    // set seed, initialise generator and get value. The order is the same
    // for all cells, but varies with timestep.
    std::default_random_engine rndState;
-   rndState.seed(P::tstep);
+   rndState.seed(P::tstep+P::mapOrderShift);
+   assert((P::tstep != P::tstep+P::mapOrderShift));
    uint map_order = std::uniform_int_distribution<>(0,2)(rndState);
 
    // Calculate length of step for each cell

@@ -21,6 +21,7 @@
  */
 
 #include "parameters.h"
+#include "common.h"
 #include "object_wrapper.h"
 #include "particle_species.h"
 #include "readparameters.h"
@@ -142,7 +143,7 @@ int P::writeRestartAsFloat = false;
 string P::loadBalanceAlgorithm = string("");
 std::map<std::string, std::string> P::loadBalanceOptions;
 uint P::rebalanceInterval = numeric_limits<uint>::max();
-
+int P::mapOrderShift=0;
 vector<string> P::outputVariableList;
 vector<string> P::diagnosticVariableList;
 
@@ -224,7 +225,7 @@ bool P::addParameters() {
    typedef Readparameters RP;
    // the other default parameters we read through the add/get interface
    RP::add("io.diagnostic_write_interval", "Write diagnostic output every arg time steps", numeric_limits<uint>::max());
-
+   RP::add("map_order_shift","shift the map_order seed",0);
    RP::addComposing(
        "io.system_write_t_interval",
        "Save the simulation every arg simulated seconds. Negative values disable writes. [Define for all groups.]");
@@ -574,6 +575,7 @@ bool P::addParameters() {
 void Parameters::getParameters() {
    typedef Readparameters RP;
    // get numerical values of the parameters
+   RP::get("map_order_shift",P::mapOrderShift);
    RP::get("io.diagnostic_write_interval", P::diagnosticInterval);
    RP::get("io.diagnostic_write_all_data_reducers", P::diagnosticWriteAllDROs);
    RP::get("io.system_write_t_interval", P::systemWriteTimeInterval);
@@ -603,6 +605,9 @@ void Parameters::getParameters() {
    // Checks for validity of io and restart parameters
    int myRank;
    MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
+   if (myRank==MASTER_RANK) {
+     std::cout << "mapOrderShift=" << P::mapOrderShift << std::endl;
+   }
    const string prefix = string("./");
    if (access(&(P::restartWritePath[0]), W_OK) != 0) {
       if (myRank == MASTER_RANK) {
