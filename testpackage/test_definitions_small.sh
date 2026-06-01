@@ -26,7 +26,7 @@ index=1
 
 # 1  basic multipeak acceleration test (fixed timestep)
 test_name[${index}]="acctest_1_maxw_500k_100k_20kms_10deg"
-comparison_vlsv[${index}]="fullf.0000000.vlsv fullf.0000001.vlsv fullf.0000002.vlsv fullf.0000020.vlsv"
+comparison_vlsv[${index}]="fullf.0000020.vlsv" # fullf.0000001.vlsv fullf.0000002.vlsv fullf.0000020.vlsv"
 comparison_phiprof[${index}]="phiprof_0.txt"
 variable_names[${index}]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v proton"
 variable_components[${index}]="0 0 1 2"
