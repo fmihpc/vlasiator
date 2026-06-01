@@ -372,7 +372,7 @@ void calculateSpatialTranslation(
    computeTimer.stop();
 
    if (P::currentMaxTimeclass <= 0) {
-      for (int tc = 0; tc <= P::maxTimeclass; tc++)
+      for (int tc = 0; tc <= P::currentMaxTimeclass; tc++)
       {
          // std::cout << "initing up tc " << tc << " vectors \n";
          tc_propagated_cells[tc] = vector<CellID>(tc_propagated_cell_sets[tc].begin(),tc_propagated_cell_sets[tc].end());
@@ -1268,7 +1268,7 @@ void interpolateMomentsForTimeclasses(
 
       // ^^ this determines which true moments are used for interpolation.
 
-      if (P::maxTimeclass == 0 || timeclass == P::currentMaxTimeclass) {
+      if (P::currentMaxTimeclass == 0 || timeclass == P::currentMaxTimeclass) {
          // calculateInterpolatedVelocityMoments functionality here, if timeclass is the max one.
          if (dt2) {
 

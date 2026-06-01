@@ -459,17 +459,17 @@ std::vector<Real> computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_G
    localDt = meanVlasovCFL * dtMaxLocal[0];
    localDt = min(localDt,meanVlasovCFL * dtMaxLocal[1] * P::maxSlAccelerationSubcycles);
    localDt = min(localDt,meanFieldsCFL * dtMaxLocal[2] * P::maxFieldSolverSubcycles);
-   if (myRank == MASTER_RANK && P::maxTimeclass > 0) cout << "localDt " << localDt <<"\n";
+   //if (myRank == MASTER_RANK && P::maxTimeclass > 0) cout << "localDt " << localDt <<"\n";
    // newDt: max dt globally, at the highest timeclass
    fsdt = meanVlasovCFL * dtMaxGlobal[0];
    fsdt = min(fsdt,meanVlasovCFL * dtMaxGlobal[1] * P::maxSlAccelerationSubcycles);
    fsdt = min(fsdt,meanFieldsCFL * dtMaxGlobal[2] * P::maxFieldSolverSubcycles);
-   if (myRank == MASTER_RANK) cout << "fsdt " << fsdt <<"\n";
+   //if (myRank == MASTER_RANK) cout << "fsdt " << fsdt <<"\n";
    // baseDt: longest max dt of any rank
    baseDt = meanVlasovCFL * dtMinMaxGlobal[0];
    baseDt = min(baseDt,meanVlasovCFL * dtMinMaxGlobal[1] * P::maxSlAccelerationSubcycles);
    baseDt = min(baseDt,meanFieldsCFL * dtMinMaxGlobal[2] * P::maxFieldSolverSubcycles);   
-   if (myRank == MASTER_RANK && P::maxTimeclass > 0) cout << "baseDt " << baseDt <<"\n";
+   //if (myRank == MASTER_RANK && P::maxTimeclass > 0) cout << "baseDt " << baseDt <<"\n";
 
    std::vector<Real> retVec = {localDt, fsdt, baseDt};
 

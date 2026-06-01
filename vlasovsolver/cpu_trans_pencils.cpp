@@ -39,7 +39,7 @@ std::unordered_set<CellID> LocalSet_z;
 
 //Is cell translated? It is not translated if DO_NO_COMPUTE or if it is sysboundary cell and not in first sysboundarylayer
 bool do_translate_cell(const SpatialCell* const SC, const int tc){
-   if (P::maxTimeclass == 0){
+   if (P::currentMaxTimeclass == 0){
       if(SC->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
          (SC->sysBoundaryLayer != 1 && SC->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY)){
          return false;
@@ -1187,11 +1187,10 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
    }
    int neighborhood;
    // These neighborhoods no longer include the AMR addition beyond the regular vlasov stencil
-   int neighborhood;
    if (P::vlasovSolverGhostTranslate){
       neighborhood=getNeighborhood(dimension,P::vlasovSolverGhostTranslateExtent);
    }
-   else if (P::maxTimeclass > 0){
+   else if (P::currentMaxTimeclass > 0){
       neighborhood=getNeighborhood(dimension,P::vlasovSolverGhostTranslateExtent);
    }
    else{
@@ -1238,7 +1237,7 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
             // std::cout << myIndices[dimension] << " < " << nbrIndices[dimension] <<"\n";
             // std::cout << "is_local_n" << mpiGrid.is_local(neighbor) << "; do_tranlate " << do_translate_cell(mpiGrid[neighbor]) <<"\n";
             // std::cout << "active " << check_is_active(mpiGrid, neighbor, dimension, timeghost_active[timeclass], getLocalCells())<<"\n";
-            if (P::maxTimeclass == 0){
+            if (P::currentMaxTimeclass == 0){
                if ( (myIndices[dimension] < nbrIndices[dimension]) ||
                     !check_is_active(mpiGrid, neighbor, dimension) ||
                     !do_translate_cell(mpiGrid[neighbor]) )
