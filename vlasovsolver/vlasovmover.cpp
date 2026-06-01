@@ -423,7 +423,7 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
    // set seed, initialise generator and get value. The order is the same
    // for all cells, but varies with timestep.
    std::mt19937 rndState;
-   rndState.seed(9245*P::tstep); //magic number for less correlated seeds
+   rndState.seed(P::seed*P::tstep);    
    uint map_order = std::uniform_int_distribution<>(0,2)(rndState);
 
    // Calculate length of step for each cell
