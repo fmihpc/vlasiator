@@ -1436,6 +1436,10 @@ int simulate(int argn,char* args[]) {
       updateParticlePopulations(mpiGrid);
 
       computeMomentsTimer.stop();
+   } else { // if we are restaring, make sure global timeclass settings are set
+      //restart files dont contain P::timeclassDts, so we set that 
+      updateTimeclassDts(P::dt);
+
    }
 // std::cerr <<__FILE__<<":"<<__LINE__<<" ("<<myRank <<")\n";
    initTimer.stop();
@@ -1876,8 +1880,8 @@ int simulate(int argn,char* args[]) {
                      // Back half dt to real time, forward by new half dt
                      calculateAcceleration(mpiGrid,-0.5);
                   }
-                  P::dt=newDt;
                   updateTimeclassDts(newDt);
+                  P::dt=P::timeclassDt[P::currentMaxTimeclass];
 
                   if( P::propagateVlasovAcceleration ) {
                      // Back half dt to real time, forward by new half dt
@@ -1936,8 +1940,8 @@ int simulate(int argn,char* args[]) {
                      // Back half dt to real time, forward by new half dt
                      calculateAcceleration(mpiGrid,-0.5);
                   }
-                  P::dt=newDt;
                   updateTimeclassDts(newDt);
+                  P::dt=P::timeclassDt[P::currentMaxTimeclass];
 
                   if( P::propagateVlasovAcceleration ) {
                      // Back half dt to real time, forward by new half dt
@@ -1985,8 +1989,8 @@ int simulate(int argn,char* args[]) {
                      // Back half dt to real time, forward by new half dt
                      calculateAcceleration(mpiGrid,-0.5);
                   }
-                  P::dt=newDt;
                   updateTimeclassDts(newDt);
+                  P::dt=P::timeclassDt[P::currentMaxTimeclass];
 
                   if( P::propagateVlasovAcceleration ) {
                      // Back half dt to real time, forward by new half dt
