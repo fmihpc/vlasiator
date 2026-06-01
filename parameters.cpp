@@ -1,4 +1,4 @@
-/*
+/*S
  * This file is part of Vlasiator.
  * Copyright 2010-2016 Finnish Meteorological Institute
  *
@@ -21,6 +21,8 @@
  */
 
 #include "parameters.h"
+#include "common.h"
+#include "mpi.h"
 #include "object_wrapper.h"
 #include "particle_species.h"
 #include "readparameters.h"
@@ -29,6 +31,7 @@
 #include <iostream>
 #include <limits>
 #include <set>
+#include <stdexcept>
 #include <unistd.h>
 
 #include "fieldtracing/fieldtracing.h"
@@ -93,6 +96,9 @@ vector<string> P::systemWriteName;
 vector<string> P::systemWritePath;
 vector<Real> P::systemWriteTimeInterval;
 vector<int> P::systemWriteDistributionWriteStride;
+bool P::systemWriteDistributionCompressed;
+bool P::systemWriteRestartCompressed;
+bool P::systemWriteRecoveryCompressed;
 vector<int> P::systemWriteDistributionWriteXlineStride;
 vector<int> P::systemWriteDistributionWriteYlineStride;
 vector<int> P::systemWriteDistributionWriteZlineStride;
@@ -219,6 +225,20 @@ std::array<fsgrid::Task_t,3> P::overrideReadFsGridDecomposition = {0,0,0};
 
 std::string tracerString; /*!< Fieldline tracer to use for coupling ionosphere and magnetosphere */
 bool P::computeCurvature;
+
+//Asterix - VDF Compression
+std::vector<std::size_t> P::mlp_arch;
+std::size_t P::mlp_fourier_order;
+std::size_t P::mlp_max_epochs;
+Real P::mlp_tollerance;
+Real P::octree_tolerance;
+std::string P::mlpLayer;
+Real P::compression_interval;
+bool P::doCompress=false;
+std::string P::method_str;
+P::ASTERIX_COMPRESSION_METHODS P::vdf_compression_method;
+std::size_t P::max_vdfs_per_nn;
+
 
 bool P::addParameters() {
    typedef Readparameters RP;
@@ -416,6 +436,9 @@ bool P::addParameters() {
 
    // Output variable parameters
    RP::add("io.system_write_all_data_reducers", "If 0 don't write all DROs, if 1 do write them.", false);
+   RP::add("io.system_write_distribution_compressed", string("Apply ASTERIX compressiont to VDFs in bulk files."), false);
+   RP::add("io.system_write_restart_compressed", string("Apply ASTERIX compressiont to VDFs in restart files."), false);
+   RP::add("io.system_write_recovery_compressed", string("Apply ASTERIX compressiont to VDFs in recovery files."), false);
    // NOTE Do not remove the : before the list of variable names as this is parsed by tools/check_vlasiator_cfg.sh
    RP::addComposing("variables.output",
                     string() +
@@ -568,6 +591,16 @@ bool P::addParameters() {
    RP::add("fieldtracing.max_allowed_y", "Trace for y coordinates smaller than this limit (in m).", LARGE_REAL);
    RP::add("fieldtracing.max_allowed_z", "Trace for z coordinates smaller than this limit (in m).", LARGE_REAL);
 
+   //Asterix - VDF Compression
+   RP::add("Asterix.mlp_layers", string("Hidden layer architecture (neuron count per hidden layer) for MLP"),"32,32,32");
+   RP::add("Asterix.tol", string("MLP Compression reconstruction tolerance"),1e-4);
+   RP::add("Asterix.octree_tolerance", string("OCTREE Compression reconstruction tolerance"),1e-3);
+   RP::add("Asterix.max_epochs", string("Max MLP epochs"),50);
+   RP::add("Asterix.fourier_order", string("Fourier Feature Order"),32);
+   RP::add("Asterix.interval", string("Compression interval in seconds [Deprecated]"),1.0);
+   RP::add("Asterix.state", string("Boolean Asterix compression toggle"),false);
+   RP::add("Asterix.method", string("Compression method string"),"ZFP");
+   RP::add("Asterix.max_vdfs_per_nn",string("Max vdfs per MLP in multi regression mode") ,std::numeric_limits<std::size_t>::max());
    return true;
 }
 
@@ -587,6 +620,9 @@ void Parameters::getParameters() {
    RP::get("io.system_write_distribution_shell_stride", P::systemWriteDistributionWriteShellStride);
    RP::get("io.system_write_fsgrid_variables", P::systemWriteFsGrid);
    RP::get("io.system_write_all_data_reducers", P::systemWriteAllDROs);
+   RP::get("io.system_write_distribution_compressed", P::systemWriteDistributionCompressed);
+   RP::get("io.system_write_restart_compressed", P::systemWriteRestartCompressed);
+   RP::get("io.system_write_recovery_compressed", P::systemWriteRecoveryCompressed);
    RP::get("io.write_initial_state", P::writeInitialState);
    RP::get("io.write_full_bgb_data", P::writeFullBGB);
    RP::get("io.restart_walltime_interval", P::saveRestartWalltimeInterval);
@@ -912,6 +948,75 @@ void Parameters::getParameters() {
    RP::get("adaptGPUWID", P::adaptGPUWID);
    RP::get("GPUallocations", P::GPUallocations);
 
+   //Asterix
+   RP::get("Asterix.mlp_layers", P::mlpLayer);
+   RP::get("Asterix.max_epochs",P::mlp_max_epochs );
+   RP::get("Asterix.tol", P::mlp_tollerance);
+   RP::get("Asterix.octree_tolerance", P::octree_tolerance);
+   RP::get("Asterix.fourier_order",P::mlp_fourier_order );
+   RP::get("Asterix.interval",P::compression_interval);
+   RP::get("Asterix.state",P::doCompress);
+   RP::get("Asterix.method",P::method_str);
+   RP::get("Asterix.max_vdfs_per_nn",P::max_vdfs_per_nn);
+
+   if (P::doCompress){
+      #ifdef ASTERIX_MLP
+      if(P::method_str == "MLP") {
+         P::vdf_compression_method=ASTERIX_COMPRESSION_METHODS::MLP;
+         P::doCompress=true;
+      }
+      if(P::method_str == "MLP_MULTI") {
+         P::vdf_compression_method=ASTERIX_COMPRESSION_METHODS::MLP_MULTI;
+         P::doCompress=true;
+      }
+      #endif
+      #ifdef ASTERIX_ZFP
+      if (P::method_str == "ZFP") {
+         P::vdf_compression_method=ASTERIX_COMPRESSION_METHODS::ZFP;
+         P::doCompress=true;
+      }
+      #endif
+      #ifdef ASTERIX_OCTREE
+      if (P::method_str == "OCTREE") {
+         P::vdf_compression_method=ASTERIX_COMPRESSION_METHODS::OCTREE;
+         P::doCompress=true;
+      }
+      #endif
+   }else{
+      P::vdf_compression_method=ASTERIX_COMPRESSION_METHODS::NONE;
+      P::doCompress=false;
+   }
+
+   if ((P::systemWriteDistributionCompressed || P::systemWriteRecoveryCompressed || P::systemWriteRestartCompressed )&&
+           (P::vdf_compression_method == ASTERIX_COMPRESSION_METHODS::NONE || doCompress == false)) {
+      if (myRank==MASTER_RANK){
+         std::cout<<"State= "<<doCompress<<std::endl;
+         std::cout<<"Method "<<P::vdf_compression_method<<std::endl;
+         std::cerr << "Your ASTERIX setting do not make sense! You need to either disable compression or select an "
+                      "appropriate comrpession method!"
+                   << std::endl;
+      }
+      MPI_Barrier(MPI_COMM_WORLD);
+      MPI_Abort(MPI_COMM_WORLD,-1);
+   }
+
+   //Parse MLP Layer string
+   auto parseToSize_T = [](const std::string& str) -> std::vector<size_t> {
+      std::vector<std::size_t> result;
+      std::string clean_str;
+      std::copy_if(str.begin(), str.end(), std::back_inserter(clean_str), [](unsigned char c) {
+         return !std::isspace(c);
+      });
+
+      std::stringstream ss(clean_str);
+      std::string token;
+      while (std::getline(ss, token, ',')) {
+         result.push_back(std::stoull(token));  // Convert each token to size_t
+      }
+      return result;
+   };
+   P::mlp_arch=parseToSize_T(P::mlpLayer);
+
    // We need the correct number of parameters for the AMR boxes
    if(   P::amrBoxNumber != (int)P::amrBoxHalfWidthX.size()
       || P::amrBoxNumber != (int)P::amrBoxHalfWidthY.size()
@@ -1089,6 +1194,14 @@ void Parameters::getParameters() {
    // Insert vg_f_saved to the list if necessary
    if(includefSaved) {
       P::outputVariableList.push_back("vg_f_saved");
+   }
+
+   //If we need to compress files force the sparsity in the VLSV files
+   const bool force_sparsity_in_output =
+       P::systemWriteRestartCompressed || P::systemWriteDistributionCompressed || P::systemWriteRecoveryCompressed;
+   if (force_sparsity_in_output) {
+      P::outputVariableList.emplace_back("populations_minvalue");
+      P::outputVariableList.emplace_back("populations_EffectiveSparsityThreshold");
    }
 
    // Filter duplicate variable names

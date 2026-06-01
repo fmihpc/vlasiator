@@ -228,6 +228,39 @@ namespace DRO {
       int mpiRank;
    };
 
+   class MLPepochs: public DataReductionOperator {
+   public:
+      MLPepochs(cuint popID);
+      virtual ~MLPepochs();
+      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual std::string getName() const;
+      virtual bool reduceData(const SpatialCell* cell,char* buffer);
+      virtual bool setSpatialCell(const SpatialCell* cell);
+      virtual bool reduceDiagnostic(const SpatialCell* cell,Real* buffer);
+
+   protected:
+      uint32_t epochs;
+      uint popID;
+      std::string popName;
+   };
+
+   class MLPerror: public DataReductionOperator {
+   public:
+      MLPerror(cuint popID);
+      virtual ~MLPerror();
+      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual std::string getName() const;
+      virtual bool reduceData(const SpatialCell* cell,char* buffer);
+      virtual bool setSpatialCell(const SpatialCell* cell);
+      virtual bool reduceDiagnostic(const SpatialCell* cell,Real* buffer);
+
+   protected:
+      float error;
+      uint popID;
+      std::string popName;
+   };
+
+
    class BoundaryType: public DataReductionOperator {
    public:
       BoundaryType();

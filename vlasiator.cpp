@@ -29,6 +29,7 @@
 #include <ctime>
 #include <cstdlib>
 #include <iostream>
+#include <chrono>
 
 #ifdef _OPENMP
    #include <omp.h>
@@ -66,6 +67,7 @@
 #include "velocity_mesh_parameters.h"
 #include "fieldsolver/gridGlue.hpp"
 #include "fieldsolver/derivatives.hpp"
+#include "vdf_compression/compression.h"
 
 #include <signal.h>
 
@@ -831,6 +833,7 @@ int simulate(int argn,char* args[]) {
    double beforeTime = MPI_Wtime();
    double beforeSimulationTime=P::t_min;
    double beforeStep=P::tstep_min;
+   Real compress_time=0.0;
 
    while(P::tstep <= P::tstep_max  &&
          P::t-P::dt <= P::t_max+DT_EPSILON &&
@@ -929,7 +932,8 @@ int simulate(int argn,char* args[]) {
                    &outputReducer,
                    i,
                    P::systemStripeFactor,
-                   writeGhosts
+                   writeGhosts,
+                   P::systemWriteDistributionCompressed
                ) == false
             ) {
                cerr << "FAILED TO WRITE GRID AT" << __FILE__ << " " << __LINE__ << endl;
@@ -1016,8 +1020,8 @@ int simulate(int argn,char* args[]) {
                 "restart",
                 (uint)P::t,
                 true, // add the date of the file to the name
-                P::restartStripeFactor
-             ) == false
+                P::restartStripeFactor,
+                P::systemWriteRestartCompressed) == false
          ) {
             logFile << "(IO): ERROR Failed to write restart!" << endl << writeVerbose;
             cerr << "FAILED TO WRITE RESTART" << endl;
@@ -1047,8 +1051,8 @@ int simulate(int argn,char* args[]) {
                 "recover",
                 recoverCounter % P::recoverMaxFiles,
                 false, // overwrite so do not put date in file name
-                P::restartStripeFactor
-             ) == false
+                P::restartStripeFactor,
+                P::systemWriteRecoveryCompressed) == false
          ) {
             logFile << "(IO): ERROR Failed to write recover!" << endl << writeVerbose;
             cerr << "FAILED TO WRITE RECOVER" << endl;
@@ -1382,13 +1386,14 @@ int simulate(int argn,char* args[]) {
          s << "The timestep dt=" << P::dt << " went below bailout.min_dt (" << to_string(P::bailout_min_dt) << ")." << endl;
          bailout(true, s.str(), __FILE__, __LINE__);
       }
+
       //Move forward in time
       P::meshRepartitioned = false;
       globalflags::ionosphereJustSolved = false;
       ++P::tstep;
       P::t += P::dt;
-
-   }
+      compress_time+=P::dt;
+   }//main while loop
 
    double after = MPI_Wtime();
 
