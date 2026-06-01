@@ -355,43 +355,6 @@ void calculateSpatialTranslation(
       remoteTargetCellsz = mpiGrid.get_remote_cells_on_process_boundary(Neighborhoods::VLASOV_SOLVER_TARGET_Z);
    }
 
-   // std::cout << "setting up tc cell vectors \n";
-   // Figure out which spatial cells are translated,
-   // result independent of particle species.
-   // If performing ghost translation, this is used for LB.
-   // for (size_t c=0; c<localCells.size(); ++c) {
-   //    int cellTC = (int)mpiGrid[localCells[c]]->parameters[CellParams::TIMECLASS];
-      
-   //    if (do_translate_cell(mpiGrid[localCells[c]],-1)) {
-   //       tc_propagated_cell_sets[cellTC].insert(localCells[c]);
-   //    }
-   //    for (auto i: mpiGrid[localCells[c]]->requested_timeclass_ghosts){
-   //       tc_propagated_cell_sets[i].insert(localCells[c]);
-   //    }
-   //    if (do_translate_cell(mpiGrid[localCells[c]],-1) &&
-   //        mpiGrid[localCells[c]]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-   //          tc_target_cell_sets[cellTC].insert(localCells[c]);
-   //    }
-   //    for (auto i: mpiGrid[localCells[c]]->requested_timeclass_ghosts){
-   //       if(mpiGrid[localCells[c]]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY)
-   //          tc_propagated_cell_sets[i].insert(localCells[c]);
-   //    }
-   // }
-
-   // TC propagation lists, TODO move out of here somewhere sensible and less often called
-   if (P::currentMaxTimeclass > 0) {
-      for (int tc = 0; tc <= P::currentMaxTimeclass; tc++)
-      {
-         // std::cout << "initing up tc " << tc << " vectors \n";
-         tc_propagated_cells[tc] = vector<CellID>(tc_propagated_cell_sets[tc].begin(),tc_propagated_cell_sets[tc].end());
-         // tc_target_cells[tc] = vector<CellID>(tc_target_cell_sets[tc].begin(),tc_target_cell_sets[tc].end());
-      }
-   }
-   // for (int tc = 0; tc <= P::maxTimeclass; tc++)
-   // {
-   //    std::cout << "" << tc << " cellvector size "<< tc_propagated_cells[tc].size()<<" \n";
-      
-   // }
    // Figure out which spatial cells are translated,
    // result independent of particle species.
    // If performing ghost translation, this is used for LB.
@@ -405,14 +368,23 @@ void calculateSpatialTranslation(
       // One more element to count the sums
       nPencils.resize(local_propagated_cells.size()+1, 0);
    }
+   // TC propagation lists, TODO move out of here somewhere sensible and less often called
    computeTimer.stop();
 
    if (P::currentMaxTimeclass <= 0) {
+      for (int tc = 0; tc <= P::maxTimeclass; tc++)
+      {
+         // std::cout << "initing up tc " << tc << " vectors \n";
+         tc_propagated_cells[tc] = vector<CellID>(tc_propagated_cell_sets[tc].begin(),tc_propagated_cell_sets[tc].end());
+         // tc_target_cells[tc] = vector<CellID>(tc_target_cell_sets[tc].begin(),tc_target_cell_sets[tc].end());
+      }
+   } else {
       // If we are not using timeclasses, we can just use the local_propagated_cells vector
       // for all the calculations.
       
       tc_propagated_cells.push_back(local_propagated_cells);
    }
+   computeTimer.stop();
 
    //
    if (dt == 0.0 && initializationOrLB == false) {
@@ -475,9 +447,8 @@ void calculateSpatialTranslation(
          int mod = 1 << (P::currentMaxTimeclass - tc);
          if((P::fractionalTimestep % mod) == 0){
             // std::cout << "rank " << myRank << ": " << tc_propagated_cells[tc].size() << " cells: calculateSpatialTranslation tc " << tc << " by dt " << P::timeclassDt[tc] <<"\n";
-            if (P::vlasovSolverGhostTranslate && (P::amrMaxSpatialRefLevel > 0) ) {
+            if (P::vlasovSolverGhostTranslate) {
                // Local translation without interim communication
-               // Not yet implemented for non-AMR solver
                calculateSpatialGhostTranslation(
                   mpiGrid,
                   tc_propagated_cells[tc], // Used for LB
@@ -652,13 +623,13 @@ void calculateAcceleration(const uint popID,const int globalMaxSubcycles,const i
    // set seed, initialise generator and get value. The order is the same
    // for all cells, but varies with timestep.
    std::default_random_engine rndState;
-   rndState.seed(P::tstep+ P::fractionalTimestep); // WARNING this formulation actually has some correlations (P::tstep + P::fractionalTimestep can do aliasing...)
+   rndState.seed(P::tstep);
+   //rndState.seed(P::tstep + P::fractionalTimestep); // WARNING this formulation actually has some correlations (P::tstep + P::fractionalTimestep can do aliasing...)
    #ifndef DEBUG_TIMECLASSES
       uint map_order=std::uniform_int_distribution<>(0,2)(rndState);
    #else
       uint map_order=1;
    #endif
-   map_order=1;
    // Semi-Lagrangian acceleration for those cells which are subcycled
    // std::cout << "Propagating (ACC) cells ";
    // #pragma omp parallel for schedule(dynamic,1)
@@ -904,6 +875,11 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
          for (int tc = 0; tc <= P::currentMaxTimeclass; tc++){ // Filter to necessary tcs
             adjustVelocityBlocks(mpiGrid, cells, true, popID, tc);
          }
+      }
+      // Needed to calculate _V moments afterwards for the local cells
+      // TODO also for ghost cells?
+      for (auto c : cells){
+         cellsToPropagateSet.insert(c);
       }
    } else {
       // Fairly ugly but no goto
@@ -1292,7 +1268,7 @@ void interpolateMomentsForTimeclasses(
 
       // ^^ this determines which true moments are used for interpolation.
 
-      if (timeclass == P::currentMaxTimeclass) {
+      if (P::maxTimeclass == 0 || timeclass == P::currentMaxTimeclass) {
          // calculateInterpolatedVelocityMoments functionality here, if timeclass is the max one.
          if (dt2) {
 

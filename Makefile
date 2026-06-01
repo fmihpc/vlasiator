@@ -34,7 +34,7 @@ INC_VECTORCLASS = -isystem ./submodules/vectorclass/ -isystem ./submodules/vecto
 INC_EIGEN = -isystem ./submodules/eigen/
 INC_HASHINATOR = -isystem ./submodules/hashinator/
 
-COMPFLAGS += -DDEBUG_TIMECLASSES
+#COMPFLAGS += -DDEBUG_TIMECLASSES
 
 include MAKE/Makefile.${ARCH}
 

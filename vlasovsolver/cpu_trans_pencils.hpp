@@ -49,6 +49,7 @@ struct setOfPencils {
    std::map<uint, std::vector<uint>> pencilsInBin; //!< Vector of pencils in each bin
    std::map<uint, std::set<CellID>> targetCellsInBin; //!< Set of source and target cells in each bin which are a target cell of any pencil
    std::vector<uint> activeBins; //!< set of keys in the above two maps
+   std::map<uint, std::set<int>> activeBinTimeclasses;
 
    //GPUTODO: move gpu buffers and their upload to separate gpu_trans_pencils .hpp and .cpp files
 #ifdef USE_GPU
@@ -89,11 +90,11 @@ struct setOfPencils {
       targetCellsInBin.clear();
       pencilsInBin.clear();
       activeBins.clear();
+      activeBinTimeclasses.clear();
    }
 
    void addPencil(std::vector<CellID> idsIn, Real xIn, Real yIn, bool periodicIn, std::vector<uint> pathIn, int timeclass) {
       N++;
-      // std::cerr << __FILE__ <<":"<<__LINE__<<" addPencil called \n";
 
       // If necessary, add the zero cells to the beginning and end
       if (idsIn.front() != 0) {
@@ -116,16 +117,10 @@ struct setOfPencils {
       periodic.push_back(periodicIn);
       path.push_back(pathIn);
       timeclasses.push_back(timeclass);
-      // std::cerr << __FILE__ <<":"<<__LINE__<<" Added " << xIn << " to x = {";
-      // for (auto i = x.begin(); i != x.end(); i++){
-      //    std::cerr << *i << ", ";
-      // }
-      // std::cerr << "}\n";
    }
 
    void binPencils() {
       binOfPencil.resize(N);
-
       // Consider only cells which _any_ pencil writes into for binning,
       // since read-only cells aren't affected by race conditions
       std::unordered_set<CellID> allTargetCells = {};
@@ -197,6 +192,10 @@ struct setOfPencils {
 
       for (auto [bin, pencils] : pencilsInBin) {
          activeBins.push_back(bin);
+         activeBinTimeclasses[bin] = std::set<int>();
+         for (auto pencil : pencils){
+            activeBinTimeclasses[bin].insert(timeclasses[pencil]);
+         }
       }
 
       #ifdef USE_GPU

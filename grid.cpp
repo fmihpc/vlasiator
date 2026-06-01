@@ -666,7 +666,6 @@ void transferInParts(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
                cell->clear(popID,true, timeclass);
                }
             }
-         
 
             if (refinement) {
                // Old cells removed by refinement
