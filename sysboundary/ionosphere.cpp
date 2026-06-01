@@ -1921,7 +1921,7 @@ namespace SBC {
             if(lfsc[0] == -1 || lfsc[1] == -1 || lfsc[2] == -1) {
                continue;
             }
-            if (samplingFAC == 0 || true){
+            if (samplingFAC == 0){
                // Calc curlB, note division by DX one line down
                curlB = interpolateCurlB(
                   perb,
