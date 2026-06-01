@@ -1,0 +1,35 @@
+# For MN5 acc (gpu) partition
+#Suggested modules
+#openmpi/4.1.5-gcc-mt   2) cuda/12.2   3) boost/1.69.0-gcc-ompi-mt 
+
+VECTORCLASS = VEC_FALLBACK_GENERIC
+#WID=8
+WID=4
+USE_CUDA=1
+
+CMP=nvcc -ccbin mpic++ 
+LNK = nvcc -ccbin mpic++
+
+CXXFLAGS = -g -O3 -x cu  -DASTERIX_ZFP  -DASTERIX_MLP -DASTERIX_OCTREE  -std=c++20 -Xcompiler -std=c++20 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_90,code=sm_90 -Xcompiler -fopenmp --generate-line-info -line-info -Xcompiler="-fpermissive"  --extra-device-vectorization
+testpackage: CXXFLAGS = -g -O2 -x cu -std=c++20 -Xcompiler -std=c++20 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_90,code=sm_90 -Xcompiler -fopenmp --generate-line-info -line-info -Xcompiler="-fpermissive"
+testpackage: MATHFLAGS = --prec-sqrt=true --prec-div=true --ftz=false --fmad=false
+
+LDFLAGS = -O2 -g -lnvToolsExt
+LIB_MPI = -lgomp
+
+#======== Libraries ===========
+LIBRARY_PREFIX = /gpfs/home/hels/hels895673/vlasiator/libraries-mn5_cuda
+
+INC_BOOST = -isystem /usr/include/boost
+LIB_BOOST = -L/usr/include/boost -lboost_program_options
+
+INC_ZOLTAN = -I$(LIBRARY_PREFIX)/include
+LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/lib -lzoltan
+
+INC_VLSV = -I$(LIBRARY_PREFIX)/include
+LIB_VLSV = -L$(LIBRARY_PREFIX)/lib -lvlsv -Xlinker=-rpath=$(LIBRARY_PREFIX)/vlsv/lib
+
+LIB_PROFILE = -L$(LIBRARY_PREFIX)/lib -lphiprof -Xlinker=-rpath=$(LIBRARY_PREFIX)/lib
+INC_PROFILE = -I$(LIBRARY_PREFIX)/include
+
+

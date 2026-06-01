@@ -24,7 +24,7 @@ cd library-build
 # Some platforms allow for nice parallel builds.
 if [[ $PLATFORM == "-pioneer" ]]; then
    PARALLEL=64
-elif [[ $PLATFORM == "-hile_cpu" || $PLATFORM == "-hile_gpu" || $PLATFORM == "-lumi_2403" ]]; then
+elif [[ $PLATFORM == "-hile_cpu" || $PLATFORM == "-hile_gpu" || $PLATFORM == "-lumi_2403" || $PLATFORM == "-carrington" || $PLATFORM == "-frankenstein_hopper2_cuda" ]]; then
    PARALLEL=128
 else
    # Otherwise we are friendly to other users and limit our parallelism
@@ -76,7 +76,7 @@ cp *.h $WORKSPACE/libraries${PLATFORM}/include
 cd ..
 
 # Build papi
-if [[ $PLATFORM != "-pioneer" && $PLATFORM != "-appleM1" && $PLATFORM != "-ukkogpu" && $PLATFORM != "-hile_cpu" && $PLATFORM != "-hile_gpu" && $PLATFORM != "-lumi_hipcc" && $PLATFORM != "-lumi_2403" && $PLATFORM != "-mahti_gcc_build" && $PLATFORM != "-mahti_cuda" ]]; then
+if [[ $PLATFORM != "-pioneer" && $PLATFORM != "-appleM1" && $PLATFORM != "-ukkogpu" && $PLATFORM != "-hile_cpu" && $PLATFORM != "-hile_gpu" && $PLATFORM != "-lumi_hipcc" && $PLATFORM != "-lumi_2403" && $PLATFORM != "-mahti_gcc_build" && $PLATFORM != "-mahti_cuda" && $PLATFORM != "-frankenstein_hopper2_cuda" && $PLATFORM != "-roihu_cpu" ]]; then
     # This fails on RISCV and MacOS
     # LUMI, UkkoGPU and HILE use system module
     # git clone https://github.com/icl-utk-edu/papi
@@ -95,7 +95,7 @@ if [[ $PLATFORM != "-pioneer" && $PLATFORM != "-appleM1" && $PLATFORM != "-ukkog
 fi
 
 # Build jemalloc (not for GPU versions or Mahti)
-if [[ $PLATFORM != "-leonardo_booster" && $PLATFORM != "-karolina_cuda" && $PLATFORM != "-ukkogpu" && $PLATFORM != "-hile_gpu" && $PLATFORM != "-lumi_hipcc" && $PLATFORM != "-mahti_cuda" && $PLATFORM != "-mahti_gcc_build" ]]; then
+if [[ $PLATFORM != "-leonardo_booster" && $PLATFORM != "-karolina_cuda" && $PLATFORM != "-ukkogpu" && $PLATFORM != "-hile_gpu" && $PLATFORM != "-lumi_hipcc" && $PLATFORM != "-mahti_cuda" && $PLATFORM != "-mahti_gcc_build" &&  $PLATFORM != "-frankenstein_hopper2_cuda" ]]; then
     # curl -O -L https://github.com/jemalloc/jemalloc/releases/download/5.3.0/jemalloc-5.3.0.tar.bz2
     # tar xjf jemalloc-5.3.0.tar.bz2
     cd jemalloc-5.3.0
@@ -125,6 +125,8 @@ elif [[ $PLATFORM == "-arm64" ]]; then
     ../Zoltan/configure --prefix=$WORKSPACE/libraries${PLATFORM} --enable-mpi --with-mpi-compilers --with-gnumake --with-id-type=ullong --build=arm-linux-gnu --host=arm-linux-gnu CC=mpicc CXX=mpic++
 elif [[ $PLATFORM == "-appleM1" || $PLATFORM == "-meluxina" ]]; then
     ../Zoltan/configure --prefix=$WORKSPACE/libraries${PLATFORM} --enable-mpi --with-mpi-compilers --with-gnumake --with-id-type=ullong CC=mpicc CXX=mpic++
+elif [[ $PLATFORM == "-frankenstein_hopper2_cuda" ]]; then
+    ../Zoltan/configure --prefix=$WORKSPACE/libraries${PLATFORM} --enable-mpi --build=aarch64-unknown-linux-gnu --with-mpi-compilers --with-gnumake --with-id-type=ullong CC=mpicc CXX=mpic++
 elif [[ $PLATFORM == "-leonardo_dcgp_intel" ]]; then
     ../Zoltan/configure --prefix=$WORKSPACE/libraries${PLATFORM} --enable-mpi --with-mpi-compilers --with-gnumake --with-id-type=ullong CC="mpiicc -cc=icx" CXX="mpiicpc -cxx=icpx"
     # Although configured with new compilers, the compilations ignores the -cc=icx and -cxx=icpx flags. Need to add them manually.
@@ -144,7 +146,7 @@ make -j $PARALLEL && make install
 cd ..
 
 # Build boost (only if system module is not available)
-if [[ $PLATFORM == "-leonardo_booster" || $PLATFORM == "-leonardo_dcgp" || $PLATFORM == "-karolina_cuda" || $PLATFORM == "-karolina_gcc" || $PLATFORM == "-ukkogpu" ||  $PLATFORM == "-mahti_gcc_build" ]]; then
+if [[ $PLATFORM == "-leonardo_booster" || $PLATFORM == "-leonardo_dcgp" || $PLATFORM == "-karolina_cuda" || $PLATFORM == "-karolina_gcc" || $PLATFORM == "-ukkogpu" ||  $PLATFORM == "-mahti_gcc_build" || $PLATFORM == "-frankenstein_hopper2_cuda" ]]; then
     # echo "### Downloading boost. ###"
     # wget -q https://archives.boost.io/release/1.86.0/source/boost_1_86_0.tar.gz
     # echo "### Extracting boost. ###"
@@ -154,6 +156,7 @@ if [[ $PLATFORM == "-leonardo_booster" || $PLATFORM == "-leonardo_dcgp" || $PLAT
     ./bootstrap.sh --with-libraries=program_options --prefix=$WORKSPACE/libraries${PLATFORM} stage
     echo "using mpi ;" >> ./tools/build/src/user-config.jam
     ./b2
+
     echo "### Installing boost. ###"
     ./b2 --prefix=$WORKSPACE/libraries${PLATFORM} install > /dev/null
     cd ..

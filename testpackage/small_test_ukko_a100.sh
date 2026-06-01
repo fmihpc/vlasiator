@@ -1,10 +1,8 @@
 #!/bin/bash
 #SBATCH -t 01:30:00        # Run time (hh:mm:ss)
 #SBATCH --job-name=TP_ukko_a100
-#SBATCH -M ukko
 #SBATCH -p gpu
-##SBATCH -p gpu-oversub # Oversub affinities can be whatever
-#SBATCH --constraint=a100
+#SBATCH --constraint="ukko&a100"
 #SBATCH --gres=gpu:1
 ##SBATCH --cpus-per-gpu=8
 #SBATCH --hint=nomultithread
@@ -13,7 +11,6 @@
 #SBATCH -n 1                  # number of tasks
 ##SBATCH --mem=0 # do not request all node memory or it's equal to exclusive
 #SBATCH --mem=60G
-#SBATCH --exclude=ukko3-g602 # exclude oversubscription node
 
 # Debugging: different placements
 ##SBATCH --distribution=block:cyclic
@@ -27,7 +24,7 @@
 create_verification_files=0
 
 # folder for all reference data
-reference_dir="/proj/group/spacephysics/vlasiator_testpackage/"
+reference_dir="/turso/group/spacephysics/vlasiator/testpackage/"
 cd $SLURM_SUBMIT_DIR
 
 #compare agains which revision

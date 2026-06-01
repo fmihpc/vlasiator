@@ -132,7 +132,7 @@ Eigen::Matrix<Real,3,1> line_plane_intersection(const Eigen::Matrix<Real,3,1>& l
 void compute_intersections_1st(
         const vmesh::VelocityMesh* vmesh,
         const Transform<Real,3,Affine>& bwd_transform,const Transform<Real,3,Affine>& fwd_transform,
-        uint dimension,
+        const uint dimension,
         Real& intersection,Real& intersection_di,Real& intersection_dj,Real& intersection_dk) {
     
     if (dimension == 0) { //Prepare intersections for mapping along X first (mapping order X-Y-Z)
@@ -246,7 +246,7 @@ void compute_intersections_1st(
 void compute_intersections_2nd(
         const vmesh::VelocityMesh* vmesh,
         const Transform<Real,3,Affine>& bwd_transform,const Transform<Real,3,Affine>& fwd_transform,
-        uint dimension,
+        const uint dimension,
         Real& intersection,Real& intersection_di,Real& intersection_dj,Real& intersection_dk){
        
     if (dimension == 0) { // Prepare intersections for mapping along X second (mapping order Z-X-Y)
@@ -376,7 +376,7 @@ void compute_intersections_2nd(
 void compute_intersections_3rd(
     const vmesh::VelocityMesh* vmesh,
     const Transform<Real,3,Affine>& bwd_transform,const Transform<Real,3,Affine>& fwd_transform,
-    uint dimension,
+    const uint dimension,
     Real& intersection,Real& intersection_di,Real& intersection_dj,Real& intersection_dk) {
     
     if (dimension == 0) { //Prepare intersections for mapping along X third (mapping order Y-Z-X)

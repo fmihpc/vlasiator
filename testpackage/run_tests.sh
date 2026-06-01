@@ -37,7 +37,7 @@ then
     #automatically obtained from the --version output (this overwrites the reverence_revision variable from a launch script)
     reference_revision=${revision}${solveropts}
     echo "Computing reference results into ${reference_dir}/${reference_revision}"
-    if [[ -v GITHUB_ENV && -z $GITHUB_ENV ]]
+    if [[ ! -z $GITHUB_ACTIONS ]]
     then
        echo "REFERENCE_REVISION=${reference_dir}/${reference_revision}" >> "$GITHUB_ENV"
     fi

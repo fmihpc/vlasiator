@@ -101,6 +101,7 @@ namespace projects {
       const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid
    ) const {
+      /*
       if(hook::END_OF_TIME_STEP == stage) {
          int myRank;
          MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
@@ -151,6 +152,7 @@ namespace projects {
             fclose(outputFile);
          }
       }
+      */
    }
    
    Realf Dispersion::fillPhaseSpace(spatial_cell::SpatialCell *cell,

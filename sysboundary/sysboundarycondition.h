@@ -181,7 +181,7 @@ namespace SBC {
          bool isDynamic() const;
       
          bool updateSysBoundaryConditionsAfterLoadBalance(
-            dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+            const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             const std::vector<CellID> & local_cells_on_boundary
          );
          bool doApplyUponRestart() const;
@@ -191,8 +191,8 @@ namespace SBC {
       protected:
          void determineFace(
             bool* isThisCellOnAFace,
-            creal x, creal y, creal z,
-            creal dx, creal dy, creal dz,
+            const creal x,const  creal y,const creal z,
+            const creal dx,const creal dy,const creal dz,
             const bool excludeSlicesAndPeriodicDimensions = false
          );
          void determineFace(
@@ -202,7 +202,7 @@ namespace SBC {
             const bool excludeSlicesAndPeriodicDimensions = false
          );
          void copyCellData(
-            SpatialCell *from,
+            const SpatialCell *from,
             SpatialCell *to,
             const bool copyMomentsOnly,
             const uint popID,
@@ -322,11 +322,11 @@ namespace SBC {
    
    // Moved outside the class since it's a helper function that doesn't require member access
    void averageCellData (
-      dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       std::vector<CellID> cellList,
       SpatialCell *to,
       const uint popID,
-      creal fluffiness = 0
+      const creal fluffiness = 0
    );
 
    /*!\brief SBC::findMaxwellianBlocksToInitialize returns a list of blocks to construct the VDF with.

@@ -1396,7 +1396,7 @@ int simulate(int argn,char* args[]) {
       // Check timestep
       if (P::dt < P::bailout_min_dt) {
          stringstream s;
-         s << "The timestep dt=" << P::dt << " went below bailout.bailout_min_dt (" << to_string(P::bailout_min_dt) << ")." << endl;
+         s << "The timestep dt=" << P::dt << " went below bailout.min_dt (" << to_string(P::bailout_min_dt) << ")." << endl;
          bailout(true, s.str(), __FILE__, __LINE__);
       }
       //Move forward in time

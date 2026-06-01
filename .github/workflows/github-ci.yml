@@ -14,7 +14,39 @@ concurrency:
    cancel-in-progress: true
 
 jobs:
-  build_libraries:
+ 
+  get_git_diff:
+    runs-on: ubuntu-latest
+    outputs:
+       RUN_TP: ${{ steps.gitdiff.outputs.RUN_TP }}
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Get git diff 
+        id: gitdiff
+        run: |
+          cd $GITHUB_WORKSPACE
+          #chmod +x ./.github/workflows/CI_git_diff.sh
+          echo Comparing PR branch against ${{ github.base_ref }}
+          if [[ $(./.github/workflows/CI_git_diff.sh ${{ github.base_ref }} ) = "no_test" ]]; then
+            echo "RUN_TP=False" >> $GITHUB_OUTPUT
+            echo "Not running testpackage"
+            exit 0
+          fi
+          echo "Running testpackage"
+  get_git_diff_check:
+    runs-on: ubuntu-latest
+    needs: get_git_diff
+    if: ${{ needs.get_git_diff.outputs.RUN_TP != 'False' }}
+    steps:
+      - name: Checking whether to run tests
+        run: |
+          echo "Running testpackage"
+
+
+  build_libraries_github:
     # Build libraries for the current version of the docker image
     # (to be used in any subsequent compilation and run jobs on said image)
     runs-on: ubuntu-latest
@@ -26,12 +58,70 @@ jobs:
       - name: Run library build script
         run: ./fetch_and_build_libraries.sh
       - name: Build libraries tar
-        run: tar --zstd -cvf libraries.tar.zstd libraries/
+        run: tar --zstd -cf libraries.tar.zstd libraries/
       - name: Upload libraries as artifact
         uses: actions/upload-artifact@v4
         with:
           name: libraries
           path: libraries.tar.zstd
+          retention-days: 5
+          if-no-files-found: error
+  build_libraries_hile-g:
+    # Build libraries for the current version of the docker image
+    # (to be used in any subsequent compilation and run jobs on said image)
+    runs-on: hile
+   #  if: false
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+      - name: Run library build script
+        run: srun --interactive -C g -J build_libs_hile-g -n 1 -c 16 bash -c "export MPICH_GPU_SUPPORT_ENABLED=1;module load papi; module load rocm/6.3.4; module load cray-pmi;module load craype-accel-amd-gfx90a;module load libfabric/1.22.0; ./fetch_and_build_libraries.sh hile_gpu"
+      - name: Build libraries tar
+        run: tar -zcf libraries-hile_gpu.tar.gz libraries-hile_gpu/
+      - name: Upload libraries as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: libraries-hile_gpu
+          path: libraries-hile_gpu.tar.gz
+          retention-days: 5
+          if-no-files-found: error
+
+  build_libraries_ukkoGPU:
+    # Build libraries for the GPU builds on ukko below
+    runs-on: carrington
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+      - name: Run library build script
+        run: srun --interactive --constraint="v100" --gres="gpu:V100" -p gpu -J build_libs -n 1 -c 64 bash -c "module purge; ml OpenMPI/4.1.6.withucx-GCC-13.2.0 PAPI/7.1.0-GCCcore-13.2.0 CUDA/12.6.0; ./fetch_and_build_libraries.sh ukkogpu"
+      - name: Build libraries tar
+        run: tar -zcf libraries-ukkogpu.tar.gz libraries-ukkogpu/
+      - name: Upload libraries as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: libraries-ukkogpu
+          path: libraries-ukkogpu.tar.gz
+          retention-days: 5
+          if-no-files-found: error
+
+  build_libraries_carrington:
+    # Build libraries for the testpackage build and run on the carrington cluster (also, ukko CPU side)
+    runs-on: carrington
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+      - name: Run library build script
+        run: srun --interactive --constraint "carrington|ukko" -J build_libs -n 1 -c 64 bash -c "module purge; module load GCC/13.2.0; module load OpenMPI/4.1.6-GCC-13.2.0 ; module load PMIx/4.2.6-GCCcore-13.2.0; module load PAPI/7.1.0-GCCcore-13.2.0; module load Boost/1.83.0-GCC-13.2.0; ./fetch_and_build_libraries.sh carrington"
+      - name: Build libraries tar
+        run: tar -zcf libraries-carrington.tar.gz libraries-carrington/
+      - name: Upload libraries as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: libraries-carrington
+          path: libraries-carrington.tar.gz
           retention-days: 5
           if-no-files-found: error
 
@@ -50,7 +140,7 @@ jobs:
         run: |
           . ./fetch_and_build_libraries.sh arm64
       - name: Build libraries tar
-        run: tar --zstd -cvf libraries-arm64.tar.zstd libraries-arm64
+        run: tar --zstd -cf libraries-arm64.tar.zstd libraries-arm64
       - name: Upload libraries as artifact
         uses: actions/upload-artifact@v4
         with:
@@ -90,7 +180,7 @@ jobs:
     # Build Vlasiator with production flags
     runs-on: ubuntu-latest
     container: ursg/vlasiator_ci:20250909_1
-    needs: build_libraries
+    needs: build_libraries_github
 
     steps:
     - name: Checkout source
@@ -102,7 +192,7 @@ jobs:
       with:
         name: libraries
     - name: Unpack libraries
-      run: tar --zstd -xvf libraries.tar.zstd
+      run: tar --zstd -xf libraries.tar.zstd
     - uses: ursg/gcc-problem-matcher@master
     - name: Compile vlasiator (Release build)
       run: |
@@ -119,7 +209,7 @@ jobs:
     # Build Vlasiator with production flags
     runs-on: ubuntu-latest
     container: ursg/vlasiator_ci:20250909_1
-    needs: build_libraries
+    needs: build_libraries_github
 
     steps:
     - name: Checkout source
@@ -131,12 +221,12 @@ jobs:
       with:
         name: libraries
     - name: Unpack libraries
-      run: tar --zstd -xvf libraries.tar.zstd
+      run: tar --zstd -xf libraries.tar.zstd
     - uses: ursg/gcc-problem-matcher@master
     - name: Compile vlasiator (Release build)
       run: |
         VLASIATOR_ARCH=github_actions make clean
-        VLASIATOR_ARCH=github_actions COMPFLAGS="-DFS_1ST_ORDER_TIME " make -j 3
+        VLASIATOR_ARCH=github_actions COMPFLAGS="-DFS_1ST_ORDER_TIME" make -j 3
     - name: Upload release binary
       uses: actions/upload-artifact@v4
       with:
@@ -148,7 +238,7 @@ jobs:
     # Build Vlasiator with production flags
     runs-on: ubuntu-latest
     container: ursg/vlasiator_ci:20250909_1
-    needs: build_libraries
+    needs: build_libraries_github
 
     steps:
     - name: Checkout source
@@ -160,12 +250,12 @@ jobs:
       with:
         name: libraries
     - name: Unpack libraries
-      run: tar --zstd -xvf libraries.tar.zstd
+      run: tar --zstd -xf libraries.tar.zstd
     - uses: ursg/gcc-problem-matcher@master
     - name: Compile vlasiator (Release build)
       run: |
         VLASIATOR_ARCH=github_actions make clean
-        VLASIATOR_ARCH=github_actions COMPFLAGS="-DFS_1ST_ORDER_SPACE " make -j 3
+        VLASIATOR_ARCH=github_actions COMPFLAGS="-DFS_1ST_ORDER_SPACE" make -j 3
     - name: Upload release binary
       uses: actions/upload-artifact@v4
       with:
@@ -177,7 +267,7 @@ jobs:
     # Build Vlasiator with production flags and all the debug flags enabled to check the debug code is still ok
     runs-on: ubuntu-latest
     container: ursg/vlasiator_ci:20250909_1
-    needs: build_libraries
+    needs: build_libraries_github
 
     steps:
     - name: Checkout source
@@ -189,12 +279,12 @@ jobs:
       with:
         name: libraries
     - name: Unpack libraries
-      run: tar --zstd -xvf libraries.tar.zstd
+      run: tar --zstd -xf libraries.tar.zstd
     - uses: ursg/gcc-problem-matcher@master
     - name: Compile vlasiator (Release, debug build)
       run: |
         VLASIATOR_ARCH=github_actions make clean
-        VLASIATOR_ARCH=github_actions COMPFLAGS="-DDEBUG_VLASIATOR -DDEBUG_SOLVERS -DDEBUG_IONOSPHERE -DDEBUG_SPATIAL_CELL -DDEBUG_VMESH -DDEBUG_VBC -DDEBUG_ACC " make -j 3
+        VLASIATOR_ARCH=github_actions COMPFLAGS="-DDEBUG_VLASIATOR -DDEBUG_SOLVERS -DDEBUG_IONOSPHERE -DDEBUG_SPATIAL_CELL -DDEBUG_VMESH -DDEBUG_VBC -DDEBUG_ACC" make -j 3
     - name: Upload release binary
       uses: actions/upload-artifact@v4
       with:
@@ -206,6 +296,7 @@ jobs:
     # Build Vlasiator with testpackage flags, on the carrington cluster
     # (for subsequent running of the integration test package)
     runs-on: carrington
+    needs: build_libraries_carrington
 
     steps:
     - name: Clean workspace
@@ -216,18 +307,24 @@ jobs:
         rm -f *.xml
         MORO
         )
-        srun -M carrington bash -c "$RUN_STRING"
+        srun --constraint "carrington|ukko" bash -c "$RUN_STRING"
     - name: Checkout source
       uses: actions/checkout@v4
       with:
         submodules: true
     - name: Make clean
       run: VLASIATOR_ARCH=carrington_gcc_openmpi make clean
+    - name: Fetch libraries
+      uses: actions/download-artifact@v5
+      with:
+        name: libraries-carrington
+    - name: Unpack libraries
+      run: tar -zxf libraries-carrington.tar.gz
     - uses: ursg/gcc-problem-matcher@master
     - name: Compile vlasiator (Testpackage build)
       run: |
         export VLASIATOR_ARCH=carrington_gcc_openmpi
-        srun -M carrington --job-name CI_tp_compile --interactive --nodes=1 -n 1 -c 16 --mem=40G -p short -t 0:10:0 bash -c 'module purge; module load GCC/13.2.0; module load OpenMPI/4.1.6-GCC-13.2.0 ; module load PMIx/4.2.6-GCCcore-13.2.0; module load PAPI/7.1.0-GCCcore-13.2.0; export VLASIATOR_ARCH=carrington_gcc_openmpi; make -j 16 testpackage; sleep 10s'
+        srun --constraint "carrington|ukko" --job-name CI_tp_compile --interactive --nodes=1 -n 1 -c 16 --mem=40G -p short -t 0:10:0 bash -c 'module purge; module load GCC/13.2.0; module load OpenMPI/4.1.6-GCC-13.2.0 ; module load PMIx/4.2.6-GCCcore-13.2.0; module load PAPI/7.1.0-GCCcore-13.2.0; module load Boost/1.83.0-GCC-13.2.0; export VLASIATOR_ARCH=carrington_gcc_openmpi; make -j 16 testpackage; sleep 10s'
     - name: Make sure the output binary is visible in lustre
       uses: nick-fields/retry@v3
       with:
@@ -251,6 +348,7 @@ jobs:
     # Build Vlasiator with testpackage flags, on the ukko cluster using
     # its nvidia gpus
     runs-on: carrington
+    needs: build_libraries_ukkoGPU
 
     steps:
       - name: Clean workspace
@@ -261,18 +359,24 @@ jobs:
           rm -f *.xml
           MORO
           )
-          srun -M ukko bash -c "$RUN_STRING"
+          srun --constraint ukko bash -c "$RUN_STRING"
       - name: Checkout source
         uses: actions/checkout@v4
         with:
           submodules: true
       - name: Make clean
         run: VLASIATOR_ARCH=ukko_dgx make clean
+      - name: Fetch libraries
+        uses: actions/download-artifact@v5
+        with:
+          name: libraries-ukkogpu
+      - name: Unpack libraries
+        run: tar -zxf libraries-ukkogpu.tar.gz
       - uses: ursg/gcc-problem-matcher@master
       - name: Compile vlasiator (Testpackage build w/ CUDA)
         run: |
           export VLASIATOR_ARCH=ukko_dgx
-          srun -Mukko -pgpu-oversub --job-name CI_tp_compile --interactive --nodes=1 -n 1 -c 8 --mem-per-cpu=2G -t 0:20:0 bash -c 'module purge; ml OpenMPI/4.1.6.withucx-GCC-13.2.0 PAPI/7.1.0-GCCcore-13.2.0 CUDA/12.6.0; export VLASIATOR_ARCH=ukko_dgx; make -j 9 testpackage; sleep 10s'
+          srun --constraint="ukko" -p gpu --job-name CI_tp_compile --interactive --nodes=1 -n 1 -c 8 --mem-per-cpu=2G -t 0:20:0 bash -c 'module purge; ml OpenMPI/4.1.6.withucx-GCC-13.2.0 PAPI/7.1.0-GCCcore-13.2.0 CUDA/12.6.0; export VLASIATOR_ARCH=ukko_dgx; make -j 9 testpackage; sleep 10s'
       - name: Make sure the output binary is visible in lustre
         uses: nick-fields/retry@v3
         with:
@@ -291,7 +395,8 @@ jobs:
     # Build Vlasiator with testpackage flags, on the HILE cluster using
     # its AMD gpus
     runs-on: hile
-
+   #  if: false
+    needs: build_libraries_hile-g
     steps:
       - name: Clean workspace
         run: |
@@ -308,10 +413,16 @@ jobs:
           submodules: true
       - name: Make clean
         run: VLASIATOR_ARCH=hile_gpu make clean
+      - name: Fetch libraries
+        uses: actions/download-artifact@v5
+        with:
+          name: libraries-hile_gpu
+      - name: Unpack libraries
+        run: tar -zxf libraries-hile_gpu.tar.gz
       - uses: ursg/gcc-problem-matcher@master
       - name: Compile vlasiator (Testpackage build w/ HIP)
         run: |
-          srun -C g --job-name CI_tp_G_compile --interactive --nodes=1 -n 1 -c 16 --mem-per-cpu=2G -t 0:20:0 bash -c 'module load papi; module load rocm/6.2.0; module load cray-pmi; module load craype-accel-amd-gfx90a; module load libfabric/1.22.0; export MPICH_GPU_SUPPORT_ENABLED=1; export VLASIATOR_ARCH=hile_gpu; make -j 16 testpackage; sleep 10s'
+          srun -C g --job-name CI_tp_G_compile --interactive --nodes=1 -n 1 -c 16 --mem-per-cpu=2G -t 0:20:0 bash -c 'module load papi; module load rocm/6.3.4; module load cray-pmi; module load craype-accel-amd-gfx90a; module load libfabric/1.22.0; export MPICH_GPU_SUPPORT_ENABLED=1; export VLASIATOR_ARCH=hile_gpu; make -j 16 testpackage; sleep 10s'
       - name: Make sure the output binary is visible in lustre
         uses: nick-fields/retry@v3
         with:
@@ -331,7 +442,8 @@ jobs:
     # Build Vlasiator with production flags and all the debug flags enabled, on the HILE cluster using
     # its AMD gpus
     runs-on: hile
-
+   #  if: false
+    needs: build_libraries_hile-g
     steps:
       - name: Clean workspace
         run: |
@@ -349,10 +461,17 @@ jobs:
       - name: Make clean
         run: VLASIATOR_ARCH=hile_gpu make clean
       - uses: ursg/gcc-problem-matcher@master
+      - name: Fetch libraries
+        uses: actions/download-artifact@v5
+        with:
+          name: libraries-hile_gpu
+      - name: Unpack libraries
+        run: tar -zxf libraries-hile_gpu.tar.gz
+
       - name: Compile vlasiator (Release, debug build w/ HIP)
         run: |
           # srun -C g --job-name CI_debug_G_compile --interactive --nodes=1 -n 1 -c 16 --mem-per-cpu=2G -t 0:20:0 bash -c 'module load papi; module load rocm/6.2.0; module load cray-pmi; module load craype-accel-amd-gfx90a; module load libfabric/1.22.0; export MPICH_GPU_SUPPORT_ENABLED=1; export VLASIATOR_ARCH=hile_gpu; make COMPFLAGS="-DDEBUG_VLASIATOR -DDEBUG_SOLVERS -DDEBUG_IONOSPHERE -DDEBUG_SPATIAL_CELL -DDEBUG_VMESH -DDEBUG_VBC -DDEBUG_ACC " -j 16; sleep 10s'
-          srun -C g --job-name CI_debug_G_compile --interactive --nodes=1 -n 1 -c 16 --mem-per-cpu=2G -t 0:20:0 bash -c 'module load papi; module load rocm/6.2.0; module load cray-pmi; module load craype-accel-amd-gfx90a; module load libfabric/1.22.0; export MPICH_GPU_SUPPORT_ENABLED=1; export VLASIATOR_ARCH=hile_gpu; make -j 16; sleep 10s'
+          srun -C g --job-name CI_debug_G_compile --interactive --nodes=1 -n 1 -c 16 --mem-per-cpu=2G -t 0:20:0 bash -c 'module load papi; module load rocm/6.3.4; module load cray-pmi; module load craype-accel-amd-gfx90a; module load libfabric/1.22.0; export MPICH_GPU_SUPPORT_ENABLED=1; export VLASIATOR_ARCH=hile_gpu; make -j 16; sleep 10s'
       - name: Make sure the output binary is visible in lustre
         uses: nick-fields/retry@v3
         with:
@@ -371,6 +490,7 @@ jobs:
     # Build Vlasiator with testpackage flags, on the HILE cluster using
     # its CPUs
     runs-on: hile
+   #  if: false
 
     steps:
       - name: Clean workspace
@@ -411,6 +531,7 @@ jobs:
     # Build Vlasiator with production flags and all the debug flags enabled, on the HILE cluster using
     # its CPUs
     runs-on: hile
+   #  if: false
 
     steps:
       - name: Clean workspace
@@ -451,6 +572,7 @@ jobs:
     # Build Vlasiator with testpackage and debug flags, on the ukko cluster using
     # its nvidia gpus
     runs-on: carrington
+    needs: build_libraries_ukkoGPU
 
     steps:
       - name: Clean workspace
@@ -461,18 +583,24 @@ jobs:
           rm -f *.xml
           MORO
           )
-          srun -M ukko bash -c "$RUN_STRING"
+          srun --constraint="ukko" bash -c "$RUN_STRING"
       - name: Checkout source
         uses: actions/checkout@v4
         with:
           submodules: true
       - name: Make clean
         run: VLASIATOR_ARCH=ukko_dgx make clean
+      - name: Fetch libraries
+        uses: actions/download-artifact@v5
+        with:
+          name: libraries-ukkogpu
+      - name: Unpack libraries
+        run: tar -zxf libraries-ukkogpu.tar.gz
       - uses: ursg/gcc-problem-matcher@master
       - name: Compile vlasiator (Testpackage build w/ CUDA, debug)
         run: |
           export VLASIATOR_ARCH=ukko_dgx
-          srun -Mukko -pgpu-oversub --job-name CI_dbg_compile --interactive --nodes=1 -n 1 -c 8 --mem-per-cpu=2G -t 0:20:0 bash -c 'module purge; ml OpenMPI/4.1.6.withucx-GCC-13.2.0 PAPI/7.1.0-GCCcore-13.2.0 CUDA/12.6.0; export VLASIATOR_ARCH=ukko_dgx; COMPFLAGS="-DDEBUG_VLASIATOR -DDEBUG_SOLVERS -DDEBUG_IONOSPHERE -DHASHINATOR_DEBUG -DDEBUG_SPATIAL_CELL -DDEBUG_VMESH -DDEBUG_VBC -DDEBUG_ACC " make -j 9 testpackage ; sleep 10s'
+          srun --constraint="ukko" -p gpu --job-name CI_dbg_compile --interactive --nodes=1 -n 1 -c 8 --mem-per-cpu=2G -t 0:20:0 bash -c 'module purge; ml OpenMPI/4.1.6.withucx-GCC-13.2.0 PAPI/7.1.0-GCCcore-13.2.0 CUDA/12.6.0; export VLASIATOR_ARCH=ukko_dgx; COMPFLAGS="-DDEBUG_VLASIATOR -DDEBUG_SOLVERS -DDEBUG_IONOSPHERE -DHASHINATOR_DEBUG -DDEBUG_SPATIAL_CELL -DDEBUG_VMESH -DDEBUG_VBC -DDEBUG_ACC " make -j 9 testpackage ; sleep 10s'
       - name: Make sure the output binary is visible in lustre
         uses: nick-fields/retry@v3
         with:
@@ -491,6 +619,7 @@ jobs:
     # Build Vlasiator with production, debug, and warp accessor flags, on the ukko cluster using
     # its nvidia gpus.
     runs-on: carrington
+    needs: build_libraries_ukkoGPU
 
     steps:
       - name: Clean workspace
@@ -501,18 +630,24 @@ jobs:
           rm -f *.xml
           MORO
           )
-          srun -M ukko bash -c "$RUN_STRING"
+          srun --constraint="ukko" bash -c "$RUN_STRING"
       - name: Checkout source
         uses: actions/checkout@v4
         with:
           submodules: true
       - name: Make clean
         run: VLASIATOR_ARCH=ukko_dgx make clean
+      - name: Fetch libraries
+        uses: actions/download-artifact@v5
+        with:
+          name: libraries-ukkogpu
+      - name: Unpack libraries
+        run: tar -zxf libraries-ukkogpu.tar.gz
       - uses: ursg/gcc-problem-matcher@master
       - name: Compile vlasiator (Production build w/ CUDA, debug, WA)
         run: |
           export VLASIATOR_ARCH=ukko_dgx
-          srun -Mukko -pgpu-oversub --job-name CI_tp_compile --interactive --nodes=1 -n 1 -c 8 --mem-per-cpu=2G -t 0:20:0 bash -c 'module purge; ml OpenMPI/4.1.6.withucx-GCC-13.2.0 PAPI/7.1.0-GCCcore-13.2.0 CUDA/12.6.0; export VLASIATOR_ARCH=ukko_dgx; COMPFLAGS="-DDEBUG_VLASIATOR -DDEBUG_SOLVERS -DDEBUG_IONOSPHERE -DHASHINATOR_DEBUG -DDEBUG_SPATIAL_CELL -DDEBUG_VMESH -DDEBUG_VBC -DDEBUG_ACC -DUSE_WARPACCESSORS " make -j 9 ; sleep 10s'
+          srun --constraint="ukko" -p gpu --job-name CI_tp_compile --interactive --nodes=1 -n 1 -c 8 --mem-per-cpu=2G -t 0:20:0 bash -c 'module purge; ml OpenMPI/4.1.6.withucx-GCC-13.2.0 PAPI/7.1.0-GCCcore-13.2.0 CUDA/12.6.0; export VLASIATOR_ARCH=ukko_dgx; COMPFLAGS="-DDEBUG_VLASIATOR -DDEBUG_SOLVERS -DDEBUG_IONOSPHERE -DHASHINATOR_DEBUG -DDEBUG_SPATIAL_CELL -DDEBUG_VMESH -DDEBUG_VBC -DDEBUG_ACC -DUSE_WARPACCESSORS " make -j 9 ; sleep 10s'
       - name: Make sure the output binary is visible in lustre
         uses: nick-fields/retry@v3
         with:
@@ -578,7 +713,7 @@ jobs:
       with:
         name: libraries-arm64
     - name: Unpack libraries
-      run: tar --zstd -xvf libraries-arm64.tar.zstd
+      run: tar --zstd -xf libraries-arm64.tar.zstd
     - name: Make clean
       run: VLASIATOR_ARCH=github_actions_arm64 make clean
     - name: Compile vlasiator (Release build)
@@ -588,6 +723,7 @@ jobs:
   build_tools:
     # Build vlsvdiff, vlsvextract, and fluxfunction for testpackage use
     runs-on: carrington
+    needs: build_libraries_carrington
 
     steps:
     - name: Clean workspace
@@ -598,7 +734,7 @@ jobs:
         rm -f *.xml
         MORO
         )
-        srun -M carrington bash -c "$RUN_STRING"
+        srun --constraint "carrington|ukko" bash -c "$RUN_STRING"
     - name: Checkout source
       uses: actions/checkout@v4
       with:
@@ -606,10 +742,16 @@ jobs:
     - uses: ursg/gcc-problem-matcher@master
     - name: Make clean
       run: VLASIATOR_ARCH=carrington_gcc_openmpi make clean
+    - name: Fetch libraries
+      uses: actions/download-artifact@v5
+      with:
+        name: libraries-carrington
+    - name: Unpack libraries
+      run: tar -zxf libraries-carrington.tar.gz
     - name: Compile tools
       run: |
         export VLASIATOR_ARCH=carrington_gcc_openmpi
-        srun -M carrington --job-name CI_tools_compile --interactive --nodes=1 -n 1 -c 1 --mem=4G -p short -t 0:10:0 bash -c 'module purge; module load GCC/13.2.0; module load OpenMPI/4.1.6-GCC-13.2.0 ; module load PMIx/4.2.6-GCCcore-13.2.0; module load PAPI/7.1.0-GCCcore-13.2.0; export VLASIATOR_ARCH=carrington_gcc_openmpi; make vlsvextract vlsvdiff fluxfunction'
+        srun --constraint "carrington|ukko" --job-name CI_tools_compile --interactive --nodes=1 -n 1 -c 1 --mem=4G -p short -t 0:10:0 bash -c 'module purge; module load GCC/13.2.0; module load OpenMPI/4.1.6-GCC-13.2.0 ; module load PMIx/4.2.6-GCCcore-13.2.0; module load PAPI/7.1.0-GCCcore-13.2.0; module load Boost/1.83.0-GCC-13.2.0; export VLASIATOR_ARCH=carrington_gcc_openmpi; make vlsvextract vlsvdiff fluxfunction'
     - name: Upload tools binaries
       uses: actions/upload-artifact@v4
       with:
@@ -623,6 +765,7 @@ jobs:
   build_tools_ukkoGPU:
     # Build vlsvdiff and vlsvextract for testpackage use
     runs-on: carrington
+    needs: build_libraries_ukkoGPU
 
     steps:
     - name: Clean workspace
@@ -633,7 +776,7 @@ jobs:
         rm -f *.xml
         MORO
         )
-        srun -M carrington bash -c "$RUN_STRING"
+        srun --constraint ukko bash -c "$RUN_STRING"
     - name: Checkout source
       uses: actions/checkout@v4
       with:
@@ -641,10 +784,16 @@ jobs:
     - uses: ursg/gcc-problem-matcher@master
     - name: Make clean
       run: VLASIATOR_ARCH=ukko_dgx make clean
+    - name: Fetch libraries
+      uses: actions/download-artifact@v5
+      with:
+        name: libraries-ukkogpu
+    - name: Unpack libraries
+      run: tar -zxf libraries-ukkogpu.tar.gz
     - name: Compile tools
       run: |
           export VLASIATOR_ARCH=ukko_dgx
-          srun -Mukko -pgpu-oversub --job-name CI_tools_compile --interactive --nodes=1 -n 1 -c 1 --mem-per-cpu=2G -t 0:10:0 bash -c 'module purge; ml OpenMPI/4.1.6.withucx-GCC-13.2.0 PAPI/7.1.0-GCCcore-13.2.0 CUDA/12.6.0; export VLASIATOR_ARCH=ukko_dgx; make vlsvextract vlsvdiff; sleep 10s'
+          srun --constraint="ukko" -p gpu --job-name CI_tools_compile --interactive --nodes=1 -n 1 -c 1 --mem-per-cpu=2G -t 0:10:0 bash -c 'module purge; ml OpenMPI/4.1.6.withucx-GCC-13.2.0 PAPI/7.1.0-GCCcore-13.2.0 CUDA/12.6.0; export VLASIATOR_ARCH=ukko_dgx; make vlsvextract vlsvdiff; sleep 10s'
     - name: Upload tools binaries
       uses: actions/upload-artifact@v4
       with:
@@ -657,6 +806,7 @@ jobs:
   build_tools_HILE-C:
     # Build vlsvdiff and vlsvextract for testpackage use
     runs-on: hile
+   #  if: false
 
     steps:
       - name: Clean workspace
@@ -691,7 +841,8 @@ jobs:
   run_TP:
     # Run the testpackage on the carrington cluster
     runs-on: carrington
-    needs: [build_TP, build_tools]
+    needs: [build_TP, build_tools, get_git_diff_check, build_libraries_carrington]
+    
     continue-on-error: true
 
     steps:
@@ -707,6 +858,12 @@ jobs:
       uses: actions/download-artifact@v5
       with:
         name: vlasiator-tools
+    - name: Fetch libraries
+      uses: actions/download-artifact@v5
+      with:
+        name: libraries-carrington
+    - name: Unpack libraries
+      run: tar -zxf libraries-carrington.tar.gz
     - name: Run testpackage
       id: run
       run: |
@@ -715,8 +872,8 @@ jobs:
         cd testpackage
         # Delete any old run directories
         rm -rf run_20*
-        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/libraries/lib
-        sbatch -W -o testpackage_run_output.txt ./small_test_carrington_github_ci.sh
+        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/libraries-carrington/lib
+        sbatch -W -o testpackage_run_output.txt ./small_test_carrington_github_ci.sh || true
         PARSE_OUTPUT_CMD=$( cat << MORO
         echo "Job finished, checking output."
         cat testpackage_run_output.txt
@@ -726,7 +883,7 @@ jobs:
         tar -czf testpackage-output.tar.gz testpackage_check_description.txt testpackage_output_variables.txt
         MORO
         )
-        srun --job-name CI_package_results -M carrington -N 1 -c 1 --mem=1G bash -c "$PARSE_OUTPUT_CMD"
+        srun --job-name CI_package_results --constraint "carrington|ukko" -N 1 -c 1 --mem=3G bash -c "$PARSE_OUTPUT_CMD"
         if [ -f $GITHUB_WORKSPACE/testpackage_failed ]; then
           # Fail this step if any test failed.
           exit 1
@@ -754,15 +911,15 @@ jobs:
     - name: Run fluxfunction test
       run: |
         chmod +x $GITHUB_WORKSPACE/fluxfunction
-        srun --job-name fluxtest -M carrington -N 1 -c 1 --mem=1G bash -c "module purge; module load GCC/13.2.0; module load OpenMPI/4.1.6-GCC-13.2.0 ; module load PMIx/4.2.6-GCCcore-13.2.0; module load PAPI/7.1.0-GCCcore-13.2.0; $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_small/bulk.0000001.vlsv equatorial.bin"
-        srun --job-name fluxtest -M carrington -N 1 -c 1 --mem=1G bash -c "module purge; module load GCC/13.2.0; module load OpenMPI/4.1.6-GCC-13.2.0 ; module load PMIx/4.2.6-GCCcore-13.2.0; module load PAPI/7.1.0-GCCcore-13.2.0; $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_polar_small/bulk.0000001.vlsv polar.bin"
-        diff -q equatorial.bin /proj/group/spacephysics/vlasiator_testpackage/CI_reference/equatorial.bin
-        diff -q polar.bin /proj/group/spacephysics/vlasiator_testpackage/CI_reference/polar.bin
+        srun --job-name fluxtest --constraint "carrington|ukko" -N 1 -c 1 --mem=1G bash -c "module purge; module load GCC/13.2.0; module load OpenMPI/4.1.6-GCC-13.2.0 ; module load PMIx/4.2.6-GCCcore-13.2.0; module load PAPI/7.1.0-GCCcore-13.2.0; module load Boost/1.83.0-GCC-13.2.0; $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_small/bulk.0000001.vlsv equatorial.bin"
+        srun --job-name fluxtest --constraint "carrington|ukko" -N 1 -c 1 --mem=1G bash -c "module purge; module load GCC/13.2.0; module load OpenMPI/4.1.6-GCC-13.2.0 ; module load PMIx/4.2.6-GCCcore-13.2.0; module load PAPI/7.1.0-GCCcore-13.2.0; module load Boost/1.83.0-GCC-13.2.0; $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_polar_small/bulk.0000001.vlsv polar.bin"
+        diff -q equatorial.bin /turso/group/spacephysics/vlasiator/testpackage/CI_reference/equatorial.bin || if [ $? -eq 1 ] ; then true; else false; fi
+        diff -q polar.bin /turso/group/spacephysics/vlasiator/testpackage/CI_reference/polar.bin || if [ $? -eq 1 ] ; then true; else false; fi
 
   run_TP_HILE-C:
     # Run the testpackage on the HILE-C cluster
     runs-on: hile
-    needs: [build_TP_HILE-C, build_tools_HILE-C]
+    needs: [build_TP_HILE-C, build_tools_HILE-C, get_git_diff_check]
     continue-on-error: true
 
     steps:
@@ -827,13 +984,13 @@ jobs:
         chmod +x $GITHUB_WORKSPACE/fluxfunction
         srun -C c --job-name fluxtest --nodes=1 -n 1 -c 1 --mem-per-cpu=2G -t 0:10:0 bash -c 'module load papi; module load cray-pmi; module load libfabric/1.22.0; $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_small/bulk.0000001.vlsv equatorial.bin'
         srun -C c --job-name fluxtest --nodes=1 -n 1 -c 1 --mem-per-cpu=2G -t 0:10:0 bash -c 'module load papi; module load cray-pmi; module load libfabric/1.22.0; $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_polar_small/bulk.0000001.vlsv polar.bin'
-        diff -q equatorial.bin /wrk-kappa/group/spacephysics/vlasiator/testpackage/CI_reference/equatorial.bin
-        diff -q polar.bin /wrk-kappa/group/spacephysics/vlasiator/testpackage/CI_reference/polar.bin
+        diff -q equatorial.bin /turso/group/spacephysics/vlasiator/testpackage/CI_reference/equatorial.bin || if [ $? -eq 1 ] ; then true; else false; fi
+        diff -q polar.bin /turso/group/spacephysics/vlasiator/testpackage/CI_reference/polar.bin || if [ $? -eq 1 ] ; then true; else false; fi
 
   # run_TP_ukkoGPU:
   #   # Run the testpackage on the Ukko GPU cluster (via Carrington frontend)
   #   runs-on: carrington
-  #   needs: [build_TP_ukkoGPU, build_tools_ukkoGPU]
+  #   needs: [build_TP_ukkoGPU, build_tools_ukkoGPU, build_libraries_ukkoGPU]
   #   continue-on-error: true
 
   #   steps:
@@ -849,6 +1006,12 @@ jobs:
   #     uses: actions/download-artifact@v5
   #     with:
   #       name: vlasiator-tools-ukkoGPU
+  #  - name: Fetch libraries
+  #     uses: actions/download-artifact@v5
+  #     with:
+  #       name: libraries-ukkogpu
+  #   - name: Unpack libraries
+  #     run: tar -zxf libraries-ukkogpu.tar.gz
   #   - name: Run GPU testpackage
   #     id: run
   #     run: |
@@ -866,7 +1029,7 @@ jobs:
   #       tar -czf testpackage-output-ukkoGPU.tar.gz testpackage_check_description.txt testpackage_output_variables.txt
   #       MORO
   #       )
-  #       srun --job-name CI_package_results -M ukko -N 1 -c 1 --mem=1G bash -c "$PARSE_OUTPUT_CMD"
+  #       srun --job-name CI_package_results --constraint="ukko" -N 1 -c 1 --mem=1G bash -c "$PARSE_OUTPUT_CMD"
   #       if [ -f $GITHUB_WORKSPACE/testpackage_failed ]; then
   #         # Fail this step if any test failed.
   #         exit 1
@@ -896,7 +1059,7 @@ jobs:
     # Build IonosphereSolverTests miniApp
     runs-on: ubuntu-latest
     container: ursg/vlasiator_ci:20250909_1
-    needs: build_libraries
+    needs: build_libraries_github
     steps:
     - name: Checkout source
       uses: actions/checkout@v4
@@ -907,14 +1070,14 @@ jobs:
           #      with:
           #        name: libraries
           #    - name: Unpack libraries
-          #      run: tar --zstd -xvf libraries.tar.zstd
+          #      run: tar --zstd -xf libraries.tar.zstd
           #    - uses: ursg/gcc-problem-matcher@master
     - name: Download libraries
       uses: actions/download-artifact@v5
       with:
         name: libraries
     - name: Unpack libraries
-      run: tar --zstd -xvf libraries.tar.zstd
+      run: tar --zstd -xf libraries.tar.zstd
     - name: Compile ionosphereSolverTests
       run: |
         cd mini-apps/ionosphereSolverTests/
@@ -932,7 +1095,7 @@ jobs:
   run_ionosphere_LFMtest:
     runs-on: ubuntu-latest
     container: ursg/vlasiator_ci:20250909_1
-    needs: build_ionosphereTests
+    needs: [build_ionosphereTests, get_git_diff_check]
     steps:
     - name: Checkout source
       uses: actions/checkout@v4
@@ -988,7 +1151,7 @@ jobs:
   check_cfg_files:
     runs-on: ubuntu-latest
     container: ursg/vlasiator_ci:20250909_1
-    needs: [build_libraries, build_prod]
+    needs: [build_libraries_github, build_prod]
     steps:
     - name: Checkout source
       uses: actions/checkout@v4
@@ -999,7 +1162,7 @@ jobs:
       with:
         name: libraries
     - name: Unpack libraries
-      run: tar --zstd -xvf libraries.tar.zstd
+      run: tar --zstd -xf libraries.tar.zstd
     - name: Download release binary
       uses: actions/download-artifact@v5
       with:

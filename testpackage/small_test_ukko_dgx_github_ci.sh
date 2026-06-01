@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH -t 02:00:00        # Run time (hh:mm:ss)
 #SBATCH --job-name=CI_ukko_dgx
-#SBATCH -M ukko
 #SBATCH -p gpu
-#SBATCH --constraint=v100
+#SBATCH --constraint="v100"
+#SBATCH --gres="gpu:V100"
 #SBATCH -G 1
 #SBATCH --cpus-per-task 10                 # CPU cores per task
 #SBATCH --hint=nomultithread
@@ -16,7 +16,7 @@
 create_verification_files=0
 
 # folder for all reference data
-reference_dir="/proj/group/spacephysics/vlasiator_testpackage/"
+reference_dir="/turso/group/spacephysics/vlasiator/testpackage/"
 cd $SLURM_SUBMIT_DIR
 #cd $reference_dir # don't run on /proj
 #compare agains which revision

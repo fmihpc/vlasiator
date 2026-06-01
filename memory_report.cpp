@@ -46,7 +46,7 @@ extern Logger logFile;
 
 /*! Report spatial cell counts per refinement level as well as velocity cell counts per population into logfile
  */
-void report_cell_and_block_counts(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid){
+void report_cell_and_block_counts(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid){
    cint maxRefLevel = mpiGrid.get_maximum_refinement_level();
    const std::vector<CellID> localCells = getLocalCells();
    cint popCount = getObjectWrapper().particleSpecies.size();
@@ -115,7 +115,7 @@ uint64_t get_node_free_memory(){
  *  for example when estimating refinement memory usage
  */
 void report_memory_consumption(
-   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    double extra_bytes/*=0*/
 ){
    /*Report memory consumption into logfile*/

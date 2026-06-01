@@ -342,7 +342,7 @@ struct setOfPencils {
 };
 // Note: Splitting does not handle target or source cells, as those are computed after all pencil splitting has concluded.
 
-bool do_translate_cell(spatial_cell::SpatialCell* SC);
+bool do_translate_cell(const spatial_cell::SpatialCell* const SC);
 
 // grid.cpp calls this function to both find seed cells and build pencils for all dimensions
 void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
@@ -354,7 +354,7 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
 extern std::array<setOfPencils,3> DimensionPencils;
 
 // Ghost translation cell lists (no interim comms)
-void prepareGhostTranslationCellLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+void prepareGhostTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                       const std::vector<CellID>& localPropagatedCells);
 
 // defined in cpu_trans_map_amr.cpp

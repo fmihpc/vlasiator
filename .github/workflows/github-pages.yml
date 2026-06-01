@@ -60,7 +60,7 @@ jobs:
           
           git checkout dev
           PREV_TAG=$(git describe --tags --abbrev=0)||echo Error in git-describe
-          PREV_TAG_FIRST=$(git describe --tags --abbrev=0 --first-parent)||echo Error in git-describe
+          PREV_TAG_FIRST=$(git tag --list 'v*.*' --sort=-v:refname | head -n1)||echo Error in git-describe
           if [[ -z "$PREV_TAG_FIRST" ]]; then
             PREV_TAG_FIRST=unknown
             HIST=
