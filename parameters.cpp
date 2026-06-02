@@ -25,6 +25,7 @@
 #include "particle_species.h"
 #include "readparameters.h"
 #include <algorithm>
+#include <cstdint>
 #include <cstdlib>
 #include <iostream>
 #include <limits>
@@ -207,7 +208,7 @@ vector<string> P::blurPassString;
 vector<int> P::numPasses;
 
 bool P::artificialPADiff;
-int P::seed;
+uint64_t P::seed;
 Realf P::PADcoefficient;
 Realf P::PADCFL;
 int P::PADvbins;
@@ -225,7 +226,7 @@ bool P::addParameters() {
    typedef Readparameters RP;
    // the other default parameters we read through the add/get interface
    RP::add("io.diagnostic_write_interval", "Write diagnostic output every arg time steps", numeric_limits<uint>::max());
-   RP::add("map_order.seed","Scalar multiplier for map_order in vlasovmover",579450);
+   RP::add("map_order.seed","Scalar multiplier for map_order in vlasovmover",193875983);
 
    RP::addComposing(
        "io.system_write_t_interval",
