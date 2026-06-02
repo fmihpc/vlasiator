@@ -96,9 +96,9 @@ fi
 
 # Build jemalloc (not for GPU versions or Mahti)
 if [[ $PLATFORM != "-leonardo_booster" && $PLATFORM != "-karolina_cuda" && $PLATFORM != "-ukkogpu" && $PLATFORM != "-hile_gpu" && $PLATFORM != "-lumi_hipcc" && $PLATFORM != "-mahti_cuda" && $PLATFORM != "-mahti_gcc_build" &&  $PLATFORM != "-frankenstein_hopper2_cuda" ]]; then
-    # curl -O -L https://github.com/jemalloc/jemalloc/releases/download/5.3.0/jemalloc-5.3.0.tar.bz2
-    # tar xjf jemalloc-5.3.0.tar.bz2
-    cd jemalloc-5.3.0
+    # curl -O -L https://github.com/jemalloc/jemalloc/releases/download/5.3.1/jemalloc-5.3.1.tar.bz2
+    # tar xjf jemalloc-5.3.1.tar.bz2
+    cd jemalloc-5.3.1
     if [[ $PLATFORM == "-pioneer" ]]; then
         ./configure --prefix=$WORKSPACE/libraries${PLATFORM} --with-jemalloc-prefix=je_
     elif [[ $PLATFORM == "-leonardo_dcgp_intel" ]]; then
@@ -148,11 +148,11 @@ cd ..
 # Build boost (only if system module is not available)
 if [[ $PLATFORM == "-leonardo_booster" || $PLATFORM == "-leonardo_dcgp" || $PLATFORM == "-karolina_cuda" || $PLATFORM == "-karolina_gcc" || $PLATFORM == "-ukkogpu" ||  $PLATFORM == "-mahti_gcc_build" || $PLATFORM == "-frankenstein_hopper2_cuda" ]]; then
     # echo "### Downloading boost. ###"
-    # wget -q https://archives.boost.io/release/1.86.0/source/boost_1_86_0.tar.gz
+    # wget -q https://archives.boost.io/release/1.91.0/source/boost_1_91_0.tar.gz
     # echo "### Extracting boost. ###"
-    # tar -xzf boost_1_86_0.tar.gz
+    # tar -xzf boost_1_91_0.tar.gz
     echo "### Building boost. ###"
-    cd boost_1_86_0
+    cd boost_1_91_0
     ./bootstrap.sh --with-libraries=program_options --prefix=$WORKSPACE/libraries${PLATFORM} stage
     echo "using mpi ;" >> ./tools/build/src/user-config.jam
     ./b2
