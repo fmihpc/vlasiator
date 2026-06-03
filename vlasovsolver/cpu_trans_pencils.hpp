@@ -50,6 +50,7 @@ struct setOfPencils {
    std::map<uint, std::set<CellID>> targetCellsInBin; //!< Set of source and target cells in each bin which are a target cell of any pencil
    std::vector<uint> activeBins; //!< set of keys in the above two maps
    std::map<uint, std::set<int>> activeBinTimeclasses;
+   std::vector<uint> binTimeclasses;
 
    //GPUTODO: move gpu buffers and their upload to separate gpu_trans_pencils .hpp and .cpp files
 #ifdef USE_GPU
@@ -91,6 +92,7 @@ struct setOfPencils {
       pencilsInBin.clear();
       activeBins.clear();
       activeBinTimeclasses.clear();
+      binTimeclasses.clear();
    }
 
    void addPencil(std::vector<CellID> idsIn, Real xIn, Real yIn, bool periodicIn, std::vector<uint> pathIn, int timeclass) {
@@ -121,6 +123,7 @@ struct setOfPencils {
 
    void binPencils() {
       binOfPencil.resize(N);
+      binTimeclasses.resize(N);
       // Consider only cells which _any_ pencil writes into for binning,
       // since read-only cells aren't affected by race conditions
       std::unordered_set<CellID> allTargetCells = {};
@@ -139,6 +142,7 @@ struct setOfPencils {
       for (uint i = 0; i < N; ++i) {
          binOfPencil[i] = i;
          targetCellsInBin[i] = {};
+         binTimeclasses[i] = timeclasses[i];
 
          for (auto id = ids.begin() + idsStart[i]; id < ids.begin() + idsStart[i] + lengthOfPencils[i]; ++id) {
             // We don't need to consider source and target cells of the pencil separately
@@ -161,6 +165,9 @@ struct setOfPencils {
 
             for (auto& [binIndex2, cellsInBin2] : targetCellsInBin) {
                if (binIndex1 == binIndex2 || binsToDelete.contains(binIndex2)) {
+                  continue;
+               }
+               if(binTimeclasses[binIndex1] != binTimeclasses[binIndex2]){
                   continue;
                }
 
