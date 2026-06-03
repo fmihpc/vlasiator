@@ -276,7 +276,7 @@ void assingCellTimeclassesPhysically(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_G
    }
 }
 
-void updateTimeclassDts(Real fsdt) {
+void updateTimeclassDts(Real fsdt, const bool applyModifier = true) {
 
    // reduce fsdt by buffer amount
 
@@ -286,7 +286,11 @@ void updateTimeclassDts(Real fsdt) {
    logFile << std::endl;
    logFile << "(TC) timeclassDts set to " << std::endl;
    for(int i = 0; i <= P::currentMaxTimeclass; ++i){
-      newTimeclassDts[i] = fsdt*pow(2,P::currentMaxTimeclass - i)*P::dtSettingModifier;
+      if (applyModifier) {
+         newTimeclassDts[i] = fsdt*pow(2,P::currentMaxTimeclass - i)*P::dtSettingModifier;
+      } else {
+         newTimeclassDts[i] = fsdt*pow(2,P::currentMaxTimeclass - i);
+      }
       logFile << newTimeclassDts[i] << "s, ";
    }
    logFile << std::endl;
@@ -1438,7 +1442,7 @@ int simulate(int argn,char* args[]) {
       computeMomentsTimer.stop();
    } else { // if we are restaring, make sure global timeclass settings are set
       //restart files dont contain P::timeclassDts, so we set that 
-      updateTimeclassDts(P::dt);
+      updateTimeclassDts(P::dt, false);
 
    }
 // std::cerr <<__FILE__<<":"<<__LINE__<<" ("<<myRank <<")\n";

@@ -716,12 +716,6 @@ void SysBoundary::applySysBoundaryVlasovConditions(
             }
          }
 
-         std::cerr << "size of localCells: " << localCells.size() << "\n";
-         std::cerr << "size of timeclassCells: " << timeclassCells.size() << "\n";
-
-
-         //getBoundaryCellList(mpiGrid, mpiGrid.get_local_cells_not_on_process_boundary(Neighborhoods::SYSBOUNDARIES), localCells);
-
    #pragma omp parallel for
          for (uint i = 0; i < localCells.size(); i++) {
             cuint sysBoundaryType = mpiGrid[localCells[i]]->sysBoundaryFlag;
@@ -756,9 +750,6 @@ void SysBoundary::applySysBoundaryVlasovConditions(
                timeclassBoundaryCells.push_back(cellID);
             }
          }
-
-         std::cerr << "size of boundaryCells: " << boundaryCells.size() << "\n";
-         std::cerr << "size of timeclassBoundaryCells: " << timeclassBoundaryCells.size() << "\n";
 
    #pragma omp parallel for
          for (uint i = 0; i < boundaryCells.size(); i++) {
