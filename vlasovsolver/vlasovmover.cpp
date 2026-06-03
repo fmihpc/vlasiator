@@ -583,18 +583,27 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
       } // for-loop over particle species
    }
 
-   if (P::activateVamr){
-	 if (ShouldRefined){
-       for (size_t c=0; c<cells.size(); ++c) {
-	 	SpatialCell* SC = mpiGrid[cells[c]];
-	 	RefinedOrder1(SC);
-       }
-     }
-     for (uint popID=(getObjectWrapper().particleSpecies.size()-1); popID>0; --popID) {
-       //Transfert the info from popID to popID-1
-       if(getObjectWrapper().particleSpecies[popID].RefinementLevel>0){
-         vamr_transfer_values(mpiGrid,cells,popID-1);
-       }
+   	if (P::activateVamr){
+      for (uint popID=(getObjectWrapper().particleSpecies.size()-1); popID>0; --popID) {
+      	//Transfert the info from popID to popID-1
+       	if(getObjectWrapper().particleSpecies[popID].RefinementLevel>0){
+          vamr_transfer_values(mpiGrid,cells,popID-1);
+       	}
+      }
+	  if (ShouldRefined){
+      	for (size_t c=0; c<cells.size(); ++c) {
+	 	  SpatialCell* SC = mpiGrid[cells[c]];
+	 	  if (P::vAMRorder==1){
+	   		RefinedOrder1(SC);
+	 	  }else if(P::vAMRorder==3){
+	   		RefinedOrder3(SC);
+	 	  }else if(P::vAMRorder==5){
+	   		RefinedOrder5(SC);
+	 	  }else {
+	   		std::cout<< " The specifief order is wrong :  "<< P::vAMRorder << " choice of 1 by default " <<std::endl;
+	   		RefinedOrder1(SC);
+	 	  }
+       	}
      }
    }
 
