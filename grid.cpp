@@ -126,7 +126,7 @@ void initializeGrids(
       neighborhood_size++;
    }
    if (P::initialMaxTimeclass > 0) {
-       neighborhood_size = max(neighborhood_size, 4+P::timeclassOuterHaloExtent+P::timeclassExactHaloExtent);
+       neighborhood_size = max(neighborhood_size, P::timeclassOuterHaloExtent+P::timeclassExactHaloExtent);
    }
 
    const std::array<uint64_t, 3> grid_length = {{P::xcells_ini, P::ycells_ini, P::zcells_ini}};
@@ -1858,7 +1858,7 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       // One extra layer for translation of ghost cells
       full_neighborhood_size++;
       if (P::initialMaxTimeclass > 0){
-         full_neighborhood_size = max(full_neighborhood_size, 3+P::timeclassOuterHaloExtent+P::timeclassExactHaloExtent);
+         full_neighborhood_size = max(full_neighborhood_size, P::timeclassOuterHaloExtent+P::timeclassExactHaloExtent);
       }
    }
    neighborhood.clear();
