@@ -1006,15 +1006,24 @@ void RefinedOrder1(spatial_cell::SpatialCell* cell){
 	      	  Indicesraf[1] = 2*Indices[1]+j;
 	      	  Indicesraf[2] = 2*Indices[2]+k;
 
-	     	  vmesh::GlobalID globalIDraf=vmeshraf->getGlobalID(Indicesraf);
-	      	  if (globalIDraf==  vmeshraf->invalidGlobalID()) {
-			    //std::cout<< " GlobalID bug not normal"  <<std::endl;
-	      	  }else{	    
-				if (D > cell->getVelocityBlockMinValue(0)){
-		  		  // We should create a new cell for R+1
-		  		  ListBlockExist[popID+1].insert(globalIDraf);
-				}
-	      	  }
+	     	  if (D > cell->getVelocityBlockMinValue(0)){
+				// We should create a new cell for R+1
+				int addWidthV = getObjectWrapper().particleSpecies[popID+1].sparseBlockAddWidthV; 
+				for (int offset_vx=-addWidthV;offset_vx<=addWidthV;offset_vx++) {
+		  		  for (int offset_vy=-addWidthV;offset_vy<=addWidthV;offset_vy++) {
+		    		for (int offset_vz=-addWidthV;offset_vz<=addWidthV;offset_vz++) {
+		      		  const vmesh::GlobalID globalIDraf = vmeshraf->getGlobalID(Indicesraf[0]+offset_vx,Indicesraf[1]+offset_vy,Indicesraf[2]+offset_vz);
+		      		  if (globalIDraf==  vmeshraf->invalidGlobalID()) {
+						// std::cout<< " GlobalID bug not normal" << "Indices[0]+offset_vx" << Indices[0]+offset_vx << "Indices[1]+offset_vy " << Indices[1]+offset_vy << "Indices[1]+offset_vy" << Indices[2]+offset_vz <<std::endl;
+		      		  }else{
+		      			ListBlockExist[popID+1].insert(globalIDraf);
+		    		  }
+						
+		  			}
+				  } 
+	     		}
+				  
+			  }
 	      	
 	    	}
 	  	 }
@@ -1188,15 +1197,24 @@ void RefinedOrder3(spatial_cell::SpatialCell* cell){
 	      	  Indicesraf[1] = 2*Indices[1]+j ;
 	      	  Indicesraf[2] = 2*Indices[2]+k ;
 
-		      vmesh::GlobalID globalIDraf=vmeshraf->getGlobalID(Indicesraf);
-		      if (globalIDraf==  vmeshraf->invalidGlobalID()) {
-				//std::cout<< " GlobalID bug not normal"  <<std::endl;
-	      	  }else{	    
-				if (D > cell->getVelocityBlockMinValue(0)){
+		      if (D > cell->getVelocityBlockMinValue(0)){
 				// We should create a new cell for R+1
-		  		  ListBlockExist[popID+1].insert(globalIDraf);
-				}
-	      	  }
+				int addWidthV = getObjectWrapper().particleSpecies[popID+1].sparseBlockAddWidthV; 
+				for (int offset_vx=-addWidthV;offset_vx<=addWidthV;offset_vx++) {
+		  		  for (int offset_vy=-addWidthV;offset_vy<=addWidthV;offset_vy++) {
+		    		for (int offset_vz=-addWidthV;offset_vz<=addWidthV;offset_vz++) {
+		      		  const vmesh::GlobalID globalIDraf = vmeshraf->getGlobalID(Indicesraf[0]+offset_vx,Indicesraf[1]+offset_vy,Indicesraf[2]+offset_vz);
+		      		  if (globalIDraf==  vmeshraf->invalidGlobalID()) {
+						// std::cout<< " GlobalID bug not normal" << "Indices[0]+offset_vx" << Indices[0]+offset_vx << "Indices[1]+offset_vy " << Indices[1]+offset_vy << "Indices[1]+offset_vy" << Indices[2]+offset_vz <<std::endl;
+		      		  }else{
+		      			ListBlockExist[popID+1].insert(globalIDraf);
+		    		  }
+						
+		  			}
+				  } 
+	     		}
+				  
+			  }
 	      
 	    	}
 	  	  }
@@ -1433,15 +1451,24 @@ void RefinedOrder5(spatial_cell::SpatialCell* cell){
 	      	  Indicesraf[1] = 2*Indices[1]+j ;
 	      	  Indicesraf[2] = 2*Indices[2]+k ;
 
-	      	  vmesh::GlobalID globalIDraf=vmeshraf->getGlobalID(Indicesraf);
-	      	  if (globalIDraf==  vmeshraf->invalidGlobalID()) {
-				//std::cout<< " GlobalID bug not normal"  <<std::endl;
-	      	  }else{	    
-				if (D > cell->getVelocityBlockMinValue(0)){
-		  		  // We should create a new cell for R+1
-		  		  ListBlockExist[popID+1].insert(globalIDraf);
-				}
-	      	  }
+	      	  if (D > cell->getVelocityBlockMinValue(0)){
+				// We should create a new cell for R+1
+				int addWidthV = getObjectWrapper().particleSpecies[popID+1].sparseBlockAddWidthV; 
+				for (int offset_vx=-addWidthV;offset_vx<=addWidthV;offset_vx++) {
+		  		  for (int offset_vy=-addWidthV;offset_vy<=addWidthV;offset_vy++) {
+		    		for (int offset_vz=-addWidthV;offset_vz<=addWidthV;offset_vz++) {
+		      		  const vmesh::GlobalID globalIDraf = vmeshraf->getGlobalID(Indicesraf[0]+offset_vx,Indicesraf[1]+offset_vy,Indicesraf[2]+offset_vz);
+		      		  if (globalIDraf==  vmeshraf->invalidGlobalID()) {
+						// std::cout<< " GlobalID bug not normal" << "Indices[0]+offset_vx" << Indices[0]+offset_vx << "Indices[1]+offset_vy " << Indices[1]+offset_vy << "Indices[1]+offset_vy" << Indices[2]+offset_vz <<std::endl;
+		      		  }else{
+		      			ListBlockExist[popID+1].insert(globalIDraf);
+		    		  }
+						
+		  			}
+				  } 
+	     		}
+				  
+			  }
 		
 	    	}
 	  	  }
