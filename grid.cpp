@@ -1646,6 +1646,7 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 
    if (P::maxTimeclass > 0) {
       phiprof::Timer timeclassInner {"Stencils init, timeclass, inner"};
+      neighborhood.clear();
       // stencils for timeghost haloes
       // first one using timeclassexacthaloextent = vlasovSolverGhostTranslateExtent
       // First: full +GT stencil in Y (last direction to be translated)
