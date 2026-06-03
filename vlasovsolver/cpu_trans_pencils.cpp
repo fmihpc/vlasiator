@@ -1600,7 +1600,7 @@ void printPencilsFunc(const setOfPencils& pencils, const uint dimension, const i
       for (auto id : cells) {
          ss << id << " ";
          for (auto [bin2, cells2] : pencils.targetCellsInBin) {
-            if (bin != bin2 && cells2.contains(id)) {
+            if (bin != bin2 && cells2.contains(id) && pencils.binTimeclasses[bin] != pencils.binTimeclasses[bin2]) {
                collisions.insert(bin2);
             }
          }

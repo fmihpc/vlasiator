@@ -1843,7 +1843,11 @@ int simulate(int argn,char* args[]) {
       computedCells=0;
       for(size_t i=0; i<cells.size(); i++) {
          for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
-            computedCells += (uint64_t)mpiGrid[cells[i]]->get_number_of_velocity_blocks(popID)*WID3;
+            for (int tc =0; tc <= P::currentMaxTimeclass; ++tc){
+               if(mpiGrid[cells[i]]->get_timeclass_turn_v(tc) ){ // TODO filter properly
+                  computedCells += (uint64_t)mpiGrid[cells[i]]->get_number_of_velocity_blocks(popID, tc)*WID3;
+               }
+            }
       }
 
       if (P::tstep > P::tstep_min) {
@@ -2273,7 +2277,7 @@ int simulate(int argn,char* args[]) {
          ++P::tstep;
          P::fractionalTimestep = 0;
       }
-      P::t += P::dt;
+      P::t += P::dt + P::dt*1.0/(1u << (P::currentMaxTimeclass));
    } // End main loop ----------------------------------------------------------
 
    double after = MPI_Wtime();
