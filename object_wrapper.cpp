@@ -191,7 +191,7 @@ bool ObjectWrapper::getPopulationParameters() {
 	vMesh.gridLength[1] *= (1u << species.RefinementLevel);
 	vMesh.gridLength[2] *= (1u << species.RefinementLevel);
 	//species.sparseMinValue *= std::pow(species.minValueRefinementShift, species.RefinementLevel);
-    species.sparseBlockAddWidthV=0;
+   // species.sparseBlockAddWidthV=0;
       }
       
       if(vMesh.gridLength[0] > MAX_BLOCKS_PER_DIM  ||
