@@ -134,6 +134,7 @@ struct Parameters {
                                                the simulation.*/
 
    static bool activateVamr;                /*!< If true, the velocity mesh refinement is activated.*/
+   static uint vAMRorder;
    static uint vAMRrefineStep;
    static Real maxWaveVelocity;         /*!< Maximum wave velocity allowed in LDZ. */
    static uint maxFieldSolverSubcycles; /*!< Maximum allowed field solver subcycles. */
