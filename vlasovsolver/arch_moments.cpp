@@ -1076,9 +1076,9 @@ void RefinedOrder1(spatial_cell::SpatialCell* cell){
       vmesh::VelocityMesh* vmesh  = cell->get_velocity_mesh(popID);
       vmesh::LocalID Localsize= vmesh->size();
       
-      for (vmesh::LocalID localID=0; localID<(Localsize-1); ++localID) { //If the blocks don't need to exist anymore, they are removed
-		vmesh::GlobalID globalID = vmesh->getGlobalID(localID);
+      for (vmesh::LocalID localID=0; localID<Localsize; ++localID) { //If the blocks don't need to exist anymore, they are removed
 		vmesh::VelocityMesh* vmesh  = cell->get_velocity_mesh(popID); 
+		vmesh::GlobalID globalID = vmesh->getGlobalID(localID);
 		if (ListBlockExist[popID].find(globalID) == ListBlockExist[popID].end()) {
 	  	  cell->remove_velocity_block(globalID,popID);
 	      Localsize-=1;
