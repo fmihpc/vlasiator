@@ -591,19 +591,16 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
        	}
       }
 	  if (ShouldRefined){
-      	for (size_t c=0; c<cells.size(); ++c) {
-	 	  SpatialCell* SC = mpiGrid[cells[c]];
-	 	  if (P::vAMRorder==1){
-	   		RefinedOrder1(SC);
-	 	  }else if(P::vAMRorder==3){
-	   		RefinedOrder3(SC);
-	 	  }else if(P::vAMRorder==5){
-	   		RefinedOrder5(SC);
-	 	  }else {
-	   		std::cout<< " The specifief order is wrong :  "<< P::vAMRorder << " choice of 1 by default " <<std::endl;
-	   		RefinedOrder1(SC);
-	 	  }
-       	}
+	 	if (P::vAMRorder==1){
+	   	  RefinedOrder1(mpiGrid,cells);
+	 	}else if(P::vAMRorder==3){
+	   	  RefinedOrder3(mpiGrid,cells);
+	 	}else if(P::vAMRorder==5){
+	   	  RefinedOrder5(mpiGrid,cells);
+	 	}else {
+	   	  std::cout<< " The specifief order is wrong :  "<< P::vAMRorder << " choice of 1 by default " <<std::endl;
+	   	  RefinedOrder1(mpiGrid,cells);
+	 	}
      }
    }
 
