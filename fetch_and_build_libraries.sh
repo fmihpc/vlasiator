@@ -36,3 +36,9 @@ source build_fetched_libraries.sh ${PLATFORM:1}
 
 # Clean up build directory
 rm -rf $BUILDDIR
+cd $WORKSPACE
+if [[ -h library-build ]]
+then
+   rm library-build
+fi
+
