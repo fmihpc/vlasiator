@@ -1179,7 +1179,7 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
                 vector<pair<int,CellID>> &seedIds,
                 int timeclass) {
 
-   const bool debug = true;
+   const bool debug = false;
    int myRank;
    if (debug) {
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
@@ -1368,7 +1368,7 @@ void check_ghost_cells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>
                        setOfPencils& pencils,
                        const uint dimension) {
 
-   const bool debug = true;
+   const bool debug = false;
    int neighborhood;
    if(P::vlasovSolverGhostTranslate){
       neighborhood=getNeighborhood(dimension,P::vlasovSolverGhostTranslateExtent);
@@ -1599,7 +1599,7 @@ void printPencilsFunc(const setOfPencils& pencils, const uint dimension, const i
       for (auto id : cells) {
          ss << id << " ";
          for (auto [bin2, cells2] : pencils.targetCellsInBin) {
-            if (bin != bin2 && cells2.contains(id) && pencils.binTimeclasses[bin] != pencils.binTimeclasses[bin2]) {
+            if (bin != bin2 && cells2.contains(id) && pencils.binTimeclasses[bin] == pencils.binTimeclasses[bin2]) {
                collisions.insert(bin2);
             }
          }
@@ -1659,8 +1659,8 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
                               const uint dimension) {
 
    // Optional heavy printouts for debugging
-   const bool printPencils = true;
-   const bool printSeeds = true;
+   const bool printPencils = false;
+   const bool printSeeds = false;
    int myRank, mpi_size;
    if (printPencils || printSeeds) {
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
@@ -1773,22 +1773,22 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
          if (rank!=myRank) {
             continue;
          }
-         stringstream ss;
-         ss<<"Task "<<myRank<<" Dimension "<<dimension <<" Seed Ids (D=DO_NOT_COMPUTE, S=Sysboundary L2, L=Sysboundary L1, N=Non-sysboundary L2, G=Ghost cell)"<<std::endl<<std::endl;
-         for (uint i = 0; i < seedIds.size(); i++) {
-            ss << seedIds.at(i).first << ": " << seedIds.at(i).second << "; ";
-            if (seedIds.at(i).second && mpiGrid[seedIds.at(i).second]) {
-               SpatialCell* c = mpiGrid[seedIds.at(i).second];
-               if (c->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) ss<<"D";
-               if (c->sysBoundaryLayer != 1 && c->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) ss<<"S";
-               if (c->sysBoundaryLayer == 1 && c->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) ss<<"L";
-               if (c->sysBoundaryLayer == 2 && c->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) ss<<"N";
-               if (!mpiGrid.is_local(seedIds.at(i).second)) ss<<"G";
-            }
-            ss<<" ";
-         }
-         ss<<std::endl<<std::endl;
-         std::cerr<<ss.str();
+         // stringstream ss;
+         // ss<<"Task "<<myRank<<" Dimension "<<dimension <<" Seed Ids (D=DO_NOT_COMPUTE, S=Sysboundary L2, L=Sysboundary L1, N=Non-sysboundary L2, G=Ghost cell)"<<std::endl<<std::endl;
+         // for (uint i = 0; i < seedIds.size(); i++) {
+         //    ss << seedIds.at(i).first << ": " << seedIds.at(i).second << "; ";
+         //    if (seedIds.at(i).second && mpiGrid[seedIds.at(i).second]) {
+         //       SpatialCell* c = mpiGrid[seedIds.at(i).second];
+         //       if (c->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) ss<<"D";
+         //       if (c->sysBoundaryLayer != 1 && c->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) ss<<"S";
+         //       if (c->sysBoundaryLayer == 1 && c->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) ss<<"L";
+         //       if (c->sysBoundaryLayer == 2 && c->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) ss<<"N";
+         //       if (!mpiGrid.is_local(seedIds.at(i).second)) ss<<"G";
+         //    }
+         //    ss<<" ";
+         // }
+         // ss<<std::endl<<std::endl;
+         // std::cerr<<ss.str();
       }
    }
    // if(maxt > 0 ) throw 123;
