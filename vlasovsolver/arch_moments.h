@@ -89,11 +89,14 @@ void changeRefined(spatial_cell::SpatialCell* cell,
 
 void RefinedVamr(spatial_cell::SpatialCell* cell);
 
-void RefinedOrder1(spatial_cell::SpatialCell* cell);
+void RefinedOrder1(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   const std::vector<CellID>& cells);
 
-void RefinedOrder3(spatial_cell::SpatialCell* cell);
+void RefinedOrder3(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   const std::vector<CellID>& cells);
 
-void RefinedOrder5(spatial_cell::SpatialCell* cell);
+void RefinedOrder5(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   const std::vector<CellID>& cells);
 
 // ***** TEMPLATE FUNCTION DEFINITIONS ***** //
 
