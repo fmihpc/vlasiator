@@ -963,9 +963,13 @@ void RefinedVamr(spatial_cell::SpatialCell* cell){
 }
 
 
-void RefinedOrder1(spatial_cell::SpatialCell* cell){
-  
-  std::unordered_set<vmesh::GlobalID> ListBlockExist[getObjectWrapper().particleSpecies.size()];
+void RefinedOrder1(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   const std::vector<CellID>& cells){
+
+#pragma omp parallel for schedule(dynamic,1)
+for (size_t c=0; c<cells.size(); ++c) {
+SpatialCell* cell = mpiGrid[cells[c]];
+std::unordered_set<vmesh::GlobalID> ListBlockExist[getObjectWrapper().particleSpecies.size()];
   
   for (int popID=(getObjectWrapper().particleSpecies.size()-2); popID>-1; --popID) {
 
@@ -1140,12 +1144,11 @@ void RefinedOrder1(spatial_cell::SpatialCell* cell){
       
   }
   }
-      
+ }     
 }
 
-void RefinedOrder3(spatial_cell::SpatialCell* cell){
-  
-  std::unordered_set<vmesh::GlobalID> ListBlockExist[getObjectWrapper().particleSpecies.size()];
+void RefinedOrder3(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   const std::vector<CellID>& cells){
 
   Realf M[3][3][3];
   Realf A[3] = {1/8, 1, -1/8};
@@ -1157,6 +1160,11 @@ void RefinedOrder3(spatial_cell::SpatialCell* cell){
       }
     }
   }
+
+#pragma omp parallel for schedule(dynamic,1)
+for (size_t c=0; c<cells.size(); ++c) {
+  SpatialCell* cell = mpiGrid[cells[c]];
+  std::unordered_set<vmesh::GlobalID> ListBlockExist[getObjectWrapper().particleSpecies.size()];
   
   for (int popID=(getObjectWrapper().particleSpecies.size()-2); popID>-1; --popID) {
 
@@ -1393,14 +1401,14 @@ void RefinedOrder3(spatial_cell::SpatialCell* cell){
       
     }
   }
-      
+ }     
 }
 
 
-void RefinedOrder5(spatial_cell::SpatialCell* cell){
+void RefinedOrder5(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   const std::vector<CellID>& cells){
   
-  std::unordered_set<vmesh::GlobalID> ListBlockExist[getObjectWrapper().particleSpecies.size()];
-
+  
   Realf M[5][5][5];
   Realf A[5] = {3/128, 11/64, 1, -11/64, -3/128};
 
@@ -1411,6 +1419,12 @@ void RefinedOrder5(spatial_cell::SpatialCell* cell){
       }
     }
   }
+
+#pragma omp parallel for schedule(dynamic,1)
+for (size_t c=0; c<cells.size(); ++c) {
+  SpatialCell* cell = mpiGrid[cells[c]];
+	
+  std::unordered_set<vmesh::GlobalID> ListBlockExist[getObjectWrapper().particleSpecies.size()];
   
   for (int popID=(getObjectWrapper().particleSpecies.size()-2); popID>-1; --popID) {
 
@@ -1642,5 +1656,5 @@ void RefinedOrder5(spatial_cell::SpatialCell* cell){
       
   }
 }
-      
+}      
 }
