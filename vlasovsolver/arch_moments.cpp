@@ -1091,7 +1091,7 @@ std::unordered_set<vmesh::GlobalID> ListBlockExist[getObjectWrapper().particleSp
       }
 
       
-      if(popID!=0){
+      if(getObjectWrapper().particleSpecies[popID].RefinementLevel!=0){
 	      
 		for (vmesh::GlobalID globalID : ListBlockExist[popID]) {
 	  
@@ -1289,7 +1289,7 @@ for (size_t c=0; c<cells.size(); ++c) {
       }
 
       
-      if(popID!=0){
+      if(getObjectWrapper().particleSpecies[popID].RefinementLevel!=0){
 	      
 		for (vmesh::GlobalID globalID : ListBlockExist[popID]) {
 	  
@@ -1548,7 +1548,7 @@ for (size_t c=0; c<cells.size(); ++c) {
 		}
       }
       
-      if(popID!=0){
+      if(getObjectWrapper().particleSpecies[popID].RefinementLevel!=0){
 	      
 		for (vmesh::GlobalID globalID : ListBlockExist[popID]) {
 	  
