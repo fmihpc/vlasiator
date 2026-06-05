@@ -62,7 +62,7 @@ testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 
 #======== Libraries ===========
 
-LIBRARY_PREFIX =  /projappl/project_2001659/pfaukemp/CPU/vlasiator-libraries/libraries-roihu_cpu/
+LIBRARY_PREFIX =  $(CURDIR)/libraries-roihu_cpu/
 
 # module libraries
 LIB_PAPI = -lpapi
