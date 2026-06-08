@@ -342,6 +342,7 @@ void calculateSpatialTranslation(
       }
    }
 
+   phiprof::Timer vAMR_transfer {"vAMR transfer between grids in spatial"};
    if (P::activateVamr){
      for (uint popID=(getObjectWrapper().particleSpecies.size()-1); popID>0; --popID) {
        //Transfert the info from popID to popID-1
@@ -350,6 +351,7 @@ void calculateSpatialTranslation(
        }
      }
    }
+   vAMR_transfer.stop();
 
    if (Parameters::prepareForRebalance == true) {
       // clear weight on all local cells
@@ -584,13 +586,17 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
    }
 
    	if (P::activateVamr){
+	  phiprof::Timer vAMR_accel_modif {"vAMR in acceleration"};
+      phiprof::Timer vAMR_transfer_accel {"vAMR transfer between grids in accel"};
       for (uint popID=(getObjectWrapper().particleSpecies.size()-1); popID>0; --popID) {
       	//Transfert the info from popID to popID-1
        	if(getObjectWrapper().particleSpecies[popID].RefinementLevel>0){
           vamr_transfer_values(mpiGrid,cells,popID-1);
        	}
       }
+	  vAMR_transfer_accel.stop();
 	  if (ShouldRefined){
+		phiprof::Timer vAMR_refined {"vAMR refined grid"};
 	 	if (P::vAMRorder==1){
 	   	  RefinedOrder1(mpiGrid,cells);
 	 	}else if(P::vAMRorder==3){
@@ -601,7 +607,9 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 	   	  std::cout<< " The specifief order is wrong :  "<< P::vAMRorder << " choice of 1 by default " <<std::endl;
 	   	  RefinedOrder1(mpiGrid,cells);
 	 	}
+		vAMR_refined.stop();	
      }
+	 vAMR_accel_modif.stop();   
    }
 
    // Recalculate "_V" velocity moments
