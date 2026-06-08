@@ -469,7 +469,7 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
       The last subcycle adjustment is performed in a higher level function, and it
       performs a full neighbour block list update, and is called for all accelerated cells.
    **/
-   if (step < (globalMaxSubcycles - 1)) {
+   if (step > 0 && step < (globalMaxSubcycles - 1)) {
       adjustVelocityBlocks(mpiGrid, acceleratedCells, false, popID);
    }
 }
@@ -558,6 +558,9 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
             }
             // Accelerate population over one subcycle step
             calculateAcceleration(popID,(uint)globalMaxSubcycles,step,mpiGrid,acceleratedCells,dt);
+            if(step==0 && (uint)globalMaxSubcycles > 1){
+	            adjustVelocityBlocks(mpiGrid, cells, false, popID);
+	         }
          } // for-loop over acceleration substeps
 
          // final adjust for all cells, also updating full remote block lists
