@@ -10,7 +10,7 @@ tabs $tabseq &>/dev/null # suppress special character output, list matches expan
 run_dir="run"
 ## add absolute paths to folder names, filenames
 reference_dir=$(readlink -f $reference_dir)
-run_dir=$(readlink -f $run_dir)_$(date +%H%M%S)
+run_dir=$(readlink -f $run_dir)_$(date +%H%M%S)_$$
 reference_revision_parsed=$(readlink -f $reference_dir/$reference_revision)
 # bin=$( readlink -f "$bin" )
 diffbin=$(readlink -f $diffbin)
