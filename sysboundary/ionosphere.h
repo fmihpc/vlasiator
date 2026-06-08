@@ -636,6 +636,12 @@ namespace SBC {
       static Real F10_7; /*!< Solar 10.7 Flux value (parameter) */
       static Real backgroundIonisation; /*!< Background ionisation due to stellar UV and cosmic rays */
       static Real downmapRadius; /*!< Radius from which FACs are downmapped (RE) */
+      static Real downmapSamplingWidth; /*!< Stencil width for FACs downmapping routines */
+      static enum downmapSamplingMode { // How to sample possibly under-resolved FACs at the downmap radius
+         Pointwise,  // Just sample the FAC at the downmapping point
+         Boxcar27   // 27-point boxcar, samples a cube of +-downmapSamplingWidth*fsgrid.dx/2 from the downmapping point
+      } downmapFACsamplingMode;
+      
       static Real unmappedNodeRho; /*!< Electron density of ionosphere nodes that don't couple to the magnetosphere */
       static Real unmappedNodeTe; /*!< Electron temperature of ionosphere nodes that don't couple to the magnetosphere */
       static Real couplingTimescale; /*!< Magnetosphere->Ionosphere coupling timescale (seconds) */

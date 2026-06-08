@@ -78,6 +78,9 @@ namespace SBC {
    Real Ionosphere::recombAlpha;                /*!< Recombination parameter, determining atmosphere ionizability (parameter) */
    Real Ionosphere::F10_7;                      /*!< Solar 10.7 Flux value (parameter) */
    Real Ionosphere::downmapRadius;              /*!< Radius from which FACs are downmapped (RE) */
+   Real Ionosphere::downmapSamplingWidth;       /*!< Stencil width for FACs downmapping routines */
+   enum Ionosphere::downmapSamplingMode Ionosphere::downmapFACsamplingMode = Ionosphere::Pointwise; /*!< FAC downmap mode flag */
+
    Real Ionosphere::unmappedNodeRho;            /*!< Electron density of ionosphere nodes that don't couple to the magnetosphere */
    Real Ionosphere::unmappedNodeTe;             /*!< Electron temperature of ionosphere nodes that don't couple to the magnetosphere */
    Real Ionosphere::ridleyParallelConductivity; /*!< Constant parallel conductivity in the Ridley conductivity model */
@@ -1921,7 +1924,11 @@ namespace SBC {
             if(lfsc[0] == -1 || lfsc[1] == -1 || lfsc[2] == -1) {
                continue;
             }
+<<<<<<< HEAD
             if (samplingFAC == 0){
+=======
+            if (Ionosphere::downmapFACsamplingMode == Ionosphere::Pointwise){
+>>>>>>> f8395e93b (Parameterized the smoothing to config)
                // Calc curlB, note division by DX one line down
                curlB = interpolateCurlB(
                   perb,
@@ -1933,14 +1940,14 @@ namespace SBC {
                   nodes[n].xMapped
                );
             }
-            else if (samplingFAC == 1){
+            else if (Ionosphere::downmapFACsamplingMode == Ionosphere::Boxcar27){
                curlB = {0,0,0};
                std::vector<std::array<double, 3>> sample_pts;
                std::vector<double> weights;
                std::vector<std::array<FsGridTools::FsIndex_t,3>> lfscs;
 
                double weightsum = 0.0;
-               double dx = technicalGrid.DX/2;
+               double dx = Ionosphere::downmapSamplingWidth * technicalGrid.DX/2;
                for (int x = -1; x < 2; ++x){
                   for (int y = -1; y < 2; ++y){
                      for (int z = -1; z < 2; ++z){
@@ -1973,12 +1980,16 @@ namespace SBC {
                      sample_pts[i]
                   );
                   for(int ii = 0; ii<3; ++ii){
+<<<<<<< HEAD
                      curlB[ii] += curlB_temp[ii]*weights[i]/weightsum[i];
+=======
+                     curlB[ii] += curlB_temp[ii]*weights[i]/weightsum;
+>>>>>>> f8395e93b (Parameterized the smoothing to config)
                   }
                }
             }
             else{
-               cerr << "(IONOSPHERE) Unknown FAC sampling mode \"" << samplingFAC << "\". Aborting." << endl;
+               cerr << "(IONOSPHERE) Unknown FAC sampling mode \"" << Ionosphere::downmapFACsamplingMode << "\". Aborting." << endl;
                abort();
             }
 
@@ -3061,6 +3072,9 @@ namespace SBC {
       Readparameters::add("ionosphere.earthAngularVelocity", "Angular velocity of inner boundary convection, in rad/s", 7.2921159e-5);
       Readparameters::add("ionosphere.plasmapauseL", "L-shell at which the plasmapause resides (for corotation)", 5.);
       Readparameters::add("ionosphere.downmapRadius", "Radius from which FACs are coupled down into the ionosphere. Units are assumed to be RE if value < 1000, otherwise m. If -1: use inner boundary cells.", -1.);
+      Readparameters::add("ionosphere.downmapSamplingMode", "Method for sampling (smoothing) the downmapped quantities (FACs) to the ionosphere. Options are: Pointwise, Boxcar27.", std::string("Pointwise"));
+      Readparameters::add("ionosphere.downmapSamplingWidth", "Width for smoothing the Vlasov grid downmapped parameters; see sampling modes for details.", 1.0);
+
       Readparameters::add("ionosphere.unmappedNodeRho", "Electron density of ionosphere nodes that do not connect to the magnetosphere domain.", 1e4);
       Readparameters::add("ionosphere.unmappedNodeTe", "Electron temperature of ionosphere nodes that do not connect to the magnetosphere domain.", 1e6);
       Readparameters::add("ionosphere.couplingTimescale", "Magnetosphere->Ionosphere coupling timescale (seconds, 0=immediate coupling", 1.);
@@ -3115,6 +3129,20 @@ namespace SBC {
          cerr << "(IONOSPHERE) Unknown inner boundary VDF mode \"" << VDFmodeString << "\". Aborting." << endl;
          abort();
       }
+
+      std::string downmapFACsamplingModeString;
+      Readparameters::get("ionosphere.downmapSamplingMode", downmapFACsamplingModeString);
+      if(downmapFACsamplingModeString == "Pointwise") {
+         downmapFACsamplingMode = Ionosphere::Pointwise;
+      } else if(downmapFACsamplingModeString == "Boxcar27") {
+         downmapFACsamplingMode = Ionosphere::Boxcar27;
+      } else {
+         cerr << "(IONOSPHERE) Unknown inner boundary downsampling mode \"" << downmapFACsamplingModeString << "\". Aborting." << endl;
+         abort();
+      }
+      Readparameters::get("ionosphere.downmapSamplingWidth", downmapSamplingWidth);
+
+
       Readparameters::get("ionosphere.ridleyParallelConductivity", ridleyParallelConductivity);
       Readparameters::get("ionosphere.fibonacciNodeNum", fibonacciNodeNum);
       Readparameters::get("ionosphere.gridFilePath", path);
