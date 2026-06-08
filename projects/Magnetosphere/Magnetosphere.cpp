@@ -187,11 +187,13 @@ namespace projects {
       RP::get("Magnetosphere.dipoleZOffset", this->dipoleZOffset);
       //////////////////////////////////////////////////////////////
       //GG 8.6.26: Sanity check - we don't know the planet radius but we do know the ionosphere radius
-      if((dipoleXOffset > ionosphereRadius) || (dipoleYOffset > ionosphereRadius) || (dipoleZOffset > ionosphereRadius))
-      if(myRank == MASTER_RANK) {
-            std::cerr<<"[Magnetosphere] WARNING: at least one dipole offset parameter exceeds the ionosphere radius. "
-            <<"This is very likely to cause problems."<<std::endl;
+      if((dipoleXOffset > ionosphereRadius) || (dipoleYOffset > ionosphereRadius) || (dipoleZOffset > ionosphereRadius)){
+         if(myRank == MASTER_RANK) {
+               std::cerr<<"[Magnetosphere] WARNING: at least one dipole offset parameter exceeds the ionosphere radius. "
+               <<"This is very likely to cause problems."<<std::endl;
+         }
       }
+         
 
       RP::get("Magnetosphere.zeroOutDerivativesX", this->zeroOutComponents[0]);
       RP::get("Magnetosphere.zeroOutDerivativesY", this->zeroOutComponents[1]);
