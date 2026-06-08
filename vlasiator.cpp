@@ -361,6 +361,7 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
          }
 	 else if(P::tc_test_type == 4){
 		 if (P::maxTimeclass != 1){
+			 std::cerr << "This tc_test_type requires P::maxTimeclass == 1" <<std::endl;
 			 abort();
 		 }
              if (abs(cell->parameters[CellParams::XCRD]) < 8*cell->parameters[CellParams::DX] && abs(cell->parameters[CellParams::YCRD]) < 4*cell->parameters[CellParams::DX]){
@@ -1781,7 +1782,7 @@ int simulate(int argn,char* args[]) {
          int nIterations, nRestarts;
          Real residual, minPotentialN, maxPotentialN, minPotentialS, maxPotentialS;
          SBC::ionosphereGrid.solve(nIterations, nRestarts, residual, minPotentialN, maxPotentialN, minPotentialS, maxPotentialS);
-         logFile << "tstep = " << P::tstep << "("<<P::fractionalTimestep<<"/"<< (1u << (P::currentMaxTimeclass)) << ")"
+         logFile << "tstep = " << P::tstep << "("<<P::fractionalTimestep+1<<"/"<< (1u << (P::currentMaxTimeclass)) << ")"
          << " t = " << P::t
          << " ionosphere iterations = " << nIterations
          << " restarts = " << nRestarts
@@ -1869,7 +1870,12 @@ int simulate(int argn,char* args[]) {
          ++P::tstep;
          P::fractionalTimestep = 0;
       }
-      P::t += P::dt + P::dt*1.0/(1u << (P::currentMaxTimeclass));
+      if (P::currentMaxTimeclass > 0){
+         P::t += P::timeclassDt[P::currentMaxTimeclass];
+      }
+      else{
+         P::t += P::dt;
+      }
    } // End main loop ----------------------------------------------------------
 
    double after = MPI_Wtime();
