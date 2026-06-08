@@ -78,6 +78,13 @@ namespace projects {
       RP::add("Magnetosphere.dipoleInflowBX","Inflow magnetic field Bx component to which the vector potential dipole converges. Default is none.", 0.0);
       RP::add("Magnetosphere.dipoleInflowBY","Inflow magnetic field By component to which the vector potential dipole converges. Default is none.", 0.0);
       RP::add("Magnetosphere.dipoleInflowBZ","Inflow magnetic field Bz component to which the vector potential dipole converges. Default is none.", 0.0);
+      //GG 28.5.26: Adding first-pass of dipole offset code. Assuming SI units + guessing what the params will be named in cfg
+      RP::add("Magnetosphere.dipoleXOffset", "Distance of dipole from centre position in x. Default is none.", 0.0);
+      RP::add("Magnetosphere.dipoleYOffset", "Distance of dipole from centre position in y. Default is none.", 0.0);
+      RP::add("Magnetosphere.dipoleZOffset", "Distance of dipole from centre position in z. Default is none.", 0.0);
+      //See above comment. This will need error-catching for 1D and 2D I guess.
+
+
       //New Parameter for zeroing out derivativeNew Parameter for zeroing out derivativess
       RP::add("Magnetosphere.zeroOutDerivativesX","Zero Out Perpendicular components", 1.0);
       RP::add("Magnetosphere.zeroOutDerivativesY","Zero Out Perpendicular components", 1.0);
@@ -171,6 +178,12 @@ namespace projects {
       RP::get("Magnetosphere.dipoleInflowBX", this->dipoleInflowB[0]);
       RP::get("Magnetosphere.dipoleInflowBY", this->dipoleInflowB[1]);
       RP::get("Magnetosphere.dipoleInflowBZ", this->dipoleInflowB[2]);
+      //GG 28.5.26: Adding first-pass of dipole offset code. Assuming SI units + guessing what the params will be named in cfg
+      RP::get("Magnetosphere.dipoleXOffset", this->dipoleXOffset);
+      RP::get("Magnetosphere.dipoleYOffset", this->dipoleYOffset);
+      RP::get("Magnetosphere.dipoleZOffset", this->dipoleZOffset);
+      //////////////////////////////////////////////////////////////
+
 
       RP::get("Magnetosphere.zeroOutDerivativesX", this->zeroOutComponents[0]);
       RP::get("Magnetosphere.zeroOutDerivativesY", this->zeroOutComponents[1]);
@@ -301,6 +314,13 @@ namespace projects {
       // https://github.com/fmihpc/vlasiator/issues/20 for a derivation of the
       // values used here.
       switch(this->dipoleType) {
+         //GG 28.5.26: Can I just set some centre parameters using RP::add(whatever_offset) for each \vec{x}_i component
+         //Then set them default to 0.0 so nothing changes if they don't exist in the cfg, then always call them here?
+         //Seems straightforward, but need a way to model expected vs resultant dipole shapes n positions.
+         //Will half-code it up now and cry about it later
+         //Assuming SI units from cfg so do I need R_P conversion factor?
+         //Just going to try this with case 4 for now bc that's what the Mercury config is using, so can easily test wihout changing hard-code
+         //(in theory)
             case 0:
                bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );//set dipole moment
                setBackgroundField(bgFieldDipole, bgb, technical, fsgrid);
@@ -330,7 +350,11 @@ namespace projects {
             case 4:  // Vector potential dipole, vanishes or optionally scales to static inflow value after a given x-coordinate
                // What we in fact do is we place the regular dipole in the background field, and the
                // corrective terms in the perturbed field. This maintains the BGB as curl-free.
-               bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 ); //set dipole moment
+               //bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 ); //set dipole moment
+               
+               //GG 28.5.26: Adding first-pass of dipole offset code. Assuming SI units + guessing what the params will be named in cfg
+               bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, this->dipoleXOffset, this->dipoleYOffset, this->dipoleZOffset, 0.0 ); //set dipole moment
+
                setBackgroundField(bgFieldDipole, bgb, technical, fsgrid);
                SBC::ionosphereGrid.setDipoleField(bgFieldDipole);
                // Now we calculate the difference required to scale the dipole to zero as we approach the inflow,
