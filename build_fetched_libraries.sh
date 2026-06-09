@@ -162,6 +162,14 @@ if [[ $PLATFORM == "-leonardo_booster" || $PLATFORM == "-leonardo_dcgp" || $PLAT
     cd ..
 fi
 
+# Generate cmake for eigen so that zfp and Octree can be built
+prev="$(pwd)"
+cd "$WORKSPACE/submodules/eigen"
+mkdir -p build
+cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$WORKSPACE/libraries${PLATFORM}"
+cd "$prev"
+
 #Build and test ZFP for ASTERIX
 echo "### Building ZFP. ###"
 cd zfp
@@ -181,14 +189,6 @@ rm -rf build
 mkdir build
 cd build
 
-
-# Generate cmake for eigen so that Octree can be built
-prev="$(pwd)"
-cd "$WORKSPACE/submodules/eigen"
-mkdir -p build
-cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$WORKSPACE/libraries${PLATFORM}"
-cd "$prev"
 
 cmake .. \
     -DTOCTREE_L2ERROR=true \
