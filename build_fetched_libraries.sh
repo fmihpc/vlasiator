@@ -163,6 +163,7 @@ if [[ $PLATFORM == "-leonardo_booster" || $PLATFORM == "-leonardo_dcgp" || $PLAT
 fi
 
 # Generate cmake for eigen so that zfp and Octree can be built
+echo "### Creating eigen CMakeFiles ###"
 prev="$(pwd)"
 cd "$WORKSPACE/submodules/eigen"
 mkdir -p build
