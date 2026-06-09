@@ -200,6 +200,10 @@ void adjust_velocity_blocks_in_cells(
       abort();
    }
 
+   if(nCells == 0){
+      return;
+   }
+
    //GPUTODO: make nCells last dimension of grid in dim3(*,*,nCells)?
    // Allocate buffers for GPU operations
    phiprof::Timer mallocTimer {"allocate buffers for content list analysis"};
