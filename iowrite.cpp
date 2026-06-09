@@ -1848,7 +1848,7 @@ bool writeGrid(
    phiprof::Timer writeReducedTimer{"writeGrid-reduced"};
    // Create a name for the output file and open it with VLSVWriter:
    stringstream fname;
-   fname << P::systemWritePath.at(outputFileTypeIndex) << "/" << P::systemWriteName.at(outputFileTypeIndex);
+   fname << P::systemWritePath.at(outputFileTypeIndex) << P::systemWriteName.at(outputFileTypeIndex);
    if (compress_vdfs) {
       fname << "_compressed";
    }
