@@ -101,11 +101,9 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
       if(P::activateVamr) {
 	    Ref=getObjectWrapper().particleSpecies[popID].RefinementLevel;
 	    MaxRef=getObjectWrapper().particleSpecies[popID].MaxRefinementLevel;
-	    phiprof::Timer vAMR_changerefined {"vAMR changeRefined in moments"};
 	    if(Ref < MaxRef){
 	      changeRefined(cell,popID);
 		}
-	    vAMR_changerefined.stop();
 	    // Calculate species' contribution to first velocity moments with Vamr
 	    blockVelocityFirstMomentsVamr(blockContainer,
 				      array,
@@ -318,11 +316,9 @@ void calculateMoments_R(
 	     if(P::activateVamr) {
 	       Ref=getObjectWrapper().particleSpecies[popID].RefinementLevel;
 	       MaxRef=getObjectWrapper().particleSpecies[popID].MaxRefinementLevel;
-	       phiprof::Timer vAMR_changerefined {"vAMR changeRefined in moments"};
 	       if(Ref < MaxRef){
 	         changeRefined(cell,popID);
 		   }
-	       vAMR_changerefined.stop();
 	       // Calculate species' contribution to first velocity moments with Vamr
 	       blockVelocityFirstMomentsVamr(blockContainer,
 					 array,
@@ -551,11 +547,9 @@ void calculateMoments_V(
 	     if(P::activateVamr) {
 	       Ref=getObjectWrapper().particleSpecies[popID].RefinementLevel;
 	       MaxRef=getObjectWrapper().particleSpecies[popID].MaxRefinementLevel;
-	       phiprof::Timer vAMR_changerefined {"vAMR changeRefined in moments"};
 	       if(Ref < MaxRef){
 	         changeRefined(cell,popID);
 		   }
-	       vAMR_changerefined.stop();
 	       // Calculate species' contribution to first velocity moments with Vamr
 	       blockVelocityFirstMomentsVamr(blockContainer,
 					 array,
@@ -707,7 +701,6 @@ void vamr_transfer_values(
 			  const std::vector<CellID>& cells,
 			  const uint popID) {
 
-  phiprof::Timer computeMomentsTimer {"vamr_transfer_value"};
   // Loop over all particle species
 #pragma omp parallel for schedule(dynamic,1)
   for (size_t c=0; c<cells.size(); ++c) {
