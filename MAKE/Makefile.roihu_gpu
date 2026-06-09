@@ -1,7 +1,6 @@
 # For Roihu GPU
 #One liner:
-#module load  boost/1.88.0  cuda/12.9.1 openmpi/5.0.10 papi/7.2.0 boost/1.88.0
-
+#module load  boost/1.88.0  cuda/12.9.1 openmpi/5.0.10 papi/7.2.0
 VECTORCLASS = VEC_FALLBACK_GENERIC
 #WID=8
 WID=4
