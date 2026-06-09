@@ -721,16 +721,15 @@ void Parameters::getParameters() {
       slashIndx=P::systemWriteName.at(i).find("/");
     }
     
-    std::filesystem::create_directories(P::systemWritePath.at(i));
-   }
-   //Bit pointless but doesn't hurt
+
    for (uint i = 0; i < P::systemWritePath.size(); i++) {
       if (access(&(P::systemWritePath.at(i)[0]), W_OK) != 0) {
           if (myRank == MASTER_RANK) {
             cerr << "ERROR " << P::systemWriteName.at(i) << " write path " << P::systemWritePath.at(i)
-                  << " not writeable, defaulting to local directory." << endl;
+                  << " not writeable. Please create them and remember the correct striping if in HPC environment." << endl;
           }
-          P::systemWritePath.at(i) = prefix;
+         MPI_Abort(MPI_COMM_WORLD, 1);
+         //P::systemWritePath.at(i) = prefix;
       }
    }
    
