@@ -1,0 +1,9 @@
+<map id="calculateInterpolatedVelocityMoments" name="calculateInterpolatedVelocityMoments">
+<area shape="rect" id="Node000001" title="Compute real&#45;time 1st order accurate moments from the moments after propagation in velocity and spati..." alt="" coords="5,63,217,103"/>
+<area shape="rect" id="Node000002" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#ac3e9c10c72c754b3ca8586d8811ad6d4" title=" " alt="" coords="265,5,440,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="196,60,254,46,255,51,197,65"/>
+<area shape="rect" id="Node000003" href="$d4/d5b/vlasiator_8cpp.html#a0e89e9e9c29d929027088b0a8dd56585" title=" " alt="" coords="298,70,407,95"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="217,80,284,80,284,85,217,85"/>
+<area shape="rect" id="Node000004" href="$d4/d0b/ionosphere_solver_tests_2main_8cpp.html#a9bf4cdc41d466e8710b8aa33a33d32e0" title=" " alt="" coords="283,119,423,145"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="210,100,277,114,276,119,209,105"/>
+</map>

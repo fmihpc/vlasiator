@@ -1,0 +1,9 @@
+<map id="SBC::Outflow::addParameters" name="SBC::Outflow::addParameters">
+<area shape="rect" id="Node000001" title=" " alt="" coords="495,5,705,31"/>
+<area shape="rect" id="Node000002" href="$dd/d3d/class_sys_boundary.html#aae6f74a26c74f9541acf0537d82fb068" title="Add its own and all existing SysBoundaryConditions&#39; parameters." alt="" coords="235,5,447,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="481,21,447,21,447,15,481,15"/>
+<area shape="rect" id="Node000003" href="$d4/d5b/vlasiator_8cpp.html#acfd343080edd07ae79384688a7e48693" title=" " alt="" coords="108,5,187,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="221,21,187,21,187,15,221,15"/>
+<area shape="rect" id="Node000004" href="$d4/d5b/vlasiator_8cpp.html#a54790573f350e250ccca3cbb94733391" title=" " alt="" coords="5,5,60,31"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="94,21,60,21,60,15,94,15"/>
+</map>

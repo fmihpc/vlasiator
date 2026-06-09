@@ -1,0 +1,14 @@
+<map id="Parameters::getParameters" name="Parameters::getParameters">
+<area shape="rect" id="Node000001" title="Get the global parameters." alt="" coords="5,55,204,80"/>
+<area shape="rect" id="Node000002" href="$d8/dbc/vectorclass__fallback_8h.html#a92b2075c51472d120e4ef0a663e3814b" title=" " alt="" coords="252,5,303,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="149,52,238,26,240,31,151,57"/>
+<area shape="rect" id="Node000005" href="$d8/dbc/vectorclass__fallback_8h.html#a1896c5fbdb17de74189d1d18cdd4cf29" title=" " alt="" coords="254,55,301,80"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="204,65,240,65,240,70,204,70"/>
+<area shape="rect" id="Node000006" href="$de/d31/_dispersion_8m.html#abc3775709fb5c6b8c5f7eb10b0119540" title=" " alt="" coords="256,104,299,129"/>
+<area shape="poly" id="edge6_Node000001_Node000006" title=" " alt="" coords="151,77,244,104,242,110,149,83"/>
+<area shape="rect" id="Node000003" href="$d7/d8b/class_vec_simple.html#a145923009b9b82410c5a072b8f8127f0" title=" " alt="" coords="351,31,485,56"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="303,20,338,26,337,31,302,25"/>
+<area shape="rect" id="Node000004" href="$d7/d8b/class_vec_simple.html#ae16798cf2ee14257d0706c60613cd733" title=" " alt="" coords="533,31,700,56"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="486,41,520,41,520,46,486,46"/>
+<area shape="poly" id="edge5_Node000005_Node000003" title=" " alt="" coords="300,61,337,55,337,60,301,66"/>
+</map>

@@ -1,0 +1,9 @@
+<map id="vlasovsolver/cpu_1d_pqm.hpp" name="vlasovsolver/cpu_1d_pqm.hpp">
+<area shape="rect" id="Node000001" title=" " alt="" coords="207,5,362,45"/>
+<area shape="rect" id="Node000002" href="$d1/d9f/acceleration-vlasiator_2map__test_8cpp.html" title=" " alt="" coords="5,93,180,133"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="231,53,136,96,134,91,229,49"/>
+<area shape="rect" id="Node000003" href="$db/d0f/cpu__acc__map_8cpp.html" title=" " alt="" coords="204,93,365,133"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="287,59,287,93,282,93,282,59"/>
+<area shape="rect" id="Node000004" href="$db/df3/cpu__trans__map_8cpp.html" title=" " alt="" coords="389,93,561,133"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="340,49,435,91,432,96,338,53"/>
+</map>

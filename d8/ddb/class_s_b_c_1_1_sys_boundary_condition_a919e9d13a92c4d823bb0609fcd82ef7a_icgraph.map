@@ -1,0 +1,7 @@
+<map id="SBC::SysBoundaryCondition::getAllCloseNonsysboundaryCells" name="SBC::SysBoundaryCondition::getAllCloseNonsysboundaryCells">
+<area shape="rect" id="Node000001" title=" " alt="" coords="587,13,832,53"/>
+<area shape="rect" id="Node000002" href="$d8/ddb/class_s_b_c_1_1_sys_boundary_condition.html#a85f8b6f6ce9546e7b2aae027e5e8ac1e" title=" " alt="" coords="300,5,539,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="573,35,539,35,539,30,573,30"/>
+<area shape="rect" id="Node000003" href="$dd/d8a/class_s_b_c_1_1_copysphere.html#a8b2dd19da6db4550e9f661ba7dfb8598" title=" " alt="" coords="5,13,252,53"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="286,35,252,35,252,30,286,30"/>
+</map>

@@ -1,0 +1,9 @@
+<map id="Graphical Class Hierarchy" name="Graphical Class Hierarchy">
+<area shape="rect" id="Node000000" href="$d4/dc7/class_histogram2_d.html" title=" " alt="" coords="5,55,113,80"/>
+<area shape="rect" id="Node000001" href="$d3/d24/class_lin_log_histogram2_d.html" title=" " alt="" coords="161,5,312,31"/>
+<area shape="poly" id="edge50_Node000000_Node000001" title=" " alt="" coords="118,48,189,28,191,33,120,53"/>
+<area shape="rect" id="Node000002" href="$d9/dff/class_linear_histogram2_d.html" title=" " alt="" coords="163,55,311,80"/>
+<area shape="poly" id="edge51_Node000000_Node000002" title=" " alt="" coords="127,65,163,65,163,70,127,70"/>
+<area shape="rect" id="Node000003" href="$db/dd5/class_log_histogram2_d.html" title=" " alt="" coords="171,104,302,129"/>
+<area shape="poly" id="edge52_Node000000_Node000003" title=" " alt="" coords="120,81,191,101,189,106,118,86"/>
+</map>

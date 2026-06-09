@@ -1,0 +1,11 @@
+<map id="SBC::Copysphere::initSysBoundary" name="SBC::Copysphere::initSysBoundary">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,35,191,75"/>
+<area shape="rect" id="Node000002" href="$d8/ddb/class_s_b_c_1_1_sys_boundary_condition.html#a2548b1ca9fc2c8344aecf3855dcd587f" title=" " alt="" coords="255,5,458,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="190,42,241,36,242,41,191,47"/>
+<area shape="rect" id="Node000003" href="$dd/d8a/class_s_b_c_1_1_copysphere.html#a813a6f7c61abcaa5e8edeef40b10fcae" title=" " alt="" coords="239,70,475,95"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="191,62,226,66,226,71,190,67"/>
+<area shape="rect" id="Node000004" href="$de/d5d/class_readparameters.html#ab3b767b0bcf993991922cc65bbdc5e6d" title=" " alt="" coords="523,45,681,70"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="474,68,509,64,509,70,475,73"/>
+<area shape="rect" id="Node000005" href="$d4/d0b/ionosphere_solver_tests_2main_8cpp.html#a9bf4cdc41d466e8710b8aa33a33d32e0" title=" " alt="" coords="532,94,672,119"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="475,92,518,96,518,101,474,97"/>
+</map>

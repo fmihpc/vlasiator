@@ -1,0 +1,16 @@
+var searchData=
+[
+  ['nanmean_0',['nanMean',['../d4/d3a/fluxfunction_8cpp.html#a9b09b81ef2dbf6c4c79dc69f6b93e517',1,'fluxfunction.cpp']]],
+  ['nanmedian_1',['nanMedian',['../d4/d3a/fluxfunction_8cpp.html#a542b2fcaa7c01e83575aa8fac31b787f',1,'fluxfunction.cpp']]],
+  ['nbrid_2',['nbrID',['../d8/ddb/class_s_b_c_1_1_sys_boundary_condition.html#a98b9da900b5ae331623b18355a0e0fde',1,'SBC::SysBoundaryCondition']]],
+  ['neq_3',['neq',['../dd/d91/namespacesve_1_1instructions.html#a8a1e28dbc0ccac443cc7ae4d3f6dcd18',1,'sve::instructions']]],
+  ['neq_5fn_4',['neq_n',['../dd/d91/namespacesve_1_1instructions.html#a942fe6ccc6644dbe9ca908d995044f96',1,'sve::instructions']]],
+  ['newtimestep_5',['newTimestep',['../da/dab/struct_scenario.html#aa4199923fb8a6d10d9b839fc6f0949a6',1,'Scenario::newTimestep()'],['../d2/d57/structdistribution_scenario.html#ab51bf3bbd5aa77db1f5d52742fe49a1b',1,'distributionScenario::newTimestep()'],['../d0/d9b/structprecipitation_scenario.html#ab940f1c3b195f04a310a26be1fc0276a',1,'precipitationScenario::newTimestep()'],['../d2/dd8/structanalysator_scenario.html#aed73d27a67e6e0193b15fbbb676db759',1,'analysatorScenario::newTimestep()'],['../d6/de0/structshock_reflectivity_scenario.html#a864c18020b4d0865d2bfba3b215c898f',1,'shockReflectivityScenario::newTimestep()'],['../da/d83/structip_shock_scenario.html#a3b08b5d1eb7a515110da3884c9f347e9',1,'ipShockScenario::newTimestep()']]],
+  ['next_5fparticle_6',['next_particle',['../d8/d4f/class_distribution.html#ae1df1b8858fa2087a54c6a444a19ef65',1,'Distribution::next_particle()'],['../db/d12/class_maxwell___boltzmann.html#ab4ba568987c783afacbe4a3261e76894',1,'Maxwell_Boltzmann::next_particle()'],['../d9/d72/class_monoenergetic.html#a7c88f5ab1300dc7ca323d164731377a3',1,'Monoenergetic::next_particle()'],['../db/d3e/class_kappa.html#a6c6168e8d701f81c6654d1a19ef94020',1,'Kappa::next_particle()']]],
+  ['nextpoweroftwo_7',['nextPowerOfTwo',['../dc/dc7/gpu__base_8cpp.html#a0f0aa279bf57be45bee2543f5354f9af',1,'nextPowerOfTwo(unsigned int n):&#160;gpu_base.cpp'],['../d3/dc5/gpu__base_8hpp.html#a0f0aa279bf57be45bee2543f5354f9af',1,'nextPowerOfTwo(unsigned int n):&#160;gpu_base.cpp']]],
+  ['no_5fsubnormals_8',['no_subnormals',['../d8/dbc/vectorclass__fallback_8h.html#a4016cfeed3644d09fea984a29b5b1aff',1,'no_subnormals():&#160;vectorclass_fallback.h'],['../d1/d32/vectorclass__sve_8hpp.html#a9f9ccab4dec6d4099c53b398b3720a8e',1,'no_subnormals():&#160;vectorclass_sve.hpp']]],
+  ['nodecrd_9',['NodeCrd',['../db/d12/struct_node_crd.html#a3f5f4052570b8aefb2b1e6402006476d',1,'NodeCrd::NodeCrd(const REAL &amp;x, const REAL &amp;y, const REAL &amp;z)'],['../db/d12/struct_node_crd.html#a3f5f4052570b8aefb2b1e6402006476d',1,'NodeCrd::NodeCrd(const REAL &amp;x, const REAL &amp;y, const REAL &amp;z)']]],
+  ['nodeneighbourarea_10',['nodeNeighbourArea',['../d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#ad69ae75a09ab0669432eb9b2f177a288',1,'SBC::SphericalTriGrid']]],
+  ['normalize_11',['normalize',['../d0/df6/class_a_s_t_e_r_i_x_1_1_phase_space_union.html#a20c842b45de4a311a5cf68964b8fc466',1,'ASTERIX::PhaseSpaceUnion']]],
+  ['normalizeradius_12',['normalizeRadius',['../d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#a4f1a56bc71ca682e0ad46981f09cb376',1,'SBC::SphericalTriGrid']]]
+];

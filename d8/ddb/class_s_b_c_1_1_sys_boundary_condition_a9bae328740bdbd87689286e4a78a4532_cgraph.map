@@ -1,0 +1,7 @@
+<map id="SBC::SysBoundaryCondition::copyCellData" name="SBC::SysBoundaryCondition::copyCellData">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,37,208,77"/>
+<area shape="rect" id="Node000002" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#ac3e9c10c72c754b3ca8586d8811ad6d4" title=" " alt="" coords="256,5,431,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="208,41,242,36,243,42,209,46"/>
+<area shape="rect" id="Node000003" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a0cd7b26f72d55d4735500850e5a48316" title=" " alt="" coords="256,69,431,109"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="209,68,243,73,242,78,208,74"/>
+</map>

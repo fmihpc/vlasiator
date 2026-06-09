@@ -1,0 +1,26 @@
+var searchData=
+[
+  ['k_0',['k',['../db/dba/class_physical_constants_c_g_s.html#a952491b0fc9add91908b06df39e1ce07',1,'PhysicalConstantsCGS::k'],['../dc/d9e/class_physical_constants_s_i.html#ae2537bf8f4324906abe69d0dc3752969',1,'PhysicalConstantsSI::k'],['../dd/d9a/class_physical_constantsnorm.html#a40dd8efd3dce027081ba60e64c9637bc',1,'PhysicalConstantsnorm::k'],['../dc/d2e/gpu__pitch__angle__diffusion_8cpp.html#aeac95f79b72f13ef3244522682ba9a21',1,'k:&#160;gpu_pitch_angle_diffusion.cpp']]],
+  ['k_5fb_1',['K_B',['../d7/d2f/namespacephysicalconstants.html#aae884ab721eb17968526710ba72b0996',1,'physicalconstants']]],
+  ['k_5fb_2',['k_B',['../dd/da9/namespaceplot__reconstruction.html#a6f8ffcb19a4c2086f0b35cd5698a10c0',1,'plot_reconstruction']]],
+  ['k_5fend_3',['k_end',['../de/d31/_dispersion_8m.html#aaf1ace452ab4dea7a150d702b9f65675',1,'Dispersion.m']]],
+  ['k_5fstart_4',['k_start',['../de/d31/_dispersion_8m.html#a9524bfe12bbe79eabd9cf48a44863d17',1,'Dispersion.m']]],
+  ['kappa_5',['Kappa',['../db/d3e/class_kappa.html',1,'Kappa'],['../db/d3e/class_kappa.html#af152dd21929a0a9d92fb498a29b6119b',1,'Kappa::Kappa(std::default_random_engine &amp;_rand, Real _mass, Real _charge, Real _w0, Real _maxw0)'],['../db/d3e/class_kappa.html#af1e4545c6261d30abca85d03656b9a89',1,'Kappa::Kappa(std::default_random_engine &amp;_rand)']]],
+  ['kappa2_6',['Kappa2',['../d5/d16/class_kappa2.html',1,'Kappa2'],['../d5/d16/class_kappa2.html#a786c3c66aff9d1d8c47f596c18dd4f27',1,'Kappa2::Kappa2(std::default_random_engine &amp;_rand, double _mass, double _charge, double _w0, double _maxw0)'],['../d5/d16/class_kappa2.html#acd442b27741d3e262edea0b3612f632c',1,'Kappa2::Kappa2(std::default_random_engine &amp;_rand)']]],
+  ['kappa6_7',['Kappa6',['../d9/d76/class_kappa6.html',1,'Kappa6'],['../d9/d76/class_kappa6.html#aba684b9d3426d18c12100e21cc9ff54e',1,'Kappa6::Kappa6(std::default_random_engine &amp;_rand, double _mass, double _charge, double _w0, double _maxw0)'],['../d9/d76/class_kappa6.html#affbe2f73a1672f00889ba0a8f56efe8d',1,'Kappa6::Kappa6(std::default_random_engine &amp;_rand)']]],
+  ['kaxis_8',['kaxis',['../de/d31/_dispersion_8m.html#add510406687415be9779e96aad635c92',1,'Dispersion.m']]],
+  ['kaxis2_9',['kaxis2',['../de/d31/_dispersion_8m.html#a9c624d93cfc944466d74e8a21bdedabb',1,'Dispersion.m']]],
+  ['kaxis4_10',['kaxis4',['../de/d31/_dispersion_8m.html#a1b0eaaa4a180be6014b8faf0968375e4',1,'Dispersion.m']]],
+  ['kb_11',['kB',['../d0/d96/class_dispersion_1_1_s_i.html#aca26d97a46e1aab6e4f269f9f8cfc47c',1,'Dispersion.SI.kB'],['../d3/d78/differential_flux_8cpp.html#a56216bca367b3037b1d7c06ec3c27586',1,'kB:&#160;differentialFlux.cpp'],['../dc/da5/sigma_profiles_8cpp.html#a56216bca367b3037b1d7c06ec3c27586',1,'kB:&#160;sigmaProfiles.cpp'],['../dc/db0/namespace_dispersion.html#aad0c156e449887713c6eb682dc1b3a2a',1,'Dispersion.kB'],['../d0/d5d/namespacevdf__params.html#add72c533aff8cb113a77e060a1e43053',1,'vdf_params.kB']]],
+  ['kb_12',['kb',['../de/d31/_dispersion_8m.html#aeb1a5067dbf1ae4b6e28ba40a10794a0',1,'Dispersion.m']]],
+  ['kbegin_13',['kBegin',['../d3/d0f/struct_column_offsets.html#aa2a87d298b23aa5f885902f5355593bd',1,'ColumnOffsets']]],
+  ['key_14',['key',['../de/df4/struct_a_s_t_e_r_i_x_1_1_phase_space_union_1_1_header.html#af2f2c0acbd1fa8666c53c86f95237a25',1,'ASTERIX::PhaseSpaceUnion::Header']]],
+  ['khb_15',['KHB',['../de/da1/classprojects_1_1_k_h_b.html',1,'projects::KHB'],['../de/da1/classprojects_1_1_k_h_b.html#af8f10bb468fde8db69f38d4770791cb7',1,'projects::KHB::KHB()']]],
+  ['khb_2ecpp_16',['KHB.cpp',['../d8/d01/_k_h_b_8cpp.html',1,'']]],
+  ['khb_2eh_17',['KHB.h',['../df/d9b/_k_h_b_8h.html',1,'']]],
+  ['kk_18',['kk',['../d3/d0d/namespacevectorpotentialdipole__verify.html#a9e905eab72ac4cbafc56b523344b6bf4',1,'vectorpotentialdipole_verify.kk'],['../d1/db5/namespacevectorpotentialdipole__verify2.html#ae254ba0b1de02883831c99cfee765327',1,'vectorpotentialdipole_verify2.kk']]],
+  ['kleft_19',['kleft',['../dc/db0/namespace_dispersion.html#ad3137cb4f6ad86d3afa1c1f54234a9a9',1,'Dispersion']]],
+  ['koskinen_20',['Koskinen',['../da/d6b/class_s_b_c_1_1_ionosphere.html#ad58c2a28f8a6d702e3b15204a584dc73ac27d21a2ebcdaf53c97342710dc4b045',1,'SBC::Ionosphere']]],
+  ['kright_21',['kright',['../dc/db0/namespace_dispersion.html#ab091d65c8989006f3524d330ffc46f16',1,'Dispersion']]],
+  ['kx_22',['kx',['../dc/db0/namespace_dispersion.html#ae8fdf4da6d42b681071290f32b567326',1,'Dispersion']]]
+];

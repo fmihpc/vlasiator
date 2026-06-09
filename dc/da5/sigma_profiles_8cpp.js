@@ -1,0 +1,25 @@
+var sigma_profiles_8cpp =
+[
+    [ "AtmosphericLayer", "d2/d64/struct_atmospheric_layer.html", "d2/d64/struct_atmospheric_layer" ],
+    [ "SergienkoIvanovParameters", "d1/dfb/struct_sergienko_ivanov_parameters.html", "d1/dfb/struct_sergienko_ivanov_parameters" ],
+    [ "main", "dc/da5/sigma_profiles_8cpp.html#a3c04138a5bfe5d72780bb7e82a18e627", null ],
+    [ "ReesIsotropicLambda", "dc/da5/sigma_profiles_8cpp.html#a7f616cdd1fc4c505b38a15564a2ef176", null ],
+    [ "SergienkoIvanovLambda", "dc/da5/sigma_profiles_8cpp.html#a1cfc853a54bb522263e173577f8623a7", null ],
+    [ "atmosphere", "dc/da5/sigma_profiles_8cpp.html#a81a7fdbf261356c0cb0705d433b64db3", null ],
+    [ "CHARGE", "dc/da5/sigma_profiles_8cpp.html#ad7bc262059c0e49f97fce48ea71bd0bc", null ],
+    [ "differentialFlux", "dc/da5/sigma_profiles_8cpp.html#aedc3e9392c3b1fbacd399ff9fe957c22", null ],
+    [ "kB", "dc/da5/sigma_profiles_8cpp.html#a56216bca367b3037b1d7c06ec3c27586", null ],
+    [ "MASS_ELECTRON", "dc/da5/sigma_profiles_8cpp.html#a25050b81fc8d77a13f153d7a4cd9c8f1", null ],
+    [ "MASS_PROTON", "dc/da5/sigma_profiles_8cpp.html#afd9bfc785646460528818e32c5e6de7e", null ],
+    [ "numAtmosphereLevels", "dc/da5/sigma_profiles_8cpp.html#a10d2a6f5a28fd3d59261112594ad158b", null ],
+    [ "particle_energy", "dc/da5/sigma_profiles_8cpp.html#a56469d7f3cb5ff01ca0cc4b2c1868b27", null ],
+    [ "productionMaxAccEnergy", "dc/da5/sigma_profiles_8cpp.html#a49ab733fc2ba8f729f9c82cb0afc2c2f", null ],
+    [ "productionMaxTemperature", "dc/da5/sigma_profiles_8cpp.html#abafb120e4b7860d89b40a2d4ea51983b", null ],
+    [ "productionMinAccEnergy", "dc/da5/sigma_profiles_8cpp.html#afadda962d456a929b59614a5f7ac9d07", null ],
+    [ "productionMinTemperature", "dc/da5/sigma_profiles_8cpp.html#a1b16eabeba65851739ee0206bfe2ee17", null ],
+    [ "productionNumAccEnergies", "dc/da5/sigma_profiles_8cpp.html#a84f8e4dec23d5f59d1924f9dc79392f5", null ],
+    [ "productionNumParticleEnergies", "dc/da5/sigma_profiles_8cpp.html#a0974e3adfa4e06b18442560c738519f4", null ],
+    [ "productionNumTemperatures", "dc/da5/sigma_profiles_8cpp.html#a08736343430890b96d1f81276f762b51", null ],
+    [ "productionTable", "dc/da5/sigma_profiles_8cpp.html#a5318038a77f3d83b419e717b63a2e574", null ],
+    [ "recombAlpha", "dc/da5/sigma_profiles_8cpp.html#a1afb7b739fcb3c047497a7159d88a745", null ]
+];

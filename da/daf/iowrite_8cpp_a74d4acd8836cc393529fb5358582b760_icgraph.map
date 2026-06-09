@@ -1,0 +1,14 @@
+<map id="writeIonosphereGridMetadata" name="writeIonosphereGridMetadata">
+<area shape="rect" id="Node000001" title=" " alt="" coords="385,55,601,80"/>
+<area shape="rect" id="Node000002" href="$d4/d0b/ionosphere_solver_tests_2main_8cpp.html#a3c04138a5bfe5d72780bb7e82a18e627" title=" " alt="" coords="259,5,313,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="426,54,313,27,314,22,427,49"/>
+<area shape="rect" id="Node000003" href="$da/daf/iowrite_8cpp.html#a10cc5a5af4d327af60e9f6c42480b333" title="Write out system into a vlsv file." alt="" coords="245,55,327,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="371,70,327,70,327,65,371,65"/>
+<area shape="rect" id="Node000006" href="$da/daf/iowrite_8cpp.html#a5531f0481d1489a9c4fa85ef54be0b1f" title="Write out a restart of the simulation into a vlsv file. All block data in remote cells will be reset." alt="" coords="235,104,337,129"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="427,86,338,107,337,102,425,81"/>
+<area shape="rect" id="Node000004" href="$d4/d5b/vlasiator_8cpp.html#acfd343080edd07ae79384688a7e48693" title=" " alt="" coords="108,80,187,105"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="232,80,188,88,187,83,231,75"/>
+<area shape="rect" id="Node000005" href="$d4/d5b/vlasiator_8cpp.html#a54790573f350e250ccca3cbb94733391" title=" " alt="" coords="5,80,60,105"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="94,95,60,95,60,90,94,90"/>
+<area shape="poly" id="edge6_Node000006_Node000004" title=" " alt="" coords="221,108,186,102,187,97,222,103"/>
+</map>

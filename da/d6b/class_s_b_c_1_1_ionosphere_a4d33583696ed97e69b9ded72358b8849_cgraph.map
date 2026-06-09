@@ -1,0 +1,7 @@
+<map id="SBC::Ionosphere::getParameters" name="SBC::Ionosphere::getParameters">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,31,236,56"/>
+<area shape="rect" id="Node000002" href="$de/d5d/class_readparameters.html#ab3b767b0bcf993991922cc65bbdc5e6d" title=" " alt="" coords="284,5,443,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="236,29,270,25,271,30,236,34"/>
+<area shape="rect" id="Node000003" href="$d4/d0b/ionosphere_solver_tests_2main_8cpp.html#a9bf4cdc41d466e8710b8aa33a33d32e0" title=" " alt="" coords="293,55,433,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="236,52,279,56,279,62,236,57"/>
+</map>

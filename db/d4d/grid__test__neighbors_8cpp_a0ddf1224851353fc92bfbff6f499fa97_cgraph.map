@@ -1,0 +1,10 @@
+<map id="main" name="main">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,55,60,80"/>
+<area shape="rect" id="Node000002" href="$db/d4d/grid__test__neighbors_8cpp.html#a2dac5315d6f757c22576d06a218d6da8" title=" " alt="" coords="108,29,304,55"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="60,61,105,54,106,59,61,66"/>
+<area shape="rect" id="Node000004" href="$db/d4d/grid__test__neighbors_8cpp.html#a418b907ca40a47d97a9e8ce74bbc4dbc" title=" " alt="" coords="159,79,253,104"/>
+<area shape="poly" id="edge4_Node000001_Node000004" title=" " alt="" coords="61,68,146,80,145,86,60,74"/>
+<area shape="poly" id="edge2_Node000002_Node000002" title=" " alt="" coords="177,31,171,21,174,11,186,5,206,3,230,6,240,15,236,19,228,11,206,8,188,10,178,15,176,20,182,28"/>
+<area shape="rect" id="Node000003" href="$db/d4d/grid__test__neighbors_8cpp.html#a5ad0ff5aef45d3ca34a660fa21c70e78" title=" " alt="" coords="352,29,472,55"/>
+<area shape="poly" id="edge3_Node000002_Node000003" title=" " alt="" coords="304,39,338,39,338,45,304,45"/>
+</map>

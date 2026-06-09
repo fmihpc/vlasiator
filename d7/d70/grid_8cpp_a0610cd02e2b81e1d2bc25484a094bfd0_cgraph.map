@@ -1,0 +1,11 @@
+<map id="deallocateRemoteCellBlocks" name="deallocateRemoteCellBlocks">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,70,215,95"/>
+<area shape="rect" id="Node000002" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a60ffed7bda592888ab1b794e4ecf2cfe" title=" " alt="" coords="263,5,437,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="163,67,252,46,253,51,165,73"/>
+<area shape="rect" id="Node000004" href="$d4/d0b/ionosphere_solver_tests_2main_8cpp.html#a9bf4cdc41d466e8710b8aa33a33d32e0" title=" " alt="" coords="280,70,420,95"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="215,80,266,80,266,85,215,85"/>
+<area shape="rect" id="Node000005" href="$dc/ddd/memoryallocation_8cpp.html#a5bf35e30cea4ce402c455dcae514bea6" title=" " alt="" coords="289,119,411,145"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="173,93,276,114,275,119,172,98"/>
+<area shape="rect" id="Node000003" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a0b5ae6d60c03a10b43a732a20bf20625" title=" " alt="" coords="485,5,676,45"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="438,23,472,23,472,28,438,28"/>
+</map>

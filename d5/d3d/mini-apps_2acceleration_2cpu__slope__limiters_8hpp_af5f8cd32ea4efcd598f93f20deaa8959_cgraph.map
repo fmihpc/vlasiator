@@ -1,0 +1,14 @@
+<map id="slope_limiter" name="slope_limiter">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,55,112,80"/>
+<area shape="rect" id="Node000002" href="$d8/dbc/vectorclass__fallback_8h.html#ad1eccb49237393bcbb5b6b97556fa4e2" title=" " alt="" coords="162,5,207,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="91,52,148,29,150,34,93,57"/>
+<area shape="rect" id="Node000005" href="$d8/dbc/vectorclass__fallback_8h.html#a1896c5fbdb17de74189d1d18cdd4cf29" title=" " alt="" coords="161,55,208,80"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="112,65,148,65,148,70,112,70"/>
+<area shape="rect" id="Node000006" href="$dc/d54/common_8h.html#a704bbe0aac85fb7120eb499852241a91" title=" " alt="" coords="160,104,209,129"/>
+<area shape="poly" id="edge6_Node000001_Node000006" title=" " alt="" coords="93,78,148,100,146,105,91,83"/>
+<area shape="rect" id="Node000003" href="$d7/d8b/class_vec_simple.html#a145923009b9b82410c5a072b8f8127f0" title=" " alt="" coords="257,31,392,56"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="208,19,244,26,243,31,207,25"/>
+<area shape="rect" id="Node000004" href="$d7/d8b/class_vec_simple.html#ae16798cf2ee14257d0706c60613cd733" title=" " alt="" coords="440,31,607,56"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="392,41,426,41,426,46,392,46"/>
+<area shape="poly" id="edge5_Node000005_Node000003" title=" " alt="" coords="208,61,243,55,244,60,209,66"/>
+</map>

@@ -1,0 +1,18 @@
+<map id="Readparameters::addComposing" name="Readparameters::addComposing">
+<area shape="rect" id="Node000001" title=" " alt="" coords="780,81,1015,107"/>
+<area shape="rect" id="Node000002" href="$da/d6b/class_s_b_c_1_1_ionosphere.html#a1da19f2ca6792eb9bef3a111611106c1" title=" " alt="" coords="496,5,731,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="835,80,661,33,663,28,836,75"/>
+<area shape="rect" id="Node000003" href="$dd/d3d/class_sys_boundary.html#aae6f74a26c74f9541acf0537d82fb068" title="Add its own and all existing SysBoundaryConditions&#39; parameters." alt="" coords="235,81,447,107"/>
+<area shape="poly" id="edge9_Node000001_Node000003" title=" " alt="" coords="766,97,447,97,447,91,766,91"/>
+<area shape="rect" id="Node000006" href="$da/ddf/class_s_b_c_1_1_maxwellian.html#a14f5141d8f1986bee1f1e6dcb63fd86d" title=" " alt="" coords="495,107,732,132"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="767,108,733,111,732,106,766,103"/>
+<area shape="rect" id="Node000007" href="$d5/d71/class_s_b_c_1_1_outflow.html#a8620e015afb169eba6f39b37344f0ea5" title=" " alt="" coords="508,156,719,181"/>
+<area shape="poly" id="edge7_Node000001_Node000007" title=" " alt="" coords="844,114,733,146,679,159,678,153,731,141,843,108"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="552,37,495,53,386,84,385,79,494,47,551,32"/>
+<area shape="rect" id="Node000004" href="$d4/d5b/vlasiator_8cpp.html#acfd343080edd07ae79384688a7e48693" title=" " alt="" coords="108,81,187,107"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="221,97,187,97,187,91,221,91"/>
+<area shape="rect" id="Node000005" href="$d4/d5b/vlasiator_8cpp.html#a54790573f350e250ccca3cbb94733391" title=" " alt="" coords="5,81,60,107"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="94,97,60,97,60,91,94,91"/>
+<area shape="poly" id="edge6_Node000006_Node000003" title=" " alt="" coords="481,110,447,107,447,101,481,104"/>
+<area shape="poly" id="edge8_Node000007_Node000003" title=" " alt="" coords="533,156,494,146,377,109,379,104,495,141,535,150"/>
+</map>

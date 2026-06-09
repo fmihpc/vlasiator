@@ -1,0 +1,9 @@
+<map id="calculateBVOLDerivativesSimple" name="calculateBVOLDerivativesSimple">
+<area shape="rect" id="Node000001" title="High&#45;level derivative calculation wrapper function." alt="" coords="5,5,196,45"/>
+<area shape="rect" id="Node000002" href="$d9/de3/derivatives_8cpp.html#acb5c4948c02428594490e1df1b751e72" title="Low&#45;level spatial derivatives calculation." alt="" coords="244,13,435,38"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="196,23,230,23,230,28,196,28"/>
+<area shape="rect" id="Node000003" href="$d8/dbe/fs__limiters_8h.html#a416815a74bbf867f67ca459f215126aa" title=" " alt="" coords="483,13,548,38"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="435,23,469,23,469,28,435,28"/>
+<area shape="rect" id="Node000004" href="$d8/dbe/fs__limiters_8h.html#a3fc925eafb6257c6622aa82326580d3e" title=" " alt="" coords="596,13,671,38"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="548,23,582,23,582,28,548,28"/>
+</map>

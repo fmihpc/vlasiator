@@ -1,0 +1,19 @@
+<map id="report_memory_consumption" name="report_memory_consumption">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,104,220,129"/>
+<area shape="rect" id="Node000002" href="$d9/df9/common_8cpp.html#a6167b9f510c4eef8b16fa67bf3d5566e" title="A function to stop the simulation if the boolean condition is true. Raises a flag which gets MPI_Redu..." alt="" coords="323,5,390,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="136,102,194,71,267,40,309,26,311,31,269,44,197,76,138,106"/>
+<area shape="rect" id="Node000003" href="$da/d08/memory__report_8cpp.html#afff3dbe87a4063dd56c349fb6bf35f86" title=" " alt="" coords="268,55,445,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="176,101,279,80,280,85,177,107"/>
+<area shape="rect" id="Node000005" href="$d4/d5b/vlasiator_8cpp.html#a0e89e9e9c29d929027088b0a8dd56585" title=" " alt="" coords="302,104,411,129"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="220,114,288,114,288,119,220,119"/>
+<area shape="rect" id="Node000006" href="$dc/dc7/gpu__base_8cpp.html#a53326bdd073bc6f4dcd01e53eb8afc41" title=" " alt="" coords="283,153,430,179"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="177,127,280,148,279,153,176,132"/>
+<area shape="rect" id="Node000008" href="$d3/d30/logger_8cpp.html#a3f406ce227e89be861d06d01588f0eaf" title=" " alt="" coords="303,203,410,228"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="139,127,198,157,269,188,294,196,292,201,267,192,195,161,137,132"/>
+<area shape="rect" id="Node000004" href="$de/d31/_dispersion_8m.html#a116ec12743ee2c1915ca1b3840312aa2" title=" " alt="" coords="540,55,601,80"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="446,65,526,65,526,70,446,70"/>
+<area shape="rect" id="Node000007" href="$dc/dc7/gpu__base_8cpp.html#ad3d1ced540b6b0fc777e072f92fc2183" title=" " alt="" coords="493,153,648,179"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="430,163,480,163,480,169,430,169"/>
+<area shape="rect" id="Node000009" href="$d3/d42/class_logger.html#ab45d7f3a73f2ddbb92c27752f688be68" title=" " alt="" coords="518,203,623,228"/>
+<area shape="poly" id="edge8_Node000008_Node000009" title=" " alt="" coords="410,213,504,213,504,218,410,218"/>
+</map>

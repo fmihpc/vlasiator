@@ -1,0 +1,29 @@
+<map id="SysBoundary::addParameters" name="SysBoundary::addParameters">
+<area shape="rect" id="Node000001" title="Add its own and all existing SysBoundaryConditions&#39; parameters." alt="" coords="5,139,217,165"/>
+<area shape="rect" id="Node000002" href="$de/d5d/class_readparameters.html#ad84725c17ffdebd70d8a1f74d8f70fbc" title=" " alt="" coords="588,90,751,115"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="121,137,144,112,177,80,218,49,264,25,330,7,383,3,437,11,505,25,541,36,577,50,637,81,635,85,575,55,540,41,503,30,437,16,383,9,331,12,266,30,221,53,180,84,147,115,125,141"/>
+<area shape="rect" id="Node000003" href="$de/d5d/class_readparameters.html#a24422f48496b48b783240c0a804cc194" title=" " alt="" coords="552,189,787,214"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="133,162,191,195,228,211,266,223,310,230,355,235,446,234,530,226,600,214,601,219,531,231,446,239,355,240,309,236,265,228,226,216,189,200,131,167"/>
+<area shape="rect" id="Node000004" href="$dd/d8a/class_s_b_c_1_1_copysphere.html#a6aed887e5ad3172437b09534ffc0ea9f" title=" " alt="" coords="265,41,504,66"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="133,137,191,106,264,75,293,66,294,72,266,80,193,111,135,142"/>
+<area shape="rect" id="Node000006" href="$d4/db3/class_s_b_c_1_1_do_not_compute.html#ab6f68869f8092fb31fd010116d77f109" title=" " alt="" coords="303,289,467,329"/>
+<area shape="poly" id="edge6_Node000001_Node000006" title=" " alt="" coords="128,163,185,213,225,242,267,268,297,282,295,287,264,273,222,247,182,217,124,167"/>
+<area shape="rect" id="Node000007" href="$da/d6b/class_s_b_c_1_1_ionosphere.html#a1da19f2ca6792eb9bef3a111611106c1" title=" " alt="" coords="267,90,502,115"/>
+<area shape="poly" id="edge7_Node000001_Node000007" title=" " alt="" coords="182,137,299,115,300,120,183,142"/>
+<area shape="rect" id="Node000008" href="$da/ddf/class_s_b_c_1_1_maxwellian.html#a14f5141d8f1986bee1f1e6dcb63fd86d" title=" " alt="" coords="266,139,503,165"/>
+<area shape="poly" id="edge11_Node000001_Node000008" title=" " alt="" coords="218,149,252,149,252,155,218,155"/>
+<area shape="rect" id="Node000009" href="$d5/d71/class_s_b_c_1_1_outflow.html#a8620e015afb169eba6f39b37344f0ea5" title=" " alt="" coords="279,189,490,214"/>
+<area shape="poly" id="edge15_Node000001_Node000009" title=" " alt="" coords="183,162,300,183,299,189,182,167"/>
+<area shape="poly" id="edge4_Node000004_Node000002" title=" " alt="" coords="459,63,582,85,581,90,458,69"/>
+<area shape="rect" id="Node000005" href="$d4/d0b/ionosphere_solver_tests_2main_8cpp.html#a9bf4cdc41d466e8710b8aa33a33d32e0" title=" " alt="" coords="599,139,739,165"/>
+<area shape="poly" id="edge5_Node000004_Node000005" title=" " alt="" coords="479,64,505,75,521,87,530,100,539,113,553,124,587,138,585,143,551,129,535,116,526,103,517,91,503,80,476,69"/>
+<area shape="poly" id="edge8_Node000007_Node000002" title=" " alt="" coords="502,100,574,100,574,105,502,105"/>
+<area shape="poly" id="edge9_Node000007_Node000003" title=" " alt="" coords="479,113,505,124,521,137,530,150,539,162,553,174,571,182,568,186,551,178,535,166,526,153,517,140,503,129,476,118"/>
+<area shape="poly" id="edge10_Node000007_Node000005" title=" " alt="" coords="459,113,586,135,585,140,458,118"/>
+<area shape="poly" id="edge12_Node000008_Node000002" title=" " alt="" coords="458,137,581,115,582,120,459,142"/>
+<area shape="poly" id="edge13_Node000008_Node000003" title=" " alt="" coords="459,162,582,183,581,189,458,167"/>
+<area shape="poly" id="edge14_Node000008_Node000005" title=" " alt="" coords="504,149,585,149,585,155,504,155"/>
+<area shape="poly" id="edge16_Node000009_Node000002" title=" " alt="" coords="473,186,503,174,517,162,526,150,535,137,551,124,573,114,576,119,553,129,539,140,530,153,521,166,505,178,475,191"/>
+<area shape="poly" id="edge17_Node000009_Node000003" title=" " alt="" coords="490,199,538,199,538,204,490,204"/>
+<area shape="poly" id="edge18_Node000009_Node000005" title=" " alt="" coords="458,186,585,164,586,169,459,191"/>
+</map>

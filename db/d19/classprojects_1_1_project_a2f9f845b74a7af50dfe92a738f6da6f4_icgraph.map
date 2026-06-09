@@ -1,0 +1,16 @@
+<map id="projects::Project::canRefine" name="projects::Project::canRefine">
+<area shape="rect" id="Node000001" title=" " alt="" coords="808,55,943,95"/>
+<area shape="rect" id="Node000002" href="$db/d19/classprojects_1_1_project.html#a2d26f8fdb7c74f1d34d0fb7bc21b748a" title="Adapts refinement by one level according to the project. Returns true if any cells were refined,..." alt="" coords="601,23,736,63"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="794,65,736,56,737,51,794,60"/>
+<area shape="rect" id="Node000007" href="$df/d57/classprojects_1_1_magnetosphere.html#a75b9d5bae7340427784e84f32f1ecca1" title=" " alt="" coords="577,87,760,127"/>
+<area shape="poly" id="edge7_Node000001_Node000007" title=" " alt="" coords="795,90,760,96,760,91,794,85"/>
+<area shape="rect" id="Node000003" href="$d7/d70/grid_8cpp.html#a7f1e42e11ccc6dccce8e4b9bd9d2f415" title=" " alt="" coords="395,31,529,56"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="587,46,530,46,530,41,587,41"/>
+<area shape="rect" id="Node000004" href="$d7/d70/grid_8cpp.html#a9e9166bda148ddef07e30ac56e3b7085" title="Initialize DCCRG and fsgrids." alt="" coords="235,5,347,31"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="381,34,347,29,347,24,381,29"/>
+<area shape="rect" id="Node000005" href="$d4/d5b/vlasiator_8cpp.html#acfd343080edd07ae79384688a7e48693" title=" " alt="" coords="108,31,187,56"/>
+<area shape="poly" id="edge6_Node000003_Node000005" title=" " alt="" coords="381,46,187,46,187,41,381,41"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="222,33,187,39,187,34,221,28"/>
+<area shape="rect" id="Node000006" href="$d4/d5b/vlasiator_8cpp.html#a54790573f350e250ccca3cbb94733391" title=" " alt="" coords="5,31,60,56"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="94,46,60,46,60,41,94,41"/>
+</map>

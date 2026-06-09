@@ -1,0 +1,9 @@
+<map id="memory_report.h" name="memory_report.h">
+<area shape="rect" id="Node000001" title=" " alt="" coords="113,5,247,31"/>
+<area shape="rect" id="Node000002" href="$d7/d70/grid_8cpp.html" title=" " alt="" coords="5,79,80,104"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="147,39,66,81,64,76,145,34"/>
+<area shape="rect" id="Node000003" href="$da/d08/memory__report_8cpp.html" title=" " alt="" coords="105,79,255,104"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="183,44,183,79,177,79,177,44"/>
+<area shape="rect" id="Node000004" href="$d4/d5b/vlasiator_8cpp.html" title=" " alt="" coords="279,79,385,104"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="218,34,308,76,306,81,215,39"/>
+</map>

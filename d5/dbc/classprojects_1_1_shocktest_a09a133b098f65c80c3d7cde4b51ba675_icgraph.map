@@ -1,0 +1,9 @@
+<map id="projects::Shocktest::addParameters" name="projects::Shocktest::addParameters">
+<area shape="rect" id="Node000001" title=" " alt="" coords="417,5,564,45"/>
+<area shape="rect" id="Node000002" href="$db/d19/classprojects_1_1_project.html#a84ae38b34399e701023789b95bcab8d3" title=" " alt="" coords="235,5,369,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="403,28,370,28,370,23,403,23"/>
+<area shape="rect" id="Node000003" href="$d4/d5b/vlasiator_8cpp.html#acfd343080edd07ae79384688a7e48693" title=" " alt="" coords="108,13,187,38"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="221,28,187,28,187,23,221,23"/>
+<area shape="rect" id="Node000004" href="$d4/d5b/vlasiator_8cpp.html#a54790573f350e250ccca3cbb94733391" title=" " alt="" coords="5,13,60,38"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="94,28,60,28,60,23,94,23"/>
+</map>

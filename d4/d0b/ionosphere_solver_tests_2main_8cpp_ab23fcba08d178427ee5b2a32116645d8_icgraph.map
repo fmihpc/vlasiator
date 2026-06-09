@@ -1,0 +1,10 @@
+<map id="getElementBarycentre" name="getElementBarycentre">
+<area shape="rect" id="Node000001" title=" " alt="" coords="477,56,645,81"/>
+<area shape="rect" id="Node000002" href="$d4/d0b/ionosphere_solver_tests_2main_8cpp.html#a0973b859f7e8c300c7a8b9fb5d828e2b" title=" " alt="" coords="227,5,429,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="488,56,387,33,388,28,489,50"/>
+<area shape="rect" id="Node000003" href="$d4/d0b/ionosphere_solver_tests_2main_8cpp.html#a3d507f1561beeaf891d5e4e23b766b12" title=" " alt="" coords="5,31,179,56"/>
+<area shape="poly" id="edge3_Node000001_Node000003" title=" " alt="" coords="463,66,179,51,179,45,464,61"/>
+<area shape="rect" id="Node000004" href="$d4/d0b/ionosphere_solver_tests_2main_8cpp.html#a3c04138a5bfe5d72780bb7e82a18e627" title=" " alt="" coords="301,107,355,132"/>
+<area shape="poly" id="edge4_Node000001_Node000004" title=" " alt="" coords="489,87,356,116,355,111,488,82"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="213,33,179,37,179,31,213,28"/>
+</map>

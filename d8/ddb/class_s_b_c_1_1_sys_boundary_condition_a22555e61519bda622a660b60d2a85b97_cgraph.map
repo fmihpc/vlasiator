@@ -1,0 +1,21 @@
+<map id="SBC::SysBoundaryCondition::vlasovBoundaryCopyFromTheClosestNbr" name="SBC::SysBoundaryCondition::vlasovBoundaryCopyFromTheClosestNbr">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,69,301,109"/>
+<area shape="rect" id="Node000002" href="$d9/df9/common_8cpp.html#a3ccffabea3435cf184592d88e6a470c8" title=" " alt="" coords="434,19,522,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="267,67,420,39,421,45,268,72"/>
+<area shape="rect" id="Node000003" href="$d8/ddb/class_s_b_c_1_1_sys_boundary_condition.html#a9bae328740bdbd87689286e4a78a4532" title=" " alt="" coords="377,69,579,109"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="302,87,363,87,363,92,302,92"/>
+<area shape="rect" id="Node000006" href="$d8/ddb/class_s_b_c_1_1_sys_boundary_condition.html#a0cb6b360a4cba5a9de53faa2aabf2e11" title=" " alt="" coords="349,133,607,173"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="256,107,363,128,362,133,255,112"/>
+<area shape="rect" id="Node000004" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#ac3e9c10c72c754b3ca8586d8811ad6d4" title=" " alt="" coords="696,5,871,45"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="574,67,682,44,683,49,575,72"/>
+<area shape="rect" id="Node000005" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a0cd7b26f72d55d4735500850e5a48316" title=" " alt="" coords="696,69,871,109"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="580,87,682,87,682,92,580,92"/>
+<area shape="rect" id="Node000007" href="$d8/ddb/class_s_b_c_1_1_sys_boundary_condition.html#a287db96725fef05e252a15c46492f3dc" title=" " alt="" coords="655,133,912,173"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="607,151,641,151,641,156,607,156"/>
+<area shape="rect" id="Node000008" href="$d8/dbc/vectorclass__fallback_8h.html#a1896c5fbdb17de74189d1d18cdd4cf29" title=" " alt="" coords="960,141,1007,166"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="912,151,946,151,946,156,912,156"/>
+<area shape="rect" id="Node000009" href="$d7/d8b/class_vec_simple.html#a145923009b9b82410c5a072b8f8127f0" title=" " alt="" coords="1055,141,1189,166"/>
+<area shape="poly" id="edge8_Node000008_Node000009" title=" " alt="" coords="1007,151,1041,151,1041,156,1007,156"/>
+<area shape="rect" id="Node000010" href="$d7/d8b/class_vec_simple.html#ae16798cf2ee14257d0706c60613cd733" title=" " alt="" coords="1237,141,1404,166"/>
+<area shape="poly" id="edge9_Node000009_Node000010" title=" " alt="" coords="1190,151,1224,151,1224,156,1190,156"/>
+</map>

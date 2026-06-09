@@ -1,0 +1,27 @@
+var classprojects_1_1_shock =
+[
+    [ "Shock", "d5/db6/classprojects_1_1_shock.html#ad3f68178ab284fc82234617feaee6f8f", null ],
+    [ "~Shock", "d5/db6/classprojects_1_1_shock.html#aaddfe1afca1014b9c83f95a1ebda7f08", null ],
+    [ "addParameters", "d5/db6/classprojects_1_1_shock.html#a4ff53b0799c86f2cb66b0d0dbaabd39b", null ],
+    [ "calcCellParameters", "d5/db6/classprojects_1_1_shock.html#abb85ea1a9b69e0aa3aa1e864436abb06", null ],
+    [ "fillPhaseSpace", "d5/db6/classprojects_1_1_shock.html#ad43cbc1668bdb129908928b51286c524", null ],
+    [ "getParameters", "d5/db6/classprojects_1_1_shock.html#a2dea1b6d17c7b39aedd994ef4ff5f28d", null ],
+    [ "initialize", "d5/db6/classprojects_1_1_shock.html#ade01283cfe5514fc212d456f327aaa3d", null ],
+    [ "setProjectBField", "d5/db6/classprojects_1_1_shock.html#a4bb50f554e5260aa689d47a34fdea26e", null ],
+    [ "BX0", "d5/db6/classprojects_1_1_shock.html#adcc7897b64ca62785067277c8e6c2cb6", null ],
+    [ "BY0", "d5/db6/classprojects_1_1_shock.html#a5da70e5dc33bef14c91bfda885ff606c", null ],
+    [ "BZ0", "d5/db6/classprojects_1_1_shock.html#a7df987805539263d416a15325b2b91b8", null ],
+    [ "DENSITY", "d5/db6/classprojects_1_1_shock.html#a5619b2def5c79538645719975abdbaff", null ],
+    [ "densityPertAmp", "d5/db6/classprojects_1_1_shock.html#a6b66535cd675305da059b43a64fbf37e", null ],
+    [ "EX0", "d5/db6/classprojects_1_1_shock.html#a9f423a20b3dd9d0260909b114a95fbae", null ],
+    [ "magPertAmp", "d5/db6/classprojects_1_1_shock.html#afe6dc3b900422a0a3b9868596676f6bf", null ],
+    [ "maxwCutoff", "d5/db6/classprojects_1_1_shock.html#a500dadb0b89b16bd433f2f46ef0dfcf7", null ],
+    [ "SCA_X", "d5/db6/classprojects_1_1_shock.html#a9f3464659923621c3ff741e6ceea7527", null ],
+    [ "SCA_Y", "d5/db6/classprojects_1_1_shock.html#a657e5d48118b1919ba92b481dbe24759", null ],
+    [ "Sharp_Y", "d5/db6/classprojects_1_1_shock.html#af83c7f4d62e679652942bede6f98f303", null ],
+    [ "TEMPERATURE", "d5/db6/classprojects_1_1_shock.html#a8e4f9358e7d6c164835faf94f069b2b3", null ],
+    [ "velocityPertAmp", "d5/db6/classprojects_1_1_shock.html#a9c965bc29424023d4a508abe119057b1", null ],
+    [ "VX0", "d5/db6/classprojects_1_1_shock.html#a73a9e1c6ebf594b03ba7deff921fb4ea", null ],
+    [ "VY0", "d5/db6/classprojects_1_1_shock.html#a86ece6356b42b3694258b9f88f2ab6bd", null ],
+    [ "VZ0", "d5/db6/classprojects_1_1_shock.html#aff867c862e355fb3bfd0a7c796b986dd", null ]
+];

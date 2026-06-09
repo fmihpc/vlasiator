@@ -1,0 +1,13 @@
+<map id="spatial_cell::SpatialCell::get_velocity_grid_cell_size" name="spatial_cell::SpatialCell::get_velocity_grid_cell_size">
+<area shape="rect" id="Node000001" title=" " alt="" coords="541,101,747,141"/>
+<area shape="rect" id="Node000002" href="$d4/de8/namespace_s_b_c.html#a0cea5d5845a2d12ad49a0b3b048460be" title="SBC::findMaxwellianBlocksToInitialize returns a list of blocks to construct the VDF with." alt="" coords="295,101,493,141"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="528,124,493,124,493,119,528,119"/>
+<area shape="rect" id="Node000003" href="$dd/d8a/class_s_b_c_1_1_copysphere.html#a489a1683d7537fb427aafbb3528387b5" title=" " alt="" coords="27,5,225,45"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="338,98,246,60,208,48,210,43,248,55,340,93"/>
+<area shape="rect" id="Node000004" href="$da/d6b/class_s_b_c_1_1_ionosphere.html#a66dd6c8d7e5b91522b6b05c51910d982" title=" " alt="" coords="29,69,223,109"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="281,111,223,104,224,98,281,105"/>
+<area shape="rect" id="Node000005" href="$da/ddf/class_s_b_c_1_1_maxwellian.html#a833c7cf658faf049300eec716cc4b8c7" title="Generate the template cell for the face corresponding to the index passed. This function generates a ..." alt="" coords="27,133,225,173"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="281,137,225,144,225,139,281,132"/>
+<area shape="rect" id="Node000006" href="$da/d6b/class_s_b_c_1_1_ionosphere.html#ac904b9ee61069aa1314aa2b638a2f4e9" title=" " alt="" coords="5,197,247,237"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="340,150,248,188,210,200,208,195,246,183,338,145"/>
+</map>

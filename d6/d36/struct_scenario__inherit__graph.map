@@ -1,0 +1,15 @@
+<map id="Scenario" name="Scenario">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,129,84,155"/>
+<area shape="rect" id="Node000002" href="$d2/dd8/structanalysator_scenario.html" title=" " alt="" coords="154,5,301,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="59,116,88,77,108,57,131,40,155,28,157,33,133,44,112,61,93,80,63,119"/>
+<area shape="rect" id="Node000003" href="$d2/d57/structdistribution_scenario.html" title=" " alt="" coords="151,55,303,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="74,119,131,89,165,78,166,83,133,94,77,124"/>
+<area shape="rect" id="Node000004" href="$da/d83/structip_shock_scenario.html" title=" " alt="" coords="163,104,292,129"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="97,132,162,123,163,128,98,137"/>
+<area shape="rect" id="Node000005" href="$d0/d9b/structprecipitation_scenario.html" title=" " alt="" coords="147,153,307,179"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="98,146,147,153,147,158,97,152"/>
+<area shape="rect" id="Node000006" href="$d6/de0/structshock_reflectivity_scenario.html" title=" " alt="" coords="132,203,323,228"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="78,160,133,188,170,200,169,205,131,192,76,164"/>
+<area shape="rect" id="Node000007" href="$d6/d91/structsingle_particle_scenario.html" title=" " alt="" coords="145,252,310,277"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="63,164,93,202,112,221,133,237,160,249,158,254,131,242,109,225,89,206,59,168"/>
+</map>

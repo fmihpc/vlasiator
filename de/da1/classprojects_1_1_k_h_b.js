@@ -1,0 +1,28 @@
+var classprojects_1_1_k_h_b =
+[
+    [ "KHB", "de/da1/classprojects_1_1_k_h_b.html#af8f10bb468fde8db69f38d4770791cb7", null ],
+    [ "~KHB", "de/da1/classprojects_1_1_k_h_b.html#a564b0505ce7bb78fb8fd928cab6ab71f", null ],
+    [ "addParameters", "de/da1/classprojects_1_1_k_h_b.html#a6f84e3457b3d58fc92c15bd5facd1303", null ],
+    [ "calcCellParameters", "de/da1/classprojects_1_1_k_h_b.html#a4e0fe19590106472c1582e35a19b750b", null ],
+    [ "fillPhaseSpace", "de/da1/classprojects_1_1_k_h_b.html#ad74c072205c1b6142494de1a839d1385", null ],
+    [ "getParameters", "de/da1/classprojects_1_1_k_h_b.html#aec69a7afcd2d87ba9bc4a138196ec30b", null ],
+    [ "getV0", "de/da1/classprojects_1_1_k_h_b.html#a1facf2fb424ea5cb10dd5942f2fb2677", null ],
+    [ "initialize", "de/da1/classprojects_1_1_k_h_b.html#acea9084016c93efb0cf4176a15848b4f", null ],
+    [ "probePhaseSpace", "de/da1/classprojects_1_1_k_h_b.html#a0963716260a467adc2aae867efd8e037", null ],
+    [ "profile", "de/da1/classprojects_1_1_k_h_b.html#a532d2e9bb7666e3ffa7ecfad087bfa8d", null ],
+    [ "setProjectBField", "de/da1/classprojects_1_1_k_h_b.html#a0a271e216af1818739e1ffa801c264b3", null ],
+    [ "amp", "de/da1/classprojects_1_1_k_h_b.html#a1ff928c4d931061c80c9e6b9a80e9cfa", null ],
+    [ "Bx", "de/da1/classprojects_1_1_k_h_b.html#a07278d7964e58549687a1752d7b83933", null ],
+    [ "By", "de/da1/classprojects_1_1_k_h_b.html#a6038691827030066f28b4cb677cb5d8e", null ],
+    [ "Bz", "de/da1/classprojects_1_1_k_h_b.html#ab1e2193747790f5a36d5b6734dd6a7da", null ],
+    [ "harmonics", "de/da1/classprojects_1_1_k_h_b.html#ad143ff3d0f037d5005e36b3e935c90e3", null ],
+    [ "lambda", "de/da1/classprojects_1_1_k_h_b.html#aba28fa1fedb9e1ebba087a515e1f5082", null ],
+    [ "offset", "de/da1/classprojects_1_1_k_h_b.html#a2619d37829ed7052ed2df5c8587710bf", null ],
+    [ "P", "de/da1/classprojects_1_1_k_h_b.html#a69553b75ff874f2fead7d1d85aaeaf94", null ],
+    [ "randomPhase", "de/da1/classprojects_1_1_k_h_b.html#a23e0169c31cc2cc009f60d21a1552060", null ],
+    [ "rho", "de/da1/classprojects_1_1_k_h_b.html#a91c5b33c04943055c1a2fbac5ba104ea", null ],
+    [ "transitionWidth", "de/da1/classprojects_1_1_k_h_b.html#ad9c95feedfed7c8dcc285380c7289033", null ],
+    [ "Vx", "de/da1/classprojects_1_1_k_h_b.html#a9e7917d3523503b5d77650479e408421", null ],
+    [ "Vy", "de/da1/classprojects_1_1_k_h_b.html#a9c133b2faf45ef9afb0093e44f949af6", null ],
+    [ "Vz", "de/da1/classprojects_1_1_k_h_b.html#a21096ad745067d09d8d5ecd3051cb0ba", null ]
+];

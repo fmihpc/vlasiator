@@ -1,0 +1,13 @@
+<map id="spatial_cell::SpatialCell::remove_velocity_block" name="spatial_cell::SpatialCell::remove_velocity_block">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,69,187,109"/>
+<area shape="rect" id="Node000002" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a0b5ae6d60c03a10b43a732a20bf20625" title=" " alt="" coords="235,5,425,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="169,67,242,46,244,52,171,72"/>
+<area shape="rect" id="Node000003" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a2f3f4d0f61ba699262bca8fd42a33f6d" title=" " alt="" coords="243,69,417,109"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="187,87,229,87,229,92,187,92"/>
+<area shape="rect" id="Node000005" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#af4a789fe1ccf63cdf37d5b8b2bee6e83" title=" " alt="" coords="243,133,417,173"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="171,107,244,127,242,132,169,112"/>
+<area shape="rect" id="Node000004" href="$dc/d39/classvmesh_1_1_velocity_mesh.html#ad71b07dadaccff4550b11745e823d945" title=" " alt="" coords="473,69,635,109"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="418,87,459,87,459,92,418,92"/>
+<area shape="rect" id="Node000006" href="$dc/d39/classvmesh_1_1_velocity_mesh.html#a809e8ef437f6ee4ff35c8cfb4c247df0" title=" " alt="" coords="473,133,635,173"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="418,151,459,151,459,156,418,156"/>
+</map>

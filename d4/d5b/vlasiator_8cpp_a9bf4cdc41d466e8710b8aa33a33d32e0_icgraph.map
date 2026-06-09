@@ -1,0 +1,13 @@
+<map id="getObjectWrapper" name="getObjectWrapper">
+<area shape="rect" id="Node000001" title=" " alt="" coords="503,70,643,95"/>
+<area shape="rect" id="Node000002" href="$db/d4e/struct_object_wrapper.html#ada340ccc5a558b7be7ef6ce0e4cf7a7e" title=" " alt="" coords="235,5,455,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="508,69,424,48,425,43,509,64"/>
+<area shape="rect" id="Node000003" href="$d4/d5b/vlasiator_8cpp.html#acfd343080edd07ae79384688a7e48693" title=" " alt="" coords="108,70,187,95"/>
+<area shape="poly" id="edge6_Node000001_Node000003" title=" " alt="" coords="489,85,187,85,187,80,489,80"/>
+<area shape="rect" id="Node000005" href="$db/d4e/struct_object_wrapper.html#a0270ac388f984e7fd4f78033895e5533" title=" " alt="" coords="236,120,453,160"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="509,101,425,123,424,117,508,96"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="263,52,188,74,186,69,261,47"/>
+<area shape="rect" id="Node000004" href="$d4/d5b/vlasiator_8cpp.html#a54790573f350e250ccca3cbb94733391" title=" " alt="" coords="5,70,60,95"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="94,85,60,85,60,80,94,80"/>
+<area shape="poly" id="edge5_Node000005_Node000003" title=" " alt="" coords="261,119,186,96,188,91,263,114"/>
+</map>

@@ -1,0 +1,29 @@
+<map id="DRO::VariableNonMaxwellianity::setSpatialCell" name="DRO::VariableNonMaxwellianity::setSpatialCell">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,261,236,301"/>
+<area shape="rect" id="Node000002" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#ae0f93c317e351510eeaeaf8a57bf3f79" title=" " alt="" coords="307,5,497,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="128,260,150,217,183,162,228,104,254,78,282,55,293,49,296,53,286,60,257,82,232,108,188,165,155,220,133,262"/>
+<area shape="rect" id="Node000004" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a0a70ad5e1571d0fec973183d1b236682" title=" " alt="" coords="284,69,520,109"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="135,260,194,191,236,152,283,119,295,112,298,117,285,124,239,156,198,194,139,263"/>
+<area shape="rect" id="Node000005" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#ac3e9c10c72c754b3ca8586d8811ad6d4" title=" " alt="" coords="315,133,489,173"/>
+<area shape="poly" id="edge5_Node000001_Node000005" title=" " alt="" coords="149,259,209,221,283,183,303,175,305,180,285,188,212,225,152,263"/>
+<area shape="rect" id="Node000006" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a1dc25bb724906fa5d6dd76096cb7b9a4" title=" " alt="" coords="315,197,489,237"/>
+<area shape="poly" id="edge6_Node000001_Node000006" title=" " alt="" coords="209,259,301,238,302,243,210,264"/>
+<area shape="rect" id="Node000007" href="$dd/df7/classvmesh_1_1_velocity_block_container.html#ab577ace09cdc66074a7cdc3d79394cfb" title=" " alt="" coords="289,261,515,301"/>
+<area shape="poly" id="edge8_Node000001_Node000007" title=" " alt="" coords="236,279,275,279,275,284,236,284"/>
+<area shape="rect" id="Node000008" href="$d4/d0b/ionosphere_solver_tests_2main_8cpp.html#a9bf4cdc41d466e8710b8aa33a33d32e0" title=" " alt="" coords="332,326,472,351"/>
+<area shape="poly" id="edge9_Node000001_Node000008" title=" " alt="" coords="220,299,326,321,325,326,219,304"/>
+<area shape="rect" id="Node000009" href="$dd/df7/classvmesh_1_1_velocity_block_container.html#ab492eded4908cb97927ddc54a0f3d9d3" title=" " alt="" coords="289,376,515,416"/>
+<area shape="poly" id="edge10_Node000001_Node000009" title=" " alt="" coords="158,299,217,330,285,360,311,369,309,374,283,365,215,335,156,304"/>
+<area shape="rect" id="Node000010" href="$d9/d6a/namespacearch.html#a8b44f7f5126702d29110d539cdfbd7e8" title=" " alt="" coords="323,441,481,466"/>
+<area shape="poly" id="edge11_Node000001_Node000010" title=" " alt="" coords="140,300,199,363,240,397,285,426,310,436,308,441,283,430,237,401,196,367,136,303"/>
+<area shape="rect" id="Node000013" href="$de/d31/_dispersion_8m.html#af276a2aede715061015c735080cf65df" title=" " alt="" coords="379,490,425,515"/>
+<area shape="poly" id="edge14_Node000001_Node000013" title=" " alt="" coords="135,300,157,338,191,387,234,436,259,458,285,476,325,492,366,499,365,504,324,497,283,481,255,462,230,440,186,390,153,341,130,303"/>
+<area shape="rect" id="Node000003" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a0b5ae6d60c03a10b43a732a20bf20625" title=" " alt="" coords="568,69,759,109"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="485,43,569,63,567,69,484,48"/>
+<area shape="poly" id="edge4_Node000004_Node000003" title=" " alt="" coords="520,87,554,87,554,92,520,92"/>
+<area shape="poly" id="edge7_Node000006_Node000003" title=" " alt="" coords="488,195,519,183,576,151,625,116,628,120,579,155,521,188,490,200"/>
+<area shape="rect" id="Node000011" href="$d9/d6a/namespacearch.html#a1abb9041b9a239a324e1644be2b0cc7e" title=" " alt="" coords="584,433,743,473"/>
+<area shape="poly" id="edge12_Node000010_Node000011" title=" " alt="" coords="482,451,570,451,570,456,482,456"/>
+<area shape="rect" id="Node000012" href="$d9/d6a/namespacearch.html#aa41d352375890d1d4dcf7a0b7ede03c5" title=" " alt="" coords="807,433,977,473"/>
+<area shape="poly" id="edge13_Node000011_Node000012" title=" " alt="" coords="743,451,793,451,793,456,743,456"/>
+</map>

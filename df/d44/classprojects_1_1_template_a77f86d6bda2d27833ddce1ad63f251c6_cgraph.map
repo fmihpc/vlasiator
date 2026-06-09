@@ -1,0 +1,16 @@
+<map id="projects::Template::getParameters" name="projects::Template::getParameters">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,47,148,87"/>
+<area shape="rect" id="Node000002" href="$d0/dbf/struct_parameters.html#a5879f09fa7ce7453a3c6d45148361089" title="Get the global parameters." alt="" coords="196,55,395,80"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="148,65,182,65,182,70,148,70"/>
+<area shape="rect" id="Node000003" href="$d8/dbc/vectorclass__fallback_8h.html#a92b2075c51472d120e4ef0a663e3814b" title=" " alt="" coords="443,5,493,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="340,52,429,26,430,31,341,57"/>
+<area shape="rect" id="Node000006" href="$d8/dbc/vectorclass__fallback_8h.html#a1896c5fbdb17de74189d1d18cdd4cf29" title=" " alt="" coords="445,55,491,80"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="395,65,431,65,431,70,395,70"/>
+<area shape="rect" id="Node000007" href="$de/d31/_dispersion_8m.html#abc3775709fb5c6b8c5f7eb10b0119540" title=" " alt="" coords="447,104,489,129"/>
+<area shape="poly" id="edge7_Node000002_Node000007" title=" " alt="" coords="341,77,434,104,433,110,340,83"/>
+<area shape="rect" id="Node000004" href="$d7/d8b/class_vec_simple.html#a145923009b9b82410c5a072b8f8127f0" title=" " alt="" coords="541,31,676,56"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="494,20,528,26,527,31,493,25"/>
+<area shape="rect" id="Node000005" href="$d7/d8b/class_vec_simple.html#ae16798cf2ee14257d0706c60613cd733" title=" " alt="" coords="724,31,891,56"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="676,41,710,41,710,46,676,46"/>
+<area shape="poly" id="edge6_Node000006_Node000004" title=" " alt="" coords="491,61,527,55,528,60,492,66"/>
+</map>

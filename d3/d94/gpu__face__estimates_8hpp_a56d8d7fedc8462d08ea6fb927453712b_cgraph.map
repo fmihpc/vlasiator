@@ -1,0 +1,18 @@
+<map id="compute_filtered_face_values_nonuniform" name="compute_filtered_face_values_nonuniform">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,35,172,75"/>
+<area shape="rect" id="Node000002" href="$d3/d94/gpu__face__estimates_8hpp.html#a7e979a0098dd53fd8399173f9204630f" title=" " alt="" coords="220,5,385,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="172,41,206,36,207,41,173,46"/>
+<area shape="rect" id="Node000003" href="$d5/d3d/mini-apps_2acceleration_2cpu__slope__limiters_8hpp.html#af5f8cd32ea4efcd598f93f20deaa8959" title=" " alt="" coords="249,70,356,95"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="173,63,236,71,235,77,172,68"/>
+<area shape="rect" id="Node000004" href="$d8/dbc/vectorclass__fallback_8h.html#ad1eccb49237393bcbb5b6b97556fa4e2" title=" " alt="" coords="435,21,481,46"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="345,67,385,55,421,43,423,48,386,60,346,73"/>
+<area shape="rect" id="Node000007" href="$d8/dbc/vectorclass__fallback_8h.html#a1896c5fbdb17de74189d1d18cdd4cf29" title=" " alt="" coords="435,70,481,95"/>
+<area shape="poly" id="edge6_Node000003_Node000007" title=" " alt="" coords="356,80,421,80,421,85,356,85"/>
+<area shape="rect" id="Node000008" href="$dc/d54/common_8h.html#a704bbe0aac85fb7120eb499852241a91" title=" " alt="" coords="433,119,483,145"/>
+<area shape="poly" id="edge8_Node000003_Node000008" title=" " alt="" coords="344,93,421,118,420,123,342,98"/>
+<area shape="rect" id="Node000005" href="$d7/d8b/class_vec_simple.html#a145923009b9b82410c5a072b8f8127f0" title=" " alt="" coords="531,46,665,71"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="481,35,517,41,516,47,480,40"/>
+<area shape="rect" id="Node000006" href="$d7/d8b/class_vec_simple.html#ae16798cf2ee14257d0706c60613cd733" title=" " alt="" coords="713,46,880,71"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="666,56,700,56,700,61,666,61"/>
+<area shape="poly" id="edge7_Node000007_Node000005" title=" " alt="" coords="481,76,517,70,517,75,482,81"/>
+</map>

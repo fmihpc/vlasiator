@@ -1,0 +1,27 @@
+<map id="Reconstructions::rhom" name="Reconstructions::rhom">
+<area shape="rect" id="Node000001" title=" " alt="" coords="1332,55,1500,80"/>
+<area shape="rect" id="Node000002" href="$df/dd2/ldz__electric__field_8cpp.html#a426b5ea4533861edf496a4be99ccbd13" title="Low&#45;level helper function." alt="" coords="1109,5,1284,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="1345,54,1253,33,1255,28,1346,49"/>
+<area shape="rect" id="Node000009" href="$df/dd2/ldz__electric__field_8cpp.html#aa77c3718f864c00dddcdd33d413b4b42" title="Low&#45;level helper function." alt="" coords="1109,55,1284,80"/>
+<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="1318,70,1284,70,1284,65,1318,65"/>
+<area shape="rect" id="Node000011" href="$df/dd2/ldz__electric__field_8cpp.html#aa42bc3f5001975c5efbbf4f07cd97127" title="Low&#45;level helper function." alt="" coords="1109,104,1284,129"/>
+<area shape="poly" id="edge11_Node000001_Node000011" title=" " alt="" coords="1346,86,1255,107,1253,101,1345,80"/>
+<area shape="rect" id="Node000003" href="$df/dd2/ldz__electric__field_8cpp.html#a0c4d565775058272f9c28253dd305031" title="Low&#45;level electric field propagation function." alt="" coords="860,5,1061,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="1096,21,1062,21,1062,15,1096,15"/>
+<area shape="rect" id="Node000004" href="$df/dd2/ldz__electric__field_8cpp.html#ab012d9d96359724accb54cd851f1f7f1" title="Electric field propagation function." alt="" coords="652,55,812,80"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="888,36,792,57,791,52,887,31"/>
+<area shape="rect" id="Node000005" href="$df/dd2/ldz__electric__field_8cpp.html#a5c5eee0422166c83186fad5c71cbc72a" title="High&#45;level electric field computation function." alt="" coords="409,47,604,87"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="638,70,604,70,604,65,638,65"/>
+<area shape="rect" id="Node000006" href="$de/dff/ldz__main_8cpp.html#ac91e0dc80c9375ba517e2f263308c64f" title="Top&#45;level field propagation function." alt="" coords="235,55,361,80"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="395,70,362,70,362,65,395,65"/>
+<area shape="rect" id="Node000007" href="$d4/d5b/vlasiator_8cpp.html#acfd343080edd07ae79384688a7e48693" title=" " alt="" coords="108,55,187,80"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="221,70,187,70,187,65,221,65"/>
+<area shape="rect" id="Node000008" href="$d4/d5b/vlasiator_8cpp.html#a54790573f350e250ccca3cbb94733391" title=" " alt="" coords="5,55,60,80"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="94,70,60,70,60,65,94,65"/>
+<area shape="rect" id="Node000010" href="$df/dd2/ldz__electric__field_8cpp.html#ab0ceb57e10e6c8ec4f8bc84e3c7dd57b" title="Low&#45;level electric field propagation function." alt="" coords="861,55,1061,80"/>
+<area shape="poly" id="edge9_Node000009_Node000010" title=" " alt="" coords="1096,70,1061,70,1061,65,1096,65"/>
+<area shape="poly" id="edge10_Node000010_Node000004" title=" " alt="" coords="847,70,812,70,812,65,847,65"/>
+<area shape="rect" id="Node000012" href="$df/dd2/ldz__electric__field_8cpp.html#a481ae464cc0717aa9b9c1c33f98c01d0" title="Low&#45;level electric field propagation function." alt="" coords="860,104,1061,129"/>
+<area shape="poly" id="edge12_Node000011_Node000012" title=" " alt="" coords="1096,119,1062,119,1062,114,1096,114"/>
+<area shape="poly" id="edge13_Node000012_Node000004" title=" " alt="" coords="887,104,791,83,792,77,888,98"/>
+</map>

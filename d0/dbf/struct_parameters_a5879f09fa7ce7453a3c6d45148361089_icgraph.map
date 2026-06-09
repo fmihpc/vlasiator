@@ -1,0 +1,9 @@
+<map id="Parameters::getParameters" name="Parameters::getParameters">
+<area shape="rect" id="Node000001" title="Get the global parameters." alt="" coords="299,42,497,67"/>
+<area shape="rect" id="Node000002" href="$df/d44/classprojects_1_1_template.html#a77f86d6bda2d27833ddce1ad63f251c6" title=" " alt="" coords="108,5,251,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="290,43,250,38,251,32,290,38"/>
+<area shape="rect" id="Node000003" href="$d4/d5b/vlasiator_8cpp.html#acfd343080edd07ae79384688a7e48693" title=" " alt="" coords="140,70,219,95"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="286,72,219,80,218,75,285,66"/>
+<area shape="rect" id="Node000004" href="$d4/d5b/vlasiator_8cpp.html#a54790573f350e250ccca3cbb94733391" title=" " alt="" coords="5,70,60,95"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="126,85,60,85,60,80,126,80"/>
+</map>

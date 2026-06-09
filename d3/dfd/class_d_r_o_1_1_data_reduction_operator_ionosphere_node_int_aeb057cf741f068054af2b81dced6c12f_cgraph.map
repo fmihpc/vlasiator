@@ -1,0 +1,7 @@
+<map id="DRO::DataReductionOperatorIonosphereNodeInt::writeIonosphereData" name="DRO::DataReductionOperatorIonosphereNodeInt::writeIonosphereData">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,27,295,67"/>
+<area shape="rect" id="Node000002" href="$d9/df9/common_8cpp.html#a6167b9f510c4eef8b16fa67bf3d5566e" title="A function to stop the simulation if the boolean condition is true. Raises a flag which gets MPI_Redu..." alt="" coords="416,5,483,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="295,30,402,20,402,25,295,36"/>
+<area shape="rect" id="Node000003" href="$d3/dfd/class_d_r_o_1_1_data_reduction_operator_ionosphere_node_int.html#a1904ab3384e807a777d35ffd6f7b155d" title=" " alt="" coords="343,55,556,95"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="295,58,329,61,329,67,295,64"/>
+</map>

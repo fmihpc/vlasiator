@@ -1,0 +1,11 @@
+<map id="SBC::OuterBoundaryCondition::assignSysBoundary" name="SBC::OuterBoundaryCondition::assignSysBoundary">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,101,221,141"/>
+<area shape="rect" id="Node000002" href="$d8/ddb/class_s_b_c_1_1_sys_boundary_condition.html#a21ef1eac4a2a5bdf92387b866714ea35" title="Function used to determine on which face(s) if any the cell at given coordinates is." alt="" coords="271,5,473,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="159,99,268,55,291,47,293,52,270,60,161,104"/>
+<area shape="rect" id="Node000003" href="$d4/de8/namespace_s_b_c.html#ab64a8664162b3a2d344cda919df592ff" title=" " alt="" coords="269,69,475,109"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="221,105,255,101,256,106,222,111"/>
+<area shape="rect" id="Node000004" href="$d8/ddb/class_s_b_c_1_1_sys_boundary_condition.html#a4d21bac3207da2db415f9b0a6f6c9dc6" title=" " alt="" coords="271,133,473,173"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="222,132,257,136,257,142,221,137"/>
+<area shape="rect" id="Node000005" href="$d4/d5b/vlasiator_8cpp.html#a0e89e9e9c29d929027088b0a8dd56585" title=" " alt="" coords="317,198,427,223"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="160,139,270,183,305,193,303,198,268,188,158,144"/>
+</map>

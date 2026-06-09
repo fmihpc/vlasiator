@@ -1,0 +1,11 @@
+<map id="FieldTracing::calculateIonosphereVlasovGridCoupling" name="FieldTracing::calculateIonosphereVlasovGridCoupling">
+<area shape="rect" id="Node000001" title=" " alt="" coords="513,27,752,67"/>
+<area shape="rect" id="Node000002" href="$da/d47/datareducer_8cpp.html#ac7f98ac6b8fd00d10cd2dfcd88d05f8a" title=" " alt="" coords="265,5,435,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="499,36,435,29,435,24,500,31"/>
+<area shape="rect" id="Node000005" href="$d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#a3d4ff8e2cdcef77140c18ea654c08b84" title=" " alt="" coords="235,55,465,95"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="500,63,466,67,465,61,499,58"/>
+<area shape="rect" id="Node000003" href="$d4/d5b/vlasiator_8cpp.html#acfd343080edd07ae79384688a7e48693" title=" " alt="" coords="108,5,187,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="252,21,187,21,187,15,252,15"/>
+<area shape="rect" id="Node000004" href="$d4/d5b/vlasiator_8cpp.html#a54790573f350e250ccca3cbb94733391" title=" " alt="" coords="5,5,60,31"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="94,21,60,21,60,15,94,15"/>
+</map>

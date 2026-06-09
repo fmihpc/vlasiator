@@ -1,0 +1,17 @@
+<map id="Graphical Class Hierarchy" name="Graphical Class Hierarchy">
+<area shape="rect" id="Node000000" href="$d8/ddb/class_s_b_c_1_1_sys_boundary_condition.html" title="SBC::SysBoundaryCondition is the base class for system boundary conditions." alt="" coords="5,80,208,105"/>
+<area shape="rect" id="Node000001" href="$dd/d8a/class_s_b_c_1_1_copysphere.html" title="Copysphere is a class applying an ionosphere&#45;ish boundary conditions." alt="" coords="297,5,431,31"/>
+<area shape="poly" id="edge78_Node000000_Node000001" title=" " alt="" coords="154,73,255,39,300,28,302,33,257,45,155,78"/>
+<area shape="rect" id="Node000002" href="$d4/db3/class_s_b_c_1_1_do_not_compute.html" title="DoNotCompute is a class handling cells not to be computed." alt="" coords="286,55,442,80"/>
+<area shape="poly" id="edge79_Node000000_Node000002" title=" " alt="" coords="221,79,285,72,286,78,222,84"/>
+<area shape="rect" id="Node000003" href="$da/d6b/class_s_b_c_1_1_ionosphere.html" title="Ionosphere is a class applying ionospheric boundary conditions." alt="" coords="300,104,428,129"/>
+<area shape="poly" id="edge80_Node000000_Node000003" title=" " alt="" coords="222,101,300,108,300,113,222,106"/>
+<area shape="rect" id="Node000004" href="$d2/d68/class_s_b_c_1_1_outer_boundary_condition.html" title=" " alt="" coords="256,153,472,179"/>
+<area shape="poly" id="edge81_Node000000_Node000004" title=" " alt="" coords="159,107,257,138,306,151,305,156,255,143,157,112"/>
+<area shape="rect" id="Node000005" href="$de/d6a/class_s_b_c_1_1_inflow.html" title="Base class for boundary conditions with settings and parameters read from file." alt="" coords="526,128,621,153"/>
+<area shape="poly" id="edge82_Node000004_Node000005" title=" " alt="" coords="482,149,526,144,526,149,483,154"/>
+<area shape="rect" id="Node000007" href="$d5/d71/class_s_b_c_1_1_outflow.html" title="Outflow is a class applying copy/outflow boundary conditions." alt="" coords="520,177,627,203"/>
+<area shape="poly" id="edge84_Node000004_Node000007" title=" " alt="" coords="486,177,520,181,520,187,486,183"/>
+<area shape="rect" id="Node000006" href="$da/ddf/class_s_b_c_1_1_maxwellian.html" title="Maxwellian is a class applying fixed Maxwellian conditions according to parameters read from an input..." alt="" coords="675,128,805,153"/>
+<area shape="poly" id="edge83_Node000005_Node000006" title=" " alt="" coords="635,138,675,138,675,143,635,143"/>
+</map>

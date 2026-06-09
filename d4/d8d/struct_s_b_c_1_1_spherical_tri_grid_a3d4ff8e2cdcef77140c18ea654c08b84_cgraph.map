@@ -1,0 +1,33 @@
+<map id="SBC::SphericalTriGrid::interpolateUpmappedPotential" name="SBC::SphericalTriGrid::interpolateUpmappedPotential">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,49,236,89"/>
+<area shape="rect" id="Node000002" href="$df/dbb/namespace_field_tracing.html#ad66803cfc1b50be62cc587aed27d38af" title=" " alt="" coords="284,49,523,89"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="236,66,271,66,271,71,236,71"/>
+<area shape="rect" id="Node000003" href="$dc/d54/common_8h.html#a704bbe0aac85fb7120eb499852241a91" title=" " alt="" coords="643,5,692,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="507,46,629,23,630,28,508,51"/>
+<area shape="rect" id="Node000004" href="$de/d31/_dispersion_8m.html#af276a2aede715061015c735080cf65df" title=" " alt="" coords="1182,55,1229,80"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="523,66,1168,65,1168,70,523,71"/>
+<area shape="rect" id="Node000005" href="$df/dbb/namespace_field_tracing.html#a60e934706171c3fc058da120902ba239" title=" " alt="" coords="571,161,764,187"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="455,86,623,154,621,159,453,91"/>
+<area shape="rect" id="Node000006" href="$df/dbb/namespace_field_tracing.html#ab9ec0b5cdf987ba0a0427bade61c546b" title=" " alt="" coords="816,108,1043,133"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="730,159,853,133,854,139,731,164"/>
+<area shape="rect" id="Node000007" href="$df/dbb/namespace_field_tracing.html#a59b59e2981e9f1e92e985f2702a4a2aa" title=" " alt="" coords="819,161,1040,187"/>
+<area shape="poly" id="edge7_Node000005_Node000007" title=" " alt="" coords="764,171,805,171,805,177,764,177"/>
+<area shape="rect" id="Node000011" href="$df/dbb/namespace_field_tracing.html#a8b5ab68b738e39c3f0f2637246d20e1c" title=" " alt="" coords="812,211,1047,236"/>
+<area shape="poly" id="edge12_Node000005_Node000011" title=" " alt="" coords="736,184,848,205,847,211,735,189"/>
+<area shape="rect" id="Node000015" href="$df/dbb/namespace_field_tracing.html#ad58e139440ba1a357a4e1a08ca563e2a" title=" " alt="" coords="845,260,1014,285"/>
+<area shape="poly" id="edge16_Node000005_Node000015" title=" " alt="" coords="691,184,745,215,813,245,844,254,842,259,811,250,742,219,688,189"/>
+<area shape="poly" id="edge6_Node000006_Node000004" title=" " alt="" coords="995,105,1168,72,1169,77,996,111"/>
+<area shape="rect" id="Node000008" href="$df/dbb/namespace_field_tracing.html#a2e2efcf29f4b87a8ea98cde5290c9761" title=" " alt="" coords="1364,167,1531,192"/>
+<area shape="poly" id="edge8_Node000007_Node000008" title=" " alt="" coords="984,159,1094,141,1205,132,1254,134,1316,141,1398,160,1397,165,1316,146,1254,139,1206,138,1095,146,985,164"/>
+<area shape="rect" id="Node000009" href="$df/dbb/namespace_field_tracing.html#ab35d5c9372a7d3d0c4933e113f9b0956" title=" " alt="" coords="1095,155,1316,195"/>
+<area shape="poly" id="edge9_Node000007_Node000009" title=" " alt="" coords="1040,172,1081,172,1081,177,1040,177"/>
+<area shape="rect" id="Node000010" href="$df/dbb/namespace_field_tracing.html#a5586166d34e82a2723217131921e50ec" title=" " alt="" coords="1118,219,1293,259"/>
+<area shape="poly" id="edge10_Node000007_Node000010" title=" " alt="" coords="996,184,1047,195,1118,213,1117,218,1046,201,995,189"/>
+<area shape="poly" id="edge11_Node000010_Node000008" title=" " alt="" coords="1286,217,1382,193,1383,198,1288,222"/>
+<area shape="rect" id="Node000012" href="$d8/dbc/vectorclass__fallback_8h.html#ad1eccb49237393bcbb5b6b97556fa4e2" title=" " alt="" coords="1183,284,1228,309"/>
+<area shape="poly" id="edge13_Node000011_Node000012" title=" " alt="" coords="1007,233,1048,245,1072,257,1096,269,1170,288,1169,293,1094,274,1070,262,1046,250,1006,239"/>
+<area shape="rect" id="Node000013" href="$d7/d8b/class_vec_simple.html#a145923009b9b82410c5a072b8f8127f0" title=" " alt="" coords="1380,284,1515,309"/>
+<area shape="poly" id="edge14_Node000012_Node000013" title=" " alt="" coords="1228,294,1366,294,1366,299,1228,299"/>
+<area shape="rect" id="Node000014" href="$d7/d8b/class_vec_simple.html#ae16798cf2ee14257d0706c60613cd733" title=" " alt="" coords="1579,284,1745,309"/>
+<area shape="poly" id="edge15_Node000013_Node000014" title=" " alt="" coords="1515,294,1565,294,1565,299,1515,299"/>
+</map>

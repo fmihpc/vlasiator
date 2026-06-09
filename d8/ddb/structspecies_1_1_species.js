@@ -1,0 +1,28 @@
+var structspecies_1_1_species =
+[
+    [ "Species", "d8/ddb/structspecies_1_1_species.html#ad1d48ae5ee6a376cadd4734466ad19b7", null ],
+    [ "Species", "d8/ddb/structspecies_1_1_species.html#ab9f7b2f605048d8d2392c1ad711958e7", null ],
+    [ "~Species", "d8/ddb/structspecies_1_1_species.html#a3ba6c44af1c998159bb1520b2c872542", null ],
+    [ "charge", "d8/ddb/structspecies_1_1_species.html#a115f38a9c3f5b60defd799ebc237cf18", null ],
+    [ "EnergyDensityLimit1", "d8/ddb/structspecies_1_1_species.html#afa9b781bdbdf0840ea39534b056f93ee", null ],
+    [ "EnergyDensityLimit2", "d8/ddb/structspecies_1_1_species.html#abeb5bf94b9ea54b3ac8bbc09d0eef019", null ],
+    [ "mass", "d8/ddb/structspecies_1_1_species.html#a2d57b397f42a4a36476e45c4df844ef9", null ],
+    [ "name", "d8/ddb/structspecies_1_1_species.html#aa7b216de31d98dd1e2c29345528c9b69", null ],
+    [ "precipitationEmax", "d8/ddb/structspecies_1_1_species.html#a3fce85e398b21ee77264961fc58ef6e2", null ],
+    [ "precipitationEmin", "d8/ddb/structspecies_1_1_species.html#a272e8814d0badb898c4ad5e97ec39a0b", null ],
+    [ "precipitationLossConeAngle", "d8/ddb/structspecies_1_1_species.html#ab15566869beafd44824a94656ce311ad", null ],
+    [ "precipitationNChannels", "d8/ddb/structspecies_1_1_species.html#a3183ecb084a3d51847932ee15f22a596", null ],
+    [ "SolarWindEnergy", "d8/ddb/structspecies_1_1_species.html#a0e21dcd52c91f609f99faf39f5bfd518", null ],
+    [ "SolarWindSpeed", "d8/ddb/structspecies_1_1_species.html#add7b043d9c4053297ff128b0934123e2", null ],
+    [ "sparse_conserve_mass", "d8/ddb/structspecies_1_1_species.html#a4a568ca81198b3acd7a61f79c29c4be4", null ],
+    [ "sparseBlockAddWidthV", "d8/ddb/structspecies_1_1_species.html#a6cba61b9ebf44d783abde9e4c72ad2b4", null ],
+    [ "sparseDynamicAlgorithm", "d8/ddb/structspecies_1_1_species.html#ade315a2522c6b5aaa261ae07f80fe4bc", null ],
+    [ "sparseDynamicBulkValue1", "d8/ddb/structspecies_1_1_species.html#abb17ead0cdb406fc2be7de4102e63643", null ],
+    [ "sparseDynamicBulkValue2", "d8/ddb/structspecies_1_1_species.html#a830b9bdfcb7a3989cf48a4d5b6d0734c", null ],
+    [ "sparseDynamicMinValue1", "d8/ddb/structspecies_1_1_species.html#a5a81439cce0d9ebf33b844bfef2334fa", null ],
+    [ "sparseDynamicMinValue2", "d8/ddb/structspecies_1_1_species.html#a05300a64bee9fe5ac6d5d7faf022b73b", null ],
+    [ "sparseMinValue", "d8/ddb/structspecies_1_1_species.html#a819244aa45ae36627ded034343efbc00", null ],
+    [ "thermalRadius", "d8/ddb/structspecies_1_1_species.html#af4e734438694bd67bad0dc428643d70e", null ],
+    [ "thermalV", "d8/ddb/structspecies_1_1_species.html#a82f3ac424a1d0cf2a06a14dc269545bd", null ],
+    [ "velocityMesh", "d8/ddb/structspecies_1_1_species.html#af1de6dc053fd6621cf740d8000b73f49", null ]
+];

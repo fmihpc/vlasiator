@@ -1,0 +1,22 @@
+<map id="projects::Project::findBlocksToInitialize" name="projects::Project::findBlocksToInitialize">
+<area shape="rect" id="Node000001" title="Prepares a list of blocks to loop through when initialising." alt="" coords="5,151,164,191"/>
+<area shape="rect" id="Node000002" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a952c375b0dfdd7b437e7ae060d964a41" title=" " alt="" coords="220,55,395,95"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="121,149,211,105,229,98,231,103,213,110,123,154"/>
+<area shape="rect" id="Node000003" href="$dc/dc7/gpu__base_8cpp.html#ab486ab7b847223a57ec2238a3b25ced4" title=" " alt="" coords="485,5,607,31"/>
+<area shape="poly" id="edge10_Node000001_Node000003" title=" " alt="" coords="97,149,142,93,174,64,211,41,277,19,346,7,413,4,472,7,471,12,413,10,347,13,278,24,213,46,177,68,146,97,101,153"/>
+<area shape="rect" id="Node000006" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#ac3e9c10c72c754b3ca8586d8811ad6d4" title=" " alt="" coords="220,119,395,159"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="164,157,206,151,207,156,165,163"/>
+<area shape="rect" id="Node000007" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#aea4a2e9b30de839f74c809df2793a1ff" title=" " alt="" coords="220,183,395,223"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="165,180,207,186,206,191,164,185"/>
+<area shape="rect" id="Node000008" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#abf2b9326d5a0ab07cc9d1a7fca6dc0da" title=" " alt="" coords="212,247,403,287"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="123,189,213,233,231,240,229,245,211,238,121,194"/>
+<area shape="rect" id="Node000009" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a14f30f4fc68776e093b483f9b6480691" title=" " alt="" coords="220,311,395,351"/>
+<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="103,190,149,243,180,272,213,297,224,303,222,308,211,302,176,276,145,247,99,193"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="391,53,479,31,480,36,392,58"/>
+<area shape="rect" id="Node000005" href="$d6/dd0/namespacespatial__cell.html#aafc1b228d67cb9a72c3102568949c87f" title=" " alt="" coords="453,55,639,95"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="395,73,439,73,439,78,395,78"/>
+<area shape="rect" id="Node000004" href="$dc/dc7/gpu__base_8cpp.html#ad379894802da0a7fb52e17ae9b0f897b" title=" " alt="" coords="689,5,808,31"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="607,15,675,15,675,21,607,21"/>
+<area shape="rect" id="Node000010" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a0b5ae6d60c03a10b43a732a20bf20625" title=" " alt="" coords="451,311,641,351"/>
+<area shape="poly" id="edge9_Node000009_Node000010" title=" " alt="" coords="395,329,437,329,437,334,395,334"/>
+</map>

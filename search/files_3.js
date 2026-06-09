@@ -1,0 +1,27 @@
+var searchData=
+[
+  ['datareducer_2ecpp_0',['datareducer.cpp',['../da/d47/datareducer_8cpp.html',1,'']]],
+  ['datareducer_2eh_1',['datareducer.h',['../dc/d44/datareducer_8h.html',1,'']]],
+  ['datareductionoperator_2ecpp_2',['datareductionoperator.cpp',['../d4/d30/datareductionoperator_8cpp.html',1,'']]],
+  ['datareductionoperator_2eh_3',['datareductionoperator.h',['../d0/d4f/datareductionoperator_8h.html',1,'']]],
+  ['definitions_2eh_4',['definitions.h',['../d6/dc2/definitions_8h.html',1,'']]],
+  ['derivatives_2ecpp_5',['derivatives.cpp',['../d9/de3/derivatives_8cpp.html',1,'']]],
+  ['derivatives_2ehpp_6',['derivatives.hpp',['../d0/d98/derivatives_8hpp.html',1,'']]],
+  ['differentialflux_2ecpp_7',['differentialFlux.cpp',['../d3/d78/differential_flux_8cpp.html',1,'']]],
+  ['diffusion_2ecpp_8',['Diffusion.cpp',['../d2/d86/_diffusion_8cpp.html',1,'']]],
+  ['diffusion_2eh_9',['Diffusion.h',['../de/dbe/_diffusion_8h.html',1,'']]],
+  ['dipole_2ecpp_10',['dipole.cpp',['../d1/dd7/dipole_8cpp.html',1,'']]],
+  ['dipole_2ehpp_11',['dipole.hpp',['../df/d30/dipole_8hpp.html',1,'']]],
+  ['dispersion_2ecpp_12',['Dispersion.cpp',['../d4/d69/_dispersion_8cpp.html',1,'']]],
+  ['dispersion_2eh_13',['Dispersion.h',['../da/d2d/_dispersion_8h.html',1,'']]],
+  ['dispersion_2em_14',['Dispersion.m',['../de/d31/_dispersion_8m.html',1,'']]],
+  ['dispersion_2epy_15',['Dispersion.py',['../d3/deb/_dispersion_8py.html',1,'']]],
+  ['distribution_2ecpp_16',['distribution.cpp',['../d2/de6/distribution_8cpp.html',1,'']]],
+  ['distribution_2eh_17',['distribution.h',['../d7/d7a/distribution_8h.html',1,'']]],
+  ['distributions_2ecpp_18',['Distributions.cpp',['../d5/df2/_distributions_8cpp.html',1,'']]],
+  ['distributions_2eh_19',['Distributions.h',['../d5/dfc/_distributions_8h.html',1,'']]],
+  ['donotcompute_2ecpp_20',['donotcompute.cpp',['../dc/d11/donotcompute_8cpp.html',1,'']]],
+  ['donotcompute_2eh_21',['donotcompute.h',['../de/d1d/donotcompute_8h.html',1,'']]],
+  ['dro_5fpopulations_2ecpp_22',['dro_populations.cpp',['../d7/d14/dro__populations_8cpp.html',1,'']]],
+  ['dro_5fpopulations_2eh_23',['dro_populations.h',['../da/d76/dro__populations_8h.html',1,'']]]
+];

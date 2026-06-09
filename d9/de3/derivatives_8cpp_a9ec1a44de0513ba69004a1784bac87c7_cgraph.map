@@ -1,0 +1,7 @@
+<map id="calculateU" name="calculateU">
+<area shape="rect" id="Node000001" title="Calculates energy density for spatial cell." alt="" coords="5,31,96,56"/>
+<area shape="rect" id="Node000002" href="$d9/de3/derivatives_8cpp.html#a74763edc9ece05eb8c4bfc4a8a284fdb" title="Returns volumetric B of cell." alt="" coords="192,5,264,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="96,34,178,22,179,28,96,40"/>
+<area shape="rect" id="Node000003" href="$d9/de3/derivatives_8cpp.html#ace776df59ba570d228e3f3c8d02e507b" title="Calculates momentum density of cell." alt="" coords="144,55,312,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="96,47,131,51,130,57,96,52"/>
+</map>

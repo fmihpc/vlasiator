@@ -1,0 +1,11 @@
+<map id="projects::Project::adaptRefinement" name="projects::Project::adaptRefinement">
+<area shape="rect" id="Node000001" title="Adapts refinement by one level according to the project. Returns true if any cells were refined,..." alt="" coords="5,92,140,132"/>
+<area shape="rect" id="Node000002" href="$db/d19/classprojects_1_1_project.html#a2f9f845b74a7af50dfe92a738f6da6f4" title=" " alt="" coords="193,5,328,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="114,89,187,55,201,49,203,53,189,60,117,94"/>
+<area shape="rect" id="Node000003" href="$d4/d5b/vlasiator_8cpp.html#a0e89e9e9c29d929027088b0a8dd56585" title=" " alt="" coords="206,70,315,95"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="140,99,192,91,193,96,141,104"/>
+<area shape="rect" id="Node000004" href="$db/d19/classprojects_1_1_project.html#a61f17d5fd167cc6ae61c7b7e88f7aa6f" title=" " alt="" coords="193,120,328,160"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="141,119,180,125,179,131,140,125"/>
+<area shape="rect" id="Node000005" href="$db/d19/classprojects_1_1_project.html#a9a3c5ff78e48cb01cb965f752f7cffa0" title=" " alt="" coords="188,184,333,224"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="112,130,189,170,202,176,200,181,187,174,109,134"/>
+</map>

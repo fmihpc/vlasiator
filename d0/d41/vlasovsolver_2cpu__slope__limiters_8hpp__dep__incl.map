@@ -1,0 +1,36 @@
+<map id="vlasovsolver/cpu_slope_limiters.hpp" name="vlasovsolver/cpu_slope_limiters.hpp">
+<area shape="rect" id="Node000001" title=" " alt="" coords="383,5,557,45"/>
+<area shape="rect" id="Node000002" href="$db/d3e/cpu__1d__plm_8hpp.html" title=" " alt="" coords="33,181,187,221"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="420,54,150,184,148,179,418,49"/>
+<area shape="rect" id="Node000006" href="$d8/d05/cpu__1d__ppm_8hpp.html" title=" " alt="" coords="390,181,545,221"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="453,58,439,94,436,113,439,133,447,158,458,180,453,182,443,160,434,134,431,113,434,93,448,57"/>
+<area shape="rect" id="Node000007" href="$d3/d07/cpu__1d__ppm__nonuniform_8hpp.html" title=" " alt="" coords="569,181,737,221"/>
+<area shape="poly" id="edge9_Node000001_Node000007" title=" " alt="" coords="566,48,600,66,629,92,643,113,651,137,656,181,650,181,645,138,638,115,625,95,597,71,564,53"/>
+<area shape="rect" id="Node000009" href="$d2/de0/cpu__1d__ppm__nonuniform__conserving_8hpp.html" title=" " alt="" coords="761,181,1008,221"/>
+<area shape="poly" id="edge12_Node000001_Node000009" title=" " alt="" coords="540,47,656,91,761,137,848,179,846,184,759,142,654,96,538,52"/>
+<area shape="rect" id="Node000011" href="$d2/dd5/cpu__1d__pqm_8hpp.html" title=" " alt="" coords="211,181,366,221"/>
+<area shape="poly" id="edge14_Node000001_Node000011" title=" " alt="" coords="442,57,310,183,307,179,439,53"/>
+<area shape="rect" id="Node000012" href="$d0/d93/cpu__face__estimates_8hpp.html" title=" " alt="" coords="448,93,615,133"/>
+<area shape="poly" id="edge18_Node000001_Node000012" title=" " alt="" coords="494,55,520,92,516,95,489,58"/>
+<area shape="rect" id="Node000003" href="$d1/d9f/acceleration-vlasiator_2map__test_8cpp.html" title=" " alt="" coords="5,269,180,309"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="106,235,99,270,94,269,101,234"/>
+<area shape="rect" id="Node000004" href="$db/d0f/cpu__acc__map_8cpp.html" title=" " alt="" coords="204,269,365,309"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="162,225,248,267,245,272,159,230"/>
+<area shape="rect" id="Node000005" href="$db/df3/cpu__trans__map_8cpp.html" title=" " alt="" coords="389,269,561,309"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="201,221,395,267,394,272,200,226"/>
+<area shape="poly" id="edge6_Node000006_Node000003" title=" " alt="" coords="377,226,175,272,174,267,376,221"/>
+<area shape="poly" id="edge7_Node000006_Node000004" title=" " alt="" coords="416,230,326,272,324,267,414,225"/>
+<area shape="poly" id="edge8_Node000006_Node000005" title=" " alt="" coords="473,235,476,269,471,269,468,235"/>
+<area shape="poly" id="edge10_Node000007_Node000005" title=" " alt="" coords="603,230,515,272,513,267,600,225"/>
+<area shape="rect" id="Node000008" href="$da/d92/cpu__trans__map__amr_8cpp.html" title=" " alt="" coords="585,269,757,309"/>
+<area shape="poly" id="edge11_Node000007_Node000008" title=" " alt="" coords="662,234,670,269,665,270,657,235"/>
+<area shape="rect" id="Node000010" href="$d0/df9/amr__reconstruction_2map__test_8cpp.html" title=" " alt="" coords="781,269,999,309"/>
+<area shape="poly" id="edge13_Node000009_Node000010" title=" " alt="" coords="889,235,891,269,886,269,884,235"/>
+<area shape="poly" id="edge15_Node000011_Node000003" title=" " alt="" coords="234,229,137,272,135,267,232,224"/>
+<area shape="poly" id="edge16_Node000011_Node000004" title=" " alt="" coords="290,235,288,269,283,269,284,235"/>
+<area shape="poly" id="edge17_Node000011_Node000005" title=" " alt="" coords="343,225,436,267,433,272,341,229"/>
+<area shape="poly" id="edge19_Node000012_Node000006" title=" " alt="" coords="511,146,484,183,479,180,507,143"/>
+<area shape="poly" id="edge20_Node000012_Node000007" title=" " alt="" coords="571,139,627,179,624,183,568,143"/>
+<area shape="poly" id="edge21_Node000012_Node000009" title=" " alt="" coords="623,134,808,179,807,184,621,139"/>
+<area shape="poly" id="edge22_Node000012_Node000011" title=" " alt="" coords="466,140,343,184,341,179,464,135"/>
+</map>

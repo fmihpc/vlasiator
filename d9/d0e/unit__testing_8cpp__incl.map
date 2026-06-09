@@ -1,0 +1,24 @@
+<map id="arch/unit_testing.cpp" name="arch/unit_testing.cpp">
+<area shape="rect" id="Node000001" title=" " alt="" coords="306,5,465,31"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="5,79,91,104"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="332,33,105,81,104,76,331,28"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="115,79,195,104"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="349,33,206,77,204,72,347,28"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="219,79,277,104"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="364,33,284,75,281,70,362,28"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="439,152,510,177"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="373,33,358,48,345,66,338,85,342,103,359,121,380,135,427,153,425,158,377,140,355,125,338,105,333,84,340,63,354,44,369,29"/>
+<area shape="rect" id="Node000006" title=" " alt="" coords="352,79,419,104"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="388,31,388,65,383,65,383,31"/>
+<area shape="rect" id="Node000007" title=" " alt="" coords="443,79,507,104"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="401,29,451,68,448,72,398,33"/>
+<area shape="rect" id="Node000008" title=" " alt="" coords="531,79,586,104"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="414,28,519,71,517,76,412,33"/>
+<area shape="rect" id="Node000009" title=" " alt="" coords="610,79,673,104"/>
+<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="427,28,597,75,596,80,426,33"/>
+<area shape="rect" id="Node000010" href="$dc/d9d/arch__device__api_8h.html" title=" " alt="" coords="697,79,836,104"/>
+<area shape="poly" id="edge9_Node000001_Node000010" title=" " alt="" coords="447,28,692,73,691,79,446,33"/>
+<area shape="poly" id="edge10_Node000010_Node000005" title=" " alt="" coords="720,107,524,154,523,149,719,101"/>
+<area shape="rect" id="Node000011" href="$d9/d13/arch__device__host_8h.html" title=" " alt="" coords="693,152,840,177"/>
+<area shape="poly" id="edge11_Node000010_Node000011" title=" " alt="" coords="769,104,769,138,764,138,764,104"/>
+</map>

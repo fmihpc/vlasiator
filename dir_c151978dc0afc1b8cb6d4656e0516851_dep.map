@@ -1,0 +1,15 @@
+<map id="vlasovsolver" name="vlasovsolver">
+<area shape="rect" id="node1" href="dir_c151978dc0afc1b8cb6d4656e0516851.html" title="vlasovsolver" alt="" coords="183,5,289,31"/>
+<area shape="rect" id="node2" href="dir_3bab0a1fcaeb8de3d4e17a25272119f5.html" title="fieldsolver" alt="" coords="5,79,96,104"/>
+<area shape="poly" id="edge1" href="dir_000050_000013.html" alt="" coords="207,33,94,76,93,71,205,28"/>
+<area shape="rect" id="edge1-headlabel" href="dir_000050_000013.html" title="2" alt="" coords="96,73,106,87"/>
+<area shape="rect" id="node3" href="dir_9a0f5bd62ecdee24b48726a658697d82.html" title="spatial_cells" alt="" coords="121,79,223,104"/>
+<area shape="poly" id="edge2" href="dir_000050_000036.html" alt="" coords="227,33,193,70,189,67,223,29"/>
+<area shape="rect" id="edge2-headlabel" href="dir_000050_000036.html" title="23" alt="" coords="192,63,209,78"/>
+<area shape="rect" id="node4" href="dir_adc70fd45042a3f07038437af6ccfa0f.html" title="sysboundary" alt="" coords="247,79,353,104"/>
+<area shape="poly" id="edge3" href="dir_000050_000037.html" alt="" coords="249,29,283,67,279,70,245,33"/>
+<area shape="rect" id="edge3-headlabel" href="dir_000050_000037.html" title="1" alt="" coords="279,52,288,67"/>
+<area shape="rect" id="node5" href="dir_ea9599923402ca8ab47fc3e495999dea.html" title="arch" alt="" coords="377,79,428,104"/>
+<area shape="poly" id="edge4" href="dir_000050_000004.html" alt="" coords="264,28,366,71,364,76,262,33"/>
+<area shape="rect" id="edge4-headlabel" href="dir_000050_000004.html" title="14" alt="" coords="355,57,372,72"/>
+</map>

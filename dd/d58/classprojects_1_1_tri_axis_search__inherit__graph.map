@@ -1,0 +1,29 @@
+<map id="projects::TriAxisSearch" name="projects::TriAxisSearch">
+<area shape="rect" id="Node000001" title=" " alt="" coords="180,277,349,303"/>
+<area shape="rect" id="Node000003" href="$d9/d69/classprojects_1_1_distributions.html" title=" " alt="" coords="406,5,571,31"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="270,263,285,215,310,155,346,93,369,65,396,40,415,29,418,33,399,44,373,68,351,96,315,157,290,217,275,264"/>
+<area shape="rect" id="Node000004" href="$dd/d62/classprojects_1_1_flowthrough.html" title=" " alt="" coords="407,55,570,80"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="273,263,291,224,317,177,352,130,396,89,417,78,419,82,399,94,356,133,322,180,296,227,278,265"/>
+<area shape="rect" id="Node000005" href="$dd/d9d/classprojects_1_1_fluctuations.html" title=" " alt="" coords="407,104,570,129"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="279,264,326,201,358,167,396,138,420,127,422,132,399,143,362,171,330,204,283,267"/>
+<area shape="rect" id="Node000006" href="$d2/d61/classprojects_1_1_harris.html" title=" " alt="" coords="428,153,549,179"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="287,266,335,226,396,188,427,176,429,181,399,192,338,230,291,270"/>
+<area shape="rect" id="Node000007" href="$db/d4a/classprojects_1_1_i_p_shock.html" title=" " alt="" coords="422,203,555,228"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="308,270,396,237,435,226,436,231,398,242,310,275"/>
+<area shape="rect" id="Node000008" href="$de/da1/classprojects_1_1_k_h_b.html" title=" " alt="" coords="433,252,544,277"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="363,276,433,268,433,274,364,282"/>
+<area shape="rect" id="Node000009" href="$d9/da0/classprojects_1_1_loss_cone.html" title=" " alt="" coords="417,301,561,327"/>
+<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="364,298,417,304,416,309,363,303"/>
+<area shape="rect" id="Node000010" href="$df/d57/classprojects_1_1_magnetosphere.html" title=" " alt="" coords="397,351,580,376"/>
+<area shape="poly" id="edge9_Node000001_Node000010" title=" " alt="" coords="311,305,398,337,437,348,435,353,397,342,309,310"/>
+<area shape="rect" id="Node000011" href="$d4/dc0/classprojects_1_1_multi_peak.html" title=" " alt="" coords="415,400,562,425"/>
+<area shape="poly" id="edge10_Node000001_Node000011" title=" " alt="" coords="291,310,339,349,399,386,428,397,426,402,396,391,336,353,288,314"/>
+<area shape="rect" id="Node000012" href="$d5/dbc/classprojects_1_1_shocktest.html" title=" " alt="" coords="415,449,562,475"/>
+<area shape="poly" id="edge11_Node000001_Node000012" title=" " alt="" coords="283,313,330,375,362,408,399,436,423,447,420,452,396,440,359,412,326,378,279,316"/>
+<area shape="rect" id="Node000013" href="$df/d44/classprojects_1_1_template.html" title=" " alt="" coords="417,499,560,524"/>
+<area shape="poly" id="edge12_Node000001_Node000013" title=" " alt="" coords="278,314,296,353,322,399,356,446,399,485,419,496,417,501,396,490,352,449,318,402,291,355,273,317"/>
+<area shape="rect" id="Node000014" href="$da/df8/classprojects_1_1test__fp.html" title=" " alt="" coords="425,548,552,573"/>
+<area shape="poly" id="edge13_Node000001_Node000014" title=" " alt="" coords="275,315,290,363,315,422,351,483,373,511,399,534,426,549,424,554,396,539,369,514,347,486,310,425,285,365,270,317"/>
+<area shape="rect" id="Node000002" href="$db/d19/classprojects_1_1_project.html" title=" " alt="" coords="5,277,132,303"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="146,287,180,287,180,293,146,293"/>
+</map>
