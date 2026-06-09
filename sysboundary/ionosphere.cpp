@@ -1920,15 +1920,12 @@ namespace SBC {
             int samplingFAC = 0;
             std::array<Real, 3> curlB;
             std::array<FsGridTools::FsIndex_t,3> lfsc = getLocalFsGridCellIndexForCoord(fsgrid, nodes[n].xMapped);
+
             // Local cell
             if(lfsc[0] == -1 || lfsc[1] == -1 || lfsc[2] == -1) {
                continue;
             }
-<<<<<<< HEAD
-            if (samplingFAC == 0){
-=======
             if (Ionosphere::downmapFACsamplingMode == Ionosphere::Pointwise){
->>>>>>> f8395e93b (Parameterized the smoothing to config)
                // Calc curlB, note division by DX one line down
                curlB = interpolateCurlB(
                   perb,
@@ -1980,11 +1977,7 @@ namespace SBC {
                      sample_pts[i]
                   );
                   for(int ii = 0; ii<3; ++ii){
-<<<<<<< HEAD
-                     curlB[ii] += curlB_temp[ii]*weights[i]/weightsum[i];
-=======
                      curlB[ii] += curlB_temp[ii]*weights[i]/weightsum;
->>>>>>> f8395e93b (Parameterized the smoothing to config)
                   }
                }
             }
