@@ -1018,7 +1018,7 @@ std::unordered_set<vmesh::GlobalID> ListBlockExist[getObjectWrapper().particleSp
 
 	     	  if (D > cell->getVelocityBlockMinValue(0)){
 				// We should create a new cell for R+1
-				int addWidthV = getObjectWrapper().particleSpecies[popID+1].sparseBlockAddWidthV; 
+				int addWidthV = 1; //getObjectWrapper().particleSpecies[popID+1].sparseBlockAddWidthV; 
 				for (int offset_vx=-addWidthV;offset_vx<=addWidthV;offset_vx++) {
 		  		  for (int offset_vy=-addWidthV;offset_vy<=addWidthV;offset_vy++) {
 		    		for (int offset_vz=-addWidthV;offset_vz<=addWidthV;offset_vz++) {
