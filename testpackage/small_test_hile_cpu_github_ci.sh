@@ -230,7 +230,7 @@ for run in ${run_tests[*]}; do
        echo "Comparing file ${vlsv_dir_short}/${vlsv} against reference"
        COMPAREDFILES=$((COMPAREDFILES+1))
        echo $COMPAREDFILES > $RUNNER_TEMP/COMPAREDFILES.txt
-       
+
        for i in ${!variables[*]}
        do
            if [[ "${variables[$i]}" == "fg_"* ]]

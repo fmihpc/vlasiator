@@ -69,5 +69,5 @@ source test_definitions_small.sh
 wait
 # Run tests
 source run_tests.sh
-wait 
+wait
 

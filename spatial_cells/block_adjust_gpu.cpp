@@ -67,12 +67,12 @@ void update_velocity_block_content_lists(
    phiprof::Timer sparsityTimer {"update Sparsity values, apply memory reservations"};
    size_t largestSizePower = 0;
    size_t largestVelMesh = 0;
-#pragma omp parallel
+   #pragma omp parallel
    {
       size_t threadLargestVelMesh = 0;
       size_t threadLargestSizePower = 0;
       SpatialCell *SC;
-#pragma omp for schedule(dynamic)
+      #pragma omp for schedule(dynamic)
       for (uint i=0; i<nCells; ++i) {
          SC = mpiGrid[cells[i]];
          SC->velocity_block_with_content_list_size = 0;
@@ -92,13 +92,13 @@ void update_velocity_block_content_lists(
          (GET_POINTER(gpuMemoryManager, SINGLE_ARG(Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>*), host_allMaps))[2*i] = SC->dev_velocity_block_with_content_map;
          (GET_POINTER(gpuMemoryManager, SINGLE_ARG(Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>*), host_allMaps))[2*i+1] = SC->dev_velocity_block_with_no_content_map;
          (GET_POINTER(gpuMemoryManager, split::SplitVector<vmesh::GlobalID>*, host_vbwcl_vec))[i] = SC->dev_velocity_block_with_content_list;
-         
+
          // Gather largest values
          threadLargestVelMesh = std::max(threadLargestVelMesh, mySize);
          threadLargestSizePower = std::max(threadLargestSizePower, (size_t)SC->vbwcl_sizePower);
          threadLargestSizePower = std::max(threadLargestSizePower, (size_t)SC->vbwncl_sizePower);
       }
-#pragma omp critical
+      #pragma omp critical
       {
          largestVelMesh = std::max(threadLargestVelMesh, largestVelMesh);
          largestSizePower = std::max(threadLargestSizePower, largestSizePower);
@@ -209,12 +209,12 @@ void adjust_velocity_blocks_in_cells(
    size_t largestContentList = 0;
    size_t largestContentListNeighbors = 0;
    // Count maximum number of neighbors, largest size of content blocks
-#pragma omp parallel
+   #pragma omp parallel
    {
       size_t threadMaxNeighbors = 0;
       size_t threadLargestContentList = 0;
       size_t threadLargestContentListNeighbors = 0;
-#pragma omp for schedule(dynamic)
+      #pragma omp for schedule(dynamic)
       for (size_t i=0; i<nCells; ++i) {
          CellID cell_id = cellsToAdjust[i];
          SpatialCell* SC = mpiGrid[cell_id];
@@ -240,7 +240,7 @@ void adjust_velocity_blocks_in_cells(
          threadMaxNeighbors = std::max(threadMaxNeighbors, nNeighbors);
          threadLargestContentListNeighbors = std::max(threadLargestContentListNeighbors, cellLargestContentListNeighbors);
       }
-#pragma omp critical
+      #pragma omp critical
       {
          maxNeighbors = std::max(maxNeighbors, threadMaxNeighbors);
          largestContentList = std::max(threadLargestContentList, largestContentList);
@@ -262,11 +262,11 @@ void adjust_velocity_blocks_in_cells(
    mallocTimer.stop();
 
    size_t largestVelMesh = 0;
-#pragma omp parallel
+   #pragma omp parallel
    {
       phiprof::Timer timer {adjustPreId};
       size_t threadLargestVelMesh = 0;
-#pragma omp for schedule(dynamic)
+      #pragma omp for schedule(dynamic)
       for (size_t i=0; i<nCells; ++i) {
          CellID cell_id=cellsToAdjust[i];
          SpatialCell* SC = mpiGrid[cell_id];
@@ -326,7 +326,7 @@ void adjust_velocity_blocks_in_cells(
          (GET_POINTER(gpuMemoryManager, SINGLE_ARG(split::SplitVector<Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>>*), host_lists_with_replace_old))[i] = SC->dev_list_with_replace_old;
       }
       timer.stop();
-#pragma omp critical
+      #pragma omp critical
       {
          largestVelMesh = std::max(threadLargestVelMesh, largestVelMesh);
       }
@@ -587,14 +587,14 @@ void adjust_velocity_blocks_in_cells(
    CHK_ERR( gpuMemcpyAsync(GET_POINTER(gpuMemoryManager, vmesh::LocalID, host_overflownElements), GET_POINTER(gpuMemoryManager, vmesh::LocalID, dev_overflownElements), nCells*sizeof(vmesh::LocalID), gpuMemcpyDeviceToHost, baseStream) );
    CHK_ERR( gpuStreamSynchronize(baseStream) );
    uint largestOverflow = 0;
-#pragma omp parallel
+   #pragma omp parallel
    {
       uint thread_largestOverflow = 0;
-#pragma omp for schedule(static)
+      #pragma omp for schedule(static)
       for (size_t i=0; i<nCells; ++i) {
          thread_largestOverflow = std::max(thread_largestOverflow, (GET_POINTER(gpuMemoryManager, vmesh::LocalID, host_overflownElements))[i]);
       }
-#pragma omp critical
+      #pragma omp critical
       {
          largestOverflow = std::max(thread_largestOverflow, largestOverflow);
       }
@@ -610,9 +610,9 @@ void adjust_velocity_blocks_in_cells(
    }
    tombstoneTimer.stop();
 
-#pragma omp parallel
+   #pragma omp parallel
    {
-#pragma omp for schedule(dynamic)
+      #pragma omp for schedule(dynamic)
       for (size_t i=0; i<nCells; ++i) {
          SpatialCell* SC = mpiGrid[cellsToAdjust[i]];
          if (SC->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {

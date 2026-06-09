@@ -240,10 +240,10 @@ struct Parameters {
    static int PADvbins; // Number of bins in velocity for pitch-angle diffusion
    static int PADmubins; // Number of bins in mu for pitch-angle diffusion
    static std::string PADnu0; // Path to txt file for nu0
-   static Realf PADfudge; // Fudge factore for diffusion   
+   static Realf PADfudge; // Fudge factore for diffusion
 
-   static std::array<FsGridTools::Task_t,3> manualFsGridDecomposition;
-   static std::array<FsGridTools::Task_t,3> overrideReadFsGridDecomposition;
+   static std::array<fsgrid::Task_t,3> manualFsGridDecomposition;
+   static std::array<fsgrid::Task_t,3> overrideReadFsGridDecomposition;
 
    //Asterix  VDF Compression
    enum ASTERIX_COMPRESSION_METHODS{
@@ -264,7 +264,7 @@ struct Parameters {
    static bool doCompress;
    static std::string method_str;
    static ASTERIX_COMPRESSION_METHODS vdf_compression_method;
-   
+
    static bool computeCurvature; /*<! Boolean flag, if true the curvature of magnetic field is computed. */
 
    /*! \brief Add the global parameters.

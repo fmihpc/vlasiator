@@ -24,6 +24,7 @@
 #include <mpi.h>
 #include <iostream>
 #include <limits>
+#include <algorithm>
 #include <array>
 #include "datareductionoperator.h"
 #include "../object_wrapper.h"
@@ -127,56 +128,40 @@ namespace DRO {
       return true;
    }
 
-   bool DataReductionOperatorFsGrid::writeFsGridData(
-                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
-                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
-                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
-                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
-                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
-                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
-                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-                      const std::string& meshName, vlsv::Writer& vlsvWriter,
-                      const bool writeAsFloat) {
+   bool DataReductionOperatorFsGrid::writeFsGridData(const FieldSolverData& fieldSolverData,
+                                                     const std::string& meshName, vlsv::Writer& vlsvWriter,
+                                                     const bool writeAsFloat) {
+      const std::map<std::string, std::string> attribs = {
+          {"mesh", meshName},
+          {"name", variableName},
+          {"unit", unit},
+          {"unitLaTeX", unitLaTeX},
+          {"unitConversion", unitConversion},
+          {"variableLaTeX", variableLaTeX},
+      };
 
-      std::map<std::string,std::string> attribs;
-      attribs["mesh"]=meshName;
-      attribs["name"]=variableName;
-      attribs["unit"]=unit;
-      attribs["unitLaTeX"]=unitLaTeX;
-      attribs["unitConversion"]=unitConversion;
-      attribs["variableLaTeX"]=variableLaTeX;
+      std::vector<float> varBufferFloat;
+      const std::vector<double> varBuffer = lambda(fieldSolverData);
+      const auto* localSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+      const auto totalSize = localSize[0] * localSize[1] * localSize[2];
+      const auto vectorSize = totalSize == 0 ? 0 : varBuffer.size() / totalSize;
 
-      std::vector<double> varBuffer =
-         lambda(perBGrid,EGrid,EHallGrid,EGradPeGrid,momentsGrid,dPerBGrid,dMomentsGrid,BgBGrid,volGrid,technicalGrid);
-
-      std::array<FsGridTools::FsIndex_t,3>& gridSize = technicalGrid.getLocalSize();
-      int vectorSize;
-
-      // Check if there is anything to write (eg, we are a non-FS process)
-      if (gridSize[0]*gridSize[1]*gridSize[2] == 0)
-         vectorSize = 0;
-      else
-         vectorSize = varBuffer.size() / (gridSize[0]*gridSize[1]*gridSize[2]);
+      auto writeArray = [&attribs, &totalSize, &vectorSize, &vlsvWriter](const auto& buf) -> bool {
+         return vlsvWriter.writeArray("VARIABLE", attribs, "float", totalSize, vectorSize, sizeof(buf[0]),
+                                      reinterpret_cast<const char*>(buf.data()));
+      };
 
       if(writeAsFloat) {
          // Convert down to 32bit floats to save output space
-         std::vector<float> varBufferFloat(varBuffer.size());
-         for(uint i=0; i<varBuffer.size(); i++) {
-            varBufferFloat[i] = (float)varBuffer[i];
-         }
-         if(vlsvWriter.writeArray("VARIABLE",attribs, "float", gridSize[0]*gridSize[1]*gridSize[2], vectorSize, sizeof(float), reinterpret_cast<const char*>(varBufferFloat.data())) == false) {
-            string message = "The DataReductionOperator " + this->getName() + " failed to write its data.";
-            bailout(true, message, __FILE__, __LINE__);
-         }
+         varBufferFloat.resize(varBuffer.size());
+         std::transform(varBuffer.cbegin(), varBuffer.cend(), varBufferFloat.begin(),
+                        [](double v) { return static_cast<float>(v); });
+      }
 
-      } else {
-         if(vlsvWriter.writeArray("VARIABLE",attribs, "float", gridSize[0]*gridSize[1]*gridSize[2], vectorSize, sizeof(double), reinterpret_cast<const char*>(varBuffer.data())) == false) {
-            string message = "The DataReductionOperator " + this->getName() + " failed to write its data.";
-            bailout(true, message, __FILE__, __LINE__);
-         }
+      const bool success = writeAsFloat ? writeArray(varBufferFloat) : writeArray(varBuffer);
+      if (!success) {
+         string message = "The DataReductionOperator " + this->getName() + " failed to write its data.";
+         bailout(true, message, __FILE__, __LINE__);
       }
 
       return true;

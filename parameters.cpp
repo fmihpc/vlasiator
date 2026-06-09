@@ -220,8 +220,8 @@ int P::PADmubins;
 string P::PADnu0 = string("");
 Realf P::PADfudge;
 
-std::array<FsGridTools::Task_t,3> P::manualFsGridDecomposition = {0,0,0};
-std::array<FsGridTools::Task_t,3> P::overrideReadFsGridDecomposition = {0,0,0};
+std::array<fsgrid::Task_t,3> P::manualFsGridDecomposition = {0,0,0};
+std::array<fsgrid::Task_t,3> P::overrideReadFsGridDecomposition = {0,0,0};
 
 std::string tracerString; /*!< Fieldline tracer to use for coupling ionosphere and magnetosphere */
 bool P::computeCurvature;
@@ -572,7 +572,7 @@ bool P::addParameters() {
    RP::add("PAD.mubins","number of bins for mu",30);
    RP::add("PAD.file","Path of txt file for nu0", string("NU0BOX.DAT"));
    RP::add("PAD.fudge","Divide diffusion coefficient nu0 (read from file) by a fudge factor (see Dubart et al 2023)",4);
-   
+
    // Fieldtracing
    RP::add("fieldtracing.fieldLineTracer", "Field line tracing method to use for coupling ionosphere and magnetosphere (options are: Euler, BS)", std::string("Euler"));
    RP::add("fieldtracing.tracer_max_allowed_error", "Maximum allowed error for the adaptive field line tracers ", 1000);
@@ -826,7 +826,7 @@ void Parameters::getParameters() {
       cerr << "ERROR all of restart.overrideReadFsGridDecompositionX,Y,Z should be defined." << endl;
       MPI_Abort(MPI_COMM_WORLD, 1);
    }
-   FsGridTools::Task_t temp_task_t;
+   fsgrid::Task_t temp_task_t;
    RP::get("restart.overrideReadFsGridDecompositionX", temp_task_t);
    P::overrideReadFsGridDecomposition[0] = temp_task_t;
    RP::get("restart.overrideReadFsGridDecompositionY", temp_task_t);
@@ -1195,7 +1195,7 @@ void Parameters::getParameters() {
    if(includefSaved) {
       P::outputVariableList.push_back("vg_f_saved");
    }
-   
+
    //If we need to compress files force the sparsity in the VLSV files
    const bool force_sparsity_in_output =
        P::systemWriteRestartCompressed || P::systemWriteDistributionCompressed || P::systemWriteRecoveryCompressed;
@@ -1228,7 +1228,7 @@ void Parameters::getParameters() {
       P::systemWrites.push_back(0);
    }
 
-   RP::get("PAD.enable", P::artificialPADiff);   
+   RP::get("PAD.enable", P::artificialPADiff);
    RP::get("PAD.coefficient", P::PADcoefficient);
    RP::get("PAD.CFL",P::PADCFL);
    RP::get("PAD.vbins",P::PADvbins);
