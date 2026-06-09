@@ -14,7 +14,7 @@ concurrency:
    cancel-in-progress: true
 
 jobs:
- 
+
   get_git_diff:
     runs-on: ubuntu-latest
     outputs:
@@ -24,7 +24,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Get git diff 
+      - name: Get git diff
         id: gitdiff
         run: |
           cd $GITHUB_WORKSPACE
@@ -57,6 +57,10 @@ jobs:
         uses: actions/checkout@v4
       - name: Run library build script
         run: ./fetch_and_build_libraries.sh
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y g++ build-essential cmake make libopenmpi-dev openmpi-bin libboost-program-options-dev zstd
       - name: Build libraries tar
         run: tar --zstd -cf libraries.tar.zstd libraries/
       - name: Upload libraries as artifact
@@ -842,7 +846,7 @@ jobs:
     # Run the testpackage on the carrington cluster
     runs-on: carrington
     needs: [build_TP, build_tools, get_git_diff_check, build_libraries_carrington]
-    
+
     continue-on-error: true
 
     steps:
