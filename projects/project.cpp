@@ -251,7 +251,7 @@ namespace projects {
 
       // Call project-specific fill function, which loops over all requested blocks,
       // fills v-space into target
-      const Realf nullsum = fillPhaseSpace(cell, popID, nRequested);
+      fillPhaseSpace(cell, popID, nRequested);
       if (rescalesDensity(popID) == true) {
          rescaleDensity(cell,popID);
       }
