@@ -1917,9 +1917,8 @@ namespace SBC {
             // corners.  Prevent areas from being multiply-counted
             nodeAreaGeometric /= 3.;
 
-            int samplingFAC = 0;
             std::array<Real, 3> curlB;
-            std::array<FsGridTools::FsIndex_t,3> lfsc = getLocalFsGridCellIndexForCoord(fsgrid, nodes[n].xMapped);
+            std::array<fsgrid::FsIndex_t,3> lfsc = getLocalFsGridCellIndexForCoord(fsgrid, nodes[n].xMapped);
 
             // Local cell
             if(lfsc[0] == -1 || lfsc[1] == -1 || lfsc[2] == -1) {
@@ -1941,7 +1940,7 @@ namespace SBC {
                curlB = {0,0,0};
                std::vector<std::array<double, 3>> sample_pts;
                std::vector<double> weights;
-               std::vector<std::array<FsGridTools::FsIndex_t,3>> lfscs;
+               std::vector<std::array<fsgrid::FsIndex_t,3>> lfscs;
 
                double weightsum = 0.0;
                double dx = Ionosphere::downmapSamplingWidth * technicalGrid.DX/2;
@@ -1951,7 +1950,7 @@ namespace SBC {
                         std::array<double, 3> pt = {nodes[n].xMapped[0] + x*dx,
                                               nodes[n].xMapped[1] + y*dx,
                                               nodes[n].xMapped[2] + z*dx};
-                        std::array<FsGridTools::FsIndex_t,3> lfsc_stencil = getLocalFsGridCellIndexForCoord(technicalGrid, pt);
+                        std::array<fsgrid::FsIndex_t,3> lfsc_stencil = getLocalFsGridCellIndexForCoord(technicalGrid, pt);
                         if(lfsc_stencil[0] == -1 || lfsc_stencil[1] == -1 || lfsc_stencil[2] == -1) {
                            continue;
                         }
@@ -1966,7 +1965,7 @@ namespace SBC {
                if (sample_pts.size()==0){
                   continue;
                }
-               for (int i = 0; i < weights.size(); ++i){
+               for (unsigned int i = 0; i < weights.size(); ++i){
                   std::array<Real, 3> curlB_temp = interpolateCurlB(
                      perb,
                      dperb,
