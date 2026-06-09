@@ -720,8 +720,8 @@ void Parameters::getParameters() {
       P::systemWriteName.at(i)=P::systemWriteName.at(i).substr(slashIndx+1,P::systemWriteName.at(i).size());
       slashIndx=P::systemWriteName.at(i).find("/");
     }
-    
-
+   } 
+   
    for (uint i = 0; i < P::systemWritePath.size(); i++) {
       if (access(&(P::systemWritePath.at(i)[0]), W_OK) != 0) {
           if (myRank == MASTER_RANK) {
