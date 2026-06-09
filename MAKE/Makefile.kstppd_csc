@@ -25,7 +25,7 @@ endif
 #======== Flags =========
 
 FLAGS =
-CXXFLAGS = -O3 -DASTERIX_ZFP -DASTERIX_MLP -DASTERIX_OCTREE -funroll-loops -std=c++20 -fopenmp -W -Wall -Wno-unused -Wno-unused-parameter -Wno-missing-braces -fabi-version=0 -mavx
+CXXFLAGS = -O3 -DASTERIX_ZFP  -DASTERIX_OCTREE -funroll-loops -std=c++20 -fopenmp -W -Wall -Wno-unused -Wno-unused-parameter -Wno-missing-braces -fabi-version=0 -mavx
 testpackage: CXXFLAGS = -g -ggdb -O2 -fopenmp -funroll-loops -std=c++20 -fabi-version=0  -mno-avx -mno-fma -fno-unsafe-math-optimizations
 CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE -DPAPI_MEM
 MATHFLAGS = -ffast-math -fno-finite-math-only
@@ -45,7 +45,7 @@ CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 
 #======== Libraries ===========
-LIBRARY_PREFIX = /home/kstppd/software/vlasiator_libs
+LIBRARY_PREFIX = /home/konstanp/software/libraries-vlasiator_libs
 
 INC_BOOST = -I/usr/include/boost/
 LIB_BOOST = -L/usr/lib/x86_64-linux-gnu/ -lboost_program_options
@@ -74,11 +74,8 @@ INC_PROFILE = -I$(LIBRARY_PREFIX)/include
 INC_VECTORCLASS = -isystem ./submodules/vectorclass/ -isystem ./submodules/vectorclass-addon/vector3d/
 INC_EIGEN = -isystem ./submodules/eigen/
 
-INC_ZFP = -I/home/kstppd/software/zfp/include/
-LIB_ZFP = -L/home/kstppd/software/zfp/build/lib -lzfp
+INC_ZFP = -I$(LIBRARY_PREFIX)/include/
+LIB_ZFP = -L$(LIBRARY_PREFIX)/lib64 -lzfp
 
-INC_OCTREE_COMPRESSOR = -I./vdf_compression/include
-LIB_OCTREE_COMPRESSOR = -L./vdf_compression/lib -ltoctree_compressor
-
-INC_NN_COMPRESSOR = -I./vdf_compression/lib/usr/local/include/tinyAI
-LIB_NN_COMPRESSOR = -L/home/kstppd/dev/asterix/build -Wl,-rpath,/home/kstppd/dev/asterix/build -lvlasiator_vdf_compressor_nn
+INC_OCTREE_COMPRESSOR = -I$(LIBRARY_PREFIX)/include
+LIB_OCTREE_COMPRESSOR = -L$(LIBRARY_PREFIX)/lib -ltoctree_compressor

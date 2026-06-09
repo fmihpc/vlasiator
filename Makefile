@@ -198,6 +198,9 @@ LIBS += ${LIB_PROFILE}
 LIBS += ${LIB_VLSV}
 LIBS += ${LIB_JEMALLOC}
 LIBS += ${LIB_PAPI}
+LIBS += ${LIB_OCTREE_COMPRESSOR}
+LIBS += ${LIB_ZFP}
+LIBS += ${LIB_NN_COMPRESSOR}
 
 # Define common dependencies
 DEPS_COMMON = common.h common.cpp definitions.h mpiconversion.h logger.h object_wrapper.h
@@ -207,7 +210,8 @@ DEPS_COMMON = common.h common.cpp definitions.h mpiconversion.h logger.h object_
 OBJS = 	version.o memoryallocation.o memory_report.o backgroundfield.o quadr.o dipole.o linedipole.o vectordipole.o constantfield.o integratefunction.o \
 	datareducer.o datareductionoperator.o dro_populations.o \
 	donotcompute.o ionosphere.o copysphere.o outflow.o inflow.o setmaxwellian.o\
-	fieldtracing.o arch_moments.o \
+	compression_tools.o\
+	fieldtracing.o compression.o arch_moments.o \
 	sysboundary.o sysboundarycondition.o particle_species.o\
 	project.o projectTriAxisSearch.o read_gaussian_population.o\
 	Alfven.o Diffusion.o Dispersion.o Distributions.o Firehose.o\
@@ -306,8 +310,8 @@ endif
 # for all files in the main source dir
 %.o: %.cpp
 	@echo [CC] $<
-	$(SILENT)$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -c $< $(INC_BOOST) ${INC_DCCRG} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_VECTORCLASS} ${INC_FSGRID} ${INC_PROFILE} ${INC_VLSV} ${INC_PAPI} ${INC_MPI}
-
+	$(SILENT)$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -c $< $(INC_BOOST) ${INC_DCCRG} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_VECTORCLASS} ${INC_FSGRID} ${INC_PROFILE} ${INC_VLSV} ${INC_PAPI} ${INC_MPI} ${INC_ZFP} ${INC_OCTREE_COMPRESSOR} ${INC_NN_COMPRESSOR}
+	
 # for all files in the arch/ dir
 %.o: arch/%.cpp
 	@echo [CC] $<
@@ -352,7 +356,12 @@ endif
 # for all files in the fieldsolver/ dir
 %.o: fieldsolver/%.cpp ${DEPS_FSOLVER}
 	@echo [CC] $<
-	$(SILENT)${CMP} ${CXXFLAGS} ${MATHFLAGS} ${FLAGS} -c $< -I$(CURDIR)  ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG} ${INC_FSGRID} ${INC_PROFILE} ${INC_ZOLTAN}
+	$(SILENT)${CMP} ${CXXFLAGS} ${FLAGS} -c $< -I$(CURDIR)  ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG} ${INC_FSGRID} ${INC_PROFILE} ${INC_ZOLTAN}
+	
+# for all files in the vdf_compression/ dir
+%.o: vdf_compression/%.cpp
+	@echo [CC] $<
+	$(SILENT)${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c $< ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_NN_COMPRESSOR} ${INC_ZOLTAN} ${INC_EIGEN} ${INC_ZFP} ${INC_OCTREE_COMPRESSOR}
 
 # Make executable
 vlasiator: $(OBJS) $(OBJS_FSOLVER)
