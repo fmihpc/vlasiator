@@ -56,7 +56,7 @@ void updateAccelerationMaxdt(
 
 
 /*!
- Compute transform during on timestep, and update the bulk velocity of the
+ Compute transform during one timestep, and update the bulk velocity of the
  cell
  * @param spatial_cell Spatial cell containing the accelerated population.
  * @param popID ID of the accelerated particle species.
@@ -71,11 +71,6 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
    const Real Bx = spatial_cell->parameters[CellParams::BGBXVOL]+spatial_cell->parameters[CellParams::PERBXVOL];
    const Real By = spatial_cell->parameters[CellParams::BGBYVOL]+spatial_cell->parameters[CellParams::PERBYVOL];
    const Real Bz = spatial_cell->parameters[CellParams::BGBZVOL]+spatial_cell->parameters[CellParams::PERBZVOL];
-
-   // perturbed field
-   //const Real perBx = spatial_cell->parameters[CellParams::PERBXVOL];
-   //const Real perBy = spatial_cell->parameters[CellParams::PERBYVOL];
-   //const Real perBz = spatial_cell->parameters[CellParams::PERBZVOL];   
 
    // read in derivatives need for curl of B (only perturbed, curl of background field is always 0!)
    const Real dBXdy = spatial_cell->derivativesBVOL[bvolderivatives::dPERBXVOLdy];
@@ -114,10 +109,8 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
    Transform<Real,3,Affine> total_transform(Matrix<Real, 4, 4>::Identity()); //CONTINUE
 
    unsigned int bulk_velocity_substeps; // in this many substeps we iterate forward bulk velocity when the complete transformation is computed (0.1 deg per substep).
-   bulk_velocity_substeps = fabs(dt) / fabs(gyro_period*(0.1/360.0));
-   if (bulk_velocity_substeps < 1) {
-      bulk_velocity_substeps=1;
-   }
+   bulk_velocity_substeps = std::abs(dt) / std::abs(gyro_period*(0.1/360.0));
+   if (bulk_velocity_substeps < 1) bulk_velocity_substeps=1;
 
    const Real substeps_radians = -(2.0*M_PI*dt/gyro_period)/bulk_velocity_substeps; // how many radians each substep is.
    const Real substeps_dt=dt/bulk_velocity_substeps; /*!< how many s each substep is*/
@@ -145,7 +138,7 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
 
       // Electron pressure gradient term
       if(Parameters::ohmGradPeTerm > 0) {
-         total_transform=Translation<Real,3>( (fabs(getObjectWrapper().particleSpecies[popID].charge)/getObjectWrapper().particleSpecies[popID].mass) * EgradPe * substeps_dt) * total_transform;
+         total_transform=Translation<Real,3>( (std::abs(getObjectWrapper().particleSpecies[popID].charge)/getObjectWrapper().particleSpecies[popID].mass) * EgradPe * substeps_dt) * total_transform;
       }
    }
 

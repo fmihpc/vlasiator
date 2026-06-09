@@ -387,6 +387,33 @@ namespace spatial_cell {
       }
    }
 
+   /*!
+    Adds an empty velocity block into this spatial cell.
+    Returns true if given block was added or already exists.
+    Returns false if given block is invalid or would be outside
+    of the velocity grid.
+    */
+   bool SpatialCell::add_velocity_block(const vmesh::GlobalID& block,const uint popID) {
+      debug_population_check(popID);
+      // Block insert will fail, if the block already exists, or if
+      // there are too many blocks in the spatial cell
+      bool success = true;
+      if (populations[popID].vmesh->push_back(block) == false) {
+         return false;
+      }
+
+      const vmesh::LocalID VBC_LID = populations[popID].blockContainer->push_back_and_zero();
+
+      // Set block parameters:
+      Real* parameters = get_block_parameters(VBC_LID,popID);
+      populations[popID].vmesh->getBlockInfo(block, parameters);
+
+      // The following call 'should' be the fastest, but is actually
+      // much slower that the parameter setting above
+      //vmesh::VelocityMesh::getBlockInfo(block,get_block_parameters( blockContainer->push_back() ));
+      return success;
+   }
+
    /** Adds "important" and removes "unimportant" velocity blocks
     * to/from this cell.
     *

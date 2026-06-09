@@ -162,6 +162,44 @@ if [[ $PLATFORM == "-leonardo_booster" || $PLATFORM == "-leonardo_dcgp" || $PLAT
     cd ..
 fi
 
+# Generate cmake for eigen so that zfp and Octree can be built
+echo "### Creating eigen CMakeFiles ###"
+prev="$(pwd)"
+cd "$WORKSPACE/submodules/eigen"
+mkdir -p build
+cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$WORKSPACE/libraries${PLATFORM}"
+cd "$prev"
+
+#Build and test ZFP for ASTERIX
+echo "### Building ZFP. ###"
+cd zfp
+mkdir -p  build
+cd build
+cmake .. -DCMAKE_INSTALL_PREFIX=$WORKSPACE/libraries${PLATFORM}
+cmake --build . --config Release -j ${PARALLEL}
+ZFP=$PWD
+ctest
+cmake --install .
+cd ../../
+
+#Build OCTREE for ASTERIX
+cd tucker-octree/
+sed -i s/"ColMajor"/"RowMajor"/g toctree.cpp
+rm -rf build
+mkdir build
+cd build
+
+
+cmake .. \
+    -DTOCTREE_L2ERROR=true \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DEigen3_DIR="$WORKSPACE/submodules/eigen/build/" \
+    -Dzfp_DIR="$ZFP" \
+    -DCMAKE_INSTALL_PREFIX=$WORKSPACE/libraries${PLATFORM}
+make install
+cd ../../
+
 # Clean up build directory
 #rm -rf $BUILDDIR
 #

@@ -2,9 +2,9 @@
 ARCH = ${VLASIATOR_ARCH}
 
 include ../../MAKE/Makefile.${ARCH}
-MATHFLAGS = -DDP -DDPF -D${VECTORCLASS} -DACC_SEMILAG_PQM -DTRANS_SEMILAG_PPM 
+MATHFLAGS = -DDP -DDPF -D${VECTORCLASS} -DACC_SEMILAG_PQM -DTRANS_SEMILAG_PPM
 LIBS = ${LIB_BOOST}
-LIBS += ${LIB_JEMALLOC} 
+LIBS += ${LIB_JEMALLOC}
 LIBS += ${LIB_PROFILE}
 LIBS += ${LIB_ZOLTAN}
 LIBS += ${LIB_VLSV}
@@ -13,6 +13,12 @@ INC_FSGRID=-I../../submodules/fsgrid/
 INC_DCCRG=-I../../submodules/dccrg/
 INC_EIGEN = -isystem ../../submodules/eigen/
 
+CXXFLAGS := $(filter-out -DASTERIX_MLP,$(CXXFLAGS))
+CXXFLAGS := $(filter-out -DASTERIX_OCTREE,$(CXXFLAGS))
+CXXFLAGS := $(filter-out -DASTERIX_ZFP,$(CXXFLAGS))
+LIBS := $(filter-out LIB_NN_COMPRESSOR,$(LIBS))
+LIBS := $(filter-out LIB_ZFP,$(LIBS))
+LIBS := $(filter-out LIB_OCTREE_COMPRESSOR,$(LIBS))
 # Default makefile target: only build the test binaries, don't run anything
 # (in particular, nothing that would require python)
 default: main differentialFlux sigmaProfiles
@@ -21,7 +27,7 @@ default: main differentialFlux sigmaProfiles
 all: main differentialFlux sigmaProfiles multipoleTests LFMtest atmosphere.png
 .PHONY: clean multipoleTests
 
-clean: 
+clean:
 	-rm *.o main differentialFlux sigmaProfiles
 
 ionosphere.o: ../../sysboundary/ionosphere.h ../../sysboundary/ionosphere.cpp ../../backgroundfield/backgroundfield.h ../../projects/project.h
@@ -37,7 +43,7 @@ readparameters.o: ../../readparameters.h ../../readparameters.cpp ../../version.
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c ../../readparameters.cpp ${INC_BOOST} ${INC_EIGEN}
 
 version.o: ../../version.cpp
-	 ${CMP} ${CXXFLAGS} ${FLAGS} -c ../../version.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c ../../version.cpp
 
 ../../version.cpp:
 	make -C../.. version.cpp
@@ -57,10 +63,16 @@ spatial_cell.o: ../../spatial_cells/spatial_cell_cpu.cpp
 arch_moments.o: ../../vlasovsolver/arch_moments.cpp
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c ../../vlasovsolver/arch_moments.cpp ${INC_DCCRG} ${INC_BOOST} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_FSGRID} ${INC_JEMALLOC}
 
-iowrite.o:  ../../parameters.h ../../iowrite.cpp ../../iowrite.h  
+iowrite.o:  ../../parameters.h ../../iowrite.cpp ../../iowrite.h
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c ../../iowrite.cpp ${INC_MPI} ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VLSV} ${INC_JEMALLOC}
 
-ioread.o:  ../../parameters.h ../../ioread.cpp ../../ioread.h  
+compression_tools.o:  ../../vdf_compression/compression_tools.cpp
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c ../../vdf_compression/compression_tools.cpp  ${INC_MPI} ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VLSV} ${INC_JEMALLOC}
+
+compression.o:  ../../vdf_compression/compression.cpp
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c ../../vdf_compression/compression.cpp  ${INC_MPI} ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VLSV} ${INC_JEMALLOC}
+
+ioread.o:  ../../parameters.h ../../ioread.cpp ../../ioread.h
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c ../../ioread.cpp ${INC_MPI} ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VLSV} ${INC_JEMALLOC}
 
 logger.o: ../../logger.h ../../logger.cpp
@@ -72,7 +84,7 @@ common.o: ../../common.h ../../common.cpp
 datareducer.o: ../../datareduction/datareducer.h ../../datareduction/datareductionoperator.h ../../datareduction/datareducer.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c ../../datareduction/datareducer.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_MPI} ${INC_BOOST} ${INC_EIGEN} ${INC_VLSV} ${INC_FSGRID} ${INC_JEMALLOC} ${INC_PROFILE}
 
-datareductionoperator.o:  ../../parameters.h ../../datareduction/datareductionoperator.h ../../datareduction/datareductionoperator.cpp 
+datareductionoperator.o:  ../../parameters.h ../../datareduction/datareductionoperator.h ../../datareduction/datareductionoperator.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c ../../datareduction/datareductionoperator.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_MPI} ${INC_BOOST} ${INC_EIGEN} ${INC_VLSV} ${INC_FSGRID} ${INC_PROFILE} ${INC_JEMALLOC} ${INC_VECTORCLASS}
 
 fs_common.o: ../../fieldsolver/fs_limiters.h ../../fieldsolver/fs_limiters.cpp
@@ -87,7 +99,7 @@ fieldtracing.o: ../../fieldtracing/fieldtracing.cpp
 main.o: main.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c ./main.cpp  ${INC_VLSV} ${INC_BOOST} ${INC_PROFILE} ${INC_JEMALLOC} ${INC_DCCRG} ${INC_ZOLTAN} ${INC_FSGRID} ${INC_EIGEN}
 
-main: main.o ionosphere.o sysboundarycondition.o parameters.o readparameters.o object_wrapper.o particle_species.o spatial_cell.o arch_moments.o iowrite.o logger.o datareducer.o datareductionoperator.o common.o ioread.o fs_common.o version.o fieldtracing.o velocity_mesh_parameters.o
+main: main.o ionosphere.o sysboundarycondition.o parameters.o readparameters.o object_wrapper.o particle_species.o spatial_cell.o arch_moments.o iowrite.o compression_tools.o compression.o logger.o datareducer.o datareductionoperator.o common.o ioread.o fs_common.o version.o fieldtracing.o velocity_mesh_parameters.o
 	${LNK} ${LDFLAGS} -o main $^ $(LIBS) -lgomp
 
 differentialFlux: differentialFlux.cpp
@@ -126,7 +138,7 @@ ${MULTIPOLEJOBS}: multipole%: main plot_ionosphere.py multipole-%--1.vlsv multip
 convergence%.dat: main
 	#for nodecount in 50 100 200 500 1000 2000 5000; do \
 	#	for i in {1..500}; do j=$(( $$RANDOM % (2*$i) - $i )); \
-	#		echo -n "$i $j "; 
+	#		echo -n "$i $j ";
 	#		OMP_NUM_THREADS=4 ./main -q -N $nodecount -sigma identity -fac multipole $i $i -gaugeFix pole -o multipole-$i-$j.vlsv; \
 	#	done | tee multipole$nodecount.dat; \
 	#done
@@ -147,5 +159,5 @@ LFMtest: lfmtest.dat
 	./plot_LFMtest.gp
 	#./plot_ionosphereLFM.py LFMtest.vlsv
 curlJtest: main
-	 OMP_NUM_THREADS=1 ./main -N 2000 -r 40 90 -r 50 90 -r 60 80 -sigma curlJ -fac file -infile FHA_bulk501.vlsv -gaugeFix equator50 -o curlJtest.vlsv
-	 ./plot_ionosphereEigenPhi.py curlJtest.vlsv
+	OMP_NUM_THREADS=1 ./main -N 2000 -r 40 90 -r 50 90 -r 60 80 -sigma curlJ -fac file -infile FHA_bulk501.vlsv -gaugeFix equator50 -o curlJtest.vlsv
+	./plot_ionosphereEigenPhi.py curlJtest.vlsv
