@@ -523,6 +523,68 @@ namespace DRO {
       return true;
    }
 
+   // MLPepochs
+   MLPepochs::MLPepochs(cuint _popID): DataReductionOperator(),popID(_popID) {
+      popName=getObjectWrapper().particleSpecies[popID].name;
+   }
+   MLPepochs::~MLPepochs() { }
+
+   std::string MLPepochs::getName() const {return popName + "/mlp_epochs";}
+
+   bool MLPepochs::reduceData(const SpatialCell* cell,char* buffer) {
+      const char* ptr = reinterpret_cast<const char*>(&epochs);
+      for (uint i = 0; i < sizeof(int); ++i) buffer[i] = ptr[i];
+      return true;
+   }
+
+   bool MLPepochs::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "uint";
+      dataSize = sizeof(uint32_t);
+      vectorSize = 1;
+      return true;
+   }
+
+   bool MLPepochs::reduceDiagnostic(const SpatialCell* cell,Real* buffer) {
+      *buffer = 1.0 * epochs;
+      return true;
+   }
+
+   bool MLPepochs::setSpatialCell(const SpatialCell* cell) {
+      epochs = cell->get_population(popID).mlp_epochs;
+      return true;
+   }
+
+   // MLPerror
+   MLPerror::MLPerror(cuint _popID): DataReductionOperator(),popID(_popID) {
+      popName=getObjectWrapper().particleSpecies[popID].name;
+   }
+   MLPerror::~MLPerror() { }
+
+   std::string MLPerror::getName() const {return popName + "/mlp_error";}
+
+   bool MLPerror::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "float";
+      dataSize = sizeof(float);
+      vectorSize = 1;
+      return true;
+   }
+
+   bool MLPerror::reduceData(const SpatialCell* cell,char* buffer) {
+      const char* ptr = reinterpret_cast<const char*>(&error);
+      for (uint i = 0; i < sizeof(int); ++i) buffer[i] = ptr[i];
+      return true;
+   }
+
+   bool MLPerror::reduceDiagnostic(const SpatialCell* cell,Real* buffer) {
+      *buffer = 1.0 * error;
+      return true;
+   }
+
+   bool MLPerror::setSpatialCell(const SpatialCell* cell) {
+      error = cell->get_population(popID).mlp_error;
+      return true;
+   }
+
    // Blocks
    Blocks::Blocks(cuint _popID): DataReductionOperator(),popID(_popID) {
       popName=getObjectWrapper().particleSpecies[popID].name;

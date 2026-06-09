@@ -58,7 +58,8 @@ bool writeGrid(
    DataReducer* dataReducer,
    const uint& index,
    const int& stripe,
-   const bool writeGhosts
+   const bool writeGhosts,
+   bool compress_vdfs=false
 );
 
 /*!
@@ -102,7 +103,8 @@ bool writeRestart(
    const std::string& name,
    const uint& fileIndex,
    const bool dateInFileName,
-   const int& stripe
+   const int& stripe,
+   bool compress_vdfs
 );
 
 /*!

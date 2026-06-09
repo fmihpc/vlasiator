@@ -62,3 +62,14 @@ if [[ $PLATFORM == "-leonardo_booster" || $PLATFORM == "-leonardo_dcgp" || $PLAT
     echo "### Extracting boost. ###"
     tar -xzf boost_1_86_0.tar.gz
 fi
+
+#ZFP and OCTREE
+git clone https://github.com/LLNL/zfp.git
+cd zfp
+git checkout f2046180a8fea296646236d7d612d89b52841d46
+cd ..
+
+git clone https://github.com/cschpc/tucker-octree.git
+cd tucker-octree
+git checkout 3bc42470a5b486d947005bebf03d8846a4af9aa4
+cd ..

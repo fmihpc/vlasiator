@@ -25,6 +25,7 @@
 
 #include "datareducer.h"
 #include "../common.h"
+#include "datareductionoperator.h"
 #include "dro_populations.h"
 #include "../sysboundary/ionosphere.h"
 #include "../fieldtracing/fieldtracing.h"
@@ -752,6 +753,30 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             const std::string& pop = species.name;
             outputReducer->addOperator(new DRO::Blocks(i));
             outputReducer->addMetadata(outputReducer->size()-1,"","","$\\mathrm{"+pop+" blocks}$","");
+         }
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
+      }
+      //MLP error per pop
+      if(P::systemWriteAllDROs ||  lowercase == "populations_mlp_error") {
+         for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
+            species::Species& species=getObjectWrapper().particleSpecies[i];
+            const std::string& pop = species.name;
+            outputReducer->addOperator(new DRO::MLPerror(i));
+            outputReducer->addMetadata(outputReducer->size()-1,"","","","");
+         }
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
+      }
+      //MLP epochs per pop
+      if(P::systemWriteAllDROs ||  lowercase == "populations_mlp_epochs") {
+         for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
+            species::Species& species=getObjectWrapper().particleSpecies[i];
+            const std::string& pop = species.name;
+            outputReducer->addOperator(new DRO::MLPepochs(i));
+            outputReducer->addMetadata(outputReducer->size()-1,"","","","");
          }
          if(!P::systemWriteAllDROs) {
             continue;
