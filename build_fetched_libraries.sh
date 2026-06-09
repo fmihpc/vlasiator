@@ -24,7 +24,7 @@ cd library-build
 # Some platforms allow for nice parallel builds.
 if [[ $PLATFORM == "-pioneer" ]]; then
    PARALLEL=64
-elif [[ $PLATFORM == "-hile_cpu" || $PLATFORM == "-hile_gpu" || $PLATFORM == "-lumi_2403" || $PLATFORM == "-carrington" || $PLATFORM == "-frankenstein_hopper2_cuda" ]]; then
+elif [[ $PLATFORM == "-hile_cpu" || $PLATFORM == "-hile_gpu" || $PLATFORM == "-lumi_2403" || $PLATFORM == "-carrington" || $PLATFORM == "-frankenstein_hopper2_cuda" || $PLATFORM != "-roihu_gpu" ]]; then
    PARALLEL=128
 else
    # Otherwise we are friendly to other users and limit our parallelism
@@ -125,7 +125,7 @@ elif [[ $PLATFORM == "-arm64" ]]; then
     cmake ../Trilinos -DCMAKE_INSTALL_PREFIX=$WORKSPACE/libraries${PLATFORM} -DTPL_ENABLE_MPI=ON -DTrilinos_ENABLE_Zoltan=ON -DZoltan_ENABLE_ULLONG_IDS:Bool=ON -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpic++ #--build=arm-linux-gnu --host=arm-linux-gnu
 elif [[ $PLATFORM == "-appleM1" || $PLATFORM == "-meluxina" ]]; then
     cmake ../Trilinos -DCMAKE_INSTALL_PREFIX=$WORKSPACE/libraries${PLATFORM} -DTPL_ENABLE_MPI=ON -DTrilinos_ENABLE_Zoltan=ON -DZoltan_ENABLE_ULLONG_IDS:Bool=ON -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpic++ #CC=mpicc CXX=mpic++
-elif [[ $PLATFORM == "-frankenstein_hopper2_cuda" ]]; then
+elif [[ $PLATFORM == "-frankenstein_hopper2_cuda" ||  $PLATFORM != "-roihu_gpu"  ]]; then
     cmake ../Trilinos -DCMAKE_INSTALL_PREFIX=$WORKSPACE/libraries${PLATFORM} -DTPL_ENABLE_MPI=ON -DTrilinos_ENABLE_Zoltan=ON -DZoltan_ENABLE_ULLONG_IDS:Bool=ON -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpic++ #--build=aarch64-unknown-linux-gnu
 elif [[ $PLATFORM == "-leonardo_dcgp_intel" ]]; then
     cmake ../Trilinos -DCMAKE_INSTALL_PREFIX=$WORKSPACE/libraries${PLATFORM} -DTPL_ENABLE_MPI=ON -DTrilinos_ENABLE_Zoltan=ON -DZoltan_ENABLE_ULLONG_IDS:Bool=ON -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpic++ -DCMAKE_C_FLAGS:STRING="-cc=icx" -DCMAKE_CXX_FLAGS:STRING="-cxx=icpx"
