@@ -162,7 +162,11 @@ const int VEC_PER_BLOCK = (WID*VEC_PER_PLANE);
 //user Agner's AVX512 optimized datatypes, double precision accuracy
 #include "vectorclass.h"
 typedef Vec8d Vec;
+#if VECTORCLASS_H >= 20000
+typedef Vec8q Veci;
+#else
 typedef Vec8i Veci;
+#endif
 typedef Vec8db Vecb;
 #define to_realf(v) to_double(v)
 #define VECL 8

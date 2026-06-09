@@ -1,0 +1,33 @@
+# For Roihu GPU
+#One liner:
+#module load  boost/1.88.0  cuda/12.9.1 openmpi/5.0.10 papi/7.2.0
+VECTORCLASS = VEC_FALLBACK_GENERIC
+#WID=8
+WID=4
+USE_CUDA=1
+
+CMP=nvcc -ccbin mpic++
+LNK = nvcc -ccbin mpic++
+
+CXXFLAGS = -g -O3 -x cu  -DVLASIATOR_ALLOW_MCA_OMPIO  -std=c++20 -Xcompiler -std=c++20 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_90,code=sm_90 -Xcompiler -fopenmp --generate-line-info -line-info -Xcompiler="-fpermissive"  --extra-device-vectorization
+testpackage: CXXFLAGS = -g -O2 -x cu -std=c++20 -Xcompiler -std=c++20 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_90,code=sm_90 -Xcompiler -fopenmp --generate-line-info -line-info -Xcompiler="-fpermissive"
+testpackage: MATHFLAGS = --prec-sqrt=true --prec-div=true --ftz=false --fmad=false
+
+LDFLAGS = -O2 -g #lnvToolsExt
+LIB_MPI = -lgomp
+LIB_CUDA = -L/usr/local/cuda/lib64
+INC_CUDA = -isystem /usr/local/cuda/include
+
+
+#======== Libraries ===========
+LIBRARY_PREFIX =  $(CURDIR)/libraries-roihu_gpu/
+
+INC_ZOLTAN = -I$(LIBRARY_PREFIX)/include
+LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/lib64 -lzoltan
+
+INC_VLSV = -I$(LIBRARY_PREFIX)/include
+LIB_VLSV = -L$(LIBRARY_PREFIX)/lib -lvlsv -Xlinker=-rpath=$(LIBRARY_PREFIX)/vlsv/lib
+
+LIB_PROFILE = -L$(LIBRARY_PREFIX)/lib -lphiprof -Xlinker=-rpath=$(LIBRARY_PREFIX)/lib
+INC_PROFILE = -I$(LIBRARY_PREFIX)/include
+
