@@ -55,12 +55,12 @@ jobs:
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
-      - name: Run library build script
-        run: ./fetch_and_build_libraries.sh
       - name: Install build dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y g++ build-essential cmake make libopenmpi-dev openmpi-bin libboost-program-options-dev zstd
+      - name: Run library build script
+        run: ./fetch_and_build_libraries.sh
       - name: Build libraries tar
         run: tar --zstd -cf libraries.tar.zstd libraries/
       - name: Upload libraries as artifact
