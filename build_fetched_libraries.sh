@@ -77,7 +77,7 @@ cp *.h $WORKSPACE/libraries${PLATFORM}/include
 cd ..
 
 # Build papi
-if [[ $PLATFORM != "-pioneer" && $PLATFORM != "-appleM1" && $PLATFORM != "-ukko_dgx" && $PLATFORM != "-hile_cpu" && $PLATFORM != "-hile_gpu" && $PLATFORM != "-lumi_hipcc" && $PLATFORM != "-lumi_2403" && $PLATFORM != "-mahti_gcc_build" && $PLATFORM != "-mahti_cuda" && $PLATFORM != "-frankenstein_hopper2_cuda" && $PLATFORM != "-roihu_cpu" && $PLATFORM != "-roihu_cpu_aocc" ]]; then
+if [[ $PLATFORM != "-pioneer" && $PLATFORM != "-appleM1" && $PLATFORM != "-ukko_dgx" && $PLATFORM != "-hile_cpu" && $PLATFORM != "-hile_gpu" && $PLATFORM != "-lumi_hipcc" && $PLATFORM != "-lumi_2403" && $PLATFORM != "-mahti_gcc_build" && $PLATFORM != "-mahti_cuda" && $PLATFORM != "-frankenstein_hopper2_cuda" && $PLATFORM != "-roihu_cpu" && $PLATFORM != "-roihu_cpu_aocc" && $PLATFORM != "-roihu_gpu" ]]; then
     # This fails on RISCV and MacOS
     # LUMI, UkkoGPU and HILE use system module
     # git clone https://github.com/icl-utk-edu/papi
@@ -96,7 +96,7 @@ if [[ $PLATFORM != "-pioneer" && $PLATFORM != "-appleM1" && $PLATFORM != "-ukko_
 fi
 
 # Build jemalloc (not for GPU versions or Mahti)
-if [[ $PLATFORM != "-leonardo_booster" && $PLATFORM != "-karolina_cuda" && $PLATFORM != "-ukko_dgx" && $PLATFORM != "-hile_gpu" && $PLATFORM != "-lumi_hipcc" && $PLATFORM != "-mahti_cuda" && $PLATFORM != "-mahti_gcc_build" &&  $PLATFORM != "-frankenstein_hopper2_cuda" ]]; then
+if [[ $PLATFORM != "-leonardo_booster" && $PLATFORM != "-karolina_cuda" && $PLATFORM != "-ukko_dgx" && $PLATFORM != "-hile_gpu" && $PLATFORM != "-lumi_hipcc" && $PLATFORM != "-mahti_cuda" && $PLATFORM != "-mahti_gcc_build" &&  $PLATFORM != "-frankenstein_hopper2_cuda" &&  $PLATFORM != "-roihu_gpu" ]]; then
     # curl -O -L https://github.com/jemalloc/jemalloc/releases/download/5.3.0/jemalloc-5.3.0.tar.bz2
     # tar xjf jemalloc-5.3.0.tar.bz2
     cd jemalloc-5.3.0
@@ -125,7 +125,7 @@ elif [[ $PLATFORM == "-arm64" ]]; then
     cmake ../Trilinos -DCMAKE_INSTALL_PREFIX=$WORKSPACE/libraries${PLATFORM} -DTPL_ENABLE_MPI=ON -DTrilinos_ENABLE_Zoltan=ON -DZoltan_ENABLE_ULLONG_IDS:Bool=ON -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpic++ #--build=arm-linux-gnu --host=arm-linux-gnu
 elif [[ $PLATFORM == "-appleM1" || $PLATFORM == "-meluxina" ]]; then
     cmake ../Trilinos -DCMAKE_INSTALL_PREFIX=$WORKSPACE/libraries${PLATFORM} -DTPL_ENABLE_MPI=ON -DTrilinos_ENABLE_Zoltan=ON -DZoltan_ENABLE_ULLONG_IDS:Bool=ON -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpic++ #CC=mpicc CXX=mpic++
-elif [[ $PLATFORM == "-frankenstein_hopper2_cuda" ||  $PLATFORM != "-roihu_gpu"  ]]; then
+elif [[ $PLATFORM == "-frankenstein_hopper2_cuda" ||  $PLATFORM == "-roihu_gpu"  ]]; then
     cmake ../Trilinos -DCMAKE_INSTALL_PREFIX=$WORKSPACE/libraries${PLATFORM} -DTPL_ENABLE_MPI=ON -DTrilinos_ENABLE_Zoltan=ON -DZoltan_ENABLE_ULLONG_IDS:Bool=ON -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpic++ #--build=aarch64-unknown-linux-gnu
 elif [[ $PLATFORM == "-leonardo_dcgp_intel" ]]; then
     cmake ../Trilinos -DCMAKE_INSTALL_PREFIX=$WORKSPACE/libraries${PLATFORM} -DTPL_ENABLE_MPI=ON -DTrilinos_ENABLE_Zoltan=ON -DZoltan_ENABLE_ULLONG_IDS:Bool=ON -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpic++ -DCMAKE_C_FLAGS:STRING="-cc=icx" -DCMAKE_CXX_FLAGS:STRING="-cxx=icpx"
