@@ -323,7 +323,9 @@ namespace SBC {
          // Skip the comments
          if (line[0] == '#')
             continue;
-
+         if (line.empty()) {
+            continue;
+         }
          stringstream ss(line);
 
          int i = 0;
