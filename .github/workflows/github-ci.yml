@@ -83,6 +83,8 @@ jobs:
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
+        with:
+          submodules: true
       - name: Run library build script
         run: srun --interactive -C g -J build_libs_hile-g -n 1 -c 16 bash -c "hostname ; realpath modules/modules.sh ; source modules/hile_gpu.sh ; ./fetch_and_build_libraries.sh hile_gpu"
       - name: Build libraries tar
@@ -102,6 +104,8 @@ jobs:
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
+        with:
+          submodules: true
       - name: Run library build script
         run: srun --interactive --constraint="v100" --gres="gpu:V100" -p gpu -J build_libs -n 1 -c 64 bash -c "hostname ; realpath modules/modules.sh ; source modules/ukko_dgx.sh ; ./fetch_and_build_libraries.sh ukko_dgx"
       - name: Build libraries tar
@@ -121,6 +125,8 @@ jobs:
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
+        with:
+          submodules: true
       - name: Run library build script
         run: srun --interactive --constraint "carrington|ukko" -J build_libs -n 1 -c 64 bash -c "hostname ; realpath modules/modules.sh ; ./fetch_and_build_libraries.sh carrington_gcc_openmpi"
       - name: Build libraries tar
@@ -140,6 +146,8 @@ jobs:
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
+        with:
+          submodules: true
       - name: Install build dependencies
         run: |
           sudo apt-get update
