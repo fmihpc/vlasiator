@@ -1943,13 +1943,14 @@ namespace SBC {
                std::vector<std::array<fsgrid::FsIndex_t,3>> lfscs;
 
                double weightsum = 0.0;
-               double dx = Ionosphere::downmapSamplingWidth * fsgrid.DX/2;
+               std::array<double, 3> gridSpacing =  fsgrid.getGridSpacing();
+               double h = Ionosphere::downmapSamplingWidth/2.0;
                for (int x = -1; x < 2; ++x){
                   for (int y = -1; y < 2; ++y){
                      for (int z = -1; z < 2; ++z){
-                        std::array<double, 3> pt = {nodes[n].xMapped[0] + x*dx,
-                                              nodes[n].xMapped[1] + y*dx,
-                                              nodes[n].xMapped[2] + z*dx};
+                        std::array<double, 3> pt = {nodes[n].xMapped[0] + x*h*gridSpacing[0],
+                                              nodes[n].xMapped[1] + y*h*gridSpacing[1],
+                                              nodes[n].xMapped[2] + z*h*gridSpacing[2]};
                         std::array<fsgrid::FsIndex_t,3> lfsc_stencil = getLocalFsGridCellIndexForCoord(fsgrid, pt);
                         if(lfsc_stencil[0] == -1 || lfsc_stencil[1] == -1 || lfsc_stencil[2] == -1) {
                            continue;
