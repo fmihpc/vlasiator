@@ -1870,12 +1870,8 @@ int simulate(int argn,char* args[]) {
          ++P::tstep;
          P::fractionalTimestep = 0;
       }
-      if (P::currentMaxTimeclass > 0){
-         P::t += P::timeclassDt[P::currentMaxTimeclass];
-      }
-      else{
-         P::t += P::dt;
-      }
+      P::t += P::timeclassDt[P::currentMaxTimeclass];
+      
    } // End main loop ----------------------------------------------------------
 
    double after = MPI_Wtime();
