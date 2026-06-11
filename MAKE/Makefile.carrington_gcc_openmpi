@@ -90,7 +90,7 @@ testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 MPT_BRAND = OpenMPI
 MPT_VERSION = 4.1.6
 
-LIBRARY_PREFIX = $(CURDIR)/libraries-carrington
+LIBRARY_PREFIX = $(CURDIR)/libraries-carrington_gcc_openmpi
 
 #compiled libraries mostly in modules
 LIB_PROFILE = -L$(LIBRARY_PREFIX)/lib -lphiprof -lgfortran -Wl,-rpath=$(LIBRARY_PREFIX)/lib
@@ -105,7 +105,7 @@ INC_JEMALLOC = -isystem $(LIBRARY_PREFIX)/include
 LIB_BOOST = -lboost_program_options
 INC_BOOST = 
 
-LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/lib -lzoltan
+LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/lib64 -lzoltan
 INC_ZOLTAN = -isystem $(LIBRARY_PREFIX)/include
 
 #INC_PAPI = -isystem $(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/papi/include

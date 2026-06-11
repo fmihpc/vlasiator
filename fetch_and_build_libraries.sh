@@ -6,12 +6,18 @@ WORKSPACE=`pwd`
 
 if [[ z$1 != "z" ]]; then
    PLATFORM=-$1
+   echo "Using platform $PLATFORM as provided to the script."
 else
-   PLATFORM=""
+   if [[ z$VLASIATOR_ARCH != "z" ]]; then
+      PLATFORM=-$VLASIATOR_ARCH
+      echo "Using platform $PLATFORM as detected from VLASIATOR_ARCH."
+   else
+      PLATFORM=""
+      echo "No explicit $PLATFORM set. If this is not intended, pass an argument to this script or set VLASIATOR_ARCH."
+   fi
 fi
-echo "Using platform $PLATFORM"
 
-if [[ $PLATFORM == "-hile_cpu" || $PLATFORM=="-hile_cpu" ]]; then
+if [[ $PLATFORM == "-hile_cpu" || $PLATFORM == "-hile_gpu" ]]; then
    # Regular subdirectory instead of on /tmp
    rm -rf library-build
    mkdir -p library-build
@@ -21,8 +27,18 @@ else
    ln -s $BUILDDIR library-build
 fi
 
-bash ./fetch_libraries.sh $1
-bash ./build_fetched_libraries.sh $1
+bash ./fetch_libraries.sh ${PLATFORM:1}
+if [[ -f ./modules/${PLATFORM:1}.sh ]]
+then
+   source modules/${PLATFORM:1}.sh
+fi
+source build_fetched_libraries.sh ${PLATFORM:1}
 
 # Clean up build directory
 rm -rf $BUILDDIR
+cd $WORKSPACE
+if [[ -h library-build ]]
+then
+   rm library-build
+fi
+

@@ -53,7 +53,7 @@ __global__ void __launch_bounds__(WID3) build2dArrayOfFvmu_kernel(
    int nbins_v,
    int nbins_mu
    ){
-   
+
    int totalBlockIndex = blockIdx.x; // Corresponds to index spatial and velocity blocks
 
    const int i = threadIdx.x;
@@ -72,7 +72,7 @@ __global__ void __launch_bounds__(WID3) build2dArrayOfFvmu_kernel(
    const Real VplasmaX = VX - dev_bulkVX[cellIdx];
    const Real VplasmaY = VY - dev_bulkVY[cellIdx];
    const Real VplasmaZ = VZ - dev_bulkVZ[cellIdx];
-   
+
    const Real normV = sqrt(VplasmaX*VplasmaX + VplasmaY*VplasmaY + VplasmaZ*VplasmaZ);
    const Real Vpara = VplasmaX*dev_bValues[3*cellIdx] + VplasmaY*dev_bValues[3*cellIdx+1] + VplasmaZ*dev_bValues[3*cellIdx+2];
    const Real mu = Vpara/(normV+std::numeric_limits<Real>::min()); // + min value to avoid division by 0.
@@ -108,7 +108,7 @@ __global__ void __launch_bounds__(WID3) computeNewCellValues_kernel(
    int nbins_v,
    int nbins_mu
    ){
-   
+
    int totalBlockIndex = blockIdx.x; // Corresponds to index spatial and velocity blocks
 
    const int i = threadIdx.x;
@@ -127,7 +127,7 @@ __global__ void __launch_bounds__(WID3) computeNewCellValues_kernel(
    const Real VplasmaX = VX - dev_bulkVX[cellIdx];
    const Real VplasmaY = VY - dev_bulkVY[cellIdx];
    const Real VplasmaZ = VZ - dev_bulkVZ[cellIdx];
-   
+
    const Real normV = sqrt(VplasmaX*VplasmaX + VplasmaY*VplasmaY + VplasmaZ*VplasmaZ);
    const Real Vpara = VplasmaX*dev_bValues[3*cellIdx] + VplasmaY*dev_bValues[3*cellIdx+1] + VplasmaZ*dev_bValues[3*cellIdx+2];
    const Real mu = Vpara/(normV+std::numeric_limits<Real>::min()); // + min value to avoid division by 0.
@@ -175,7 +175,7 @@ __global__ void computeDerivativesCFLDdt_kernel(
    int indv = idx%nbins_v;
    int indmu = (idx/nbins_v)%nbins_mu;
    size_t cellIdx = dev_smallCellIdxArray[spatialBlockIndex];
-   
+
    // Initiate shared memory values
    extern __shared__ Real localDdtValues[];
    localDdtValues[threadIndex] = std::numeric_limits<Real>::max();
@@ -243,7 +243,7 @@ __global__ void computeDerivativesCFLDdt_kernel(
       // Only consider CFL for non-negative phase-space cells above the sparsity threshold
       const Realf CellValue = GPUCELLMUSPACE(dev_fmu,cellIdx,indv,indmu) / (2.0 * M_PI * Vmu*Vmu);
       const Realf absdfdt = abs(dfdt_mu_val); // Already scaled
-      
+
       // Save calculated Ddt value
       if (absdfdt > 0.0 && CellValue > dev_sparsity[cellIdx]) {
          localDdtValues[threadIndex] = CellValue * PADCFL * (1.0/absdfdt);
@@ -286,7 +286,7 @@ __global__ void reduceDdtValues_kernel(
    int startIdx = blockIdx.x*blocksPerSpatialCell;
    int threadIndex = threadIdx.x;
    size_t cellIdx = dev_cellIdxKeys[startIdx];
-   
+
    // Initiate shared memory values
    extern __shared__ Real localDdtValues[];
    localDdtValues[threadIndex] = std::numeric_limits<Real>::max();
@@ -351,11 +351,11 @@ __global__ void __launch_bounds__(Hashinator::defaults::MAX_BLOCKSIZE/2) getCell
    int numberOfComputedVelocityBlocks,
    int maxCellIndex
    ){
-   
+
    size_t totalBlockIndex = blockIdx.x*blockDim.x + threadIdx.x;
-   
+
    if(totalBlockIndex >= (size_t)numberOfComputedVelocityBlocks){return;}
-   
+
    // Binary search
    int left = 0;
    int right = maxCellIndex - 1;
@@ -420,7 +420,7 @@ __global__ void __launch_bounds__(WID3) conserveMass_kernel(
    Realf *dev_densityPostAdjust,
    vmesh::VelocityBlockContainer* __restrict__ *dev_velocityBlockContainer
    ){
-   
+
    const int i = threadIdx.x;
    const int j = threadIdx.y;
    const int k = threadIdx.z;
@@ -431,7 +431,7 @@ __global__ void __launch_bounds__(WID3) conserveMass_kernel(
    Realf adjustRatio = dev_densityPreAdjust[cellIdx]/dev_densityPostAdjust[cellIdx];
 
    const uint numberOfVelocityCells = dev_velocityBlockContainer[cellIdx]->size();
-   
+
    for(uint velocityIdx = 0; velocityIdx < numberOfVelocityCells; velocityIdx++){
       dev_velocityBlockContainer[cellIdx]->getData()[velocityIdx*WID3+k*WID2+j*WID+i] *= adjustRatio;
    }
@@ -476,7 +476,7 @@ void pitchAngleDiffusion(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian
 
    // Start session
    gpuMemoryManager.startSession(0,0);
-   
+
    // Allocate host memory and get pointers
    SESSION_HOST_ALLOCATE(gpuMemoryManager, Real, host_bValues, 3*numberOfLocalCells*sizeof(Real));
    SESSION_HOST_ALLOCATE(gpuMemoryManager, Real, host_nu0Values, numberOfLocalCells*sizeof(Real));
@@ -565,7 +565,7 @@ void pitchAngleDiffusion(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian
       // Save computed values to host
       spatialLoopComplete[CellIdx] = currentSpatialLoopComplete;
       host_sparsity[CellIdx] = sparsity;
-      host_bValues[3*CellIdx] = b[0];
+      host_bValues[3*CellIdx]   = b[0];
       host_bValues[3*CellIdx+1] = b[1];
       host_bValues[3*CellIdx+2] = b[2];
       host_nu0Values[CellIdx] = nu0;
@@ -622,7 +622,7 @@ void pitchAngleDiffusion(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian
          dev_densityPreAdjust,
          GET_POINTER(gpuMemoryManager, vmesh::VelocityBlockContainer*, dev_VBCs)
       );
-      
+
       CHK_ERR( gpuPeekAtLastError() );
    }
 
@@ -651,7 +651,7 @@ void pitchAngleDiffusion(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian
          numberOfComputedVelocityBlocks += numberOfVelocityBlocks;
          remappedCellIdx++;
       } // End spatial cell loop
-      
+
       int maxCellIndex = remappedCellIdx;
       int maxBlockIndex = numberOfComputedVelocityBlocks;
 
@@ -678,7 +678,7 @@ void pitchAngleDiffusion(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian
          numberOfComputedVelocityBlocks,
          maxCellIndex
       );
-      
+
       CHK_ERR( gpuPeekAtLastError() );
       cellIdxArrayTimer.stop();
 
@@ -702,7 +702,7 @@ void pitchAngleDiffusion(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian
          nbins_v,
          nbins_mu
       );
-      
+
       CHK_ERR( gpuPeekAtLastError() );
       builFvmuTimer.stop();
 
@@ -720,10 +720,10 @@ void pitchAngleDiffusion(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian
          nbins_mu,
          maxThreadIndex_dividefByCount
       );
-      
+
       CHK_ERR( gpuPeekAtLastError() );
       divideFByCountTimer.stop();
-      
+
       int lastBlockSize = nbins_v*nbins_mu-(blocksPerSpatialCell-1)*maxThreadsPerBlock;
       int totalThreadsPerBlock_computeDerivativesCFLDdt;
       if(blocksPerSpatialCell == 1){
@@ -754,7 +754,7 @@ void pitchAngleDiffusion(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian
          blocksPerSpatialCell,
          lastBlockSize
       );
-      
+
       CHK_ERR( gpuPeekAtLastError() );
       computeDerivativesTimer.stop();
 
@@ -775,7 +775,7 @@ void pitchAngleDiffusion(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian
          dev_Ddt,
          blocksPerSpatialCell
       );
-      
+
       CHK_ERR( gpuPeekAtLastError() );
       reduceDdtValuesTimer.stop();
       CHK_ERR( gpuDeviceSynchronize() );
@@ -783,7 +783,6 @@ void pitchAngleDiffusion(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian
       CHK_ERR( gpuMemcpy(host_Ddt, dev_Ddt, numberOfLocalCells * sizeof(Real), gpuMemcpyDeviceToHost) );
 
       // Compute Ddt
-      
       remappedCellIdx = 0;
       for (size_t CellIdx = 0; CellIdx < numberOfLocalCells; CellIdx++) { // Iterate over all spatial cells
          if(spatialLoopComplete[CellIdx]){
@@ -820,7 +819,7 @@ void pitchAngleDiffusion(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian
          nbins_v,
          nbins_mu
       );
-      
+
       CHK_ERR( gpuPeekAtLastError() );
       newCellValuesTimer.stop();
       CHK_ERR( gpuDeviceSynchronize() );
@@ -846,7 +845,7 @@ void pitchAngleDiffusion(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian
          dev_densityPostAdjust,
          GET_POINTER(gpuMemoryManager, vmesh::VelocityBlockContainer*, dev_VBCs)
       );
-         
+
       CHK_ERR( gpuPeekAtLastError() );
 
       conserveMass_kernel<<<blocksPerGrid_massConservation, threadsPerBlock_massConservation>>>(
@@ -854,7 +853,7 @@ void pitchAngleDiffusion(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian
          dev_densityPostAdjust,
          GET_POINTER(gpuMemoryManager, vmesh::VelocityBlockContainer*, dev_VBCs)
       );
-         
+
       CHK_ERR( gpuPeekAtLastError() );
       CHK_ERR( gpuDeviceSynchronize() );
    }

@@ -71,6 +71,11 @@ namespace vmesh {
 
 //fieldsolver stencil.
 #define FS_STENCIL_WIDTH 2
+// Forward declare
+namespace fsgrid {
+template <int I> class FsGrid;
+}
+using FieldSolverGrid = fsgrid::FsGrid<FS_STENCIL_WIDTH>;
 
 //Vlasov propagator stencils in ordinary space, velocity space may be
 //higher. Assume H4 (or H5) for PPM, H6 for PQM

@@ -84,6 +84,9 @@ namespace spatial_cell {
                                    * in this spatial cell. Cells are identified by their unique
                                    * global IDs.*/
       vmesh::VelocityBlockContainer *blockContainer;  /**< Velocity block data.*/
+      std::vector<char> compressed_state_buffer;                     /**< Used by OCTREE and ZFP to store comprresed state representation of the VDF of this sc*/
+      float mlp_error = {std::numeric_limits<float>::max()};         /**< Stores the loss function error of the MLP that was used for compression*/
+      uint32_t mlp_epochs = {0};                                     /**< Store the number of epochs that the MLP was trained for*/
 
       /**< Temporary storage of acceleration transform intersections and sybcycling dt.*/
       Real intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk;
@@ -776,7 +779,8 @@ namespace spatial_cell {
    }
 
    /** Adds a vector of velocity blocks to the population, sets the parameters, and fills the data
-       with phase-space densities from the provided buffer (which was read from a file).
+       with phase-space densities from the provided buffer (which was read from a file). The copy
+       operation is skipped if the avgBuffer is nullptr
    */
    template <typename fileReal> void SpatialCell::add_velocity_blocks(const uint popID,const std::vector<vmesh::GlobalID>& blocks,fileReal* avgBuffer) {
       debug_population_check(popID);
@@ -813,9 +817,11 @@ namespace spatial_cell {
       }
 
       //copy avgs data, here a conversion may happen between float and double
-      Realf *cellBlockData = populations[popID].blockContainer->getData(startLID);
-      for(uint64_t i = 0; i< WID3 * nBlocks ; i++){
-         cellBlockData[i] = avgBuffer[i];
+      if (avgBuffer){
+         Realf *cellBlockData = populations[popID].blockContainer->getData(startLID);
+         for(uint64_t i = 0; i< WID3 * nBlocks ; i++){
+            cellBlockData[i] = avgBuffer[i];
+         }
       }
    }
 

@@ -40,11 +40,15 @@ class SI:
 
 timesteps = []
 for filename in glob.glob(dirname+"/bulk*vlsv"):
-    parts = filename.split(".")
+    parts = filename.split("/")[-1].split(".")
     if len(parts) == 3:
         timesteps.append(int(parts[1]))
 timesteps.sort()
 tsize = len(timesteps)
+print("Found "+str(tsize)+" timesteps in directory "+dirname)
+
+if tsize <= 0:
+    sys.exit(1)
 
 for i,t in enumerate(timesteps[:1]):
     f = analysator.vlsvfile.VlsvReader(dirname+"/bulk."+"{:07d}".format(t)+".vlsv")
