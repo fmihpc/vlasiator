@@ -215,42 +215,50 @@ namespace projects {
       setRandomCellSeed(cell,rndState);
 
       this->rndRho=getRandomNumber(rndState);
+
       this->rndVel[0]=getRandomNumber(rndState);
       this->rndVel[1]=getRandomNumber(rndState);
       this->rndVel[2]=getRandomNumber(rndState);
    }
 
    void LossCone::setProjectBField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
+      fsgrids::perbspan perb,
+      fsgrids::bgbspan bgb,
+      fsgrids::technicalspan technical,
+      FieldSolverGrid& fsgrid
    ) {
       ConstantField bgField;
       bgField.initialize(this->BX0,
                          this->BY0,
                          this->BZ0);
 
-      setBackgroundField(bgField, BgBGrid);
+      setBackgroundField(bgField, bgb, technical, fsgrid);
 
       if(!P::isRestart) {
-         const auto localSize = BgBGrid.getLocalSize().data();
+         // local copies for lambda capture
+         const auto magXPertAbsAmp_l = this->magXPertAbsAmp;
+         const auto magYPertAbsAmp_l = this->magYPertAbsAmp;
+         const auto magZPertAbsAmp_l = this->magZPertAbsAmp;
+         const auto seed = this->seed;
 
-         #pragma omp parallel for collapse(3)
-         for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
-            for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
-               for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
-                  std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
-                  const int64_t cellid = perBGrid.GlobalIDForCoords(x, y, z);
+         fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                             phiprof::initializeTimer("setProjectBField"), technical,
+                             [=](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+            auto& cell = perb[stencil.ooo()];
 
-                  std::default_random_engine rndState;
-                  setRandomSeed(cellid,rndState);
+            const auto seedmodifier = coordinates.globalIDFromLocalCoordinates(stencil.i, stencil.j, stencil.k);
+            std::default_random_engine rndState_l;
+            rndState_l.seed(seed+seedmodifier);
+            Real rndBuffer[3];
+            rndBuffer[0] = std::uniform_real_distribution<>(-0.5,0.5)(rndState_l);
+            rndBuffer[1] = std::uniform_real_distribution<>(-0.5,0.5)(rndState_l);
+            rndBuffer[2] = std::uniform_real_distribution<>(-0.5,0.5)(rndState_l);
 
-                  cell->at(fsgrids::bfield::PERBX) = this->magXPertAbsAmp * (0.5 - getRandomNumber(rndState));
-                  cell->at(fsgrids::bfield::PERBY) = this->magYPertAbsAmp * (0.5 - getRandomNumber(rndState));
-                  cell->at(fsgrids::bfield::PERBZ) = this->magZPertAbsAmp * (0.5 - getRandomNumber(rndState));
-               }
-            }
-         }
+            cell[fsgrids::bfield::PERBX] = magXPertAbsAmp_l * rndBuffer[0];
+            cell[fsgrids::bfield::PERBY] = magYPertAbsAmp_l * rndBuffer[1];
+            cell[fsgrids::bfield::PERBZ] = magZPertAbsAmp_l * rndBuffer[2];
+
+         });
       }
    }
 

@@ -27,36 +27,72 @@
 #include "spatial_cells/block_adjust_wrapper.hpp"
 #include <dccrg.hpp>
 #include <dccrg_cartesian_geometry.hpp>
+#include "fsgrid.hpp"
 #include "sysboundary/sysboundary.h"
 #include "projects/project.h"
 #include <string>
 
+struct FieldSolverData {
+   FieldSolverGrid& fsgrid;
+
+   fsgrids::constperbspan perB;
+   fsgrids::constperbspan perBDt2;
+   fsgrids::constefieldspan E;
+   fsgrids::constefieldspan EDt2;
+   fsgrids::constehallspan EHall;
+   fsgrids::constegradpespan EGradPe;
+   fsgrids::constegradpespan EGradPeDt2;
+   fsgrids::constmomentsspan moments;
+   fsgrids::constmomentsspan momentsDt2;
+   fsgrids::constdperbspan dPerB;
+   fsgrids::constdmomentsspan dMoments;
+   fsgrids::constdmomentsspan dMomentsDt2;
+   fsgrids::constbgbspan BgB;
+   fsgrids::constvolspan vol;
+   fsgrids::consttechnicalspan technical;
+
+   FieldSolverData(const fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
+           const fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perbdt2,
+           const fsgrid::FsData<std::array<Real, fsgrids::efield::N_EFIELD>>& e,
+           const fsgrid::FsData<std::array<Real, fsgrids::efield::N_EFIELD>>& edt2,
+           const fsgrid::FsData<std::array<Real, fsgrids::ehall::N_EHALL>>& ehall,
+           const fsgrid::FsData<std::array<Real, fsgrids::egradpe::N_EGRADPE>>& egradpe,
+           const fsgrid::FsData<std::array<Real, fsgrids::egradpe::N_EGRADPE>>& egradpedt2,
+           const fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>>& moments,
+           const fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>>& momentsdt2,
+           const fsgrid::FsData<std::array<Real, fsgrids::dperb::N_DPERB>>& dperb,
+           const fsgrid::FsData<std::array<Real, fsgrids::dmoments::N_DMOMENTS>>& dmoments,
+           const fsgrid::FsData<std::array<Real, fsgrids::dmoments::N_DMOMENTS>>& dmomentsdt2,
+           const fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& bgb,
+           const fsgrid::FsData<std::array<Real, fsgrids::volfields::N_VOL>>& vol,
+           const fsgrid::FsData<fsgrids::technical>& technical, FieldSolverGrid& fsgrid)
+       : fsgrid(fsgrid), perB(perb.view()), perBDt2(perbdt2.view()), E(e.view()), EDt2(edt2.view()),
+         EHall(ehall.view()), EGradPe(egradpe.view()), EGradPeDt2(egradpedt2.view()), moments(moments.view()),
+         momentsDt2(momentsdt2.view()), dPerB(dperb.view()), dMoments(dmoments.view()), dMomentsDt2(dmomentsdt2.view()),
+         BgB(bgb.view()), vol(vol.view()), technical(technical.view()) {}
+};
+
 /*!
   \brief Initialize DCCRG and fsgrids
 */
-void initializeGrids(
-   int argn,
-   char **argc,
-   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
-   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsDt2Grid,
-   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
-   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
-   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
-   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
-   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-   SysBoundary& sysBoundaries,
-   Project& project
-);
+void initializeGrids(int argn, char** argc, dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+                     fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>>& perb,
+                     fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>>& bgb,
+                     fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>>& moments,
+                     fsgrid::FsData<std::array<Real, fsgrids::moments::N_MOMENTS>>& momentsdt2,
+                     fsgrid::FsData<std::array<Real, fsgrids::dmoments::N_DMOMENTS>>& dmoments,
+                     fsgrid::FsData<std::array<Real, fsgrids::efield::N_EFIELD>>& e,
+                     fsgrid::FsData<std::array<Real, fsgrids::egradpe::N_EGRADPE>>& egradpe,
+                     fsgrid::FsData<std::array<Real, fsgrids::volfields::N_VOL>>& vol,
+                     fsgrid::FsData<fsgrids::technical>& technical, FieldSolverGrid& fsgrid,
+                     SysBoundary& sysBoundaries, Project& project);
 
 /*!
   \brief Balance load
 
     \param[in,out] mpiGrid The DCCRG grid with spatial cells
 */
-void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, SysBoundary& sysBoundaries, FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, SysBoundary& sysBoundaries, fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
    bool doTranslationLists = true);
 
 /* helper for calculating AMR flags and cell lists and building pencils
@@ -78,8 +114,7 @@ void updateRemoteVelocityBlockLists(
    const uint neighborhood=Neighborhoods::DIST_FUNC
 );
 
-/*! Deallocates all blocks in remote cells in order to save
- *  memory. 
+/*! Deallocates all blocks in remote cells in order to save  memory.
  * \param mpiGrid Spatial grid
  */
 void deallocateRemoteCellBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
@@ -94,9 +129,8 @@ void deallocateRemoteCellBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
  Note that block existence does not use vlasov stencil as it is important to also include diagonals to avoid massloss
 
  \param mpiGrid  Parallel grid with spatial cells
- \param cellsToAdjust  List of cells that are adjusted, that is cells which blocks are added or removed. 
+ \param cellsToAdjust  List of cells that are adjusted, that is cells which blocks are added or removed.
  \param doPrepareToReceiveBlocks If true, then remote cells are set up so that velocity space data can be received. Global operation, value has to be the same for all processes.
- 
 */
 bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                           const std::vector<CellID>& cellsToAdjust,
@@ -112,16 +146,16 @@ void setFaceNeighborRanks( dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 
 /*! Map grid refinement to FsGrid
  */
-void mapRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid);
+void mapRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, fsgrids::technicalspan technical, FieldSolverGrid &fsgrid);
 
 /*! Refine spatial cells and update necessary information
  * \param mpiGrid Spatial grid
- * \param technicalGrid Technical grid
+ * \param fsgrid Technical grid
  * \param sysBoundaries System boundaries
  * \param project Project used
  * \param useStatic Used for forcing static refinement on restart. Negative values use adaptive refinement, non-negative values correspond to static refinement pass in Project::forceRefinement
  */
-bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid, SysBoundary& sysBoundaries, Project& project, int useStatic = -1);
+bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, fsgrids::technicalspan technical, FieldSolverGrid &fsgrid, SysBoundary& sysBoundaries, Project& project, int useStatic = -1);
 
 void recalculateLocalCellsCache(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
 

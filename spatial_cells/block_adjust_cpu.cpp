@@ -40,10 +40,10 @@ namespace spatial_cell {
       }
 
       // int computeId {phiprof::initializeTimer("Compute with_content_list")};
-#pragma omp parallel
+      #pragma omp parallel
       {
          // phiprof::Timer timer {computeId};
-#pragma omp for schedule(dynamic)
+         #pragma omp for schedule(dynamic)
          for (uint i=0; i<cells.size(); ++i) {
             mpiGrid[cells[i]]->updateSparseMinValue(popID);
             mpiGrid[cells[i]]->update_velocity_block_content_lists(popID);
@@ -63,11 +63,11 @@ namespace spatial_cell {
          return;
       }
 
-//      int adjustId {phiprof::initializeTimer("Adjusting blocks")};
-#pragma omp parallel
+      // int adjustId {phiprof::initializeTimer("Adjusting blocks")};
+      #pragma omp parallel
       {
-//         phiprof::Timer timer {adjustId};
-#pragma omp for schedule(dynamic)
+         // phiprof::Timer timer {adjustId};
+         #pragma omp for schedule(dynamic)
          for (size_t i=0; i < n_cells; ++i) {
             Real density_pre_adjust=0.0;
             Real density_post_adjust=0.0;
@@ -112,7 +112,7 @@ namespace spatial_cell {
                }
             }
          }
-//         timer.stop();
+         // timer.stop();
       } // end parallel region
    }
 
