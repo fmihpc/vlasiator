@@ -73,7 +73,9 @@ do
 
 # change to run directory of the test case, e.g. test_Fluctuations
     cd ${vlsv_dir}
-    cp ${cfg_dir}/* .
+    shopt -s extglob #see man 1 bash, it is explained there, shopt is builtin, this enables the fancier !(*.vlsv) pattern match
+    cp ${cfg_dir}/!(*.vlsv) .
+    shopt -u extglob #unset so we dont get accidents
 
     export OMP_NUM_THREADS=$t
     export MPICH_MAX_THREAD_SAFETY=funneled
