@@ -46,10 +46,11 @@ __global__ void __launch_bounds__(WID3,WID3S_PER_MP) batch_update_velocity_block
    Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>* *allMaps,
    const Real* __restrict__ velocity_block_min_values,
    const bool gatherMass,
-   Real* dev_mass
+   Real* dev_mass,
+   const int cellIterationOffset
    ) {
    //const uint nCells = gridDim.y;
-   const int cellIndex = blockIdx.y;
+   const int cellIndex = blockIdx.y + cellIterationOffset;
    const int blockiStart = blockIdx.x;
 
    const uint ti = threadIdx.x;
@@ -163,10 +164,11 @@ __global__ void __launch_bounds__(WID3,WID3S_PER_MP) batch_update_velocity_block
  * Resets all elements in all provided hashmaps to EMPTY, VAL_TYPE()
  */
 __global__ void __launch_bounds__(Hashinator::defaults::MAX_BLOCKSIZE, FULLBLOCKS_PER_MP) batch_reset_all_to_empty(
-   Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>**maps
+   Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>**maps,
+   const size_t cellIterationOffset
    ) {
    //launch parameters: dim3 grid(blocksNeeded,nCells,2);
-   const size_t hashmapIndex = blockIdx.y * 2 + blockIdx.z;
+   const size_t hashmapIndex = (blockIdx.y + cellIterationOffset) * 2 + blockIdx.z;
    const size_t tid = threadIdx.x + blockIdx.x * blockDim.x;
    const size_t stride = gridDim.x * blockDim.x;
    Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>* thisMap = maps[hashmapIndex];
@@ -487,13 +489,14 @@ void clean_tombstones_launcher(
  */
 __global__ void __launch_bounds__(GPUTHREADS, WARPS_PER_MP) batch_insert_kernel(
    vmesh::VelocityMesh **vmeshes, // buffer of pointers to vmeshes, contain hashmaps
-   const split::SplitVector<Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>>* __restrict__ const *input_vecs
+   const split::SplitVector<Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>>* __restrict__ const *input_vecs,
+   const size_t cellIterationOffset
    ) {
    //launch parameters: dim3 grid(largestOverflow,nCells,1);
    const uint ti = threadIdx.x; // [0,blockSize)
    const int b_tid = ti % GPUTHREADS; // [0,GPUTHREADS)
    // GPUTODO: several entries in parallel per block
-   const size_t vmeshIndex = blockIdx.y;
+   const size_t vmeshIndex = blockIdx.y + cellIterationOffset;
    const size_t blockIndex = blockIdx.x;
    if (vmeshes[vmeshIndex]==0) {
       return; // Early return for invalid cells
@@ -539,12 +542,13 @@ __global__ void __launch_bounds__(GPUTHREADS, WARPS_PER_MP) batch_insert_kernel(
 __global__ void __launch_bounds__(26*32, FULLBLOCKS_PER_MP) batch_update_velocity_halo_kernel (
    const vmesh::VelocityMesh* __restrict__ const *vmeshes,
    const split::SplitVector<vmesh::GlobalID>* __restrict__ const *velocity_block_with_content_lists,
-   Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>** allMaps
+   Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>** allMaps,
+   const uint cellIterationOffset
    ) {
    // launch grid dim3 grid(launchBlocks,nCells,1);
    // Each block manages a single GID at a time, all velocity neighbours
    const uint nCells = gridDim.y;
-   const uint cellIndex = blockIdx.y;
+   const uint cellIndex = blockIdx.y + cellIterationOffset;
    const uint blockiStart = blockIdx.x;
    //const int blockSize = blockDim.x; // should be 26*32 or 13*64
    const uint ti = threadIdx.x;
@@ -628,12 +632,13 @@ __global__ void batch_update_velocity_halo_kernel (
    const vmesh::VelocityMesh* __restrict__ const *vmeshes,
    const split::SplitVector<vmesh::GlobalID>* __restrict__ const *velocity_block_with_content_lists,
    Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>** allMaps,
-   const uint warpsPerBlockBatchHalo
+   const uint warpsPerBlockBatchHalo,
+   const uint cellIterationOffset
    ) {
    // launch grid dim3 grid(launchBlocks,nCells,1);
    // Each block manages a single GID at a time, all velocity neighbours
    //const uint nCells = gridDim.y;
-   const uint cellIndex = blockIdx.y;
+   const uint cellIndex = blockIdx.y + cellIterationOffset;
    const uint blockiStart = blockIdx.x*warpsPerBlockBatchHalo+threadIdx.y; // launch grid block index inside number of velocity blocks
    const uint ti = threadIdx.x; // Thread index inside warp / wavefront acting on single LID
 
@@ -705,11 +710,12 @@ __global__ void batch_update_velocity_halo_kernel (
 __global__ void __launch_bounds__(GPUTHREADS*WARPSPERBLOCK, FULLBLOCKS_PER_MP) batch_update_neighbour_halo_kernel (
    const vmesh::VelocityMesh* __restrict__ const *vmeshes,
    Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>** allMaps,
-   const split::SplitVector<vmesh::GlobalID>* __restrict__ const *neigh_velocity_block_with_content_lists
+   const split::SplitVector<vmesh::GlobalID>* __restrict__ const *neigh_velocity_block_with_content_lists,
+   const uint cellIterationOffset
    ) {
    const uint nCells = gridDim.y;
    const uint maxNeighbours = gridDim.z;
-   const uint cellIndex = blockIdx.y;
+   const uint cellIndex = blockIdx.y + cellIterationOffset;
    const uint neighIndex = blockIdx.y * maxNeighbours + blockIdx.z;
 
    // Cells such as DO_NOT_COMPUTE are identified with a zero in the vmeshes pointer buffer
@@ -768,12 +774,13 @@ __global__ void __launch_bounds__(GPUTHREADS*WARPSPERBLOCK, FULLBLOCKS_PER_MP) b
 __global__ void __launch_bounds__(GPUTHREADS*WARPSPERBLOCK, FULLBLOCKS_PER_MP) batch_update_neighbour_halo_kernel (
    const vmesh::VelocityMesh* __restrict__ const *vmeshes,
    Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>** allMaps,
-   const split::SplitVector<vmesh::GlobalID>* __restrict__ const *neigh_velocity_block_with_content_lists
+   const split::SplitVector<vmesh::GlobalID>* __restrict__ const *neigh_velocity_block_with_content_lists,
+   const uint cellIterationOffset
    ) {
 
    //const uint nCells = gridDim.y;
    const uint maxNeighbours = gridDim.z;
-   const uint cellIndex = blockIdx.y;
+   const uint cellIndex = blockIdx.y + cellIterationOffset;
    const uint neighIndex = blockIdx.y * maxNeighbours + blockIdx.z;
 
    const vmesh::VelocityMesh* __restrict__ vmeshCellIndex = vmeshes[cellIndex];
@@ -904,10 +911,11 @@ __global__ void __launch_bounds__(WID3, WID3S_PER_MP) batch_update_velocity_bloc
    vmesh::LocalID* dev_nBefore,
    vmesh::LocalID* dev_nAfter,
    vmesh::LocalID* dev_nBlocksToChange,
-   Real* dev_rhoLossAdjust // mass loss, gather from deleted blocks
+   Real* dev_rhoLossAdjust, // mass loss, gather from deleted blocks
+   const size_t cellIterationOffset
    ) {
    // launch griddim3 grid(launchBlocks,nCells,1);
-   const size_t cellIndex = blockIdx.y;
+   const size_t cellIndex = blockIdx.y + cellIterationOffset;
    if (vmeshes[cellIndex]==0) {
       return; // Early return for invalid cells
    }
@@ -1235,10 +1243,11 @@ __global__ void __launch_bounds__(WID3, WID3S_PER_MP) batch_update_velocity_bloc
  */
 __global__ void __launch_bounds__(WID3, WID3S_PER_MP) batch_population_scale_kernel (
    vmesh::VelocityBlockContainer **blockContainers,
-   Real* dev_mass_scale
+   Real* dev_mass_scale,
+   const uint cellIterationOffset
    ) {
    // launch griddim3 grid(launchBlocks,nCells,1);
-   const int cellIndex = blockIdx.y;
+   const int cellIndex = blockIdx.y + cellIterationOffset;
    const int blocki = blockIdx.x;
    const uint ti = threadIdx.x;
 

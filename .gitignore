@@ -19,3 +19,8 @@ nbproject
 vlsvdiff_DP
 vlsvextract_DP
 compile_commands.json
+libraries*/
+library-build/
+run_*/
+!run_tests.sh
+profile/
