@@ -2203,7 +2203,7 @@ bool writeRestart(
    if (compress_vdfs) {
       std::vector<std::vector<char>> mlp_clustered_bytes;
       phiprof::Timer compression_interface{"asterix-compression"};
-      const auto& local_cells_to_compress = getLocalCells();
+      //const auto& local_cells_to_compress = getLocalCells();
       ASTERIX::compress_vdfs(mpiGrid, local_cells, P::vdf_compression_method, false, mlp_clustered_bytes, 1);
       compression_interface.stop();
       phiprof::Timer vspaceTimer{"velocityspaceIO"};

@@ -134,9 +134,9 @@ namespace projects {
       creal relx = x/(Parameters::xmax - Parameters::xmin);
       creal rely = y/(Parameters::ymax - Parameters::ymin);
       creal relz = z/(Parameters::zmax - Parameters::zmin);
-      creal scaledVx1 = this->Vx[1] * relx;
-      creal scaledVy1 = this->Vy[1] * rely;
-      creal scaledVz1 = this->Vz[1] * relz;
+      //creal scaledVx1 = this->Vx[1] * relx;
+      //creal scaledVy1 = this->Vy[1] * rely;
+      //creal scaledVz1 = this->Vz[1] * relz;
 
       const Real mass = getObjectWrapper().particleSpecies[popID].mass;
       const Real initRho0 = this->rhoRnd[0];
@@ -209,9 +209,9 @@ namespace projects {
       creal relx = x/(Parameters::xmax - Parameters::xmin);
       creal rely = y/(Parameters::ymax - Parameters::ymin);
       creal relz = z/(Parameters::zmax - Parameters::zmin);
-      creal scaledVx1 = this->Vx[1] * relx;
-      creal scaledVy1 = this->Vy[1] * rely;
-      creal scaledVz1 = this->Vz[1] * relz;
+      //creal scaledVx1 = this->Vx[1] * relx;
+      //creal scaledVy1 = this->Vy[1] * rely;
+      //creal scaledVz1 = this->Vz[1] * relz;
 
       const Real mass = getObjectWrapper().particleSpecies[popID].mass;
       const Real initRho0 = this->rhoRnd[0];

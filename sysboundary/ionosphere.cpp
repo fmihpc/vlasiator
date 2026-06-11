@@ -1371,7 +1371,7 @@ namespace SBC {
 
                      // Find the two other nodes on this element
                      int gridI = 0, gridJ = 0;
-                     int localC = 0, localI = 0, localJ = 0;
+                     int localI = 0, localJ = 0;
                      for (int c = 0; c < 3; c++) {
                         if (element.corners[c] == n) {
                            localI = (c + 1) % 3;

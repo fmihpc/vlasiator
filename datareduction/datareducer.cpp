@@ -627,8 +627,8 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       //MLP error per pop
       if(P::systemWriteAllDROs ||  lowercase == "populations_mlp_error") {
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
-            species::Species& species=getObjectWrapper().particleSpecies[i];
-            const std::string& pop = species.name;
+            //species::Species& species=getObjectWrapper().particleSpecies[i];
+            //const std::string& pop = species.name;
             outputReducer->addOperator(new DRO::MLPerror(i));
             outputReducer->addMetadata(outputReducer->size()-1,"","","","");
          }
@@ -639,8 +639,8 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       //MLP epochs per pop
       if(P::systemWriteAllDROs ||  lowercase == "populations_mlp_epochs") {
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
-            species::Species& species=getObjectWrapper().particleSpecies[i];
-            const std::string& pop = species.name;
+            //species::Species& species=getObjectWrapper().particleSpecies[i];
+            //const std::string& pop = species.name;
             outputReducer->addOperator(new DRO::MLPepochs(i));
             outputReducer->addMetadata(outputReducer->size()-1,"","","","");
          }
@@ -793,7 +793,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             const FieldSolverData& fieldSolverData)->std::vector<double> {
                const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
-   
+
                // Iterate through fsgrid cells and extract boundary flag
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
                                                  phiprof::initializeTimer("DRO_fg"), fieldSolverData.technical,
