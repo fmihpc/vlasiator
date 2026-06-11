@@ -1,9 +1,5 @@
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/fmihpc/vlasiator/blob/master/doc/artwork/logo_white.png">
-  <source media="(prefers-color-scheme: light)" srcset="https://github.com/fmihpc/vlasiator/blob/master/doc/artwork/logo_black.png">
-  <img src="https://github.com/fmihpc/vlasiator/blob/master/doc/artwork/logo_black.png">
-</picture>
+![](https://github.com/fmihpc/vlasiator/blob/master/doc/artwork/logo_black.png?raw=true)
 
 Vlasiator - ten letters you can count on
 
