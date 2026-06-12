@@ -891,6 +891,7 @@ CellID selectPositiveNeighbor(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
 
    //int neighborhood = getNeighborhood(dimension,1);
    //const auto* nbrPairs = grid.get_neighbors_of(id, neighborhood);
+   const bool debug = (dimension == 0);
 
    vector < CellID > myNeighbors;
    CellID neighbor = INVALID_CELLID;
@@ -1175,7 +1176,7 @@ void buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_
 int getNeigborhoodStencilLength(){
    int stencil;
    if (P::vlasovSolverGhostTranslate){
-      if (P::maxTimeclass > 0){
+      if (P::initialMaxTimeclass > 0){
          stencil=P::vlasovSolverGhostTranslateExtent;
       }
       else{
@@ -1444,7 +1445,7 @@ void check_ghost_cells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>
                continue;
             }
          }
-         if (P::maxTimeclass > 0){
+         if (P::initialMaxTimeclass > 0){
             if (foundcells >= P::timeclassExactHaloExtent+P::timeclassOuterHaloExtent) {
                break; // checked enough distances
             }   
@@ -1477,7 +1478,7 @@ void check_ghost_cells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>
                continue;
             }
          }
-         if (P::maxTimeclass > 0){
+         if (P::initialMaxTimeclass > 0){
             if (foundcells >= P::timeclassExactHaloExtent+P::timeclassOuterHaloExtent) {
                break; // checked enough distances
             }   
