@@ -449,6 +449,7 @@ bool P::addParameters() {
 
    // Output variable parameters
    RP::add<bool>("io.diagnostic_write_all_data_reducers", "Write all available diagnostic reducers 0 false, 1 true", P::diagnosticWriteAllDROs,false);
+   RP::add<bool>("io.system_write_all_data_reducers", "If 0 don't write all DROs, if 1 do write them.", false);
    RP::add<bool>("io.system_write_distribution_compressed", string("Apply ASTERIX compressiont to VDFs in bulk files."),P::systemWriteDistributionCompressed, false);
    RP::add<bool>("io.system_write_restart_compressed", string("Apply ASTERIX compressiont to VDFs in restart files."),P::systemWriteRestartCompressed, false);
    RP::add<bool>("io.system_write_recovery_compressed", string("Apply ASTERIX compressiont to VDFs in recovery files."),P::systemWriteRecoveryCompressed, false);
