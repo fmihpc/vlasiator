@@ -33,20 +33,21 @@ namespace spatial_cell {
    void update_velocity_block_content_lists(
       dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const vector<CellID>& cells,
-      const uint popID) {
+      const uint popID,
+      const int timeclass) {
 
       if (cells.size()==0) {
          return;
       }
 
       // int computeId {phiprof::initializeTimer("Compute with_content_list")};
-#pragma omp parallel
+      #pragma omp parallel
       {
          // phiprof::Timer timer {computeId};
-#pragma omp for schedule(dynamic)
+         #pragma omp for schedule(dynamic)
          for (uint i=0; i<cells.size(); ++i) {
-            mpiGrid[cells[i]]->updateSparseMinValue(popID);
-            mpiGrid[cells[i]]->update_velocity_block_content_lists(popID);
+            mpiGrid[cells[i]]->updateSparseMinValue(popID, timeclass);
+            mpiGrid[cells[i]]->update_velocity_block_content_lists(popID, timeclass);
          }
          //  timer.stop();
       } // end parallel region
@@ -55,7 +56,8 @@ namespace spatial_cell {
    void adjust_velocity_blocks_in_cells(
       dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const vector<CellID>& cellsToAdjust,
-      const uint popID
+      const uint popID,
+      const int timeclass
       ) {
 
       const size_t n_cells = cellsToAdjust.size();
@@ -94,20 +96,20 @@ namespace spatial_cell {
             }
 
             if (getObjectWrapper().particleSpecies[popID].sparse_conserve_mass) {
-               for (size_t i=0; i<cell->get_number_of_velocity_blocks(popID)*WID3; ++i) {
-                  density_pre_adjust += cell->get_data(popID)[i];
+               for (size_t i=0; i<cell->get_number_of_velocity_blocks(popID, timeclass)*WID3; ++i) {
+                  density_pre_adjust += cell->get_data(popID, timeclass)[i];
                }
             }
 
-            cell->adjust_velocity_blocks(neighbor_ptrs,popID);
+            cell->adjust_velocity_blocks(neighbor_ptrs,popID, true, timeclass);
 
             if (getObjectWrapper().particleSpecies[popID].sparse_conserve_mass) {
-               for (size_t i=0; i<cell->get_number_of_velocity_blocks(popID)*WID3; ++i) {
-                  density_post_adjust += cell->get_data(popID)[i];
+               for (size_t i=0; i<cell->get_number_of_velocity_blocks(popID, timeclass)*WID3; ++i) {
+                  density_post_adjust += cell->get_data(popID, timeclass)[i];
                }
                if (density_post_adjust != 0.0) {
-                  for (size_t i=0; i<cell->get_number_of_velocity_blocks(popID)*WID3; ++i) {
-                     cell->get_data(popID)[i] *= density_pre_adjust/density_post_adjust;
+                  for (size_t i=0; i<cell->get_number_of_velocity_blocks(popID, timeclass)*WID3; ++i) {
+                     cell->get_data(popID, timeclass)[i] *= density_pre_adjust/density_post_adjust;
                   }
                }
             }

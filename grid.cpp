@@ -21,6 +21,7 @@
  */
 
 #include "common.h"
+#include <cstddef>
 #include <cstdlib>
 #include <iostream>
 #include <iomanip> // for setprecision()
@@ -47,6 +48,7 @@
 #include "iowrite.h"
 #include "ioread.h"
 #include "object_wrapper.h"
+#include "vlasovsolver/cpu_trans_pencils.hpp"
 #include "memory_report.h"
 
 #ifdef PAPI_MEM
@@ -123,6 +125,9 @@ void initializeGrids(
       // One extra layer for translation of ghost cells
       neighborhood_size++;
    }
+   if (P::initialMaxTimeclass > 0) {
+       neighborhood_size = max(neighborhood_size, P::timeclassOuterHaloExtent+P::timeclassExactHaloExtent);
+   }
 
    const std::array<uint64_t, 3> grid_length = {{P::xcells_ini, P::ycells_ini, P::zcells_ini}};
    dccrg::Cartesian_Geometry::Parameters geom_params;
@@ -166,7 +171,10 @@ void initializeGrids(
       }
    }
    refineTimer.stop();
+
+   phiprof::Timer stencilTimer {"Initialize stencils"};
    initializeStencils(mpiGrid);
+   stencilTimer.stop();
 
    for (const auto& [key, value] : P::loadBalanceOptions) {
       mpiGrid.set_partitioning_option(key, value);
@@ -188,6 +196,7 @@ void initializeGrids(
    if (myRank == MASTER_RANK) {
       logFile << "(INIT): Set initial state." << endl << writeVerbose;
    }
+   // std::cout << __FILE__<<":" << __LINE__ <<"\n";
 
    phiprof::Timer initialStateTimer {"Set initial state"};
 
@@ -198,11 +207,15 @@ void initializeGrids(
    phiprof::Timer initBoundaryTimer {"Initialize system boundary conditions"};
    sysBoundaries.initSysBoundaries(project, P::t_min);
    initBoundaryTimer.stop();
+   // std::cout << __FILE__<<":" << __LINE__ <<"\n";
+
+   phiprof::Timer initTransferTimer {"Sysboundaries update"};
 
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_DIMENSIONS);
    mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::SYSBOUNDARIES);
-
+// std::cout << __FILE__<<":" << __LINE__ <<"\n";
    computeCoupling(mpiGrid, cells, technicalGrid);
+   initTransferTimer.stop();
 
    // We want this before restart refinement
    phiprof::Timer classifyTimer {"Classify cells (sys boundary conditions)"};
@@ -283,10 +296,23 @@ void initializeGrids(
       #pragma omp parallel for schedule(static)
       for (size_t i=0; i<cells.size(); ++i) {
          mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] = 0;
+
+         mpiGrid[cells[i]]->parameters[CellParams::TIME_R] = 0;
+         mpiGrid[cells[i]]->parameters[CellParams::TIME_V] = 0;
+         mpiGrid[cells[i]]->parameters[CellParams::TIMESTEP_R] = 0;
+         mpiGrid[cells[i]]->parameters[CellParams::TIMESTEP_V] = 0;
+         mpiGrid[cells[i]]->parameters[CellParams::TIMESTEP_FRACTIONAL_R] = 0;
+         mpiGrid[cells[i]]->parameters[CellParams::TIMESTEP_FRACTIONAL_V] = 0;
       }
 
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-         adjustVelocityBlocks(mpiGrid,cells,true,popID);
+         // std::cerr << __FILE__<<":"<<__LINE__<< " calling adjustVelocityBlocks at t = " 
+         // << P::t << ", preparing to receive; len cells = " << cells.size() <<
+         // "\n";
+         for (int timeclass = 0; timeclass <= P::currentMaxTimeclass; timeclass++){
+            adjustVelocityBlocks(mpiGrid,cells,true,popID,timeclass);
+            // std::cout << __FILE__<<":" << __LINE__ <<" adjusted velocityblocs "<< timeclass<<"\n";
+         }
          // set initial LB metric based on number of blocks
          #pragma omp parallel for schedule(static)
          for (size_t i=0; i<cells.size(); ++i) {
@@ -320,16 +346,21 @@ void initializeGrids(
       }
    }
 
-
+   // std::cout << __FILE__<<":" << __LINE__ <<" about to call balanceLoad\n";
    // Balance load before we transfer all data below
+   phiprof::Timer balanceTimer {"Balance load before transfers"};
+
    balanceLoad(mpiGrid, sysBoundaries, technicalGrid, false);
+   balanceTimer.stop();
    // Function includes re-calculation of local cells cache, but
    // setting third parameter to false skips preparation of
    // translation cell lists and building of pencils.
 
    phiprof::Timer fetchNeighbourTimer {"Fetch Neighbour data", {"MPI"}};
    // update complete cell spatial data for full stencil
+   // std::cout << __FILE__<<":" << __LINE__ <<" to set spatial data\n";
    SpatialCell::set_mpi_transfer_type(Transfer::ALL_SPATIAL_DATA);
+   // std::cout << __FILE__<<":" << __LINE__ <<" to update remote copies\n";
    mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::FULL);
    fetchNeighbourTimer.stop();
 
@@ -397,7 +428,8 @@ void initializeGrids(
    if(P::refineOnRestart) {
       // Half-step acceleration
       if( P::propagateVlasovAcceleration ) {
-         calculateAcceleration(mpiGrid, -0.5*P::dt + 0.5*P::bailout_min_dt);
+         calculateAcceleration(mpiGrid, -0.5);
+         calculateAcceleration(mpiGrid, 0.5*P::bailout_min_dt); //WARNING TODO
       } else {
          calculateAcceleration(mpiGrid, 0.0);
       }
@@ -563,106 +595,113 @@ void transferInParts(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
             cell->set_mpi_transfer_enabled(true);
          }
       }
-
+      // std::cerr << __FILE__<<":"<<__LINE__<<"\n";
       for (size_t popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-         // Set active population
-         SpatialCell::setCommunicatedSpecies(popID);
+         for (int timeclass = 0; timeclass <= P::currentMaxTimeclass; ++timeclass) {
+            // Set active population
+            SpatialCell::setCommunicatedSpecies(popID, timeclass);
+            // adjustVelocityBlocks(mpiGrid, cells,false, popID,timeclass); // TODO block lists maybe should be timeclass-specific after all?
+            update_velocity_block_content_lists(mpiGrid, cells, popID, timeclass);
 
-         // Transfer velocity block lists. On-device GPU mesh preparation tasks require
-         // device synchronization between transfer phases.
-         SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_STAGE1);
-         if (!refinement) {
-            mpiGrid.continue_balance_load();
-         } else {
-            mpiGrid.continue_refining();
-         }
-         #ifdef USE_GPU
-         CHK_ERR( gpuDeviceSynchronize() );
-         #endif
-         SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_STAGE2);
-         if (!refinement) {
-            mpiGrid.continue_balance_load();
-         } else {
-            mpiGrid.continue_refining();
-         }
-         #ifdef USE_GPU
-         CHK_ERR( gpuDeviceSynchronize() );
-         #endif
 
-         int prepareReceives {phiprof::initializeTimer("Preparing receives")};
-         int receives = 0;
-         #pragma omp parallel for schedule(guided)
-         for (const CellID cell_id : incoming_cells_list) {
-            SpatialCell* cell = mpiGrid[cell_id];
-            if (get_transfer_part(mpiGrid, num_part_transfers, cell_id) == transfer_part) {
-               receives++;
-               // reserve space for velocity block data in arriving remote cells
+            // Transfer velocity block lists. On-device GPU mesh preparation tasks require
+            // device synchronization between transfer phases.
+            SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_STAGE1);
+            if (!refinement) {
+               mpiGrid.continue_balance_load();
+            } else {
+               mpiGrid.continue_refining();
+            }
+            #ifdef USE_GPU
+            CHK_ERR( gpuDeviceSynchronize() );
+            #endif
+            SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_STAGE2);
+            if (!refinement) {
+               mpiGrid.continue_balance_load();
+            } else {
+               mpiGrid.continue_refining();
+            }
+            #ifdef USE_GPU
+            CHK_ERR( gpuDeviceSynchronize() );
+            #endif
+
+            int prepareReceives {phiprof::initializeTimer("Preparing receives")};
+            int receives = 0;
+            #pragma omp parallel for schedule(guided)
+            for (const CellID cell_id : incoming_cells_list) {
+               SpatialCell* cell = mpiGrid[cell_id];
+               if (get_transfer_part(mpiGrid, num_part_transfers, cell_id) == transfer_part) {
+                  receives++;
+                  // reserve space for velocity block data in arriving remote cells
+                  phiprof::Timer timer {prepareReceives};
+                  cell->prepare_to_receive_blocks(popID, timeclass);
+                  timer.stop(1, "Spatial cells");
+               }
+            }
+            if(receives == 0) {
+               //empty phiprof timer, to avoid unneccessary divergence in unique
+               //profiles (keep order same)
                phiprof::Timer timer {prepareReceives};
-               cell->prepare_to_receive_blocks(popID);
-               timer.stop(1, "Spatial cells");
+               timer.stop(0, "Spatial cells");
             }
-         }
-         if(receives == 0) {
-            //empty phiprof timer, to avoid unneccessary divergence in unique
-            //profiles (keep order same)
-            phiprof::Timer timer {prepareReceives};
-            timer.stop(0, "Spatial cells");
-         }
 
-         //do the actual transfer of data for the set of cells to be transferred
-         phiprof::Timer transferTimer {"transfer_all_data"};
-         SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA);
-         if (!refinement) {
-            mpiGrid.continue_balance_load();
-         } else {
-            mpiGrid.continue_refining();
-         }
-         transferTimer.stop();
-
-         // Free memory for cells that have been sent (the block data)
-         for (const CellID cell_id : outgoing_cells_list){
-            SpatialCell* cell = mpiGrid[cell_id];
-
-            // Free memory of this cell as it has already been transferred,
-            // it will not be used anymore. NOTE: Only clears memory allocated
-            // to the active population.
-            if (get_transfer_part(mpiGrid, num_part_transfers, cell_id) == transfer_part) {
-               cell->clear(popID,true);
+            //do the actual transfer of data for the set of cells to be transferred
+            phiprof::Timer transferTimer {"transfer_all_data"};
+            SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA);
+            if (!refinement) {
+                  mpiGrid.continue_balance_load();
+            } else {
+               mpiGrid.continue_refining();
             }
-         }
+            transferTimer.stop();
 
-         if (refinement) {
-            // Old cells removed by refinement
-            phiprof::Timer copyParentsTimer {"copy to parents"};
-            std::set<CellID> processed;
-            for (CellID id : mpiGrid.get_removed_cells()) {
-               if (get_transfer_part(mpiGrid, num_part_transfers, id) == transfer_part) {
-                  CellID parent = mpiGrid.get_existing_cell(mpiGrid.get_center(id));
-                  if (!processed.count(parent)) {
-                     std::vector<CellID> children = mpiGrid.get_all_children(parent);
-                     // Make sure cell contents aren't garbage
-                     *mpiGrid[parent] = *mpiGrid[id];
+            // Free memory for cells that have been sent (the block data)
+            for (const CellID cell_id : outgoing_cells_list){
+               SpatialCell* cell = mpiGrid[cell_id];
 
-                     for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-                        SBC::averageCellData(mpiGrid, children, mpiGrid[parent], popID, 1);
-                     }
+               // Free memory of this cell as it has already been transferred,
+               // it will not be used anymore. NOTE: Only clears memory allocated
+               // to the active population.
+               if (get_transfer_part(mpiGrid, num_part_transfers, cell_id) == transfer_part) {
+               cell->clear(popID,true, timeclass);
+               }
+            }
 
-                     // Averaging moments
-                     calculateCellMoments(mpiGrid[parent], true, false);
+            if (refinement) {
+               // Old cells removed by refinement
+               phiprof::Timer copyParentsTimer {"copy to parents"};
+               std::set<CellID> processed;
+               for (CellID id : mpiGrid.get_removed_cells()) {
+                  if (get_transfer_part(mpiGrid, num_part_transfers, id) == transfer_part) {
+                     CellID parent = mpiGrid.get_existing_cell(mpiGrid.get_center(id));
+                     if (!processed.count(parent)) {
+                        std::vector<CellID> children = mpiGrid.get_all_children(parent);
+                        // Make sure cell contents aren't garbage
+                        *mpiGrid[parent] = *mpiGrid[id];
 
-                     processed.insert(parent);
+                        for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+                           SBC::averageCellData(mpiGrid, children, mpiGrid[parent], popID, 1);
+                        }
 
-                     for (const CellID child : children) {
-                        mpiGrid[child]->clear(popID, true);
+                        // Averaging moments
+                        calculateCellMoments(mpiGrid[parent], true, false);
+
+                        processed.insert(parent);
+
+                        for (const CellID child : children) {
+                           mpiGrid[child]->clear(popID, true, timeclass);
+                        }
                      }
                   }
                }
+               copyParentsTimer.stop(processed.size(), "Spatial cells");
             }
-            copyParentsTimer.stop(processed.size(), "Spatial cells");
-         }
-
-         memory_purge(); // Purge jemalloc allocator to actually release memory
+            // std::cerr << __FILE__<<":"<<__LINE__<<"\n";
+            memory_purge(); // Purge jemalloc allocator to actually release memory
+         } // for-loop over timeclasses
+         // std::cerr << __FILE__<<":"<<__LINE__<<"\n";
       } // for-loop over populations
+      // std::cerr << __FILE__<<":"<<__LINE__<<"\n";
    } // for-loop over transfer parts
 
    // Re-enable transfer for received cells
@@ -690,7 +729,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
       // if (P::propagateVlasovAcceleration)
       // When using the FS-SPLIT functionality, Jaro Hokkanen reported issues with using the regular
       // CellParams::LBWEIGHTCOUNTER, so use of blockscounts + 1 might be required.
-      mpiGrid.set_cell_weight(cells[i], (Real)1 + mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER]);
+      mpiGrid.set_cell_weight(cells[i], (Real)1 + mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] * ((int)pow(P::timeclassLBmantissa, mpiGrid[cells[i]]->parameters[CellParams::TIMECLASS])));
    }
 
    phiprof::Timer initLBTimer {"dccrg.initialize_balance_load"};
@@ -721,7 +760,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
 
    // recompute coupling of grids after load balance
    computeCoupling(mpiGrid, cells, technicalGrid);
-
+// std::cerr << __FILE__<<":"<<__LINE__<<"\n";
    // Communicate all spatial data for FULL neighborhood, which
    // includes all data with the exception of dist function data
    SpatialCell::set_mpi_transfer_type(Transfer::ALL_SPATIAL_DATA);
@@ -731,28 +770,30 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    //new partition, re/initialize blocklists of remote cells.
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
       if (P::vlasovSolverGhostTranslate) {
-         updateRemoteVelocityBlockLists(mpiGrid,popID,Neighborhoods::VLASOV_SOLVER_GHOST);
+         for(int timeclass=0; timeclass<=P::currentMaxTimeclass;++timeclass)
+            updateRemoteVelocityBlockLists(mpiGrid,popID,Neighborhoods::VLASOV_SOLVER_GHOST,timeclass);
       } else {
-         updateRemoteVelocityBlockLists(mpiGrid,popID);
+         updateRemoteVelocityBlockLists(mpiGrid,popID, Neighborhoods::DIST_FUNC, -1);
       }
    }
    updateBlocksTimer.stop();
-
-   phiprof::Timer updateBoundariesTimer {"update sysboundaries"};
+// std::cerr << __FILE__<<":"<<__LINE__<<"\n";
+   // phiprof::Timer updateBoundariesTimer {"update sysboundaries"};
    sysBoundaries.updateSysBoundariesAfterLoadBalance( mpiGrid );
-   updateBoundariesTimer.stop();
+   // std::cerr << __FILE__<<":"<<__LINE__<<"\n";
+   // updateBoundariesTimer.stop();
 
    // Prepare ghost translation cell lists and build pencils for translation.
    if (doTranslationLists) {
       prepareAMRLists(mpiGrid);
    }
-
+// std::cerr << __FILE__<<":"<<__LINE__<<"\n";
    // Record ranks of face neighbors for translation remote neighbor contribution
    if (!P::vlasovSolverGhostTranslate) {
       phiprof::Timer timer {"set face neighbor ranks"};
       setFaceNeighborRanks( mpiGrid );
    }
-
+// std::cerr << __FILE__<<":"<<__LINE__<<"\n";
 #ifdef USE_GPU
    phiprof::Timer gpuReservationsTimer("GPU LB set cell reservations");
    uint gpuMaxBlockCount = 0;
@@ -798,8 +839,11 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
  */
 void prepareAMRLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid)
 {
+         // std::cerr << __FILE__<<":" << __LINE__ <<"\n";
+
    // AMR translation lists are used also for non-AMR simulations in GPU mode
    if (P::vlasovSolverGhostTranslate) {
+      // std::cerr << __FILE__<<":" << __LINE__ <<"\n";
       phiprof::Timer ghostTimer {"prepare_ghost_translation_lists"};
 
       // Update (face and other) neighbor information for remote cells on boundary
@@ -808,22 +852,187 @@ void prepareAMRLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
       //const vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(Neighborhoods::VLASOV_SOLVER_GHOST);
       mpiGrid.force_update_cell_neighborhoods(remote_cells);
       updateRemoteNeighborsTimer.stop();
-
+// std::cerr << __FILE__<<":" << __LINE__ <<"\n";
       phiprof::Timer ghostListsTimer {"update active cell lists for ghost translation"};
       const vector<CellID>& localCells = getLocalCells();
-      prepareGhostTranslationCellLists(mpiGrid,localCells);
+
+      prepareGhostTranslationCellLists(mpiGrid, localCells, ghostTranslate_source, ghostTranslate_active);
+// std::cerr << __FILE__<<":" << __LINE__ <<"\n";
       ghostListsTimer.stop();
 
       phiprof::Timer barrierTimer {"MPI barrier"};
       MPI_Barrier(MPI_COMM_WORLD);
       barrierTimer.stop();
-
+// std::cerr << __FILE__<<":" << __LINE__ <<"\n";
       ghostTimer.stop();
    }
+      // std::cerr << __FILE__<<":" << __LINE__ <<"\n";
+   int myRank;
+   MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
 
+   if (P::currentMaxTimeclass > 0 || P::vlasovSolverGhostTranslate) {
+      const vector<CellID>& localCells = getLocalCells();
+      // std::cerr << __FILE__<<":" << __LINE__ <<"\n";
+      const vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(Neighborhoods::VLASOV_SOLVER_GHOST_REQNEIGH);
+      mpiGrid.force_update_cell_neighborhoods(remote_cells);
+
+      for(int i = 0; i <= P::currentMaxTimeclass; ++i){
+         // std::cerr << myRank << ": prepareAMRLists called for timeclass " << i << "\n";
+         set<CellID> tc_active_cells_set;
+         std::vector<CellID> tc_act_cells;
+         if (P::currentMaxTimeclass > 0) {
+            getGhostNeighborsforTC(mpiGrid, localCells, tc_active_cells_set, i);
+            tc_act_cells = std::vector<CellID>(tc_active_cells_set.begin(),tc_active_cells_set.end());
+         } else {
+            tc_act_cells = std::vector<CellID>(localCells.begin(),localCells.end());
+         }
+         timeghost_source[i].clear();
+         timeghost_active[i].clear();
+         // std::cerr << __FILE__<<":"<<__LINE__<<" "<< myRank<<"\n";
+
+         prepareGhostTranslationCellLists(mpiGrid, tc_act_cells, timeghost_source[i], timeghost_active[i], i);
+         // std::cerr << __FILE__<<":"<<__LINE__<<" "<< myRank << " timeclass i " << i <<"\n";
+         MPI_Barrier(MPI_COMM_WORLD);
+
+      }
+   }
+// std::cerr << __FILE__<<":"<<__LINE__<<" "<< myRank << "\n";
    // Prepare cellIDs and pencils for AMR translation
    prepareSeedIdsAndPencils(mpiGrid);
+   // std::cerr << __FILE__<<":"<<__LINE__<<" "<< myRank << "\n";
 }
+
+void getGhostNeighborsforTC(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                              const std::vector<CellID>& cellsToCheckNeighbors, std::set<CellID>& active_cells, int timeclass) {
+   /*
+   1st version
+   every timestep, go through every cell c, and get its ghost neighbours. 
+   Then, for every ghost neighbour, send c's timeclass to its requested_timeclass_ghosts
+   */
+   /*
+   2nd version TODO:
+   every timestep, check if computeNewTimestep changes any cells' timeclass. Then go through v1 functionality.
+   */
+
+   int myRank;
+   MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+
+   std::vector<CellID> tc_cells;
+   //std::copy_if(cellsToCheckNeighbors.begin(),cellsToCheckNeighbors.end(), std::back_inserter(tc_cells), [](CellID c){return (mpiGrid[c]->parameters[CellParams::TIMECLASS])==timeclass;});
+   for(const CellID c : cellsToCheckNeighbors){
+      if(mpiGrid[c]->parameters[CellParams::TIMECLASS] == timeclass){
+         tc_cells.push_back(c);
+      }
+   }
+   set<CellID> exactHaloCells = {};
+
+   // std::cerr << __FILE__<<":"<<__LINE__<<" "<< myRank << ": getGhostNeighborsforTC\n";
+   for (const CellID cell : tc_cells) {
+      auto neighbors = mpiGrid.get_neighbors_of(cell, Neighborhoods::VLASOV_SOLVER_TIMEGHOST_EXACT_HALO);
+      auto& neighborsRef = *neighbors;
+      auto neighborsRemote = mpiGrid.get_remote_neighbors_of(cell, Neighborhoods::VLASOV_SOLVER_TIMEGHOST_EXACT_HALO);
+      auto outerNeighbors = mpiGrid.get_neighbors_of(cell, Neighborhoods::VLASOV_SOLVER_TIMEGHOST_HALODIFF);
+      auto& outerNeighborsRef = *outerNeighbors;
+      auto outerNeighborsRemote = mpiGrid.get_remote_neighbors_of(cell, Neighborhoods::VLASOV_SOLVER_TIMEGHOST_HALODIFF);
+
+
+      // get_neighbours_of returns a pointer to a vector of pairs, and each pairs' first element is the CellID
+      // get_remote_neighbors_of returns a vector of CellIDs
+
+      for (size_t i=0; i<neighborsRef.size(); ++i) {
+         if (mpiGrid[(neighborsRef)[i].first]->parameters[CellParams::TIMECLASS] != timeclass) {
+            mpiGrid[(neighborsRef)[i].first]->requested_timeclass_ghosts.insert(timeclass);
+            exactHaloCells.insert((neighborsRef)[i].first);
+         }
+      }
+      for (size_t i=0; i<neighborsRemote.size(); ++i) {
+         if (mpiGrid[(neighborsRemote)[i]]->parameters[CellParams::TIMECLASS] != timeclass) {
+            mpiGrid[neighborsRemote[i]]->requested_timeclass_ghosts.insert(timeclass);
+            exactHaloCells.insert((neighborsRemote)[i]);
+         }
+      }
+      for (size_t i=0; i<outerNeighborsRef.size(); ++i) {
+            // std::cerr << __FILE__<<":"<<__LINE__<<" "<< myRank<< ": cid " << cell << " looking for " << (outerNeighborsRef)[i].first <<"\n";
+
+         if (mpiGrid[(outerNeighborsRef)[i].first]->parameters[CellParams::TIMECLASS] != timeclass) {
+            if (std::count(neighborsRef.begin(), neighborsRef.end(), (outerNeighborsRef)[i]) > 0) { // should be unnecessary with the halodiff
+               continue;
+            }
+            mpiGrid[(outerNeighborsRef)[i].first]->requested_timeclass_copy_ghosts.insert(timeclass);
+            // exactHaloCells.insert((outerNeighborsRef)[i].first);
+         }
+      }
+      for (size_t i=0; i<outerNeighborsRemote.size(); ++i) {
+         if (mpiGrid[(outerNeighborsRemote)[i]]->parameters[CellParams::TIMECLASS] != timeclass) {
+            if (std::count(neighborsRemote.begin(), neighborsRemote.end(), (outerNeighborsRemote)[i]) > 0) { // should be unnecessary with the halodiff
+               continue;
+            }
+            mpiGrid[outerNeighborsRemote[i]]->requested_timeclass_copy_ghosts.insert(timeclass);
+            // exactHaloCells.insert((outerNeighborsRemote)[i]);
+         }
+      }
+   }
+   // std::cerr << __FILE__<<":"<<__LINE__<<" "<< myRank<<"\n";
+
+   active_cells = set(tc_cells.begin(),tc_cells.end());
+   active_cells.insert(exactHaloCells.begin(),exactHaloCells.end());
+
+   if(false){  // using halodiff above instead
+      for (const CellID cell : active_cells) {
+         // std::cout << "copy checking from " << cell << "\n";
+         auto neighbors = mpiGrid.get_neighbors_of(cell, Neighborhoods::VLASOV_SOLVER_GHOST);
+         if (neighbors == NULL){std::cerr << cell<< "/" << timeclass <<": Null neighbors\n";continue;}
+         auto& neighborsRef = *neighbors;
+         auto neighborsRemote = mpiGrid.get_remote_neighbors_of(cell, Neighborhoods::VLASOV_SOLVER_GHOST);
+
+         // get_neighbours_of returns a pointer to a vector of pairs, and each pairs' first element is the CellID
+         // get_remote_neighbors_of returns a vector of CellIDs
+
+         for (size_t i=0; i<neighborsRef.size(); ++i) {
+            const CellID ncid = (neighborsRef)[i].first;
+            if (std::find(getLocalCells().begin(),getLocalCells().end(),ncid) != getLocalCells().end()){
+               std::cerr << myRank << ": Skipping " << ncid << ": in active_cells " <<  active_cells.count(ncid) << " ghosty: " << (mpiGrid[ncid]->parameters[CellParams::TIMECLASS] != timeclass) << "\n";
+               continue;
+            }
+            std::cerr << myRank << ": Checking " << ncid << ": in active_cells " <<  active_cells.count(ncid) << "\n";
+            std::cerr << myRank << ": mpiGrid[ncid] " << mpiGrid[ncid]<<"\n";
+            // std::cerr << myRank << ": timeclass: " << (mpiGrid[ncid]->parameters[CellParams::TIMECLASS]) << "\n";
+            if (active_cells.count(ncid) == 0 && mpiGrid[ncid]->parameters[CellParams::TIMECLASS] != timeclass) {
+               mpiGrid[ncid]->requested_timeclass_copy_ghosts.insert(timeclass);
+               // std::cout << ncid << " copy_ghost reqs " << timeclass << "\n";
+            }
+         }
+         for (size_t i=0; i<neighborsRemote.size(); ++i) {
+            const CellID ncid = neighborsRemote[i];
+            std::cout << "Checking " << ncid << ": in active_cells " <<  active_cells.count(ncid) << " ghosty: " << (mpiGrid[ncid]->parameters[CellParams::TIMECLASS] != timeclass) << "\n";
+            if (active_cells.count(ncid) == 0 && mpiGrid[ncid]->parameters[CellParams::TIMECLASS] != timeclass) {
+               mpiGrid[ncid]->requested_timeclass_copy_ghosts.insert(timeclass);
+               // std::cout << ncid << " copy_ghost reqs " << timeclass << "\n";
+            }
+         }
+      }
+   }
+
+   if (timeclass == P::currentMaxTimeclass){
+      for(auto c : getLocalCells()){
+         if(mpiGrid[c]->get_all_ghosts().size()==0) continue;
+         // std::cerr << c << ": requests ghosts ";
+         // for(auto g :mpiGrid[c]->requested_timeclass_ghosts){
+         //    std::cerr << g << " ";
+         // }
+         // std::cerr << "; ";
+         // for(auto g :mpiGrid[c]->requested_timeclass_copy_ghosts){
+         //    std::cerr << g << " ";
+         // }
+         // std::cerr << "\n";
+      }
+   }
+      // std::cerr << __FILE__<<":"<<__LINE__<<" "<< myRank<<"\n";
+
+}
+
+
+
 
 /*
   Adjust sparse velocity space to make it consistent in all 6 dimensions.
@@ -833,41 +1042,62 @@ void prepareAMRLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
 bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                           const vector<CellID>& cellsToAdjust,
                           bool doPrepareToReceiveBlocks,
-                          const uint popID) {
+                          const uint popID,
+                          const int timeclass) {
    phiprof::Timer readjustBlocksTimer {"re-adjust blocks", {"Block adjustment"}};
-   SpatialCell::setCommunicatedSpecies(popID);
+   SpatialCell::setCommunicatedSpecies(popID, timeclass);
+   // std::cout << __FILE__<<":" << __LINE__ <<"\n";
+
+   int myRank;
+   MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
 
    // Only adjust simulation cells
    vector<CellID> validCells;
    for (CellID cid: cellsToAdjust) {
       SpatialCell *SC = mpiGrid[cid];
+
       if (SC->sysBoundaryFlag != sysboundarytype::DO_NOT_COMPUTE) {
          validCells.push_back(cid);
       }
    }
 
    // Batch call
-   update_velocity_block_content_lists(mpiGrid,validCells,popID);
+   update_velocity_block_content_lists(mpiGrid,validCells,popID,timeclass);
+   // std::cout << __FILE__<<":" << __LINE__ <<"\n";
 
    // Get updated lists for blocks with content in spatial neighbours
-   phiprof::Timer transferTimer {"Transfer with_content_list", {"MPI"}};
+   phiprof::Timer transferTimer {"Transfer with_content_list", {"MPI"}}; // TODO add neighborhood declarations per TC?
    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_WITH_CONTENT_STAGE1 );
+   // std::cout << __FILE__<<":" << __LINE__ << " (" << myRank <<")\n";
    mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::NEAREST);
+   // std::cout << __FILE__<<":" << __LINE__ << " (" << myRank <<")\n";
    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_WITH_CONTENT_STAGE2 );
+   // std::cout << __FILE__<<":" << __LINE__ << " (" << myRank <<")\n";
    mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::NEAREST);
+   // std::cout << __FILE__<<":" << __LINE__ << " (" << myRank <<")\n";
    transferTimer.stop();
 
    // Batch adjusts velocity blocks in local spatial cells, doesn't adjust velocity blocks in remote cells.
-   adjust_velocity_blocks_in_cells(mpiGrid, validCells, popID);
+   adjust_velocity_blocks_in_cells(mpiGrid, validCells, popID, timeclass);
+   // std::cout << __FILE__<<":" << __LINE__ <<"\n";
 
    // prepare to receive full block data for all cells (irrespective of list of cells to adjust)
    if (doPrepareToReceiveBlocks) {
-      if (P::vlasovSolverGhostTranslate) {
-         updateRemoteVelocityBlockLists(mpiGrid,popID,Neighborhoods::VLASOV_SOLVER_GHOST);
+      if (P::vlasovSolverGhostTranslate) { // TODO add timeclasses for remote
+         if(P::currentMaxTimeclass > 0){
+            updateRemoteVelocityBlockLists(mpiGrid,popID,Neighborhoods::VLASOV_SOLVER_GHOST, timeclass);
+         }
+         else{
+            updateRemoteVelocityBlockLists(mpiGrid,popID,Neighborhoods::VLASOV_SOLVER_GHOST,-1);
+         }
       } else {
-         updateRemoteVelocityBlockLists(mpiGrid,popID);
+         updateRemoteVelocityBlockLists(mpiGrid,popID,Neighborhoods::DIST_FUNC,-1);
       }
    }
+   // std::cerr << __FILE__<<":"<<__LINE__<< "(" << myRank << ") done calling adjustVelocityBlocks at t = " 
+   //       << P::t << "; len cells = " << cellsToAdjust.size() << " timeclass: " << timeclass << "; prepare: " << doPrepareToReceiveBlocks <<
+   //       "\n";
+
    return true;
 }
 
@@ -923,10 +1153,15 @@ copies of remote neighbors for receiving velocity block data.
 void updateRemoteVelocityBlockLists(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const uint popID,
-   const uint neighborhood/*=Neighborhoods::DIST_FUNC default*/
+   const uint neighborhood,/*=Neighborhoods::DIST_FUNC default*/
+   const int timeclass
 )
 {
-   SpatialCell::setCommunicatedSpecies(popID);
+   int myRank;
+   MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+
+   SpatialCell::setCommunicatedSpecies(popID, timeclass);
+   // std::cerr << __FILE__<<":" << __LINE__ << " (" << myRank << ")" << "\n";
 
    // update velocity block lists For small velocity spaces it is
    // faster to do it in one operation, and not by first sending size,
@@ -934,8 +1169,12 @@ void updateRemoteVelocityBlockLists(
    phiprof::Timer updateTimer {"Velocity block list update", {"MPI"}};
    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_STAGE1);
    mpiGrid.update_copies_of_remote_neighbors(neighborhood);
+   // std::cerr << __FILE__<<":" << __LINE__ << " (" << myRank << ")" <<" timeclass " << timeclass <<"\n";
    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_STAGE2);
+   // std::cerr << __FILE__<<":" << __LINE__ << " (" << myRank << ")" <<"\n";
+
    mpiGrid.update_copies_of_remote_neighbors(neighborhood);
+   // std::cerr << __FILE__<<":" << __LINE__ << " (" << myRank << ")" <<"\n";
    updateTimer.stop();
 
    // Prepare spatial cells for receiving velocity block data
@@ -970,8 +1209,10 @@ void updateRemoteVelocityBlockLists(
         #endif
         continue;
      }
-     cell->prepare_to_receive_blocks(popID);
+     cell->prepare_to_receive_blocks(popID, timeclass);
    }
+      // std::cerr << __FILE__<<":" << __LINE__ <<"\n";
+
 
    receivesTimer.stop(incoming_cells.size(), "SpatialCells");
 }
@@ -1046,7 +1287,11 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    typedef dccrg::Types<3>::neighborhood_item_t neigh_t;
 
    // set a reduced neighborhood for nearest neighbours
-   std::vector<neigh_t> neighborhood;
+   std::set<neigh_t> neighborhood;
+   std::set<neigh_t> all_neighborhoods;
+
+   phiprof::Timer stencil1 {"Stencils init 1"};
+
    for (int z = -1; z <= 1; z++) {
       for (int y = -1; y <= 1; y++) {
          for (int x = -1; x <= 1; x++) {
@@ -1054,15 +1299,18 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
                continue;
             }
             neigh_t offsets = {{x, y, z}};
-            neighborhood.push_back(offsets);
+            neighborhood.insert(offsets);
          }
       }
    }
-   if (!mpiGrid.add_neighborhood(Neighborhoods::NEAREST, neighborhood)){
+   for (auto it : neighborhood){
+      all_neighborhoods.emplace(it);
+   }
+   if (!mpiGrid.add_neighborhood(Neighborhoods::NEAREST, std::vector<neigh_t>(neighborhood.begin(), neighborhood.end()))){
       std::cerr << "Failed to add neighborhood Neighborhoods::NEAREST \n";
       abort();
    }
-   if (!mpiGrid.add_neighborhood(Neighborhoods::SYSBOUNDARIES, neighborhood)){
+   if (!mpiGrid.add_neighborhood(Neighborhoods::SYSBOUNDARIES, std::vector<neigh_t>(neighborhood.begin(), neighborhood.end()))){
       std::cerr << "Failed to add neighborhood Neighborhoods::SYSBOUNDARIES \n";
       abort();
    }
@@ -1075,48 +1323,34 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
                continue;
             }
             neigh_t offsets = {{x, y, z}};
-            neighborhood.push_back(offsets);
+            neighborhood.insert(offsets);
          }
       }
    }
-   if (!mpiGrid.add_neighborhood(Neighborhoods::SYSBOUNDARIES_EXTENDED, neighborhood)){
+   for (auto it : neighborhood){
+      all_neighborhoods.emplace(it);
+   }
+   if (!mpiGrid.add_neighborhood(Neighborhoods::SYSBOUNDARIES_EXTENDED, std::vector<neigh_t>(neighborhood.begin(), neighborhood.end()))){
       std::cerr << "Failed to add neighborhood Neighborhoods::SYSBOUNDARIES_EXTENDED \n";
       abort();
    }
 
-   int full_neighborhood_size = max(2, VLASOV_STENCIL_WIDTH);
-   if (P::vlasovSolverGhostTranslate) {
-      // One extra layer for translation of ghost cells
-      full_neighborhood_size++;
-   }
-   neighborhood.clear();
-   for (int z = -full_neighborhood_size; z <= full_neighborhood_size; z++) {
-      for (int y = -full_neighborhood_size; y <= full_neighborhood_size; y++) {
-         for (int x = -full_neighborhood_size; x <= full_neighborhood_size; x++) {
-            if (x == 0 && y == 0 && z == 0) {
-               continue;
-            }
-            neigh_t offsets = {{x, y, z}};
-            neighborhood.push_back(offsets);
-         }
-      }
-   }
-   /*all possible communication pairs*/
-   if( !mpiGrid.add_neighborhood(Neighborhoods::FULL, neighborhood)){
-      std::cerr << "Failed to add neighborhood Neighborhoods::FULL \n";
-      abort();
-   }
+   stencil1.stop();
+   phiprof::Timer stencil2 {"Stencils init 2"};
 
    /*stencils for semilagrangian propagators*/
    neighborhood.clear();
    for (int d = -VLASOV_STENCIL_WIDTH; d <= VLASOV_STENCIL_WIDTH; d++) {
      if (d != 0) {
-        neighborhood.push_back({{d, 0, 0}});
-        neighborhood.push_back({{0, d, 0}});
-        neighborhood.push_back({{0, 0, d}});
+        neighborhood.insert({{d, 0, 0}});
+        neighborhood.insert({{0, d, 0}});
+        neighborhood.insert({{0, 0, d}});
      }
    }
-   if( !mpiGrid.add_neighborhood(Neighborhoods::VLASOV_SOLVER, neighborhood)){
+   for (auto it : neighborhood){
+      all_neighborhoods.emplace(it);
+   }
+   if( !mpiGrid.add_neighborhood(Neighborhoods::VLASOV_SOLVER, std::vector<neigh_t>(neighborhood.begin(), neighborhood.end()))){
       std::cerr << "Failed to add neighborhood Neighborhoods::VLASOV_SOLVER \n";
       abort();
    }
@@ -1130,22 +1364,27 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
             if (x == 0 && z == 0 ) continue;
             if (y == 0 && z == 0 ) continue;
             neigh_t offsets = {{x, y, z}};
-            neighborhood.push_back(offsets);
+            neighborhood.insert(offsets);
          }
       }
    }
-   if( !mpiGrid.add_neighborhood(Neighborhoods::DIST_FUNC, neighborhood)){
+   for (auto it : neighborhood){
+      all_neighborhoods.emplace(it);
+   }
+   if( !mpiGrid.add_neighborhood(Neighborhoods::DIST_FUNC, std::vector<neigh_t>(neighborhood.begin(), neighborhood.end()))){
       std::cerr << "Failed to add neighborhood Neighborhoods::DIST_FUNC \n";
       abort();
    }
-
    neighborhood.clear();
    for (int d = -VLASOV_STENCIL_WIDTH; d <= VLASOV_STENCIL_WIDTH; d++) {
      if (d != 0) {
-        neighborhood.push_back({{d, 0, 0}});
+        neighborhood.insert({{d, 0, 0}});
      }
    }
-   if( !mpiGrid.add_neighborhood(Neighborhoods::VLASOV_SOLVER_X, neighborhood)){
+   for (auto it : neighborhood){
+      all_neighborhoods.emplace(it);
+   }
+   if( !mpiGrid.add_neighborhood(Neighborhoods::VLASOV_SOLVER_X, std::vector<neigh_t>(neighborhood.begin(), neighborhood.end()))){
       std::cerr << "Failed to add neighborhood Neighborhoods::VLASOV_SOLVER_X \n";
       abort();
    }
@@ -1153,10 +1392,13 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    neighborhood.clear();
    for (int d = -VLASOV_STENCIL_WIDTH; d <= VLASOV_STENCIL_WIDTH; d++) {
      if (d != 0) {
-        neighborhood.push_back({{0, d, 0}});
+        neighborhood.insert({{0, d, 0}});
      }
    }
-   if( !mpiGrid.add_neighborhood(Neighborhoods::VLASOV_SOLVER_Y, neighborhood)){
+   for (auto it : neighborhood){
+      all_neighborhoods.emplace(it);
+   }
+   if( !mpiGrid.add_neighborhood(Neighborhoods::VLASOV_SOLVER_Y, std::vector<neigh_t>(neighborhood.begin(), neighborhood.end()))){
       std::cerr << "Failed to add neighborhood Neighborhoods::VLASOV_SOLVER_Y \n";
       abort();
    }
@@ -1164,33 +1406,169 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    neighborhood.clear();
    for (int d = -VLASOV_STENCIL_WIDTH; d <= VLASOV_STENCIL_WIDTH; d++) {
      if (d != 0) {
-        neighborhood.push_back({{0, 0, d}});
+        neighborhood.insert({{0, 0, d}});
      }
    }
-   if (!mpiGrid.add_neighborhood(Neighborhoods::VLASOV_SOLVER_Z, neighborhood)){
+   for (auto it : neighborhood){
+      all_neighborhoods.emplace(it);
+   }
+   if (!mpiGrid.add_neighborhood(Neighborhoods::VLASOV_SOLVER_Z, std::vector<neigh_t>(neighborhood.begin(), neighborhood.end()))){
       std::cerr << "Failed to add neighborhood Neighborhoods::VLASOV_SOLVER_Z \n";
       abort();
    }
+   neighborhood.clear();
+
+   stencil2.stop();
+   phiprof::Timer stencil3 {"Stencils init 3"};
+
+   // neighborhood.clear();
+   // for (int d = -VLASOV_STENCIL_WIDTH-3; d <= VLASOV_STENCIL_WIDTH+3; d++) {
+   //    if (d != 0) {
+   //       neighborhood.insert({{d, 0, 0}});
+   //    }
+   // }
+   // for (auto it : neighborhood){
+   //    all_neighborhoods.emplace(it);
+   // }
+   // if (!mpiGrid.add_neighborhood(VLASOV_SOLVER_X_GHOST_NEIGHBORHOOD_ID, neighborhood)) {
+   //    std::cerr << "Failed to add neighborhood VLASOV_SOLVER_X_GHOST_NEIGHBORHOOD_ID \n";
+   //    abort();
+   // }
+
+   // neighborhood.clear();
+   // for (int d = -VLASOV_STENCIL_WIDTH-3; d <= VLASOV_STENCIL_WIDTH+3; d++) {
+   //    if (d != 0) {
+   //       neighborhood.push_back({{0, d, 0}});
+   //    }
+   // }
+   // if (!mpiGrid.add_neighborhood(VLASOV_SOLVER_Y_GHOST_NEIGHBORHOOD_ID, neighborhood)) {
+   //    std::cerr << "Failed to add neighborhood VLASOV_SOLVER_Y_GHOST_NEIGHBORHOOD_ID \n";
+   //    abort();
+   // }
+
+   // neighborhood.clear();
+   // for (int d = -VLASOV_STENCIL_WIDTH-3; d <= VLASOV_STENCIL_WIDTH+3; d++) {
+   //    if (d != 0) {
+   //       neighborhood.push_back({{0, 0, d}});
+   //    }
+   // }
+   // if (!mpiGrid.add_neighborhood(VLASOV_SOLVER_Z_GHOST_NEIGHBORHOOD_ID, neighborhood)) {
+   //    std::cerr << "Failed to add neighborhood VLASOV_SOLVER_Z_GHOST_NEIGHBORHOOD_ID \n";
+   //    abort();
+   // }
+
+
+   // if (P::vlasovSolverGhostTranslate) {
+   //    neighborhood.clear();
+   //    for (int d = -VLASOV_STENCIL_WIDTH-1; d <= VLASOV_STENCIL_WIDTH+1; d++) {
+   //       if (d != 0) {
+   //          neighborhood.push_back({{d, 0, 0}});
+   //       }
+   //    }
+   //    if (!mpiGrid.add_neighborhood(VLASOV_SOLVER_X_GHOST_NEIGHBORHOOD_ID, neighborhood)){
+   //       std::cerr << "Failed to add neighborhood VLASOV_SOLVER_X_GHOST_NEIGHBORHOOD_ID \n";
+   //       abort();
+   //    }
+
+   //    neighborhood.clear();
+   //    for (int d = -VLASOV_STENCIL_WIDTH-1; d <= VLASOV_STENCIL_WIDTH+1; d++) {
+   //       if (d != 0) {
+   //          neighborhood.push_back({{0, d, 0}});
+   //       }
+   //    }
+   //    if (!mpiGrid.add_neighborhood(VLASOV_SOLVER_Y_GHOST_NEIGHBORHOOD_ID, neighborhood)){
+   //       std::cerr << "Failed to add neighborhood VLASOV_SOLVER_Y_GHOST_NEIGHBORHOOD_ID \n";
+   //       abort();
+   //    }
+
+   //    neighborhood.clear();
+   //    for (int d = -VLASOV_STENCIL_WIDTH-1; d <= VLASOV_STENCIL_WIDTH+1; d++) {
+   //       if (d != 0) {
+   //          neighborhood.push_back({{0, 0, d}});
+   //       }
+   //    }
+   //    if (!mpiGrid.add_neighborhood(VLASOV_SOLVER_Z_GHOST_NEIGHBORHOOD_ID, neighborhood)){
+   //       std::cerr << "Failed to add neighborhood VLASOV_SOLVER_Z_GHOST_NEIGHBORHOOD_ID \n";
+   //       abort();
+   //    }
+
+   //    // Ghost translation required stencils
+   //    neighborhood.clear();
+   //    // First: full +GT stencil in Y (last direction to be translated)
+   //    for (int dy = -VLASOV_STENCIL_WIDTH-1; dy <= VLASOV_STENCIL_WIDTH+1; dy++){
+   //       if (dy != 0) {
+   //          neighborhood.push_back({{0, dy, 0}});
+   //       }
+   //    }
+   //    // Then: full + GT extensions in X from Y-translated cells
+   //    for (int dy = -P::vlasovSolverGhostTranslateExtent; dy <= (int)P::vlasovSolverGhostTranslateExtent; dy++){
+   //       for (int dx = -VLASOV_STENCIL_WIDTH-1; dx <= VLASOV_STENCIL_WIDTH+1; dx++){
+   //          if (dx != 0) {
+   //             neighborhood.push_back({{dx, dy, 0}});
+   //          }
+   //       }
+   //    }
+   //    // Then: full + GT extensions in Z from Y->X translated cells
+   //    for (int dy = -P::vlasovSolverGhostTranslateExtent; dy <= (int)P::vlasovSolverGhostTranslateExtent; dy++){
+   //       for (int dx = -P::vlasovSolverGhostTranslateExtent; dx <= (int)P::vlasovSolverGhostTranslateExtent; dx++){
+   //          for (int dz = -VLASOV_STENCIL_WIDTH-1; dz <= VLASOV_STENCIL_WIDTH+1; dz++){
+   //             if (dz != 0) {
+   //                neighborhood.push_back({{dx, dy, dz}});
+   //             }
+   //          }
+   //       }
+   //    }
+   //    if (!mpiGrid.add_neighborhood(VLASOV_SOLVER_GHOST_NEIGHBORHOOD_ID, neighborhood)){
+   //       std::cerr << "Failed to add neighborhood VLASOV_SOLVER_GHOST_NEIGHBORHOOD_ID \n";
+   //       abort();
+   //    }
+
+   //    // Ghost translation neighbourhood where we need to have neighbour information
+   //    neighborhood.clear();
+   //    for (int dy = -(int)P::vlasovSolverGhostTranslateExtent; dy <= (int)P::vlasovSolverGhostTranslateExtent; dy++){
+   //       for (int dx = -(int)P::vlasovSolverGhostTranslateExtent; dx <= (int)P::vlasovSolverGhostTranslateExtent; dx++){
+   //          for (int dz = -(int)P::vlasovSolverGhostTranslateExtent; dz <= (int)P::vlasovSolverGhostTranslateExtent; dz++){
+   //             if ((dz==0) && (dy==0) && (dx==0)) {
+   //                continue;
+   //             }
+   //             neighborhood.push_back({{dx, dy, dz}});
+   //          }
+   //       }
+   //    }
+   //    if (!mpiGrid.add_neighborhood(VLASOV_SOLVER_GHOST_REQNEIGH_NEIGHBORHOOD_ID, neighborhood)){
+   //       std::cerr << "Failed to add neighborhood VLASOV_SOLVER_GHOST_REQNEIGH_NEIGHBORHOOD_ID \n";
+   //       abort();
+   //    }
+   // }
+
+   std::stringstream ss;
 
    if (P::vlasovSolverGhostTranslate) {
       neighborhood.clear();
       for (int d = -VLASOV_STENCIL_WIDTH-1; d <= VLASOV_STENCIL_WIDTH+1; d++) {
          if (d != 0) {
-            neighborhood.push_back({{d, 0, 0}});
+            neighborhood.insert({{d, 0, 0}});
          }
       }
-      if (!mpiGrid.add_neighborhood(Neighborhoods::VLASOV_SOLVER_X_GHOST, neighborhood)){
+      for (auto it : neighborhood){
+         all_neighborhoods.emplace(it);
+      }
+      if (!mpiGrid.add_neighborhood(Neighborhoods::VLASOV_SOLVER_X_GHOST, std::vector<neigh_t>(neighborhood.begin(), neighborhood.end()))){
          std::cerr << "Failed to add neighborhood Neighborhoods::VLASOV_SOLVER_X_GHOST \n";
          abort();
       }
 
+      
       neighborhood.clear();
       for (int d = -VLASOV_STENCIL_WIDTH-1; d <= VLASOV_STENCIL_WIDTH+1; d++) {
          if (d != 0) {
-            neighborhood.push_back({{0, d, 0}});
+            neighborhood.insert({{0, d, 0}});
          }
       }
-      if (!mpiGrid.add_neighborhood(Neighborhoods::VLASOV_SOLVER_Y_GHOST, neighborhood)){
+      for (auto it : neighborhood){
+         all_neighborhoods.emplace(it);
+      }
+      if (!mpiGrid.add_neighborhood(Neighborhoods::VLASOV_SOLVER_Y_GHOST, std::vector<neigh_t>(neighborhood.begin(), neighborhood.end()))){
          std::cerr << "Failed to add neighborhood Neighborhoods::VLASOV_SOLVER_Y_GHOST \n";
          abort();
       }
@@ -1198,10 +1576,13 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       neighborhood.clear();
       for (int d = -VLASOV_STENCIL_WIDTH-1; d <= VLASOV_STENCIL_WIDTH+1; d++) {
          if (d != 0) {
-            neighborhood.push_back({{0, 0, d}});
+            neighborhood.insert({{0, 0, d}});
          }
       }
-      if (!mpiGrid.add_neighborhood(Neighborhoods::VLASOV_SOLVER_Z_GHOST, neighborhood)){
+      for (auto it : neighborhood){
+         all_neighborhoods.emplace(it);
+      }
+      if (!mpiGrid.add_neighborhood(Neighborhoods::VLASOV_SOLVER_Z_GHOST, std::vector<neigh_t>(neighborhood.begin(), neighborhood.end()))){
          std::cerr << "Failed to add neighborhood Neighborhoods::VLASOV_SOLVER_Z_GHOST \n";
          abort();
       }
@@ -1211,14 +1592,15 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       // First: full +GT stencil in Y (last direction to be translated)
       for (int dy = -VLASOV_STENCIL_WIDTH-1; dy <= VLASOV_STENCIL_WIDTH+1; dy++){
          if (dy != 0) {
-            neighborhood.push_back({{0, dy, 0}});
+            neighborhood.insert({{0, dy, 0}});
          }
       }
+
       // Then: full + GT extensions in X from Y-translated cells
       for (int dy = -P::vlasovSolverGhostTranslateExtent; dy <= (int)P::vlasovSolverGhostTranslateExtent; dy++){
          for (int dx = -VLASOV_STENCIL_WIDTH-1; dx <= VLASOV_STENCIL_WIDTH+1; dx++){
             if (dx != 0) {
-               neighborhood.push_back({{dx, dy, 0}});
+               neighborhood.insert({{dx, dy, 0}});
             }
          }
       }
@@ -1227,12 +1609,15 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
          for (int dx = -P::vlasovSolverGhostTranslateExtent; dx <= (int)P::vlasovSolverGhostTranslateExtent; dx++){
             for (int dz = -VLASOV_STENCIL_WIDTH-1; dz <= VLASOV_STENCIL_WIDTH+1; dz++){
                if (dz != 0) {
-                  neighborhood.push_back({{dx, dy, dz}});
+                  neighborhood.insert({{dx, dy, dz}});
                }
             }
          }
       }
-      if (!mpiGrid.add_neighborhood(Neighborhoods::VLASOV_SOLVER_GHOST, neighborhood)){
+      for (auto it : neighborhood){
+         all_neighborhoods.emplace(it);
+      }
+      if (!mpiGrid.add_neighborhood(Neighborhoods::VLASOV_SOLVER_GHOST, std::vector<neigh_t>(neighborhood.begin(), neighborhood.end()))){
          std::cerr << "Failed to add neighborhood Neighborhoods::VLASOV_SOLVER_GHOST \n";
          abort();
       }
@@ -1245,23 +1630,109 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
                if ((dz==0) && (dy==0) && (dx==0)) {
                   continue;
                }
-               neighborhood.push_back({{dx, dy, dz}});
+               neighborhood.insert({{dx, dy, dz}});
             }
          }
       }
-      if (!mpiGrid.add_neighborhood(Neighborhoods::VLASOV_SOLVER_GHOST_REQNEIGH, neighborhood)){
+      if (!mpiGrid.add_neighborhood(Neighborhoods::VLASOV_SOLVER_GHOST_REQNEIGH, std::vector<neigh_t>(neighborhood.begin(), neighborhood.end()))){
          std::cerr << "Failed to add neighborhood Neighborhoods::VLASOV_SOLVER_GHOST_REQNEIGH \n";
          abort();
       }
    }
+   stencil3.stop();
+
+
+   if (P::initialMaxTimeclass > 0) {
+      phiprof::Timer timeclassInner {"Stencils init, timeclass, inner"};
+      neighborhood.clear();
+      // stencils for timeghost haloes
+      // first one using timeclassexacthaloextent = vlasovSolverGhostTranslateExtent
+      // First: full +GT stencil in Y (last direction to be translated)
+      for (int dy = -VLASOV_STENCIL_WIDTH-1; dy <= VLASOV_STENCIL_WIDTH+1; dy++){
+         if (dy != 0) {
+            neighborhood.insert({{0, dy, 0}});
+         }
+      }
+
+      // Then: full + GT extensions in X from Y-translated cells
+      for (int dy = -P::timeclassExactHaloExtent; dy <= (int)P::timeclassExactHaloExtent; dy++){
+         for (int dx = -VLASOV_STENCIL_WIDTH-1; dx <= VLASOV_STENCIL_WIDTH+1; dx++){
+            if (dx != 0) {
+               neighborhood.insert({{dx, dy, 0}});
+            }
+         }
+      }
+      // Then: full + GT extensions in Z from Y->X translated cells
+      for (int dy = -P::timeclassExactHaloExtent; dy <= (int)P::timeclassExactHaloExtent; dy++){
+         for (int dx = -P::timeclassExactHaloExtent; dx <= (int)P::timeclassExactHaloExtent; dx++){
+            for (int dz = -VLASOV_STENCIL_WIDTH-1; dz <= VLASOV_STENCIL_WIDTH+1; dz++){
+               if (dz != 0) {
+                  neighborhood.insert({{dx, dy, dz}});
+               }
+            }
+         }
+      }
+      for (auto it : neighborhood){
+         all_neighborhoods.emplace(it);
+      }
+      if (!mpiGrid.add_neighborhood(Neighborhoods::VLASOV_SOLVER_TIMEGHOST_EXACT_HALO, std::vector<neigh_t>(neighborhood.begin(), neighborhood.end()))){
+         std::cerr << "Failed to add neighborhood Neighborhoods::VLASOV_SOLVER_TIMEGHOST_EXACT_HALO_NEIGHBORHOOD_ID \n";
+         abort();
+      }
+
+      // second one using timeclassouterhaloextent
+      // neighborhood.clear();
+      timeclassInner.stop();
+      phiprof::Timer timeclassOuter {"Stencils init, timeclass, outer"};
+      std::set<neigh_t> neighborhood_outer;
+
+      for(auto n : neighborhood){
+
+         for (int dy = -(int)P::timeclassOuterHaloExtent; dy <= (int)P::timeclassOuterHaloExtent; dy++){
+            for (int dx = -(int)P::timeclassOuterHaloExtent; dx <= (int)P::timeclassOuterHaloExtent; dx++){
+               for (int dz = -(int)P::timeclassOuterHaloExtent; dz <= (int)P::timeclassOuterHaloExtent; dz++){
+                  neigh_t offsets = {{n[0]+dx, n[1]+dy, n[2]+dz}};
+                  if ((dz+n[2]==0) && (dy+n[1]==0) && (dx+n[0]==0)) {
+                     continue;
+                  }
+                   neighborhood_outer.insert({{dx+n[0], dy+n[1], dz+n[2]}});
+               }
+            }
+         }
+      }
+      for (auto it : neighborhood_outer){
+         all_neighborhoods.emplace(it);
+      }
+      if (!mpiGrid.add_neighborhood(Neighborhoods::VLASOV_SOLVER_TIMEGHOST_OUTER_HALO, std::vector<neigh_t>(neighborhood_outer.begin(), neighborhood_outer.end()))){
+         std::cerr << "Failed to add neighborhood VLASOV_SOLVER_TIMEGHOST_OUTER_HALO_NEIGHBORHOOD_ID \n";
+         abort();
+      }
+
+      timeclassOuter.stop();
+      phiprof::Timer timeclassDiff {"Stencils init, timeclass, diff"};
+      // third one using the other two's difference
+      std::set<neigh_t> neighborhood_diff;
+      std::set_difference(neighborhood_outer.begin(), neighborhood_outer.end(), neighborhood.begin(), neighborhood.end(), std::inserter(neighborhood_diff, neighborhood_diff.begin()));
+
+      if (!mpiGrid.add_neighborhood(Neighborhoods::VLASOV_SOLVER_TIMEGHOST_HALODIFF, std::vector<neigh_t>(neighborhood_diff.begin(), neighborhood_diff.end()))){
+         std::cerr << "Failed to add neighborhood VLASOV_SOLVER_TIMEGHOST_HALODIFF_NEIGHBORHOOD_ID \n";
+         abort();
+      }
+   }
+
+
+   phiprof::Timer stencil5 {"Stencils init 5"};
 
    neighborhood.clear();
    for (int d = -1; d <= 1; d++) {
       if (d != 0) {
-         neighborhood.push_back({{d, 0, 0}});
+         neighborhood.insert({{d, 0, 0}});
       }
    }
-   if (!mpiGrid.add_neighborhood(Neighborhoods::VLASOV_SOLVER_TARGET_X, neighborhood)){
+   for (auto it : neighborhood){
+         all_neighborhoods.emplace(it);
+      }
+   if (!mpiGrid.add_neighborhood(Neighborhoods::VLASOV_SOLVER_TARGET_X, std::vector<neigh_t>(neighborhood.begin(), neighborhood.end()))){
       std::cerr << "Failed to add neighborhood Neighborhoods::VLASOV_SOLVER_TARGET_X \n";
       abort();
    }
@@ -1269,10 +1740,13 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    neighborhood.clear();
    for (int d = -1; d <= 1; d++) {
       if (d != 0) {
-         neighborhood.push_back({{0, d, 0}});
+         neighborhood.insert({{0, d, 0}});
       }
    }
-   if (!mpiGrid.add_neighborhood(Neighborhoods::VLASOV_SOLVER_TARGET_Y, neighborhood)){
+   for (auto it : neighborhood){
+         all_neighborhoods.emplace(it);
+      }
+   if (!mpiGrid.add_neighborhood(Neighborhoods::VLASOV_SOLVER_TARGET_Y, std::vector<neigh_t>(neighborhood.begin(), neighborhood.end()))){
       std::cerr << "Failed to add neighborhood Neighborhoods::VLASOV_SOLVER_TARGET_Y \n";
       abort();
    }
@@ -1280,50 +1754,143 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    neighborhood.clear();
    for (int d = -1; d <= 1; d++) {
       if (d != 0) {
-         neighborhood.push_back({{0, 0, d}});
+         neighborhood.insert({{0, 0, d}});
       }
    }
-   if (!mpiGrid.add_neighborhood(Neighborhoods::VLASOV_SOLVER_TARGET_Z, neighborhood)){
+   for (auto it : neighborhood){
+         all_neighborhoods.emplace(it);
+      }
+   if (!mpiGrid.add_neighborhood(Neighborhoods::VLASOV_SOLVER_TARGET_Z, std::vector<neigh_t>(neighborhood.begin(), neighborhood.end()))){
       std::cerr << "Failed to add neighborhood Neighborhoods::VLASOV_SOLVER_TARGET_Z \n";
       abort();
    }
 
    neighborhood.clear();
-   neighborhood.push_back({{1, 0, 0}});
-   if (!mpiGrid.add_neighborhood(Neighborhoods::SHIFT_M_X, neighborhood)){
+   neighborhood.insert({{1, 0, 0}});
+   for (auto it : neighborhood){
+      all_neighborhoods.emplace(it);
+   }
+   if (!mpiGrid.add_neighborhood(Neighborhoods::SHIFT_M_X, std::vector<neigh_t>(neighborhood.begin(), neighborhood.end()))){
       std::cerr << "Failed to add neighborhood Neighborhoods::SHIFT_M_X \n";
       abort();
    }
    neighborhood.clear();
-   neighborhood.push_back({{0, 1, 0}});
-   if (!mpiGrid.add_neighborhood(Neighborhoods::SHIFT_M_Y, neighborhood)){
+   neighborhood.insert({{0, 1, 0}});
+   for (auto it : neighborhood){
+      all_neighborhoods.emplace(it);
+   }
+   if (!mpiGrid.add_neighborhood(Neighborhoods::SHIFT_M_Y, std::vector<neigh_t>(neighborhood.begin(), neighborhood.end()))){
       std::cerr << "Failed to add neighborhood Neighborhoods::SHIFT_M_Y \n";
       abort();
    }
    neighborhood.clear();
-   neighborhood.push_back({{0, 0, 1}});
-   if (!mpiGrid.add_neighborhood(Neighborhoods::SHIFT_M_Z, neighborhood)){
+   neighborhood.insert({{0, 0, 1}});
+   for (auto it : neighborhood){
+      all_neighborhoods.emplace(it);
+   }
+   if (!mpiGrid.add_neighborhood(Neighborhoods::SHIFT_M_Z, std::vector<neigh_t>(neighborhood.begin(), neighborhood.end()))){
       std::cerr << "Failed to add neighborhood Neighborhoods::SHIFT_M_Z \n";
       abort();
    }
    neighborhood.clear();
-   neighborhood.push_back({{-1, 0, 0}});
-   if (!mpiGrid.add_neighborhood(Neighborhoods::SHIFT_P_X, neighborhood)){
+   neighborhood.insert({{-1, 0, 0}});
+   for (auto it : neighborhood){
+      all_neighborhoods.emplace(it);
+   }
+   if (!mpiGrid.add_neighborhood(Neighborhoods::SHIFT_P_X, std::vector<neigh_t>(neighborhood.begin(), neighborhood.end()))){
       std::cerr << "Failed to add neighborhood Neighborhoods::SHIFT_P_X \n";
       abort();
    }
    neighborhood.clear();
-   neighborhood.push_back({{0, -1, 0}});
-   if (!mpiGrid.add_neighborhood(Neighborhoods::SHIFT_P_Y, neighborhood)){
+   neighborhood.insert({{0, -1, 0}});
+   for (auto it : neighborhood){
+      all_neighborhoods.emplace(it);
+   }
+   if (!mpiGrid.add_neighborhood(Neighborhoods::SHIFT_P_Y, std::vector<neigh_t>(neighborhood.begin(), neighborhood.end()))){
       std::cerr << "Failed to add neighborhood Neighborhoods::SHIFT_P_Y \n";
       abort();
    }
    neighborhood.clear();
-   neighborhood.push_back({{0, 0, -1}});
-   if (!mpiGrid.add_neighborhood(Neighborhoods::SHIFT_P_Z, neighborhood)){
+   neighborhood.insert({{0, 0, -1}});
+   for (auto it : neighborhood){
+      all_neighborhoods.emplace(it);
+   }
+   if (!mpiGrid.add_neighborhood(Neighborhoods::SHIFT_P_Z, std::vector<neigh_t>(neighborhood.begin(), neighborhood.end()))){
       std::cerr << "Failed to add neighborhood Neighborhoods::SHIFT_P_Z \n";
       abort();
    }
+
+   // // Extra-large neighbourhood for use in local translation. Note: if the AMR translation flag is not used, memory
+   // // usage can grow in an uncontrolled fashion due to extra-large ghost regions.
+   // // This is also asymmetric due to translation direction order. For now assumes VLASOV_STENCIL_WIDTH=2.
+   // neighborhood.clear();
+   // for (int y = 1; y <= VLASOV_STENCIL_WIDTH+3; y++) {
+   //    neighborhood.push_back({{ 0, y, 0}});
+   //    neighborhood.push_back({{ 0,-y, 0}});
+   // }
+   // for (int y = -1; y <= 1; y++) {
+   //    for (int x = 1; x <= VLASOV_STENCIL_WIDTH+4; x++) {
+   //       neighborhood.push_back({{ x, y, 0}});
+   //       neighborhood.push_back({{-x, y, 0}});
+   //    }
+   // }
+   // for (int y = -1; y <= 1; y++) {
+   //    for (int x = -2; x <= 2; x++) {
+   //       for (int z = 1; z <= VLASOV_STENCIL_WIDTH+4; z++) {
+   //          neighborhood.push_back({{ x, y, z}});
+   //          neighborhood.push_back({{ x, y,-z}});
+   //       }
+   //    }
+   // }
+   // for (auto it : neighborhood){
+   //       all_neighborhoods.emplace(it);
+   //    }
+   // if(!mpiGrid.add_neighborhood(Neighborhoods::VLASOV_SOLVER_GHOST, neighborhood)){
+   //    std::cerr << "Failed to add neighborhood VLASOV_SOLVER_GHOST_NEIGHBORHOOD_ID \n";
+   //    abort();
+   // }
+
+      int full_neighborhood_size = max(2, VLASOV_STENCIL_WIDTH);
+   if (P::vlasovSolverGhostTranslate) {
+      // One extra layer for translation of ghost cells
+      full_neighborhood_size++;
+      if (P::initialMaxTimeclass > 0){
+         full_neighborhood_size = max(full_neighborhood_size, P::timeclassOuterHaloExtent+P::timeclassExactHaloExtent);
+      }
+   }
+   neighborhood.clear();
+   for (int z = -full_neighborhood_size; z <= full_neighborhood_size; z++) {
+      for (int y = -full_neighborhood_size; y <= full_neighborhood_size; y++) {
+         for (int x = -full_neighborhood_size; x <= full_neighborhood_size; x++) {
+            if (x == 0 && y == 0 && z == 0) {
+               continue;
+            }
+            neigh_t offsets = {{x, y, z}};
+            neighborhood.insert(offsets);
+         }
+      }
+   }
+   for (auto it : neighborhood){
+      all_neighborhoods.emplace(it);
+   }
+
+   neighborhood.clear();
+   ss.clear();
+   ss << "All: ";
+   for (auto n:all_neighborhoods){
+      neighborhood.insert(n);
+      ss << "("<<n[0]<<","<<n[1]<<","<<n[2]<<")";
+      }
+   ss << "\n";
+   //std::cerr <<ss.str();
+
+   /*all possible communication pairs*/
+   if( !mpiGrid.add_neighborhood(Neighborhoods::FULL, std::vector<neigh_t>(neighborhood.begin(), neighborhood.end()))){
+      std::cerr << "Failed to add neighborhood Neighborhoods::FULL \n";
+      abort();
+   }
+
+   return;
 }
 
 void mapRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
@@ -1484,7 +2051,8 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
    // Update as ghost cell refLevels may have changed
    technicalGrid.updateGhostCells();
    for (size_t popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-      updateRemoteVelocityBlockLists(mpiGrid, popID, Neighborhoods::NEAREST);
+      for(int timeclass=0;timeclass<P::currentMaxTimeclass; ++timeclass)
+         updateRemoteVelocityBlockLists(mpiGrid, popID, Neighborhoods::NEAREST,timeclass);
    }
 
    if (P::shouldFilter) {

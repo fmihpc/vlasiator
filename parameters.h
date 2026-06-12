@@ -53,7 +53,41 @@ struct Parameters {
    static Real t_min; /*!< Initial simulation time. */
    static Real t_max; /*!< Maximum simulation time. */
    static Real dt;    /*!< The value of the timestep to use in propagation. If CflLimit defined then it is dynamically
-                         updated during simulation*/
+                         updated during simulation
+                         Choosing this now to be the shortest TC timestep
+                         */
+   static Real dt0;   /*! Initial input of dt, for debugging */
+                         
+   static std::vector<Real> timeclassDt;
+   static std::vector<Real> timeclassTime;
+   static int fractionalTimestep;
+   static int myTimeclass; // hrm. The timeclass of this rank - not a great place for this.
+   static int currentMaxTimeclass;
+   static int initialMaxTimeclass;
+   static int timeclassBuffer;
+   static bool dynamicTimeclasses;
+   static Real timeclassDomainModifier;
+   static Real dtUpdateModifier;
+   static Real dtSettingModifier;   
+   static int timeclassLBmantissa;
+   static bool tc_leapfrog_init;
+   static int tc_test_type;
+   static int tcMomentInterpolationType;
+   static bool tcVMomentPropagation;
+   static int timeclassExactHaloExtent;
+   static int timeclassOuterHaloExtent;
+
+   static bool tcDebugBox;          // Force timeclass 1 with the box
+   static int tcOverrideTimeclass;  // Set fixed timeclass everywhere [debugging, default -1 i.e. off]
+   static bool tcRankwise;          // are cell timeclasses chosen by MPI rank? 
+   static bool forcedConvection;
+
+   static Realf tcBoxHalfWidthX;
+   static Realf tcBoxHalfWidthY;
+   static Realf tcBoxHalfWidthZ;
+   static Realf tcBoxCenterX;
+   static Realf tcBoxCenterY;
+   static Realf tcBoxCenterZ;
    static Real dt_ceil; /*!< The maximum value of the timestep to use in propagation. */
 
    static Real vlasovSolverMaxCFL;   /*!< The maximum CFL limit for propagation of distribution function. Used to set

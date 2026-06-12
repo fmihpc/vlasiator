@@ -46,10 +46,11 @@ void compute_cell_intersections(
         const uint popID,
         const uint map_order,
         const Real& dt,
-        int intersections_id
+        int intersections_id,
+        int timeclass
    ) {
-   vmesh::VelocityMesh* vmesh    = spatial_cell->get_velocity_mesh(popID);
-   spatial_cell::Population& pop = spatial_cell->get_population(popID);
+   vmesh::VelocityMesh* vmesh    = spatial_cell->get_velocity_mesh(popID, timeclass);
+   spatial_cell::Population& pop = spatial_cell->get_population(popID, timeclass);
 
    // compute transform, forward in time and backward in time, performed in this acceleration
    Transform<Real,3,Affine> fwd_transform= compute_acceleration_transformation(spatial_cell,popID,dt);

@@ -129,7 +129,14 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
    for (uint i=0; i<bulk_velocity_substeps; ++i) {
       // rotation origin is the point through which we place our rotation axis (direction of which is unitB).
       // first add bulk velocity (using the total transform computed this far.
-      Eigen::Matrix<Real,3,1> rotation_pivot(total_transform*bulk_velocity);
+      Eigen::Matrix<Real,3,1> rotation_pivot;
+      if (Parameters::forcedConvection) {
+         Eigen::Matrix<Real,3,1> ConvectiveV(0, 0, 0); // Let's make the VDFs do an pickup ion gyration for proper agyrotropy
+         rotation_pivot = total_transform*ConvectiveV;
+      }
+      else {
+         rotation_pivot = total_transform*bulk_velocity;
+      }
       
       //include lorentzHallTerm (we should include, always)      
       rotation_pivot[0]-= hallPrefactor*(dBZdy - dBYdz);

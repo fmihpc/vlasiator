@@ -63,6 +63,8 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
  */
 void prepareAMRLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
 
+void getGhostNeighborsforTC(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   const std::vector<CellID>& cellsToCheckNeighbors,std::set<CellID>& active_cells, int timeclass);
 
 /*!
 
@@ -75,7 +77,8 @@ data. This is needed if one has locally adjusted velocity blocks
 void updateRemoteVelocityBlockLists(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const uint popID,
-   const uint neighborhood=Neighborhoods::DIST_FUNC
+   const uint neighborhood,//=Neighborhoods::DIST_FUNC,
+   const int timeclass
 );
 
 /*! Deallocates all blocks in remote cells in order to save
@@ -85,6 +88,8 @@ void updateRemoteVelocityBlockLists(
 void deallocateRemoteCellBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
 
 /*! Adjust sparse velocity space to make it consistent in all 6 dimensions
+
+ NB works for a single timeclass at a time to reuse the content lists
 
  1) Compute which blocks have content (done for all cells in mpiGrid)
  2) Adjust local velocity blocks. That is, make sure blocks exist which have content, or have
@@ -101,7 +106,8 @@ void deallocateRemoteCellBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
 bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                           const std::vector<CellID>& cellsToAdjust,
                           bool doPrepareToReceiveBlocks,
-                          const uint popID);
+                          const uint popID,
+                          const int timeclass);
 
 /*! Shrink to fit velocity space data to save memory.
  * \param mpiGrid Spatial grid

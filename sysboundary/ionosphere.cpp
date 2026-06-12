@@ -1160,7 +1160,7 @@ namespace SBC {
     * If refillTensorAtRestart is true, we don't recompute precipitation and integration, we just refill the tensor from the sigmas as read from restart.
     * That is necessary so ig_inplanecurrent has non-zero data if an output file is written after restart and before the next ionosphere solution step.
     */
-   void SphericalTriGrid::calculateConductivityTensor(
+    void SphericalTriGrid::calculateConductivityTensor(
       const Real F10_7,
       const Real recombAlpha,
       const Real backgroundIonisation,
