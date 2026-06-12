@@ -638,6 +638,7 @@ namespace SBC {
       static Real backgroundIonisation; /*!< Background ionisation due to stellar UV and cosmic rays */
       static Real downmapRadius; /*!< Radius from which FACs are downmapped (RE) */
       static Real downmapSamplingWidth; /*!< Stencil width for FACs downmapping routines */
+      static string downmapSamplingModeStr;
       static enum downmapSamplingMode { // How to sample possibly under-resolved FACs at the downmap radius
          Pointwise,  // Just sample the FAC at the downmapping point
          Boxcar27   // 27-point boxcar, samples a cube of +-downmapSamplingWidth*fsgrid.dx/2 from the downmapping point

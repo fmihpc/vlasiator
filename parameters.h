@@ -252,11 +252,6 @@ struct Parameters {
    static std::vector<std::string> mpiioValuesRestartWrite;
    static std::array<FsGridTools::Task_t,3> manualFsGridDecomposition;
    static std::array<FsGridTools::Task_t,3> overrideReadFsGridDecomposition;
-   
-   static Realf PADfudge; // Fudge factore for diffusion
-
-   static std::array<fsgrid::Task_t,3> manualFsGridDecomposition;
-   static std::array<fsgrid::Task_t,3> overrideReadFsGridDecomposition;
 
    //Asterix  VDF Compression
    enum ASTERIX_COMPRESSION_METHODS{

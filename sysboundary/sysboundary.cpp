@@ -145,7 +145,6 @@ void SysBoundary::addParameters() {
  * \param t Current time
  * \retval success If true, the given SBC::SysBoundaryCondition was added successfully.
  */
-void SysBoundary::getParameters() {
   //Note as the getParameters isn't done in initSysBoundary, reason is that this is called way earlier than that
   //and as such it's nicer to have it fail early if something is amiss.
   //also the config checking leverages on this fact too.
@@ -178,7 +177,7 @@ void SysBoundary::addSysBoundary(SBC::SysBoundaryCondition* bc, Project& project
  * \retval success If true, the initialisation of all system boundaries succeeded.
  * \sa addSysBoundary
  */
-void SysBoundary::initSysBoundaries(Project& project, creal& t) {
+void SysBoundary::getParameters(Project& project, creal& t) {
    int myRank;
    MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
    vector<string>::const_iterator it;

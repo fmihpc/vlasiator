@@ -79,29 +79,11 @@ namespace projects {
       RP::add<Real>("Magnetosphere.dipoleInflowBX","Inflow magnetic field Bx component to which the vector potential dipole converges. Default is none.", this->dipoleInflowB[0],0.0);
       RP::add<Real>("Magnetosphere.dipoleInflowBY","Inflow magnetic field By component to which the vector potential dipole converges. Default is none.", this->dipoleInflowB[1],0.0);
       RP::add<Real>("Magnetosphere.dipoleInflowBZ","Inflow magnetic field Bz component to which the vector potential dipole converges. Default is none.", this->dipoleInflowB[2],0.0);
-      RP::add("Magnetosphere.refine_L3radius","Radius of L3-refined sphere or cap", 6.371e7); // 10 RE
-      RP::add("Magnetosphere.refine_L3nosexmin","Low x-value of nose L3-refined box", 5.0e7); //
-      RP::add("Magnetosphere.refine_L3tailheight","Height in +-z of tail L3-refined box", 1.0e7); //
-      RP::add("Magnetosphere.refine_L3tailwidth","Width in +-y of tail L3-refined box", 5.0e7); // 10 RE
-      RP::add("Magnetosphere.refine_L3tailxmin","Low x-value of tail L3-refined box", -20.0e7); // 10 RE
-      RP::add("Magnetosphere.refine_L3tailxmax","High x-value of tail L3-refined box", -5.0e7); // 10 RE
-      
-      RP::add("Magnetosphere.refine_L2radius","Radius of L2-refined sphere", 9.5565e7); // 15 RE
-      RP::add("Magnetosphere.refine_L2tailthick","Thickness of L2-refined tail region", 3.1855e7); // 5 RE
-      RP::add("Magnetosphere.refine_L1radius","Radius of L1-refined sphere", 1.59275e8); // 25 RE
-      RP::add("Magnetosphere.refine_L1tailthick","Thickness of L1-refined tail region", 6.371e7); // 10 RE
 
-      RP::add("Magnetosphere.dipoleTiltPhi","Magnitude of dipole tilt, in degrees", 0.0);
-      RP::add("Magnetosphere.dipoleTiltTheta","Direction of dipole tilt from Sun-Earth-line, in degrees", 0.0);
-      RP::add("Magnetosphere.dipoleXFull","X-coordinate up to which dipole is at full strength, in metres", 9.5565e7); // 15 RE
-      RP::add("Magnetosphere.dipoleXZero","X-coordinate after which dipole is at zero strength, in metres", 1.9113e8); // 30 RE
-      RP::add("Magnetosphere.dipoleInflowBX","Inflow magnetic field Bx component to which the vector potential dipole converges. Default is none.", 0.0);
-      RP::add("Magnetosphere.dipoleInflowBY","Inflow magnetic field By component to which the vector potential dipole converges. Default is none.", 0.0);
-      RP::add("Magnetosphere.dipoleInflowBZ","Inflow magnetic field Bz component to which the vector potential dipole converges. Default is none.", 0.0);
       //GG 28.5.26: Adding dipole offset code. Assuming SI units + guessing what the params will be named in cfg
-      RP::add("Magnetosphere.dipoleXOffset", "Distance of dipole from centre position in x. Default is none.", 0.0);
-      RP::add("Magnetosphere.dipoleYOffset", "Distance of dipole from centre position in y. Default is none.", 0.0);
-      RP::add("Magnetosphere.dipoleZOffset", "Distance of dipole from centre position in z. Default is none.", 0.0);
+      RP::add<Real>("Magnetosphere.dipoleXOffset", "Distance of dipole from centre position in x. Default is none.", this->dipoleXOffset, 0.0);
+      RP::add<Real>("Magnetosphere.dipoleYOffset", "Distance of dipole from centre position in y. Default is none.", this->dipoleYOffset, 0.0);
+      RP::add<Real>("Magnetosphere.dipoleZOffset", "Distance of dipole from centre position in z. Default is none.", this->dipoleZOffset, 0.0);
 
 
       //New Parameter for zeroing out derivativeNew Parameter for zeroing out derivativess
@@ -175,33 +157,7 @@ namespace projects {
          }
       }
 
-      RP::get("Magnetosphere.refine_L4radius", this->refine_L4radius);
-      RP::get("Magnetosphere.refine_L4nosexmin", this->refine_L4nosexmin);
-
-      RP::get("Magnetosphere.refine_L3radius", this->refine_L3radius);
-      RP::get("Magnetosphere.refine_L3nosexmin", this->refine_L3nosexmin);
-      RP::get("Magnetosphere.refine_L3tailwidth", this->refine_L3tailwidth);
-      RP::get("Magnetosphere.refine_L3tailheight", this->refine_L3tailheight);
-      RP::get("Magnetosphere.refine_L3tailxmin", this->refine_L3tailxmin);
-      RP::get("Magnetosphere.refine_L3tailxmax", this->refine_L3tailxmax);
-
-      RP::get("Magnetosphere.refine_L2radius", this->refine_L2radius);
-      RP::get("Magnetosphere.refine_L2tailthick", this->refine_L2tailthick);
-      RP::get("Magnetosphere.refine_L1radius", this->refine_L1radius);
-      RP::get("Magnetosphere.refine_L1tailthick", this->refine_L1tailthick);
-
-      RP::get("Magnetosphere.dipoleTiltPhi", this->dipoleTiltPhi);
-      RP::get("Magnetosphere.dipoleTiltTheta", this->dipoleTiltTheta);
-      RP::get("Magnetosphere.dipoleXFull", this->dipoleXFull);
-      RP::get("Magnetosphere.dipoleXZero", this->dipoleXZero);
-      RP::get("Magnetosphere.dipoleInflowBX", this->dipoleInflowB[0]);
-      RP::get("Magnetosphere.dipoleInflowBY", this->dipoleInflowB[1]);
-      RP::get("Magnetosphere.dipoleInflowBZ", this->dipoleInflowB[2]);
       //GG 28.5.26: Adding dipole offset code. Assuming SI units + guessing what the params will be named in cfg
-      RP::get("Magnetosphere.dipoleXOffset", this->dipoleXOffset);
-      RP::get("Magnetosphere.dipoleYOffset", this->dipoleYOffset);
-      RP::get("Magnetosphere.dipoleZOffset", this->dipoleZOffset);
-      //////////////////////////////////////////////////////////////
       //GG 8.6.26: Sanity check - we don't know the planet radius but we do know the ionosphere radius
       if((dipoleXOffset*dipoleXOffset + dipoleYOffset*dipoleYOffset + dipoleZOffset*dipoleZOffset) > (ionosphereRadius*ionosphereRadius)){
          if(myRank == MASTER_RANK) {
@@ -210,11 +166,6 @@ namespace projects {
          }
       }
          
-
-      RP::get("Magnetosphere.zeroOutDerivativesX", this->zeroOutComponents[0]);
-      RP::get("Magnetosphere.zeroOutDerivativesY", this->zeroOutComponents[1]);
-      RP::get("Magnetosphere.zeroOutDerivativesZ", this->zeroOutComponents[2]);
-
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;

@@ -108,7 +108,7 @@ vector<Real> P::systemWriteDistributionWriteShellRadius;
 vector<int> P::systemWriteDistributionWriteShellStride;
 vector<bool> P::systemWriteFsGrid;
 bool P::systemWriteAllDROs=false;
-bool P::diagnosticWriteAllDROs=false;
+bool P::diagnosticWriteAllDROs;
 vector<int> P::systemWrites;
 std::vector<std::string> P::mpiioKeysWrite;
 std::vector<std::string> P::mpiioValuesWrite;
@@ -239,7 +239,7 @@ std::string tracerString= std::string("Euler"); /*!< Fieldline tracer to use for
 bool P::computeCurvature;
 
 //Asterix - VDF Compression
-std::vector<std::size_t> P::mlp_arch;
+std::vector<std::size_t> P::mlp_arch {32,32,32};
 std::size_t P::mlp_fourier_order;
 std::size_t P::mlp_max_epochs;
 Real P::mlp_tollerance;
@@ -448,10 +448,10 @@ bool P::addParameters() {
    RP::add("loadBalance.optionValue", "Zoltan option value. Has to be matched by loadBalance.optionKey.",P::loadBalanceValues);
 
    // Output variable parameters
-   RP::add("io.system_write_all_data_reducers", "If 0 don't write all DROs, if 1 do write them.", false);
-   RP::add("io.system_write_distribution_compressed", string("Apply ASTERIX compressiont to VDFs in bulk files."), false);
-   RP::add("io.system_write_restart_compressed", string("Apply ASTERIX compressiont to VDFs in restart files."), false);
-   RP::add("io.system_write_recovery_compressed", string("Apply ASTERIX compressiont to VDFs in recovery files."), false);
+   RP::add<bool>("io.diagnostic_write_all_data_reducers", "Write all available diagnostic reducers 0 false, 1 true", P::diagnosticWriteAllDROs,false);
+   RP::add<bool>("io.system_write_distribution_compressed", string("Apply ASTERIX compressiont to VDFs in bulk files."),P::systemWriteDistributionCompressed, false);
+   RP::add<bool>("io.system_write_restart_compressed", string("Apply ASTERIX compressiont to VDFs in restart files."),P::systemWriteRestartCompressed, false);
+   RP::add<bool>("io.system_write_recovery_compressed", string("Apply ASTERIX compressiont to VDFs in recovery files."),P::systemWriteRecoveryCompressed, false);
    // NOTE Do not remove the : before the list of variable names as this is parsed by tools/check_vlasiator_cfg.sh
    RP::addComposing("variables.output",
                     string() +
@@ -479,7 +479,6 @@ bool P::addParameters() {
                         "vg_amr_drho vg_amr_du vg_amr_dpsq vg_amr_dbsq vg_amr_db vg_amr_alpha1 vg_amr_reflevel vg_amr_alpha2 "+
                         "vg_gridcoordinates fg_gridcoordinates vg_pressure_anisotropy vg_amr_vorticity",P::outputVariableList);
 
-   RP::add("io.diagnostic_write_all_data_reducers", "Write all available diagnostic reducers", P::diagnosticWriteAllDROs);
    // NOTE Do not remove the : before the list of variable names as this is parsed by tools/check_vlasiator_cfg.sh
    RP::addComposing("variables.diagnostic",
                     string() +
@@ -577,49 +576,21 @@ bool P::addParameters() {
    RP::add<Real>("fieldtracing.max_allowed_z", "Trace for z coordinates smaller than this limit (in m).", FieldTracing::fieldTracingParameters.z_max,LARGE_REAL);
 
    //Asterix - VDF Compression
-   RP::add("Asterix.mlp_layers", string("Hidden layer architecture (neuron count per hidden layer) for MLP"),"32,32,32");
-   RP::add("Asterix.tol", string("MLP Compression reconstruction tolerance"),1e-4);
-   RP::add("Asterix.octree_tolerance", string("OCTREE Compression reconstruction tolerance"),1e-3);
-   RP::add("Asterix.max_epochs", string("Max MLP epochs"),50);
-   RP::add("Asterix.fourier_order", string("Fourier Feature Order"),32);
-   RP::add("Asterix.interval", string("Compression interval in seconds [Deprecated]"),1.0);
-   RP::add("Asterix.state", string("Boolean Asterix compression toggle"),false);
-   RP::add("Asterix.method", string("Compression method string"),"ZFP");
-   RP::add("Asterix.max_vdfs_per_nn",string("Max vdfs per MLP in multi regression mode") ,std::numeric_limits<std::size_t>::max());
+   RP::add("Asterix.mlp_layers", string("Hidden layer architecture (neuron count per hidden layer) for MLP"),P::mlp_arch);
+   RP::add<Real>("Asterix.tol", string("MLP Compression reconstruction tolerance"),P::mlp_tollerance,1e-4);
+   RP::add<Real>("Asterix.octree_tolerance", string("OCTREE Compression reconstruction tolerance"),P::octree_tolerance,1e-3);
+   RP::add<std::size_t>("Asterix.max_epochs", string("Max MLP epochs"),P::mlp_max_epochs,50);
+   RP::add<std::size_t>("Asterix.fourier_order", string("Fourier Feature Order"),P::mlp_fourier_order,32);
+   RP::add<Real>("Asterix.interval", string("Compression interval in seconds [Deprecated]"),P::compression_interval,1.0);
+   RP::add<bool>("Asterix.state", string("Boolean Asterix compression toggle"),P::doCompress,false);
+   RP::add<string>("Asterix.method", string("Compression method string"),P::method_str,"ZFP");
+   RP::add<std::size_t>("Asterix.max_vdfs_per_nn",string("Max vdfs per MLP in multi regression mode"),P::max_vdfs_per_nn,std::numeric_limits<std::size_t>::max());
    return true;
 }
 
 void Parameters::getParameters() {
    typedef Readparameters RP;
-   // get numerical values of the parameters
-   RP::get("io.diagnostic_write_interval", P::diagnosticInterval);
-   RP::get("io.diagnostic_write_all_data_reducers", P::diagnosticWriteAllDROs);
-   RP::get("io.system_write_t_interval", P::systemWriteTimeInterval);
-   RP::get("io.system_write_file_name", P::systemWriteName);
-   RP::get("io.system_write_path", P::systemWritePath);
-   RP::get("io.system_write_distribution_stride", P::systemWriteDistributionWriteStride);
-   RP::get("io.system_write_distribution_xline_stride", P::systemWriteDistributionWriteXlineStride);
-   RP::get("io.system_write_distribution_yline_stride", P::systemWriteDistributionWriteYlineStride);
-   RP::get("io.system_write_distribution_zline_stride", P::systemWriteDistributionWriteZlineStride);
-   RP::get("io.system_write_distribution_shell_radius", P::systemWriteDistributionWriteShellRadius);
-   RP::get("io.system_write_distribution_shell_stride", P::systemWriteDistributionWriteShellStride);
-   RP::get("io.system_write_fsgrid_variables", P::systemWriteFsGrid);
-   RP::get("io.system_write_all_data_reducers", P::systemWriteAllDROs);
-   RP::get("io.system_write_distribution_compressed", P::systemWriteDistributionCompressed);
-   RP::get("io.system_write_restart_compressed", P::systemWriteRestartCompressed);
-   RP::get("io.system_write_recovery_compressed", P::systemWriteRecoveryCompressed);
-   RP::get("io.write_initial_state", P::writeInitialState);
-   RP::get("io.write_full_bgb_data", P::writeFullBGB);
-   RP::get("io.restart_walltime_interval", P::saveRestartWalltimeInterval);
-   RP::get("io.recover_tstep_interval", P::saveRecoverTstepInterval);
-   RP::get("io.number_of_restarts", P::exitAfterRestarts);
-   RP::get("io.number_of_recovers", P::recoverMaxFiles);
-   RP::get("io.vlsv_buffer_size", P::vlsvBufferSize);
-   RP::get("io.write_restart_stripe_factor", P::restartStripeFactor);
-   RP::get("io.write_system_stripe_factor", P::systemStripeFactor);
-   RP::get("io.restart_write_path", P::restartWritePath);
-   RP::get("io.recover_write_path", P::recoverWritePath);
-   RP::get("io.write_as_float", P::writeAsFloat);
+
 
    // Checks for validity of io and restart parameters
    int myRank;
@@ -898,21 +869,12 @@ void Parameters::getParameters() {
       cerr << "ERROR all of restart.overrideReadFsGridDecompositionX,Y,Z should be defined." << endl;
       MPI_Abort(MPI_COMM_WORLD, 1);
    }
-   fsgrid::Task_t temp_task_t;
-   RP::get("restart.overrideReadFsGridDecompositionX", temp_task_t);
-   P::overrideReadFsGridDecomposition[0] = temp_task_t;
-   RP::get("restart.overrideReadFsGridDecompositionY", temp_task_t);
-   P::overrideReadFsGridDecomposition[1] = temp_task_t;
-   RP::get("restart.overrideReadFsGridDecompositionZ", temp_task_t);
-   P::overrideReadFsGridDecomposition[2] = temp_task_t;
 
 
    if (RP::helpRequested) {
       P::projectName = string("Magnetosphere");
    }
 
-   /*get numerical values, let Readparameters handle the conversions*/
-   string geometryString;
 
 
    if(P::amrMaxAllowedSpatialRefLevel < 0) { // negative (default is -1) just goes to max
@@ -968,45 +930,8 @@ void Parameters::getParameters() {
       MPI_Abort(MPI_COMM_WORLD, 1);
    }
 
-   RP::get("AMR.refine_cadence",P::refineCadence);
-   RP::get("AMR.refine_after",P::refineAfter);
-   RP::get("AMR.refine_radius",P::refineRadius);
-   RP::get("AMR.number_of_refine_boxes", P::refineBoxNumber);
-   RP::get("AMR.refinement_min_x", P::refinementMinX);
-   RP::get("AMR.refinement_min_y", P::refinementMinY);
-   RP::get("AMR.refinement_min_z", P::refinementMinZ);
-   RP::get("AMR.refinement_max_x", P::refinementMaxX);
-   RP::get("AMR.refinement_max_y", P::refinementMaxY);
-   RP::get("AMR.refinement_max_z", P::refinementMaxZ);
-   RP::get("AMR.alpha1_drho_weight", P::alphaDRhoWeight);
-   RP::get("AMR.alpha1_du_weight", P::alphaDUWeight);
-   RP::get("AMR.alpha1_dpsq_weight", P::alphaDPSqWeight);
-   RP::get("AMR.alpha1_dbsq_weight", P::alphaDBSqWeight);
-   RP::get("AMR.alpha1_db_weight", P::alphaDBWeight);
-   RP::get("AMR.number_of_boxes", P::amrBoxNumber);
-   RP::get("AMR.box_max_level", P::amrBoxMaxLevel);
-   RP::get("AMR.box_half_width_x", P::amrBoxHalfWidthX);
-   RP::get("AMR.box_half_width_y", P::amrBoxHalfWidthY);
-   RP::get("AMR.box_half_width_z", P::amrBoxHalfWidthZ);
-   RP::get("AMR.box_center_x", P::amrBoxCenterX);
-   RP::get("AMR.box_center_y", P::amrBoxCenterY);
-   RP::get("AMR.box_center_z", P::amrBoxCenterZ);
-   RP::get("AMR.transShortPencils", P::amrTransShortPencils);
-   RP::get("AMR.filterpasses", P::blurPassString);
-   RP::get("adaptGPUWID", P::adaptGPUWID);
-   RP::get("GPUallocations", P::GPUallocations);
 
    //Asterix
-   RP::get("Asterix.mlp_layers", P::mlpLayer);
-   RP::get("Asterix.max_epochs",P::mlp_max_epochs );
-   RP::get("Asterix.tol", P::mlp_tollerance);
-   RP::get("Asterix.octree_tolerance", P::octree_tolerance);
-   RP::get("Asterix.fourier_order",P::mlp_fourier_order );
-   RP::get("Asterix.interval",P::compression_interval);
-   RP::get("Asterix.state",P::doCompress);
-   RP::get("Asterix.method",P::method_str);
-   RP::get("Asterix.max_vdfs_per_nn",P::max_vdfs_per_nn);
-
    if (P::doCompress){
       #ifdef ASTERIX_MLP
       if(P::method_str == "MLP") {
