@@ -209,3 +209,17 @@ do
         echo "--------------------------------------------------------------------------------------------"
     fi
 done # loop over tests
+
+
+echo "--------------------------------------------------------------------------------------------"
+echo "   Testing write path                                                                       "
+echo "--------------------------------------------------------------------------------------------"
+
+mkdir -p './testing/foo/bar'
+$small_run_command $bin --run_config=${test_name[1]}.cfg --io.system_write_file_name 'foo/bar/bulk' --io.system_write_path './testing' --gridbuilder.t_max 180
+filepath_test="./testing/foo/bar/bulk.0000000.vlsv" 
+if [[ ! -f $filepath_test ]]; then 
+   echo "File was not written to correct path at $filepath_test"
+   exit 1
+fi
+echo "Done"
