@@ -293,6 +293,9 @@ struct setOfPencils {
          if(theirPencilId == myPencilId) {
             continue;
          }
+         if(this->timeclasses[myPencilId] != this->timeclasses[theirPencilId]){
+            continue;
+         }
          auto theirIds = this->getIds(theirPencilId);
          for (auto theirId : theirIds) {
             for (auto myId : myIds) {
