@@ -124,8 +124,8 @@ void SysBoundary::getParameters() {
 void SysBoundary::addSysBoundary(SBC::SysBoundaryCondition* bc, Project& project, creal& t) {
    // Initialize the boundary condition
    stringstream timername;
-   timername<<"Initialize system boundary condition "<<bc->getName();
-   phiprof::Timer timer {timername.str()};
+   timername << "Initialize system boundary condition " << bc->getName();
+   phiprof::Timer timer{timername.str()};
    bc->initSysBoundary(t, project);
    timer.stop();
 
@@ -201,7 +201,7 @@ void SysBoundary::initSysBoundaries(Project& project, creal& t) {
          this->addSysBoundary(::new SBC::Ionosphere, project, t);
          this->addSysBoundary(::new SBC::DoNotCompute, project, t);
          anyDynamic = anyDynamic | this->getSysBoundary(sysboundarytype::IONOSPHERE)->isDynamic();
-      } else if(*it == "Copysphere" || *it == "copysphere") {
+      } else if (*it == "Copysphere" || *it == "copysphere") {
          this->addSysBoundary(::new SBC::Copysphere, project, t);
          this->addSysBoundary(::new SBC::DoNotCompute, project, t);
          anyDynamic = anyDynamic | this->getSysBoundary(sysboundarytype::COPYSPHERE)->isDynamic();
@@ -235,7 +235,7 @@ void SysBoundary::initSysBoundaries(Project& project, creal& t) {
       }
    }
 
-   for (auto& b : sysBoundaries)  {
+   for (auto& b : sysBoundaries) {
       b->setPeriodicity(periodic);
    }
 }
@@ -275,7 +275,8 @@ void SysBoundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg:
    for (auto cellId : local_cells) {
       SpatialCell* cell = mpiGrid[cellId];
       if (cell) {
-         if (cell->sysBoundaryFlag == sysboundarytype::IONOSPHERE || cell->sysBoundaryFlag == sysboundarytype::COPYSPHERE) {
+         if (cell->sysBoundaryFlag == sysboundarytype::IONOSPHERE ||
+             cell->sysBoundaryFlag == sysboundarytype::COPYSPHERE) {
             innerBoundaryCells.insert(cellId);
             innerBoundaryRefLvl = mpiGrid.get_refinement_level(cellId);
             if (cell->sysBoundaryLayer == 1) {
@@ -316,7 +317,7 @@ void SysBoundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg:
 }
 
 bool belongsToLayer(const int layer, const int x, const int y, const int z,
-                    FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
+                    fsgrids::technicalspan technical, const fsgrid::FsStencil& stencil) {
 
    bool belongs = false;
 
@@ -324,19 +325,19 @@ bool belongsToLayer(const int layer, const int x, const int y, const int z,
    for (int iz = -1; iz <= 1; ++iz) {
       for (int iy = -1; iy <= 1; ++iy) {
          for (int ix = -1; ix <= 1; ++ix) {
-
             // not strictly necessary but logically we should not consider the cell itself
             // among its neighbors.
-            if ((ix == 0 && iy == 0 && iz == 0) || !technicalGrid.get(x + ix, y + iy, z + iz)) {
+            if ((ix == 0 && iy == 0 && iz == 0) || not stencil.cellExists(ix, iy, iz)) {
                continue;
             }
 
-            if (layer == 1 && technicalGrid.get(x + ix, y + iy, z + iz)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+            const auto& tech = technical[stencil.indexFromOffset(ix, iy, iz)];
+            if (layer == 1 && tech.sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
                // in the first layer, boundary cell belongs if it has a non-boundary neighbor
                belongs = true;
                return belongs;
 
-            } else if (layer > 1 && technicalGrid.get(x + ix, y + iy, z + iz)->sysBoundaryLayer == layer - 1) {
+            } else if (layer > 1 && tech.sysBoundaryLayer == layer - 1) {
                // in all other layers, boundary cell belongs if it has a neighbor in the previous layer
                belongs = true;
                return belongs;
@@ -356,32 +357,31 @@ bool belongsToLayer(const int layer, const int x, const int y, const int z,
  * \param mpiGrid Grid
  */
 void SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                 FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
-                                 const vector<CellID>& cells = getLocalCells();
-                                 auto localSize = technicalGrid.getLocalSize().data();
+                                fsgrids::technicalspan technical, FieldSolverGrid &fsgrid) {
+   const vector<CellID>& cells = getLocalCells();
+   const auto rank = fsgrid.getRank();
 
    /*set all cells to default value, not_sysboundary */
-#pragma omp parallel for
+   #pragma omp parallel for
    for (uint i = 0; i < cells.size(); i++) {
       mpiGrid[cells[i]]->sysBoundaryFlag = sysboundarytype::NOT_SYSBOUNDARY;
    }
-#pragma omp parallel for collapse(2)
-   for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
-      for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
-         for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
-            //technicalGrid.get(x, y, z)->sysBoundaryFlag = sysboundarytype::NOT_SYSBOUNDARY;
-            // Here for debugging since boundarytype should be fed from MPIGrid
-            technicalGrid.get(x, y, z)->sysBoundaryFlag = sysboundarytype::N_SYSBOUNDARY_CONDITIONS;
-            technicalGrid.get(x, y, z)->sysBoundaryLayer = 0;
-            // Function called on every refinement, we only want to reset dt on simulation start
-            if (P::tstep == P::tstep_min) {
-               technicalGrid.get(x, y, z)->maxFsDt = numeric_limits<Real>::max();
-            }
-            // Set the fsgrid rank in the technical grid
-            technicalGrid.get(x, y, z)->fsGridRank = technicalGrid.getRank();
-         }
+
+   fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                       phiprof::initializeTimer("classifyCells-init"), technical,
+                       [=](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+      auto& tech = technical[stencil.ooo()];
+      //  Here for debugging since boundarytype should be fed from MPIGrid
+      tech.sysBoundaryFlag = sysboundarytype::N_SYSBOUNDARY_CONDITIONS;
+      tech.sysBoundaryLayer = 0;
+      // Function called on every refinement, we only want to reset dt on simulation start
+      if (P::tstep == P::tstep_min) {
+         tech.maxFsDt = numeric_limits<Real>::max();
       }
-   }
+      // Set the fsgrid rank in the technical grid
+      tech.fsGridRank = rank;
+   });
+
 
    /*
      loop through sysboundaries and let all sysboundaries set in local
@@ -389,14 +389,14 @@ void SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
    be updated by now. No remote data needed/available, so assignement
    has to be based individually on each cells location
    */
-   for(auto& b : sysBoundaries) {
-      b->assignSysBoundary(mpiGrid, technicalGrid);
+   for (auto& b : sysBoundaries) {
+      b->assignSysBoundary(mpiGrid, technical, fsgrid);
    }
 
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
    mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::SYSBOUNDARIES);
 
-   feedBoundaryIntoFsGrid(mpiGrid, cells, technicalGrid);
+   feedBoundaryIntoFsGrid(mpiGrid, cells, technical, fsgrid);
 
    // set distance 1 cells to boundary cells, that have neighbors which are normal cells
    for (CellID cell : cells) {
@@ -478,7 +478,7 @@ void SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
    if (sysBoundaryContainer.existSysBoundary("Ionosphere")) {
       Readparameters::get("ionosphere.downmapRadius", ionosphereDownmapRadius);
    }
-   if(ionosphereDownmapRadius < 1000) {
+   if (ionosphereDownmapRadius < 1000) {
       ionosphereDownmapRadius *= physicalconstants::R_E;
    }
 
@@ -486,116 +486,107 @@ void SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
    // In dccrg initialization the max number of boundary layers is set to 3.
    const uint MAX_NUMBER_OF_BOUNDARY_LAYERS = 3 * pow(2, mpiGrid.get_maximum_refinement_level());
 
-   technicalGrid.updateGhostCells();
+   fsgrid.updateGhostCells(technical);
 
    // loop through max number of layers
    for (uint layer = 1; layer <= MAX_NUMBER_OF_BOUNDARY_LAYERS; ++layer) {
 
-// loop through all cells in grid
-#pragma omp parallel for collapse(2)
-      for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
-         for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
-            for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
+      // loop through all cells in grid
+      fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                          phiprof::initializeTimer("classifyCells-pass-1"), technical,
+                          [=](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+         auto& tech = technical[stencil.ooo()];
 
-               // for the first layer, consider all cells that belong to a boundary, for other layers
-               // consider all cells that have not yet been labeled.
-               if ((layer == 1 && technicalGrid.get(x, y, z)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) ||
-                   (layer > 1 && technicalGrid.get(x, y, z)->sysBoundaryLayer == 0)) {
+         // for the first layer, consider all cells that belong to a boundary, for other layers
+         // consider all cells that have not yet been labeled.
+         if ((layer == 1 && tech.sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) ||
+             (layer > 1 && tech.sysBoundaryLayer == 0)) {
 
-                  if (belongsToLayer(layer, x, y, z, technicalGrid)) {
+            if (belongsToLayer(layer, stencil.i, stencil.j, stencil.k, technical, stencil)) {
 
-                     technicalGrid.get(x, y, z)->sysBoundaryLayer = layer;
+               tech.sysBoundaryLayer = layer;
 
-                     if (layer > 2 && (technicalGrid.get(x,y,z)->sysBoundaryFlag == sysboundarytype::IONOSPHERE || 
-                                       technicalGrid.get(x,y,z)->sysBoundaryFlag == sysboundarytype::COPYSPHERE)) {
-                        technicalGrid.get(x, y, z)->sysBoundaryFlag = sysboundarytype::DO_NOT_COMPUTE;
-                     } else if (layer > 2 && technicalGrid.get(x, y, z)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
-                        technicalGrid.get(x, y, z)->sysBoundaryFlag = sysboundarytype::OUTER_BOUNDARY_PADDING;
-                     }
-                  }
+               if (layer > 2 && (tech.sysBoundaryFlag == sysboundarytype::IONOSPHERE ||
+                                 tech.sysBoundaryFlag == sysboundarytype::COPYSPHERE)) {
+                  tech.sysBoundaryFlag = sysboundarytype::DO_NOT_COMPUTE;
+               } else if (layer > 2 && tech.sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
+                  tech.sysBoundaryFlag = sysboundarytype::OUTER_BOUNDARY_PADDING;
                }
             }
          }
-      }
+      });
       // This needs an update every iteration as belongsToLayer() needs up to date data.
-      technicalGrid.updateGhostCells();
+      fsgrid.updateGhostCells(technical);
    }
 
-// One more pass to make sure, in particular if the ionosphere is wide enough
-// there is remaining cells of IONOSPHERE type inside the max layers gone through previously.
-// This last pass now gets rid of them.
-#pragma omp parallel for collapse(2)
-   for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
-      for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
-         for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
-            if (technicalGrid.get(x,y,z)->sysBoundaryLayer == 0 && (
-                technicalGrid.get(x,y,z)->sysBoundaryFlag == sysboundarytype::IONOSPHERE ||
-                technicalGrid.get(x,y,z)->sysBoundaryFlag == sysboundarytype::COPYSPHERE)) {
-               technicalGrid.get(x, y, z)->sysBoundaryFlag = sysboundarytype::DO_NOT_COMPUTE;
-            }
-         }
+   // One more pass to make sure, in particular if the ionosphere is wide enough
+   // there is remaining cells of IONOSPHERE type inside the max layers gone through previously.
+   // This last pass now gets rid of them.
+   fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                       phiprof::initializeTimer("classifyCells-pass-2"), technical,
+                       [=](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+      auto& tech = technical[stencil.ooo()];
+      if (tech.sysBoundaryLayer == 0 && (tech.sysBoundaryFlag == sysboundarytype::IONOSPHERE ||
+                                         tech.sysBoundaryFlag == sysboundarytype::COPYSPHERE)) {
+         tech.sysBoundaryFlag = sysboundarytype::DO_NOT_COMPUTE;
       }
-   }
+   });
 
-   technicalGrid.updateGhostCells();
+   fsgrid.updateGhostCells(technical);
 
-   const array<FsGridTools::FsSize_t,3> fsGridDimensions = technicalGrid.getGlobalSize();
+   const array<fsgrid::FsSize_t, 3> fsGridDimensions = fsgrid.getGlobalSize();
+   const std::array<bool, 3> periodic_l = this->periodic;
 
    // One pass to setup the bit field to know which components the field solver should propagate.
-#pragma omp parallel for collapse(2)
-   for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
-      for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
-         for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
-            technicalGrid.get(x, y, z)->SOLVE = 0;
+   fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                      phiprof::initializeTimer("classifyCells-pass-3"), technical,
+                      [=](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+      const auto gid = coordinates.localToGlobal(stencil.i, stencil.j, stencil.k);
+      auto& tech = technical[stencil.ooo()];
+      tech.SOLVE = 0;
 
-            array<FsGridTools::FsIndex_t, 3> globalIndices = technicalGrid.getGlobalIndices(x, y, z);
+      if (((gid[0] == 0 || gid[0] == fsGridDimensions[0] - 1) && !periodic_l[0]) ||
+          ((gid[1] == 0 || gid[1] == fsGridDimensions[1] - 1) && !periodic_l[1]) ||
+          ((gid[2] == 0 || gid[2] == fsGridDimensions[2] - 1) && !periodic_l[2])) {
+         return; // was continue in non-lambda version
+      }
 
-            if (((globalIndices[0] == 0 || globalIndices[0] == (FsGridTools::FsIndex_t)fsGridDimensions[0] - 1) &&
-                 !this->isPeriodic(0)) ||
-                ((globalIndices[1] == 0 || globalIndices[1] == (FsGridTools::FsIndex_t)fsGridDimensions[1] - 1) &&
-                 !this->isPeriodic(1)) ||
-                ((globalIndices[2] == 0 || globalIndices[2] == (FsGridTools::FsIndex_t)fsGridDimensions[2] - 1) &&
-                 !this->isPeriodic(2))) {
-               continue;
-            }
-            if (technicalGrid.get(x, y, z)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-               technicalGrid.get(x, y, z)->SOLVE = technicalGrid.get(x, y, z)->SOLVE | compute::BX;
-               technicalGrid.get(x, y, z)->SOLVE = technicalGrid.get(x, y, z)->SOLVE | compute::BY;
-               technicalGrid.get(x, y, z)->SOLVE = technicalGrid.get(x, y, z)->SOLVE | compute::BZ;
-               technicalGrid.get(x, y, z)->SOLVE = technicalGrid.get(x, y, z)->SOLVE | compute::EX;
-               technicalGrid.get(x, y, z)->SOLVE = technicalGrid.get(x, y, z)->SOLVE | compute::EY;
-               technicalGrid.get(x, y, z)->SOLVE = technicalGrid.get(x, y, z)->SOLVE | compute::EZ;
-            } else {
-               if (technicalGrid.get(x - 1, y, z)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-                  technicalGrid.get(x, y, z)->SOLVE = technicalGrid.get(x, y, z)->SOLVE | compute::BX;
-                  technicalGrid.get(x, y, z)->SOLVE = technicalGrid.get(x, y, z)->SOLVE | compute::EY;
-                  technicalGrid.get(x, y, z)->SOLVE = technicalGrid.get(x, y, z)->SOLVE | compute::EZ;
-               }
-               if (technicalGrid.get(x, y - 1, z)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-                  technicalGrid.get(x, y, z)->SOLVE = technicalGrid.get(x, y, z)->SOLVE | compute::BY;
-                  technicalGrid.get(x, y, z)->SOLVE = technicalGrid.get(x, y, z)->SOLVE | compute::EX;
-                  technicalGrid.get(x, y, z)->SOLVE = technicalGrid.get(x, y, z)->SOLVE | compute::EZ;
-               }
-               if (technicalGrid.get(x, y, z - 1)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-                  technicalGrid.get(x, y, z)->SOLVE = technicalGrid.get(x, y, z)->SOLVE | compute::BZ;
-                  technicalGrid.get(x, y, z)->SOLVE = technicalGrid.get(x, y, z)->SOLVE | compute::EX;
-                  technicalGrid.get(x, y, z)->SOLVE = technicalGrid.get(x, y, z)->SOLVE | compute::EY;
-               }
-               if (technicalGrid.get(x - 1, y - 1, z)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-                  technicalGrid.get(x, y, z)->SOLVE = technicalGrid.get(x, y, z)->SOLVE | compute::EZ;
-               }
-               if (technicalGrid.get(x - 1, y, z - 1)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-                  technicalGrid.get(x, y, z)->SOLVE = technicalGrid.get(x, y, z)->SOLVE | compute::EY;
-               }
-               if (technicalGrid.get(x, y - 1, z - 1)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-                  technicalGrid.get(x, y, z)->SOLVE = technicalGrid.get(x, y, z)->SOLVE | compute::EX;
-               }
-            }
+      if (tech.sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+         tech.SOLVE = tech.SOLVE | compute::BX;
+         tech.SOLVE = tech.SOLVE | compute::BY;
+         tech.SOLVE = tech.SOLVE | compute::BZ;
+         tech.SOLVE = tech.SOLVE | compute::EX;
+         tech.SOLVE = tech.SOLVE | compute::EY;
+         tech.SOLVE = tech.SOLVE | compute::EZ;
+      } else {
+         if (technical[stencil.moo()].sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+            tech.SOLVE = tech.SOLVE | compute::BX;
+            tech.SOLVE = tech.SOLVE | compute::EY;
+            tech.SOLVE = tech.SOLVE | compute::EZ;
+         }
+         if (technical[stencil.omo()].sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+            tech.SOLVE = tech.SOLVE | compute::BY;
+            tech.SOLVE = tech.SOLVE | compute::EX;
+            tech.SOLVE = tech.SOLVE | compute::EZ;
+         }
+         if (technical[stencil.oom()].sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+            tech.SOLVE = tech.SOLVE | compute::BZ;
+            tech.SOLVE = tech.SOLVE | compute::EX;
+            tech.SOLVE = tech.SOLVE | compute::EY;
+         }
+         if (technical[stencil.mmo()].sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+            tech.SOLVE = tech.SOLVE | compute::EZ;
+         }
+         if (technical[stencil.mom()].sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+            tech.SOLVE = tech.SOLVE | compute::EY;
+         }
+         if (technical[stencil.omm()].sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+            tech.SOLVE = tech.SOLVE | compute::EX;
          }
       }
-   }
+   });
 
-   technicalGrid.updateGhostCells();
+   fsgrid.updateGhostCells(technical);
 }
 
 /*!\brief Apply the initial state to all system boundary cells.
@@ -606,10 +597,9 @@ void SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
  * \retval success If true, the application of all system boundary states succeeded.
  */
 void SysBoundary::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                    FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>&technicalGrid,
-                                    FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
-                                    FsGrid<array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
-                                    Project& project) {
+                                    fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
+                                    fsgrids::perbspan perb,
+                                    fsgrids::bgbspan bgb, Project& project) {
 
    list<SBC::SysBoundaryCondition*>::iterator it;
    for (it = sysBoundaries.begin(); it != sysBoundaries.end(); it++) {
@@ -620,21 +610,20 @@ void SysBoundary::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_G
          continue;
       }
       stringstream timername;
-      timername<<"Apply system boundary condition "<<(*it)->getName()<<" initial state";
-      phiprof::Timer timer {timername.str()};
-      (*it)->applyInitialState(mpiGrid, technicalGrid, perBGrid, BgBGrid, project);
+      timername << "Apply system boundary condition " << (*it)->getName() << " initial state";
+      phiprof::Timer timer{timername.str()};
+      (*it)->applyInitialState(mpiGrid, technical, fsgrid, perb, bgb, project);
    }
 }
 
 void SysBoundary::updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                              FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-                              FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
-                              FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
-                              creal t) {
+                              fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
+                              fsgrids::perbspan perb,
+                              fsgrids::bgbspan bgb, creal t) {
    if (isAnyDynamic()) {
-      for(auto& b : sysBoundaries) {
+      for (auto& b : sysBoundaries) {
          if (b->isDynamic()) {
-            b->updateState(mpiGrid, technicalGrid, perBGrid, BgBGrid, t);
+            b->updateState(mpiGrid, technical, fsgrid, perb, bgb, t);
          }
       }
    }
@@ -671,9 +660,8 @@ void SysBoundary::setupL2OutflowAtRestart(dccrg::Dccrg<SpatialCell, dccrg::Carte
  * \param t Current time
  * \param calculate_V_moments if true, compute into _V, false into _R moments so that the interpolated ones can be done
  */
-void SysBoundary::applySysBoundaryVlasovConditions(
-    dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, creal& t,
-    const bool calculate_V_moments) {
+void SysBoundary::applySysBoundaryVlasovConditions(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+                                                   creal& t, const bool calculate_V_moments) {
 
    if (sysBoundaries.size() == 0) {
       return; // no system boundaries
@@ -691,22 +679,23 @@ void SysBoundary::applySysBoundaryVlasovConditions(
       updateRemoteVelocityBlockLists(mpiGrid, popID, Neighborhoods::SYSBOUNDARIES);
 
       // Then the block data in the reduced neighbourhood:
-      phiprof::Timer commTimer {"Start comm of cell and block data", {"MPI"}};
+      phiprof::Timer commTimer{"Start comm of cell and block data", {"MPI"}};
       SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA, true);
       mpiGrid.start_remote_neighbor_copy_updates(Neighborhoods::SYSBOUNDARIES);
       commTimer.stop();
 
-      phiprof::Timer computeInnerTimer {"Compute process inner cells"};
+      phiprof::Timer computeInnerTimer{"Compute process inner cells"};
       // Compute Vlasov boundary condition on system boundary/process inner cells
       vector<CellID> localCells;
       getBoundaryCellList(mpiGrid, mpiGrid.get_local_cells_not_on_process_boundary(Neighborhoods::SYSBOUNDARIES), localCells);
 
-#pragma omp parallel for
+      #pragma omp parallel for
       for (uint i = 0; i < localCells.size(); i++) {
          cuint sysBoundaryType = mpiGrid[localCells[i]]->sysBoundaryFlag;
-         this->getSysBoundary(sysBoundaryType)->vlasovBoundaryCondition(mpiGrid, localCells[i], popID, calculate_V_moments);
+         this->getSysBoundary(sysBoundaryType)
+             ->vlasovBoundaryCondition(mpiGrid, localCells[i], popID, calculate_V_moments);
       }
-      if (popID==getObjectWrapper().particleSpecies.size()-1) {
+      if (popID == getObjectWrapper().particleSpecies.size() - 1) {
          // Only calculate moments when handling last population
          if (calculate_V_moments) {
             calculateMoments_V(mpiGrid, localCells, true);
@@ -721,16 +710,16 @@ void SysBoundary::applySysBoundaryVlasovConditions(
       waitimer.stop();
 
       // Compute vlasov boundary on system boundary/process boundary cells
-      phiprof::Timer computeBoundaryTimer {"Compute process boundary cells"};
+      phiprof::Timer computeBoundaryTimer{"Compute process boundary cells"};
       vector<CellID> boundaryCells;
-      getBoundaryCellList(mpiGrid, mpiGrid.get_local_cells_on_process_boundary(Neighborhoods::SYSBOUNDARIES),
-                          boundaryCells);
-#pragma omp parallel for
+      getBoundaryCellList(mpiGrid, mpiGrid.get_local_cells_on_process_boundary(Neighborhoods::SYSBOUNDARIES), boundaryCells);
+      #pragma omp parallel for
       for (uint i = 0; i < boundaryCells.size(); i++) {
          cuint sysBoundaryType = mpiGrid[boundaryCells[i]]->sysBoundaryFlag;
-         this->getSysBoundary(sysBoundaryType)->vlasovBoundaryCondition(mpiGrid, boundaryCells[i], popID, calculate_V_moments);
+         this->getSysBoundary(sysBoundaryType)
+             ->vlasovBoundaryCondition(mpiGrid, boundaryCells[i], popID, calculate_V_moments);
       }
-      if (popID==getObjectWrapper().particleSpecies.size()-1) {
+      if (popID == getObjectWrapper().particleSpecies.size() - 1) {
          // Only calculate moments when handling last population
          if (calculate_V_moments) {
             calculateMoments_V(mpiGrid, boundaryCells, true);
@@ -800,7 +789,7 @@ void getBoundaryCellList(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geomet
  * \param mpiGrid The DCCRG grid
  */
 void SysBoundary::updateSysBoundariesAfterLoadBalance(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid) {
-   phiprof::Timer timer {"updateSysBoundariesAfterLoadBalance"};
+   phiprof::Timer timer{"updateSysBoundariesAfterLoadBalance"};
    vector<uint64_t> local_cells_on_boundary;
    getBoundaryCellList(mpiGrid, mpiGrid.get_cells(), local_cells_on_boundary);
    // Loop over sysboundaries:

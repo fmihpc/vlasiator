@@ -136,29 +136,27 @@ namespace projects {
 
    void Shock::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
 
-   void Shock::setProjectBField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
-   ) {
-      setBackgroundFieldToZero(BgBGrid);
+   void Shock::setProjectBField(fsgrids::perbspan perb,
+                                fsgrids::bgbspan bgb,
+                                fsgrids::technicalspan technical, FieldSolverGrid &fsgrid) {
+      setBackgroundFieldToZero(fsgrid, technical, bgb);
 
       if(!P::isRestart) {
-         auto localSize = perBGrid.getLocalSize().data();
+         // local copies for lambda capture
+         const auto BZ0_l = this->BZ0;
+         const auto Sharp_Y_l = this->Sharp_Y;
+         fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                             phiprof::initializeTimer("setProjectBField-loop"), technical,
+                             [=](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+            const std::array<Real, 3> xyz = coordinates.getPhysicalCoords(stencil.i, stencil.j, stencil.k);
+            auto& cell = perb[stencil.ooo()];
 
-#pragma omp parallel for collapse(3)
-         for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
-            for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
-               for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
-                  const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
-                  std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
-
-                  cell->at(fsgrids::bfield::PERBX) = 0.0;
-                  cell->at(fsgrids::bfield::PERBY) = 0.0;
-                  cell->at(fsgrids::bfield::PERBZ) = this->BZ0*(3.0 + 2.0*tanh((xyz[1] - Parameters::ymax/2.0)/(this->Sharp_Y*Parameters::ymax)));
-               }
-            }
-         }
+            cell[fsgrids::bfield::PERBX] = 0.0;
+            cell[fsgrids::bfield::PERBY] = 0.0;
+            cell[fsgrids::bfield::PERBZ] =
+                BZ0_l *
+                (3.0 + 2.0 * tanh((xyz[1] - Parameters::ymax / 2.0) / (Sharp_Y_l * Parameters::ymax)));
+         });
       }
    }
 }//namespace projects

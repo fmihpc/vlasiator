@@ -35,14 +35,14 @@ run using "python vectorpotentialdipole_compare_with_data.py [ang]" where
 angle (given in degrees) is the polar angle of the line profile to plot.
     Plots also Vlasiator BCH profiles at different times
 
-''' 
+'''
 
 if len(sys.argv)!=1:
    line_phi = float(sys.argv[1])
 else:
    line_phi = 45.
 
-plt.switch_backend('Agg')  
+plt.switch_backend('Agg')
 
 outfilename = "./vecpotdip_compare_"+str(int(line_phi))+".png"
 
@@ -97,7 +97,7 @@ B2 = np.zeros([nr,3])
 B3 = np.zeros([nr,3])
 B4 = np.zeros([nr,3])
 
-for j in range(nr):      
+for j in range(nr):
    for k in range(3):
       B1[j,k] = dip.get(xv[j],yv[j],zv[j],0,k,0)
 #       B2[j,k] = dip.get_old(xv[j],yv[j],zv[j],0,k,0)
@@ -128,7 +128,7 @@ for k in range(nsubplots):
       pr_B = vf.read_variable("B", operator=coords[k],cellids=cut)
       #ax.plot(pr_Re, np.array(pr_B), c=colors[i], linestyle='-', linewidth=linewidth, label='vlsv t='+str(int(times[i]*0.5))+'s',zorder=i)
       ax.plot(pr_Re, np.array(pr_B), linestyle='-', linewidth=linewidth, label='vlsv t='+str(int(times[i]*0.5))+'s',zorder=i)
-            
+
    ax.set_xlabel(r"$r$ [$r_\mathrm{E}$]", fontsize=fontsize)
    ax.set_xlim([0,70])
    #ax.set_yscale('log', nonposy='clip')

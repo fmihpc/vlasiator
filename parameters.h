@@ -84,6 +84,9 @@ struct Parameters {
    static std::vector<Real> systemWriteTimeInterval; /*!< Interval in simusecond for output for each class*/
    static std::vector<int>
        systemWriteDistributionWriteStride; /*!< Every this many cells write out their velocity space in each class. */
+   static bool systemWriteDistributionCompressed; /*Will apply ASTERIX compression to VDFs in bulk files*/
+   static bool systemWriteRestartCompressed;      /*Will apply ASTERIX compression to VDFs in restart files*/
+   static bool systemWriteRecoveryCompressed;     /*Will apply ASTERIX compression to VDFs in recovery files*/
    static std::vector<int>
        systemWriteDistributionWriteXlineStride; /*!< Every this many lines of cells along the x direction write out
                                                    their velocity space in each class. */
@@ -238,11 +241,31 @@ struct Parameters {
    static int PADvbins; // Number of bins in velocity for pitch-angle diffusion
    static int PADmubins; // Number of bins in mu for pitch-angle diffusion
    static std::string PADnu0; // Path to txt file for nu0
-   static Realf PADfudge; // Fudge factore for diffusion   
+   static Realf PADfudge; // Fudge factore for diffusion
 
-   static std::array<FsGridTools::Task_t,3> manualFsGridDecomposition;
-   static std::array<FsGridTools::Task_t,3> overrideReadFsGridDecomposition;
-   
+   static std::array<fsgrid::Task_t,3> manualFsGridDecomposition;
+   static std::array<fsgrid::Task_t,3> overrideReadFsGridDecomposition;
+
+   //Asterix  VDF Compression
+   enum ASTERIX_COMPRESSION_METHODS{
+           NONE,
+           ZFP,
+           OCTREE,
+           MLP,
+           MLP_MULTI,
+   };
+   static std::string mlpLayer;
+   static std::vector<std::size_t> mlp_arch; /* Hidden Layers in fMLP*/
+   static std::size_t mlp_fourier_order;       /* Maximum fourier order in fMLP */
+   static std::size_t mlp_max_epochs;
+   static Real compression_interval;
+   static Real mlp_tollerance;
+   static std::size_t max_vdfs_per_nn;
+   static Real octree_tolerance;
+   static bool doCompress;
+   static std::string method_str;
+   static ASTERIX_COMPRESSION_METHODS vdf_compression_method;
+
    static bool computeCurvature; /*<! Boolean flag, if true the curvature of magnetic field is computed. */
 
    /*! \brief Add the global parameters.

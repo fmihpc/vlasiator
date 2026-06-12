@@ -34,10 +34,7 @@ reference_revision="CI_reference"
 # send JOB ID to output usable by CI eg to scancel this job
 echo "SLURM_JOB_ID=$SLURM_JOB_ID" >> $GITHUB_OUTPUT
 
-module load papi
-module load cray-pmi
-module load libfabric/1.22.0
-#module load gdb4hpc
+source ${GITHUB_WORKSPACE}/modules/hile_cpu.sh
 module list
 
 # threads per job (equal to -c )
@@ -230,7 +227,7 @@ for run in ${run_tests[*]}; do
        echo "Comparing file ${vlsv_dir_short}/${vlsv} against reference"
        COMPAREDFILES=$((COMPAREDFILES+1))
        echo $COMPAREDFILES > $RUNNER_TEMP/COMPAREDFILES.txt
-       
+
        for i in ${!variables[*]}
        do
            if [[ "${variables[$i]}" == "fg_"* ]]

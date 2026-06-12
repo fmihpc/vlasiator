@@ -42,9 +42,9 @@ using namespace spatial_cell;
 namespace projects {
    Dispersion::Dispersion(): Project() { }
    Dispersion::~Dispersion() { }
-   
+
    bool Dispersion::initialize(void) {return Project::initialize();}
-   
+
    void Dispersion::addParameters() {
       typedef Readparameters RP;
       RP::add("Dispersion.B0", "Guide magnetic field strength (T)", 1.0e-9);
@@ -57,17 +57,17 @@ namespace projects {
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-        const std::string& pop = getObjectWrapper().particleSpecies[i].name;
-        RP::add(pop + "_Dispersion.VX0", "Bulk velocity (m/s)", 0.0);
-        RP::add(pop + "_Dispersion.VY0", "Bulk velocity (m/s)", 0.0);
-        RP::add(pop + "_Dispersion.VZ0", "Bulk velocity (m/s)", 0.0);
-        RP::add(pop + "_Dispersion.rho", "Number density (m^-3)", 1.0e7);
-        RP::add(pop + "_Dispersion.Temperature", "Temperature (K)", 2.0e6);
-        RP::add(pop + "_Dispersion.densityPertRelAmp", "Relative amplitude of the density perturbation", 0.1);
-        RP::add(pop + "_Dispersion.velocityPertAbsAmp", "Absolute amplitude of the velocity perturbation", 1.0e6);
+         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
+         RP::add(pop + "_Dispersion.VX0", "Bulk velocity (m/s)", 0.0);
+         RP::add(pop + "_Dispersion.VY0", "Bulk velocity (m/s)", 0.0);
+         RP::add(pop + "_Dispersion.VZ0", "Bulk velocity (m/s)", 0.0);
+         RP::add(pop + "_Dispersion.rho", "Number density (m^-3)", 1.0e7);
+         RP::add(pop + "_Dispersion.Temperature", "Temperature (K)", 2.0e6);
+         RP::add(pop + "_Dispersion.densityPertRelAmp", "Relative amplitude of the density perturbation", 0.1);
+         RP::add(pop + "_Dispersion.velocityPertAbsAmp", "Absolute amplitude of the velocity perturbation", 1.0e6);
       }
    }
-   
+
    void Dispersion::getParameters() {
       Project::getParameters();
       typedef Readparameters RP;
@@ -95,11 +95,12 @@ namespace projects {
          speciesParams.push_back(sP);
       }
    }
-   
+
    void Dispersion::hook(
       cuint& stage,
-      const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid
+      const dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+      fsgrids::perbspan perb,
+      fsgrids::technicalspan technical, FieldSolverGrid &fsgrid
    ) const {
       /*
       if(hook::END_OF_TIME_STEP == stage) {
@@ -115,7 +116,7 @@ namespace projects {
                localRhom[cells[i] - 1] = mpiGrid[cells[i]]->parameters[CellParams::RHOM];
             }
          }
-         
+
          MPI_Reduce(&(localRhom[0]), &(outputRhom[0]), P::xcells_ini, MPI_DOUBLE, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
 
          vector<Real> localPerBx(P::xcells_ini, 0.0);
@@ -124,19 +125,20 @@ namespace projects {
          vector<Real> outputPerBx(P::xcells_ini, 0.0);
          vector<Real> outputPerBy(P::xcells_ini, 0.0);
          vector<Real> outputPerBz(P::xcells_ini, 0.0);
-         
-         const std::array<FsGridTools::FsIndex_t, 3> localSize = perBGrid.getLocalSize();
-         const std::array<FsGridTools::FsIndex_t, 3> localStart = perBGrid.getLocalStart();
-         for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
-            localPerBx[x + localStart[0]] = perBGrid.get(x, 0, 0)->at(fsgrids::bfield::PERBX);
-            localPerBy[x + localStart[0]] = perBGrid.get(x, 0, 0)->at(fsgrids::bfield::PERBY);
-            localPerBz[x + localStart[0]] = perBGrid.get(x, 0, 0)->at(fsgrids::bfield::PERBZ);
+
+         const auto* localSize = &fsgrid.getLocalSize()[0];
+         const auto& localStart = fsgrid.getLocalStart();
+         for (auto x = 0; x < localSize[0]; ++x) {
+            const auto stencil = fsgrid.makeStencil(x, 0, 0);
+            localPerBx[x + localStart[0]] = perb[stencil.ooo()][fsgrids::bfield::PERBX];
+            localPerBy[x + localStart[0]] = perb[stencil.ooo()][fsgrids::bfield::PERBY];
+            localPerBz[x + localStart[0]] = perb[stencil.ooo()][fsgrids::bfield::PERBZ];
          }
-         
+
          MPI_Reduce(&(localPerBx[0]), &(outputPerBx[0]), P::xcells_ini, MPI_DOUBLE, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
          MPI_Reduce(&(localPerBy[0]), &(outputPerBy[0]), P::xcells_ini, MPI_DOUBLE, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
          MPI_Reduce(&(localPerBz[0]), &(outputPerBz[0]), P::xcells_ini, MPI_DOUBLE, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
-         
+
          if(myRank == MASTER_RANK) {
             FILE* outputFile = fopen("perBxt.bin", "ab");
             fwrite(&(outputPerBx[0]), sizeof(outputPerBx[0]), P::xcells_ini, outputFile);
@@ -154,7 +156,7 @@ namespace projects {
       }
       */
    }
-   
+
    Realf Dispersion::fillPhaseSpace(spatial_cell::SpatialCell *cell,
                                        const uint popID,
                                        const uint nRequested
@@ -166,6 +168,8 @@ namespace projects {
       const Real initV0X = sP.VX0 + sP.velocityPertAbsAmp * (0.5 - this->rndVel[0]);
       const Real initV0Y = sP.VY0 + sP.velocityPertAbsAmp * (0.5 - this->rndVel[1]);
       const Real initV0Z = sP.VZ0 + sP.velocityPertAbsAmp * (0.5 - this->rndVel[2]);
+
+      // cerr << cell->parameters[CellParams::XCRD] << " " << this->rndRho << " " << this->rndVel[0] << " " << this->rndVel[1] << " " << this->rndVel[2] << endl;
 
       #ifdef USE_GPU
       vmesh::VelocityMesh *vmesh = cell->dev_get_velocity_mesh(popID);
@@ -206,50 +210,51 @@ namespace projects {
    void Dispersion::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
       std::default_random_engine rndState;
       setRandomCellSeed(cell,rndState);
-      
+
       this->rndRho=getRandomNumber(rndState);
-      
+
       this->rndVel[0]=getRandomNumber(rndState);
       this->rndVel[1]=getRandomNumber(rndState);
       this->rndVel[2]=getRandomNumber(rndState);
    }
-   
+
    void Dispersion::setProjectBField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
+      fsgrids::perbspan perb,
+      fsgrids::bgbspan bgb,
+      fsgrids::technicalspan technical, FieldSolverGrid &fsgrid
    ) {
       ConstantField bgField;
       bgField.initialize(this->B0 * cos(this->angleXY) * cos(this->angleXZ),
                          this->B0 * sin(this->angleXY) * cos(this->angleXZ),
                          this->B0 * sin(this->angleXZ));
-                         
-      setBackgroundField(bgField, BgBGrid);
-      
+
+      setBackgroundField(bgField, bgb, technical, fsgrid);
+
       if(!P::isRestart) {
-         const auto localSize = BgBGrid.getLocalSize().data();
-         
-#pragma omp parallel for collapse(3)
-         for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
-            for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
-               for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
-                  std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
-                  const int64_t cellid = perBGrid.GlobalIDForCoords(x, y, z);
-                  
-                  std::default_random_engine rndState;
-                  setRandomSeed(cellid,rndState);
-                  
-                  Real rndBuffer[3];
-                  rndBuffer[0]=getRandomNumber(rndState);
-                  rndBuffer[1]=getRandomNumber(rndState);
-                  rndBuffer[2]=getRandomNumber(rndState);
-                  
-                  cell->at(fsgrids::bfield::PERBX) = this->magXPertAbsAmp * (0.5 - rndBuffer[0]);
-                  cell->at(fsgrids::bfield::PERBY) = this->magYPertAbsAmp * (0.5 - rndBuffer[1]);
-                  cell->at(fsgrids::bfield::PERBZ) = this->magZPertAbsAmp * (0.5 - rndBuffer[2]);
-               }
-            }
-         }
+         // local copies for lambda capture
+         const auto magXPertAbsAmp_l = this->magXPertAbsAmp;
+         const auto magYPertAbsAmp_l = this->magYPertAbsAmp;
+         const auto magZPertAbsAmp_l = this->magZPertAbsAmp;
+         const auto seed = this->seed;
+
+         fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                             phiprof::initializeTimer("setProjectBField"), technical,
+                             [=](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+            const std::array<Real, 3> xyz = coordinates.getPhysicalCoords(stencil.i, stencil.j, stencil.k);
+            auto& cell = perb[stencil.ooo()];
+
+            const auto seedmodifier = coordinates.globalIDFromLocalCoordinates(stencil.i, stencil.j, stencil.k);
+            std::default_random_engine rndState_l;
+            rndState_l.seed(seed+seedmodifier);
+            Real rndBuffer[3];
+            rndBuffer[0] = std::uniform_real_distribution<>(-0.5,0.5)(rndState_l);
+            rndBuffer[1] = std::uniform_real_distribution<>(-0.5,0.5)(rndState_l);
+            rndBuffer[2] = std::uniform_real_distribution<>(-0.5,0.5)(rndState_l);
+
+            cell[fsgrids::bfield::PERBX] = magXPertAbsAmp_l * rndBuffer[0];
+            cell[fsgrids::bfield::PERBY] = magYPertAbsAmp_l * rndBuffer[1];
+            cell[fsgrids::bfield::PERBZ] = magZPertAbsAmp_l * rndBuffer[2];
+         });
       }
    }
 } // namespace projects

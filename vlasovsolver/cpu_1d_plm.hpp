@@ -30,9 +30,9 @@ using namespace std;
 
 /*!
  Compute PLM coefficients
- f(v) = a[0] + a[1]/2.0*t 
-t=(v-v_{i-0.5})/dv where v_{i-0.5} is the left face of a cell
-The factor 2.0 is in the polynom to ease integration, then integral is a[0]*t + a[1]*t**2
+ f(v) = a[0] + a[1]/2.0*t
+ t = (v-v_{i-0.5})/dv where v_{i-0.5} is the left face of a cell
+ The factor 2.0 is in the polynom to ease integration, then integral is a[0]*t + a[1]*t**2
 */
 
 static inline void compute_plm_coeff(const Vec * const values,const uint k, Vec a[2], const Realf threshold)

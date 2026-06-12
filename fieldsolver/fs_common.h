@@ -42,8 +42,8 @@
 #include "../sysboundary/sysboundary.h"
 #include "../sysboundary/sysboundarycondition.h"
 
-// Constants: not needed as such, but if field solver is implemented on GPUs 
-// these force CPU to use float accuracy, which in turn helps to compare 
+// Constants: not needed as such, but if field solver is implemented on GPUs
+// these force CPU to use float accuracy, which in turn helps to compare
 // CPU and GPU results.
 
 const Real HALF    = 0.5;
@@ -62,26 +62,22 @@ static creal EPS = 1.0e-30;
 
 using namespace std;
 
-bool propagateFields(
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBDt2Grid,
-   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
-   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EDt2Grid,
-   FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
-   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
-   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeDt2Grid,
-   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
-   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsDt2Grid,
-   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
-   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsDt2Grid,
-   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
-   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-   SysBoundary& sysBoundaries,
-   creal& dt,
-   cuint subcycles
-);
+bool propagateFields(fsgrids::perbspan perb,
+                     fsgrids::perbspan perbdt2,
+                     fsgrids::efieldspan e,
+                     fsgrids::efieldspan edt2,
+                     fsgrids::ehallspan ehall,
+                     fsgrids::egradpespan egradpe,
+                     fsgrids::egradpespan egradpedt2,
+                     fsgrids::momentsspan moments,
+                     fsgrids::momentsspan momentsdt2,
+                     fsgrids::dperbspan dperb,
+                     fsgrids::dmomentsspan dmoments,
+                     fsgrids::dmomentsspan dmomentsdt2,
+                     fsgrids::bgbspan bgb,
+                     fsgrids::volspan vol,
+                     fsgrids::technicalspan technical, FieldSolverGrid &fsgrid, SysBoundary& sysBoundaries,
+                     creal& dt, cuint subcycles);
 
 Real divideIfNonZero(creal rhoV, creal rho);
 
@@ -96,21 +92,16 @@ namespace Rec {
    };
 }
 
-void reconstructionCoefficients(
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-   std::array<Real, Rec::N_REC_COEFFICIENTS> & perturbedResult,
-   cint i,
-   cint j,
-   cint k,
-   creal& reconstructionOrder
-);
+std::array<Real, Rec::N_REC_COEFFICIENTS>
+reconstructionCoefficients(fsgrids::perbspan perb,
+                           fsgrids::constdperbspan dperb,
+                           const fsgrid::FsStencil& stencil, Real reconstructionOrder);
 
 std::array<Real, 3> interpolatePerturbedB(
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-   std::map< std::array<int, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS> > & reconstructionCoefficientsCache,
+   fsgrids::perbspan perb,
+   fsgrids::constdperbspan dperb,
+   fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
+   std::map<std::array<int, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS>>& reconstructionCoefficientsCache,
    cint i,
    cint j,
    cint k,
@@ -118,10 +109,10 @@ std::array<Real, 3> interpolatePerturbedB(
 );
 
 std::array<Real, 3> interpolateCurlB(
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-   std::map< std::array<int, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS> > & reconstructionCoefficientsCache,
+   fsgrids::perbspan perb,
+   fsgrids::constdperbspan dperb,
+   fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
+   std::map<std::array<int, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS>>& reconstructionCoefficientsCache,
    cint i,
    cint j,
    cint k,

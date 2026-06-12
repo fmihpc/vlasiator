@@ -215,30 +215,29 @@ namespace projects {
     * of the state of the simulation, you can read it from Parameters.
     */
    void Shocktest::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
-   
-   void Shocktest::setProjectBField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
-   ) {
-      setBackgroundFieldToZero(BgBGrid);
-      
+
+   void Shocktest::setProjectBField(fsgrids::perbspan perb,
+                                    fsgrids::bgbspan bgb,
+                                    fsgrids::technicalspan technical, FieldSolverGrid &fsgrid) {
+      setBackgroundFieldToZero(fsgrid, technical, bgb);
+
       if(!P::isRestart) {
-         auto localSize = perBGrid.getLocalSize().data();
-         
-         #pragma omp parallel for collapse(3)
-         for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
-            for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
-               for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
-                  const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
-                  std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
-                  
-                  cell->at(fsgrids::bfield::PERBX) = (xyz[0] < 0.0) ? this->Bx[this->LEFT] : this->Bx[this->RIGHT];
-                  cell->at(fsgrids::bfield::PERBY) = (xyz[0] < 0.0) ? this->By[this->LEFT] : this->By[this->RIGHT];
-                  cell->at(fsgrids::bfield::PERBZ) = (xyz[0] < 0.0) ? this->Bz[this->LEFT] : this->Bz[this->RIGHT];
-               }
-            }
-         }
+         // local copies for lambda capture
+         const auto Bx_l = this->Bx;
+         const auto By_l = this->By;
+         const auto Bz_l = this->Bz;
+         const auto LEFT_l = this->LEFT;
+         const auto RIGHT_l = this->RIGHT;
+         fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                             phiprof::initializeTimer("setProjectBField-loop"), technical,
+                             [=](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+            const std::array<Real, 3> xyz = coordinates.getPhysicalCoords(stencil.i, stencil.j, stencil.k);
+            auto& cell = perb[stencil.ooo()];
+
+            cell[fsgrids::bfield::PERBX] = (xyz[0] < 0.0) ? Bx_l[LEFT_l] : Bx_l[RIGHT_l];
+            cell[fsgrids::bfield::PERBY] = (xyz[0] < 0.0) ? By_l[LEFT_l] : By_l[RIGHT_l];
+            cell[fsgrids::bfield::PERBZ] = (xyz[0] < 0.0) ? Bz_l[LEFT_l] : Bz_l[RIGHT_l];
+         });
       }
    }
 
