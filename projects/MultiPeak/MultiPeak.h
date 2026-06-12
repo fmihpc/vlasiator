@@ -57,35 +57,34 @@ namespace projects {
     public:
       MultiPeak();
       virtual ~MultiPeak();
-      
+
       virtual bool initialize(void) override;
       virtual void addParameters(void) override;
       virtual void getParameters(void) override;
       virtual void setProjectBField(
-         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-         FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-         FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
+         fsgrids::perbspan perb,
+         fsgrids::bgbspan bgb,
+         fsgrids::technicalspan technical, FieldSolverGrid& fsgrid
       ) override;
 
       std::vector<MultiPeakSpeciesParameters> speciesParams;
       std::vector<MultiPeakSpeciesParameters*> speciesParamsRead;
 
-      virtual Realf fillPhaseSpace(spatial_cell::SpatialCell *cell,
-                                  const uint popID,
-                                  const uint nRequested) const override;
-      virtual Realf probePhaseSpace(spatial_cell::SpatialCell *cell,
+      virtual Realf fillPhaseSpace(spatial_cell::SpatialCell* cell,
+                                   const uint popID,
+                                   const uint nRequested) const override;
+      virtual Realf probePhaseSpace(spatial_cell::SpatialCell* cell,
                                     const uint popID,
-                                    Real vx_in, Real vy_in, Real vz_in) const override;
+                                    Real vx_in, Real vy_in, Real vz_in
+                                   ) const override;
 
-      virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) override;
-      virtual std::vector<std::array<Real, 3> > getV0(
-                                                      creal x,
-                                                      creal y,
-                                                      creal z,
-                                                      const uint popID
-                                                     ) const override;
+      virtual void calcCellParameters(spatial_cell::SpatialCell* cell, creal& t) override;
+      virtual std::vector<std::array<Real, 3>> getV0(creal x, creal y, creal z, const uint popID) const override;
+
+      uint seed;
+
       static Real rhoRnd; //static as it has to be threadprivate
-      #pragma omp threadprivate(rhoRnd)       
+      #pragma omp threadprivate(rhoRnd)
       Real Bx;
       Real By;
       Real Bz;

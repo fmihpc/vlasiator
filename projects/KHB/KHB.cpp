@@ -35,9 +35,9 @@ namespace projects {
    using namespace std;
    KHB::KHB(): TriAxisSearch() { }
    KHB::~KHB() { }
-
+   
    bool KHB::initialize(void) {return Project::initialize();}
-
+   
    void KHB::addParameters() {
       typedef Readparameters RP;
       RP::add<Real>("KHB.P", "Constant total pressure (thermal+magnetic), used to determine the temperature profile (Pa)",this->P,0.0);
@@ -71,8 +71,8 @@ namespace projects {
       }
 
    }
-
-
+   
+   
    Real KHB::profile(creal top, creal bottom, creal x) const {
       if(top == bottom) {
          return top;
@@ -85,7 +85,7 @@ namespace projects {
          return 0.5 * ((top-bottom) * tanh(x/this->transitionWidth) + top+bottom);
       }
    }
-
+   
    inline vector<std::array<Real, 3> > KHB::getV0(
       creal x,
       creal y,
@@ -105,7 +105,7 @@ namespace projects {
       // add each mode to the initial perturbation
       for (int i=0; i<=this->harmonics; i++) {
 	 if (this->randomPhase) {
-            phase = 2.0 * M_PI * getRandomNumber(rndState);
+            phase = 2.0 * M_PI * getRandomNumber(rndState); 
          }
 
          if (this->offset != 0.0) {
@@ -217,29 +217,33 @@ namespace projects {
 
    void KHB::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
 
-   void KHB::setProjectBField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
-   ) {
-      setBackgroundFieldToZero(BgBGrid);
+   void KHB::setProjectBField(fsgrids::perbspan perb,
+                              fsgrids::bgbspan bgb,
+                              fsgrids::technicalspan technical, FieldSolverGrid &fsgrid) {
+      setBackgroundFieldToZero(fsgrid, technical, bgb);
 
       if(!P::isRestart) {
-         auto localSize = perBGrid.getLocalSize().data();
+         // local copies for lambda capture
+         const auto Bx_l = this->Bx;
+         const auto By_l = this->By;
+         const auto Bz_l = this->Bz;
+         const auto BOTTOM_l = this->BOTTOM;
+         const auto TOP_l = this->TOP;
+         // needs *this because of profile() at the moment.
+         fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                             phiprof::initializeTimer("setProjectBField-loop"), technical,
+                             [=, *this](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+            const std::array<Real, 3> xyz = coordinates.getPhysicalCoords(stencil.i, stencil.j, stencil.k);
+            const std::array<Real, 3> gridSpacing = coordinates.physicalGridSpacing;
+            auto& cell = perb[stencil.ooo()];
 
-         #pragma omp parallel for collapse(3)
-         for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
-            for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
-               for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
-                  const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
-                  std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
-
-                  cell->at(fsgrids::bfield::PERBX) = profile(this->Bx[this->BOTTOM], this->Bx[this->TOP], xyz[0]+0.5*perBGrid.DX);
-                  cell->at(fsgrids::bfield::PERBY) = profile(this->By[this->BOTTOM], this->By[this->TOP], xyz[0]+0.5*perBGrid.DX);
-                  cell->at(fsgrids::bfield::PERBZ) = profile(this->Bz[this->BOTTOM], this->Bz[this->TOP], xyz[0]+0.5*perBGrid.DX);
-               }
-            }
-         }
+            cell[fsgrids::bfield::PERBX] =
+                profile(Bx_l[BOTTOM_l], Bx_l[TOP_l], xyz[0] + 0.5 * gridSpacing[0]);
+            cell[fsgrids::bfield::PERBY] =
+                profile(By_l[BOTTOM_l], By_l[TOP_l], xyz[0] + 0.5 * gridSpacing[0]);
+            cell[fsgrids::bfield::PERBZ] =
+                profile(Bz_l[BOTTOM_l], Bz_l[TOP_l], xyz[0] + 0.5 * gridSpacing[0]);
+         });
       }
    }
 

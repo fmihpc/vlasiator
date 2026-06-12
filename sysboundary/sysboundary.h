@@ -72,19 +72,15 @@ class SysBoundary {
    bool existSysBoundary(std::string name);
    void checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
    void classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                     FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid);
-   void applyInitialState(
-                          dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                          FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-                          FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-                          FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
-                          Project& project
-                         );
-   void updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                    FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-                    FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &perBGrid,
-                    FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
-                    creal t);
+                     fsgrids::technicalspan technical, FieldSolverGrid &fsgrid);
+   void applyInitialState(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+                          fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
+                          fsgrids::perbspan perb,
+                          fsgrids::bgbspan bgb, Project& project);
+   void updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+                    fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
+                    fsgrids::perbspan perb,
+                    fsgrids::bgbspan bgb, creal t);
    void applySysBoundaryVlasovConditions(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, creal& t, const bool calculate_V_moments);
    void setupL2OutflowAtRestart(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid);
 
@@ -112,7 +108,7 @@ class SysBoundary {
       bool anyDynamic;
 
       /*! Array of bool telling whether the system is periodic in any direction. */
-      bool periodic[3];
+      std::array<bool, 3> periodic;
 };
 
 bool precedenceSort(const SBC::SysBoundaryCondition* first,

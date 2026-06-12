@@ -150,36 +150,36 @@ namespace projects {
       //Real dBzavg = cos(2.0 * M_PI * ksi);
    }
 
-   void Alfven::setProjectBField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
-   ) {
-      setBackgroundFieldToZero(BgBGrid);
+   void Alfven::setProjectBField(fsgrids::perbspan perb,
+                                 fsgrids::bgbspan bgb,
+                                 fsgrids::technicalspan technical, FieldSolverGrid &fsgrid) {
+      setBackgroundFieldToZero(fsgrid, technical, bgb);
 
       if (!P::isRestart) {
-         auto localSize = perBGrid.getLocalSize().data();
+         // local copies for lambda capture
+         const auto ALPHA_l = this->ALPHA;
+         const auto WAVELENGTH_l = this->WAVELENGTH;
+         const auto B0_l = this->B0;
+         const auto A_MAG_l = this->A_MAG;
 
-#pragma omp parallel for collapse(3)
-         for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
-            for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
-               for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
-                  const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
-                  std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
-                  Real dx = perBGrid.DX;
-                  Real dy = perBGrid.DY;
-                  Real ksi = ((xyz[0] + 0.5 * dx)  * cos(this->ALPHA) + (xyz[1] + 0.5 * dy) * sin(this->ALPHA)) / this->WAVELENGTH;
-                  Real dBxavg = sin(2.0 * M_PI * ksi);
-                  Real dByavg = sin(2.0 * M_PI * ksi);
-                  Real dBzavg = cos(2.0 * M_PI * ksi);
+         fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                             phiprof::initializeTimer("setProjectBField"), technical,
+                             [=](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+            const std::array<Real, 3> xyz = coordinates.getPhysicalCoords(stencil.i, stencil.j, stencil.k);
+            const std::array<Real, 3> gridSpacing = coordinates.physicalGridSpacing;
+            auto& cell = perb[stencil.ooo()];
 
-                  cell->at(fsgrids::bfield::PERBX) = this->B0 * cos(this->ALPHA) - this->A_MAG * this->B0 * sin(this->ALPHA) * dBxavg;
-                  cell->at(fsgrids::bfield::PERBY) = this->B0 * sin(this->ALPHA) + this->A_MAG * this->B0 * cos(this->ALPHA) * dByavg;
-                  cell->at(fsgrids::bfield::PERBZ) = this->B0 * this->A_MAG * dBzavg;
+            const Real dx = gridSpacing[0];
+            const Real dy = gridSpacing[1];
+            const Real ksi = ((xyz[0] + 0.5 * dx) * cos(ALPHA_l) + (xyz[1] + 0.5 * dy) * sin(ALPHA_l)) / WAVELENGTH_l;
+            const Real dBxavg = sin(2.0 * M_PI * ksi);
+            const Real dByavg = sin(2.0 * M_PI * ksi);
+            const Real dBzavg = cos(2.0 * M_PI * ksi);
 
-               }
-            }
-         }
+            cell[fsgrids::bfield::PERBX] = B0_l * cos(ALPHA_l) - A_MAG_l * B0_l * sin(ALPHA_l) * dBxavg;
+            cell[fsgrids::bfield::PERBY] = B0_l * sin(ALPHA_l) + A_MAG_l * B0_l * cos(ALPHA_l) * dByavg;
+            cell[fsgrids::bfield::PERBZ] = B0_l * A_MAG_l * dBzavg;
+         });
       }
    }
 

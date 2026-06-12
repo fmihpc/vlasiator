@@ -234,14 +234,12 @@ namespace projects {
 
    void Flowthrough::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
 
-   void Flowthrough::setProjectBField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
-   ) {
+   void Flowthrough::setProjectBField(fsgrids::perbspan perb,
+                                      fsgrids::bgbspan bgb,
+                                      fsgrids::technicalspan technical, FieldSolverGrid &fsgrid) {
       ConstantField bgField;
       bgField.initialize(Bx,By,Bz); //bg bx, by,bz
-      setBackgroundField(bgField, BgBGrid);
+      setBackgroundField(bgField, bgb, technical, fsgrid);
    }
 
    std::vector<std::array<Real, 3> > Flowthrough::getV0(

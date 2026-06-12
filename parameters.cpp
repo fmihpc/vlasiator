@@ -1,4 +1,4 @@
-/*
+/*S
  * This file is part of Vlasiator.
  * Copyright 2010-2016 Finnish Meteorological Institute
  *
@@ -22,14 +22,18 @@
 
 #include "parameters.h"
 #include <CLI11.hpp>
+#include "common.h"
+#include "mpi.h"
 #include "object_wrapper.h"
 #include "particle_species.h"
 #include "readparameters.h"
 #include <algorithm>
+#include <filesystem>
 #include <cstdlib>
 #include <iostream>
 #include <limits>
 #include <set>
+#include <stdexcept>
 #include <unistd.h>
 
 #include "fieldtracing/fieldtracing.h"
@@ -94,6 +98,9 @@ vector<string> P::systemWriteName;
 vector<string> P::systemWritePath;
 vector<Real> P::systemWriteTimeInterval;
 vector<int> P::systemWriteDistributionWriteStride;
+bool P::systemWriteDistributionCompressed;
+bool P::systemWriteRestartCompressed;
+bool P::systemWriteRecoveryCompressed;
 vector<int> P::systemWriteDistributionWriteXlineStride;
 vector<int> P::systemWriteDistributionWriteYlineStride;
 vector<int> P::systemWriteDistributionWriteZlineStride;
@@ -225,11 +232,25 @@ int P::PADmubins=30;
 string P::PADnu0 = string("NU0BOX.DAT");
 Realf P::PADfudge=4;
 
-std::array<FsGridTools::Task_t,3> P::manualFsGridDecomposition = {0,0,0};
-std::array<FsGridTools::Task_t,3> P::overrideReadFsGridDecomposition = {0,0,0};
+std::array<fsgrid::Task_t,3> P::manualFsGridDecomposition = {0,0,0};
+std::array<fsgrid::Task_t,3> P::overrideReadFsGridDecomposition = {0,0,0};
 
 std::string tracerString= std::string("Euler"); /*!< Fieldline tracer to use for coupling ionosphere and magnetosphere */
 bool P::computeCurvature;
+
+//Asterix - VDF Compression
+std::vector<std::size_t> P::mlp_arch;
+std::size_t P::mlp_fourier_order;
+std::size_t P::mlp_max_epochs;
+Real P::mlp_tollerance;
+Real P::octree_tolerance;
+std::string P::mlpLayer;
+Real P::compression_interval;
+bool P::doCompress=false;
+std::string P::method_str;
+P::ASTERIX_COMPRESSION_METHODS P::vdf_compression_method;
+std::size_t P::max_vdfs_per_nn;
+
 
 bool P::addParameters() {
    typedef Readparameters RP;
@@ -427,7 +448,10 @@ bool P::addParameters() {
    RP::add("loadBalance.optionValue", "Zoltan option value. Has to be matched by loadBalance.optionKey.",P::loadBalanceValues);
 
    // Output variable parameters
-   RP::add("io.system_write_all_data_reducers", "If 0 don't write all DROs, if 1 do write them.", P::systemWriteAllDROs);
+   RP::add("io.system_write_all_data_reducers", "If 0 don't write all DROs, if 1 do write them.", false);
+   RP::add("io.system_write_distribution_compressed", string("Apply ASTERIX compressiont to VDFs in bulk files."), false);
+   RP::add("io.system_write_restart_compressed", string("Apply ASTERIX compressiont to VDFs in restart files."), false);
+   RP::add("io.system_write_recovery_compressed", string("Apply ASTERIX compressiont to VDFs in recovery files."), false);
    // NOTE Do not remove the : before the list of variable names as this is parsed by tools/check_vlasiator_cfg.sh
    RP::addComposing("variables.output",
                     string() +
@@ -552,11 +576,51 @@ bool P::addParameters() {
    RP::add<Real>("fieldtracing.max_allowed_y", "Trace for y coordinates smaller than this limit (in m).",FieldTracing::fieldTracingParameters.y_max,LARGE_REAL);
    RP::add<Real>("fieldtracing.max_allowed_z", "Trace for z coordinates smaller than this limit (in m).", FieldTracing::fieldTracingParameters.z_max,LARGE_REAL);
 
+   //Asterix - VDF Compression
+   RP::add("Asterix.mlp_layers", string("Hidden layer architecture (neuron count per hidden layer) for MLP"),"32,32,32");
+   RP::add("Asterix.tol", string("MLP Compression reconstruction tolerance"),1e-4);
+   RP::add("Asterix.octree_tolerance", string("OCTREE Compression reconstruction tolerance"),1e-3);
+   RP::add("Asterix.max_epochs", string("Max MLP epochs"),50);
+   RP::add("Asterix.fourier_order", string("Fourier Feature Order"),32);
+   RP::add("Asterix.interval", string("Compression interval in seconds [Deprecated]"),1.0);
+   RP::add("Asterix.state", string("Boolean Asterix compression toggle"),false);
+   RP::add("Asterix.method", string("Compression method string"),"ZFP");
+   RP::add("Asterix.max_vdfs_per_nn",string("Max vdfs per MLP in multi regression mode") ,std::numeric_limits<std::size_t>::max());
    return true;
 }
 
 void Parameters::getParameters() {
    typedef Readparameters RP;
+   // get numerical values of the parameters
+   RP::get("io.diagnostic_write_interval", P::diagnosticInterval);
+   RP::get("io.diagnostic_write_all_data_reducers", P::diagnosticWriteAllDROs);
+   RP::get("io.system_write_t_interval", P::systemWriteTimeInterval);
+   RP::get("io.system_write_file_name", P::systemWriteName);
+   RP::get("io.system_write_path", P::systemWritePath);
+   RP::get("io.system_write_distribution_stride", P::systemWriteDistributionWriteStride);
+   RP::get("io.system_write_distribution_xline_stride", P::systemWriteDistributionWriteXlineStride);
+   RP::get("io.system_write_distribution_yline_stride", P::systemWriteDistributionWriteYlineStride);
+   RP::get("io.system_write_distribution_zline_stride", P::systemWriteDistributionWriteZlineStride);
+   RP::get("io.system_write_distribution_shell_radius", P::systemWriteDistributionWriteShellRadius);
+   RP::get("io.system_write_distribution_shell_stride", P::systemWriteDistributionWriteShellStride);
+   RP::get("io.system_write_fsgrid_variables", P::systemWriteFsGrid);
+   RP::get("io.system_write_all_data_reducers", P::systemWriteAllDROs);
+   RP::get("io.system_write_distribution_compressed", P::systemWriteDistributionCompressed);
+   RP::get("io.system_write_restart_compressed", P::systemWriteRestartCompressed);
+   RP::get("io.system_write_recovery_compressed", P::systemWriteRecoveryCompressed);
+   RP::get("io.write_initial_state", P::writeInitialState);
+   RP::get("io.write_full_bgb_data", P::writeFullBGB);
+   RP::get("io.restart_walltime_interval", P::saveRestartWalltimeInterval);
+   RP::get("io.recover_tstep_interval", P::saveRecoverTstepInterval);
+   RP::get("io.number_of_restarts", P::exitAfterRestarts);
+   RP::get("io.number_of_recovers", P::recoverMaxFiles);
+   RP::get("io.vlsv_buffer_size", P::vlsvBufferSize);
+   RP::get("io.write_restart_stripe_factor", P::restartStripeFactor);
+   RP::get("io.write_system_stripe_factor", P::systemStripeFactor);
+   RP::get("io.restart_write_path", P::restartWritePath);
+   RP::get("io.recover_write_path", P::recoverWritePath);
+   RP::get("io.write_as_float", P::writeAsFloat);
+
    // Checks for validity of io and restart parameters
    int myRank;
    MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
@@ -738,18 +802,7 @@ void Parameters::getParameters() {
       for (uint i = 0; i < P::systemWriteName.size(); i++) {
          P::systemWritePath.push_back(string("./"));
       }
-   } else {
-      for (uint i = 0; i < P::systemWritePath.size(); i++) {
-         if (access(&(P::systemWritePath.at(i)[0]), W_OK) != 0) {
-            if (myRank == MASTER_RANK) {
-               cerr << "ERROR " << P::systemWriteName.at(i) << " write path " << P::systemWritePath.at(i)
-                    << " not writeable, defaulting to local directory." << endl;
-            }
-            P::systemWritePath.at(i) = prefix;
-         }
-      }
    }
-
    bool includefSaved = false;
    for(uint i=0; i<maxSize; i++) {
       if(P::systemWriteDistributionWriteStride[i] != 0 ||
@@ -764,6 +817,29 @@ void Parameters::getParameters() {
          includefSaved = true;
       }
    }
+   for (size_t i=0;i<P::systemWriteName.size();i++) {
+    auto slashIndx=P::systemWriteName.at(i).find("/");
+    if (systemWritePath.at(i).back()!='/') {
+      systemWritePath.at(i)+='/';
+    }
+    while (slashIndx!=string::npos) {
+      P::systemWritePath.at(i)+=P::systemWriteName.at(i).substr(0,slashIndx)+"/";
+      P::systemWriteName.at(i)=P::systemWriteName.at(i).substr(slashIndx+1,P::systemWriteName.at(i).size());
+      slashIndx=P::systemWriteName.at(i).find("/");
+    }
+   } 
+   
+   for (uint i = 0; i < P::systemWritePath.size(); i++) {
+      if (access(&(P::systemWritePath.at(i)[0]), W_OK) != 0) {
+          if (myRank == MASTER_RANK) {
+            cerr << "ERROR " << P::systemWriteName.at(i) << " write path " << P::systemWritePath.at(i)
+                  << " not writeable. Please create them and remember the correct striping if in HPC environment." << endl;
+          }
+         MPI_Abort(MPI_COMM_WORLD, 1);
+         //P::systemWritePath.at(i) = prefix;
+      }
+   }
+   
 
    // system write hints
    if (P::mpiioKeysWrite.size() != P::mpiioValuesWrite.size()) {
@@ -822,6 +898,13 @@ void Parameters::getParameters() {
       cerr << "ERROR all of restart.overrideReadFsGridDecompositionX,Y,Z should be defined." << endl;
       MPI_Abort(MPI_COMM_WORLD, 1);
    }
+   fsgrid::Task_t temp_task_t;
+   RP::get("restart.overrideReadFsGridDecompositionX", temp_task_t);
+   P::overrideReadFsGridDecomposition[0] = temp_task_t;
+   RP::get("restart.overrideReadFsGridDecompositionY", temp_task_t);
+   P::overrideReadFsGridDecomposition[1] = temp_task_t;
+   RP::get("restart.overrideReadFsGridDecompositionZ", temp_task_t);
+   P::overrideReadFsGridDecomposition[2] = temp_task_t;
 
 
    if (RP::helpRequested) {
@@ -884,6 +967,104 @@ void Parameters::getParameters() {
       }
       MPI_Abort(MPI_COMM_WORLD, 1);
    }
+
+   RP::get("AMR.refine_cadence",P::refineCadence);
+   RP::get("AMR.refine_after",P::refineAfter);
+   RP::get("AMR.refine_radius",P::refineRadius);
+   RP::get("AMR.number_of_refine_boxes", P::refineBoxNumber);
+   RP::get("AMR.refinement_min_x", P::refinementMinX);
+   RP::get("AMR.refinement_min_y", P::refinementMinY);
+   RP::get("AMR.refinement_min_z", P::refinementMinZ);
+   RP::get("AMR.refinement_max_x", P::refinementMaxX);
+   RP::get("AMR.refinement_max_y", P::refinementMaxY);
+   RP::get("AMR.refinement_max_z", P::refinementMaxZ);
+   RP::get("AMR.alpha1_drho_weight", P::alphaDRhoWeight);
+   RP::get("AMR.alpha1_du_weight", P::alphaDUWeight);
+   RP::get("AMR.alpha1_dpsq_weight", P::alphaDPSqWeight);
+   RP::get("AMR.alpha1_dbsq_weight", P::alphaDBSqWeight);
+   RP::get("AMR.alpha1_db_weight", P::alphaDBWeight);
+   RP::get("AMR.number_of_boxes", P::amrBoxNumber);
+   RP::get("AMR.box_max_level", P::amrBoxMaxLevel);
+   RP::get("AMR.box_half_width_x", P::amrBoxHalfWidthX);
+   RP::get("AMR.box_half_width_y", P::amrBoxHalfWidthY);
+   RP::get("AMR.box_half_width_z", P::amrBoxHalfWidthZ);
+   RP::get("AMR.box_center_x", P::amrBoxCenterX);
+   RP::get("AMR.box_center_y", P::amrBoxCenterY);
+   RP::get("AMR.box_center_z", P::amrBoxCenterZ);
+   RP::get("AMR.transShortPencils", P::amrTransShortPencils);
+   RP::get("AMR.filterpasses", P::blurPassString);
+   RP::get("adaptGPUWID", P::adaptGPUWID);
+   RP::get("GPUallocations", P::GPUallocations);
+
+   //Asterix
+   RP::get("Asterix.mlp_layers", P::mlpLayer);
+   RP::get("Asterix.max_epochs",P::mlp_max_epochs );
+   RP::get("Asterix.tol", P::mlp_tollerance);
+   RP::get("Asterix.octree_tolerance", P::octree_tolerance);
+   RP::get("Asterix.fourier_order",P::mlp_fourier_order );
+   RP::get("Asterix.interval",P::compression_interval);
+   RP::get("Asterix.state",P::doCompress);
+   RP::get("Asterix.method",P::method_str);
+   RP::get("Asterix.max_vdfs_per_nn",P::max_vdfs_per_nn);
+
+   if (P::doCompress){
+      #ifdef ASTERIX_MLP
+      if(P::method_str == "MLP") {
+         P::vdf_compression_method=ASTERIX_COMPRESSION_METHODS::MLP;
+         P::doCompress=true;
+      }
+      if(P::method_str == "MLP_MULTI") {
+         P::vdf_compression_method=ASTERIX_COMPRESSION_METHODS::MLP_MULTI;
+         P::doCompress=true;
+      }
+      #endif
+      #ifdef ASTERIX_ZFP
+      if (P::method_str == "ZFP") {
+         P::vdf_compression_method=ASTERIX_COMPRESSION_METHODS::ZFP;
+         P::doCompress=true;
+      }
+      #endif
+      #ifdef ASTERIX_OCTREE
+      if (P::method_str == "OCTREE") {
+         P::vdf_compression_method=ASTERIX_COMPRESSION_METHODS::OCTREE;
+         P::doCompress=true;
+      }
+      #endif
+   }else{
+      P::vdf_compression_method=ASTERIX_COMPRESSION_METHODS::NONE;
+      P::doCompress=false;
+   }
+
+   if ((P::systemWriteDistributionCompressed || P::systemWriteRecoveryCompressed || P::systemWriteRestartCompressed )&&
+           (P::vdf_compression_method == ASTERIX_COMPRESSION_METHODS::NONE || doCompress == false)) {
+      if (myRank==MASTER_RANK){
+         std::cout<<"State= "<<doCompress<<std::endl;
+         std::cout<<"Method "<<P::vdf_compression_method<<std::endl;
+         std::cerr << "Your ASTERIX setting do not make sense! You need to either disable compression or select an "
+                      "appropriate comrpession method!"
+                   << std::endl;
+      }
+      MPI_Barrier(MPI_COMM_WORLD);
+      MPI_Abort(MPI_COMM_WORLD,-1);
+   }
+
+   //Parse MLP Layer string
+   auto parseToSize_T = [](const std::string& str) -> std::vector<size_t> {
+      std::vector<std::size_t> result;
+      std::string clean_str;
+      std::copy_if(str.begin(), str.end(), std::back_inserter(clean_str), [](unsigned char c) {
+         return !std::isspace(c);
+      });
+
+      std::stringstream ss(clean_str);
+      std::string token;
+      while (std::getline(ss, token, ',')) {
+         result.push_back(std::stoull(token));  // Convert each token to size_t
+      }
+      return result;
+   };
+   P::mlp_arch=parseToSize_T(P::mlpLayer);
+
    // We need the correct number of parameters for the AMR boxes
    if(   P::amrBoxNumber != (int)P::amrBoxHalfWidthX.size()
       || P::amrBoxNumber != (int)P::amrBoxHalfWidthY.size()
@@ -1026,6 +1207,14 @@ void Parameters::getParameters() {
       P::outputVariableList.push_back("vg_f_saved");
    }
 
+   //If we need to compress files force the sparsity in the VLSV files
+   const bool force_sparsity_in_output =
+       P::systemWriteRestartCompressed || P::systemWriteDistributionCompressed || P::systemWriteRecoveryCompressed;
+   if (force_sparsity_in_output) {
+      P::outputVariableList.emplace_back("populations_minvalue");
+      P::outputVariableList.emplace_back("populations_EffectiveSparsityThreshold");
+   }
+
    // Filter duplicate variable names
    set<string> dummy(P::outputVariableList.begin(), P::outputVariableList.end());
    P::outputVariableList.clear();
@@ -1047,6 +1236,30 @@ void Parameters::getParameters() {
       P::systemWrites.push_back(0);
    }
 
+   RP::get("PAD.enable", P::artificialPADiff);
+   RP::get("PAD.coefficient", P::PADcoefficient);
+   RP::get("PAD.CFL",P::PADCFL);
+   RP::get("PAD.vbins",P::PADvbins);
+   RP::get("PAD.mubins",P::PADmubins);
+   RP::get("PAD.file",P::PADnu0);
+   RP::get("PAD.fudge",P::PADfudge);
+
+   RP::get("fieldtracing.fieldLineTracer", tracerString);
+   RP::get("fieldtracing.tracer_max_allowed_error", FieldTracing::fieldTracingParameters.max_allowed_error);
+   RP::get("fieldtracing.tracer_max_attempts", FieldTracing::fieldTracingParameters.max_field_tracer_attempts);
+   RP::get("fieldtracing.tracer_min_dx", FieldTracing::fieldTracingParameters.min_tracer_dx_full_box);
+   RP::get("fieldtracing.fullbox_max_incomplete_cells", FieldTracing::fieldTracingParameters.fullbox_max_incomplete_cells);
+   RP::get("fieldtracing.fluxrope_max_incomplete_cells", FieldTracing::fieldTracingParameters.fluxrope_max_incomplete_cells);
+   RP::get("fieldtracing.fullbox_and_fluxrope_max_absolute_distance_to_trace", FieldTracing::fieldTracingParameters.fullbox_and_fluxrope_max_distance);
+   RP::get("fieldtracing.use_reconstruction_cache", FieldTracing::fieldTracingParameters.useCache);
+   RP::get("fieldtracing.fluxrope_max_curvature_radii_to_trace", FieldTracing::fieldTracingParameters.fluxrope_max_curvature_radii_to_trace);
+   RP::get("fieldtracing.fluxrope_max_curvature_radii_extent", FieldTracing::fieldTracingParameters.fluxrope_max_curvature_radii_extent);
+   RP::get("fieldtracing.min_allowed_x", FieldTracing::fieldTracingParameters.x_min);
+   RP::get("fieldtracing.min_allowed_y", FieldTracing::fieldTracingParameters.y_min);
+   RP::get("fieldtracing.min_allowed_z", FieldTracing::fieldTracingParameters.z_min);
+   RP::get("fieldtracing.max_allowed_x", FieldTracing::fieldTracingParameters.x_max);
+   RP::get("fieldtracing.max_allowed_y", FieldTracing::fieldTracingParameters.y_max);
+   RP::get("fieldtracing.max_allowed_z", FieldTracing::fieldTracingParameters.z_max);
    FieldTracing::fieldTracingParameters.x_min = max((double)FieldTracing::fieldTracingParameters.x_min, P::xmin + 4.0*P::dx_ini);
    FieldTracing::fieldTracingParameters.y_min = max((double)FieldTracing::fieldTracingParameters.y_min, P::ymin + 4.0*P::dy_ini);
    FieldTracing::fieldTracingParameters.z_min = max((double)FieldTracing::fieldTracingParameters.z_min, P::zmin + 4.0*P::dz_ini);
