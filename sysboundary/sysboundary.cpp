@@ -38,6 +38,7 @@
 #include "setmaxwellian.h"
 #include "sysboundary.h"
 #include "../fieldsolver/gridGlue.hpp"
+#include "../readparameters.h"
 
 using namespace std;
 using namespace spatial_cell;
@@ -76,21 +77,16 @@ SysBoundary::~SysBoundary() {
  * SysBoundaryConditions implemented in the code in order to have them appear also in the
  * help.
  */
-void SysBoundary::addParameters() {
-   Readparameters::addComposing(
+void SysBoundary::addSysBoundaryParameters() {
+   Readparameters::add(
        "boundaries.boundary",
        "List of boundary condition (BC) types to be used. Each boundary condition to be used has to be on a new line "
-       "boundary = YYY. Available options are: Outflow, Ionosphere, Copysphere, Maxwellian.");
-   Readparameters::add("boundaries.periodic_x", "Set the grid periodicity in x-direction. 'yes'(default)/'no'.", "yes");
-   Readparameters::add("boundaries.periodic_y", "Set the grid periodicity in y-direction. 'yes'(default)/'no'.", "yes");
-   Readparameters::add("boundaries.periodic_z", "Set the grid periodicity in z-direction. 'yes'(default)/'no'.", "yes");
+       "boundary = YYY. Available options are: Outflow, Ionosphere, Copysphere, Maxwellian.",this->sysBoundaryCondList);
+   Readparameters::add("boundaries.periodic_x", "Set the grid periodicity in x-direction. 'yes'(default)/'no'.", this->periodic[0]);
+   Readparameters::add("boundaries.periodic_y", "Set the grid periodicity in y-direction. 'yes'(default)/'no'.", this->periodic[1]);
+   Readparameters::add("boundaries.periodic_z", "Set the grid periodicity in z-direction. 'yes'(default)/'no'.", this->periodic[2]);
 
-   // call static addParameter functions in all bc's
    SBC::DoNotCompute::addParameters();
-   SBC::Ionosphere::addParameters();
-   SBC::Copysphere::addParameters();
-   SBC::Outflow::addParameters();
-   SBC::Maxwellian::addParameters();
 }
 
 /*!\brief Get this class' parameters.
@@ -100,42 +96,45 @@ void SysBoundary::addParameters() {
  * getParameters for each actually used system boundary condition is called by each
  * SysBoundaryCondition's initialization function.
  */
-void SysBoundary::getParameters() {
-   string periodic_x, periodic_y, periodic_z;
+void SysBoundary::addParameters() {
 
-   Readparameters::get("boundaries.boundary", sysBoundaryCondList);
-   Readparameters::get("boundaries.periodic_x", periodic_x);
-   Readparameters::get("boundaries.periodic_y", periodic_y);
-   Readparameters::get("boundaries.periodic_z", periodic_z);
+   vector<string>::const_iterator it;
 
-   periodic[0] = (periodic_x == "yes");
-   periodic[1] = (periodic_y == "yes");
-   periodic[2] = (periodic_z == "yes");
-}
-
-/*! Add a new SBC::SysBoundaryCondition which has been created with new sysBoundary.
- * SysBoundary will take care of deleting it.
- *
- * \param bc SysBoundaryCondition object
- * \param project Project object
- * \param t Current time
- * \retval success If true, the given SBC::SysBoundaryCondition was added successfully.
- */
-void SysBoundary::addSysBoundary(SBC::SysBoundaryCondition* bc, Project& project, creal& t) {
-   // Initialize the boundary condition
-   stringstream timername;
-   timername << "Initialize system boundary condition " << bc->getName();
-   phiprof::Timer timer{timername.str()};
-   bc->initSysBoundary(t, project);
-   timer.stop();
-
-   sysBoundaries.push_back(bc);
-   if (sysBoundaries.size() > 1) {
-      sysBoundaries.sort(precedenceSort);
+  if (Readparameters::helpRequested) {
+    sysBoundaryCondList={"Outflow","Maxwellian","Copysphere","Ionosphere"};
+  }
+   
+   for (it = sysBoundaryCondList.begin(); it != sysBoundaryCondList.end(); it++) {
+      if (*it == "Outflow" || *it == "outflow" ) {
+         SBC::Outflow* bc = new SBC::Outflow();
+         bc->addParameters();
+         sysBoundaries.push_back(bc);
+         indexToSysBoundary[bc->getIndex()] = bc;
+      }
+      else if (*it == "Maxwellian" || *it == "maxwellian" ) {
+         SBC::Maxwellian* bc = new SBC::Maxwellian();
+         bc->addParameters();
+         sysBoundaries.push_back(bc);
+         indexToSysBoundary[bc->getIndex()] = bc;
+      }
+      else if (*it == "Copysphere" || *it == "copysphere" ) {
+         SBC::Copysphere* bc = new SBC::Copysphere();
+         bc->addParameters();
+         sysBoundaries.push_back(bc);
+         indexToSysBoundary[bc->getIndex()] = bc;
+      }
+      else if (*it == "Ionosphere" || *it == "ionosphere" ) {
+         SBC::Ionosphere* bc = new SBC::Ionosphere();
+         bc->addParameters();
+         sysBoundaries.push_back(bc);
+         indexToSysBoundary[bc->getIndex()] = bc;
+      }
+      else {
+         std::ostringstream msg;
+         msg << "Unknown type of boundary read: " << *it;
+         abort_mpi(msg.str());
+      }
    }
-
-   // This assumes that only one instance of each type is created.
-   indexToSysBoundary[bc->getIndex()] = bc;
 }
 
 /*!\brief Initialise all system boundary conditions actually used.
@@ -150,11 +149,13 @@ void SysBoundary::addSysBoundary(SBC::SysBoundaryCondition* bc, Project& project
  * \retval success If true, the initialisation of all system boundaries succeeded.
  * \sa addSysBoundary
  */
-void SysBoundary::initSysBoundaries(Project& project, creal& t) {
+void SysBoundary::getParameters() {
    int myRank;
    MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
    vector<string>::const_iterator it;
-
+   for (auto& b : sysBoundaries)  {
+     b->getParameters();
+   }
    if (sysBoundaryCondList.size() == 0) {
       if (!periodic[0] && !Readparameters::helpRequested) {
          abort_mpi("Non-periodic in x but no boundary condtion loaded!");
@@ -166,10 +167,8 @@ void SysBoundary::initSysBoundaries(Project& project, creal& t) {
          abort_mpi("Non-periodic in z but no boundary condtion loaded!");
       }
    }
-
    for (it = sysBoundaryCondList.begin(); it != sysBoundaryCondList.end(); it++) {
       if (*it == "Outflow" || *it == "outflow") {
-         this->addSysBoundary(::new SBC::Outflow, project, t);
 
          anyDynamic = anyDynamic | this->getSysBoundary(sysboundarytype::OUTFLOW)->isDynamic();
          bool faces[6];
@@ -198,15 +197,10 @@ void SysBoundary::initSysBoundaries(Project& project, creal& t) {
          }
 
       } else if (*it == "Ionosphere" || *it == "ionosphere") {
-         this->addSysBoundary(::new SBC::Ionosphere, project, t);
-         this->addSysBoundary(::new SBC::DoNotCompute, project, t);
          anyDynamic = anyDynamic | this->getSysBoundary(sysboundarytype::IONOSPHERE)->isDynamic();
-      } else if (*it == "Copysphere" || *it == "copysphere") {
-         this->addSysBoundary(::new SBC::Copysphere, project, t);
-         this->addSysBoundary(::new SBC::DoNotCompute, project, t);
+      } else if(*it == "Copysphere" || *it == "copysphere") {
          anyDynamic = anyDynamic | this->getSysBoundary(sysboundarytype::COPYSPHERE)->isDynamic();
       } else if (*it == "Maxwellian" || *it == "maxwellian") {
-         this->addSysBoundary(::new SBC::Maxwellian, project, t);
          anyDynamic = anyDynamic | this->getSysBoundary(sysboundarytype::MAXWELLIAN)->isDynamic();
          bool faces[6];
          this->getSysBoundary(sysboundarytype::MAXWELLIAN)->getFaces(&faces[0]);
@@ -233,11 +227,40 @@ void SysBoundary::initSysBoundaries(Project& project, creal& t) {
          msg << "Unknown type of boundary read: " << *it;
          abort_mpi(msg.str());
       }
+  }
+}
+
+/*!\brief Initialise all system boundary conditions actually used.
+ *
+ * This function loops through the list of system boundary conditions listed as to be used
+ * in the configuration file/command line arguments. For each of these it adds the
+ * corresponding instance and updates the member isDynamic to determine whether any
+ * SysBoundaryCondition is dynamic in time.
+ *
+ * \param project Project object
+ * \param t Current time
+ * \retval success If true, the initialisation of all system boundaries succeeded.
+ * \sa addSysBoundary
+ */
+void SysBoundary::initSysBoundaries(Project& project, creal& t) {
+   int myRank;
+   MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
+   vector<string>::const_iterator it;
+   for (auto& b : sysBoundaries)  {
+     // this->initSysBoundary(b, project, t);
+     stringstream timername;
+     timername<<"Initialize system boundary condition "<<b->getName();
+     phiprof::Timer timer {timername.str()};
+     b->initSysBoundary(t, project);
+     timer.stop();
+     b->setPeriodicity(periodic);
    }
 
-   for (auto& b : sysBoundaries) {
-      b->setPeriodicity(periodic);
+   if (sysBoundaries.size() > 1) {
+      sysBoundaries.sort(precedenceSort);
    }
+
+
 }
 
 /*!\brief Boolean check if queried sysboundarycondition exists
@@ -475,13 +498,9 @@ void SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
 
    SysBoundary& sysBoundaryContainer = getObjectWrapper().sysBoundaryContainer;
    Real ionosphereDownmapRadius = 0;
-   if (sysBoundaryContainer.existSysBoundary("Ionosphere")) {
-      Readparameters::get("ionosphere.downmapRadius", ionosphereDownmapRadius);
-   }
-   if (ionosphereDownmapRadius < 1000) {
+   if(sysBoundaryContainer.existSysBoundary("Ionosphere") && ionosphereDownmapRadius < 1000) {
       ionosphereDownmapRadius *= physicalconstants::R_E;
    }
-
    // Now the layers need to be set on fsgrid too
    // In dccrg initialization the max number of boundary layers is set to 3.
    const uint MAX_NUMBER_OF_BOUNDARY_LAYERS = 3 * pow(2, mpiGrid.get_maximum_refinement_level());

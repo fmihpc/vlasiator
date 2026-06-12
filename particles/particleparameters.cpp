@@ -46,6 +46,7 @@ bool P::divide_rhov_by_rho = false;
 
 std::default_random_engine::result_type P::random_seed = 1;
 Distribution* (*P::distribution)(std::default_random_engine&) = NULL;
+std::string P::distribution_name;
 Real P::temperature = 1e6;
 Real P::particle_vel = 0;
 Real P::mass = PhysicalConstantsSI::mp;
@@ -54,6 +55,11 @@ Real P::charge = PhysicalConstantsSI::e;
 Boundary* P::boundary_behaviour_x = NULL;
 Boundary* P::boundary_behaviour_y = NULL;
 Boundary* P::boundary_behaviour_z = NULL;
+
+std::string P::boundary_behaviour_x_string;
+std::string P::boundary_behaviour_y_string;
+std::string P::boundary_behaviour_z_string;
+
 
 Real P::precip_inner_boundary;
 Real P::precip_start_x;
@@ -76,110 +82,91 @@ Real P::ipshock_transmit;
 Real P::ipshock_reflect;
 
 bool ParticleParameters::addParameters() {
-   Readparameters::add("particles.input_filename_pattern","Printf() like pattern giving the field input filenames.",
+   Readparameters::add<std::string>("particles.input_filename_pattern","Printf() like pattern giving the field input filenames.", P::input_filename_pattern,
          std::string("bulk.%07i.vlsv"));
-   Readparameters::add("particles.output_filename_pattern","Printf() like pattern giving the particle output filenames.",
+   Readparameters::add<std::string>("particles.output_filename_pattern","Printf() like pattern giving the particle output filenames.", P::output_filename_pattern,
          std::string("particles.%07i.vlsv"));
-   Readparameters::add("particles.mode","Mode to run the particle pusher in.",std::string("distribution"));
+   Readparameters::add<std::string>("particles.mode","Mode to run the particle pusher in.", P::mode,std::string("distribution"));
 
-   Readparameters::add("particles.init_x", "Particle starting point, x-coordinate (meters).", 0);
-   Readparameters::add("particles.init_y", "Particle starting point, y-coordinate (meters).", 0);
-   Readparameters::add("particles.init_z", "Particle starting point, z-coordinate (meters).", 0);
+   Readparameters::add<Real>("particles.init_x", "Particle starting point, x-coordinate (meters).", P::init_x, 0);
+   Readparameters::add<Real>("particles.init_y", "Particle starting point, y-coordinate (meters).", P::init_y, 0);
+   Readparameters::add<Real>("particles.init_z", "Particle starting point, z-coordinate (meters).", P::init_z, 0);
 
-   Readparameters::add("particles.dt", "Particle pusher timestep",0);
-   Readparameters::add("particles.input_dt", "Time spacing (seconds) of input files",1.);
-   Readparameters::add("particles.start_time", "Simulation time (seconds) for particle start.",0);
-   Readparameters::add("particles.end_time", "Simulation time (seconds) at which particle simulation stops.",0);
-   Readparameters::add("particles.num_particles", "Number of particles to simulate.",10000);
-   Readparameters::add("particles.V_field_name", "Name of the Velocity data set in the input files", "V");
-   Readparameters::add("particles.rho_field_name", "Name of the Density data set in the input files", "rho");
-   Readparameters::add("particles.divide_rhov_by_rho", "Do the input file store rho_v and rho separately?", false);
-   Readparameters::add("particles.random_seed", "Random seed for particle creation.",1);
-   Readparameters::add("particles.distribution", "Type of distribution function to sample particles from.",
+   Readparameters::add<Real>("particles.dt", "Particle pusher timestep", P::dt,0);
+   Readparameters::add<Real>("particles.input_dt", "Time spacing (seconds) of input files", P::input_dt,1.);
+   Readparameters::add<Real>("particles.start_time", "Simulation time (seconds) for particle start.", P::start_time,0);
+   Readparameters::add<Real>("particles.end_time", "Simulation time (seconds) at which particle simulation stops.", P::end_time,0);
+   Readparameters::add<uint64_t>("particles.num_particles", "Number of particles to simulate.", P::num_particles,10000);
+   Readparameters::add<std::string>("particles.V_field_name", "Name of the Velocity data set in the input files", P::V_field_name, "V");
+   Readparameters::add<std::string>("particles.rho_field_name", "Name of the Density data set in the input files", P::rho_field_name, "rho");
+   Readparameters::add<bool>("particles.divide_rhov_by_rho", "Do the input file store rho_v and rho separately?", P::divide_rhov_by_rho, false);
+   Readparameters::add<std::default_random_engine::result_type>("particles.random_seed", "Random seed for particle creation.", P::random_seed,1);
+   Readparameters::add<std::string>("particles.distribution", "Type of distribution function to sample particles from.", P::distribution_name,
          std::string("maxwell"));
-   Readparameters::add("particles.temperature", "Temperature of the particle distribution",1e6);
-   Readparameters::add("particles.particle_vel", "Initial velocity of the particles (in the plasma rest frame)",0);
-   Readparameters::add("particles.mass", "Mass of the test particles",PhysicalConstantsSI::mp);
-   Readparameters::add("particles.charge", "Charge of the test particles",PhysicalConstantsSI::e);
+   Readparameters::add<Real>("particles.temperature", "Temperature of the particle distribution", P::temperature,1e6);
+   Readparameters::add<Real>("particles.particle_vel", "Initial velocity of the particles (in the plasma rest frame)", P::particle_vel,0);
+   Readparameters::add<Real>("particles.mass", "Mass of the test particles", P::mass,PhysicalConstantsSI::mp);
+   Readparameters::add<Real>("particles.charge", "Charge of the test particles", P::charge,PhysicalConstantsSI::e);
 
-   Readparameters::add("particles.boundary_behaviour_x",
-         "What to do with particles that reach the x boundaries (DELETE/REFLECT/PERIODIC)",std::string("DELETE"));
-   Readparameters::add("particles.boundary_behaviour_y",
-         "What to do with particles that reach the y boundaries (DELETE/REFLECT/PERIODIC)",std::string("PERIODIC"));
-   Readparameters::add("particles.boundary_behaviour_z",
-         "What to do with particles that reach the z boundaries (DELETE/REFLECT/PERIODIC)",std::string("PERIODIC"));
+   Readparameters::add<std::string>("particles.boundary_behaviour_x",
+         "What to do with particles that reach the x boundaries (DELETE/REFLECT/PERIODIC)",P::boundary_behaviour_x_string,std::string("DELETE"));
+   Readparameters::add<std::string>("particles.boundary_behaviour_y",
+         "What to do with particles that reach the y boundaries (DELETE/REFLECT/PERIODIC)",P::boundary_behaviour_y_string,std::string("PERIODIC"));
+   Readparameters::add<std::string>("particles.boundary_behaviour_z",
+         "What to do with particles that reach the z boundaries (DELETE/REFLECT/PERIODIC)",P::boundary_behaviour_z_string,std::string("PERIODIC"));
 
    // Parameters for the precipitation mode
-   Readparameters::add("particles.inner_boundary", "Distance of the inner boundary from the coordinate centre (meters)",
+   Readparameters::add<Real>("particles.inner_boundary", "Distance of the inner boundary from the coordinate centre (meters)", P::precip_inner_boundary,
          30e6);
-   Readparameters::add("particles.precipitation_start_x", "X-Coordinate at which precipitation injection starts (meters)",
+   Readparameters::add<Real>("particles.precipitation_start_x", "X-Coordinate at which precipitation injection starts (meters)", P::precip_start_x,
          -200e6);
-   Readparameters::add("particles.precipitation_stop_x", "X-Coordinate at which precipitation injection stops (meters)",
+   Readparameters::add<Real>("particles.precipitation_stop_x", "X-Coordinate at which precipitation injection stops (meters)", P::precip_stop_x,
          -50e6);
 
    // Parameters for shock reflection mode
-   Readparameters::add("particles.reflect_start_y",
-         "Y-Coordinate of the bottom end of the parabola, at which shock reflection scenario particles are injected", 60e6);
-   Readparameters::add("particles.reflect_stop_y",
-         "Y-Coordinate of the bottom end of the parabola, at which shock reflection scenario particles are injected", 60e6);
-   Readparameters::add("particles.reflect_y_scale",
-         "Curvature scale of the injection parabola for the reflection scenario", 60e6);
-   Readparameters::add("particles.reflect_x_offset",
-         "X-Coordinate of the tip of the injection parabola for the reflection scenario", 40e6);
-   Readparameters::add("particles.reflect_upstream_boundary",
-         "Distance from particle injection point at which particles are to be counted as 'reflected'", 10e6);
-   Readparameters::add("particles.reflect_downstream_boundary",
-         "Distance from particle injection point at which particles are to be counted as 'transmitted'", 10e6);
+   Readparameters::add<Real>("particles.reflect_start_y",
+         "Y-Coordinate of the bottom end of the parabola, at which shock reflection scenario particles are injected",P::reflect_start_y, 60e6);
+   Readparameters::add<Real>("particles.reflect_stop_y",
+         "Y-Coordinate of the bottom end of the parabola, at which shock reflection scenario particles are injected",P::reflect_stop_y, 60e6);
+   Readparameters::add<Real>("particles.reflect_y_scale",
+         "Curvature scale of the injection parabola for the reflection scenario",P::reflect_y_scale, 60e6);
+   Readparameters::add<Real>("particles.reflect_x_offset",
+         "X-Coordinate of the tip of the injection parabola for the reflection scenario",P::reflect_x_offset, 40e6);
+   Readparameters::add<Real>("particles.reflect_upstream_boundary",
+         "Distance from particle injection point at which particles are to be counted as 'reflected'",P::reflect_upstream_boundary, 10e6);
+   Readparameters::add<Real>("particles.reflect_downstream_boundary",
+         "Distance from particle injection point at which particles are to be counted as 'transmitted'",P::reflect_downstream_boundary, 10e6);
 
    // Parameters for ip shock injection test mode
-   Readparameters::add("particles.ipshock_inject_x0",
-         "X-Coordinate of the lower edge of particle injection region for the ipShock scenario", -1.e6);
-   Readparameters::add("particles.ipshock_inject_x1",
-         "X-Coordinate of the upper edge of particle injection region for the ipShock scenario", 1.e6);
-   Readparameters::add("particles.ipshock_inject_y0",
-         "Y-Coordinate of the lower edge of particle injection region for the ipShock scenario", -1.e6);
-   Readparameters::add("particles.ipshock_inject_y1",
-         "Y-Coordinate of the upper edge of particle injection region for the ipShock scenario", 1.e6);
-   Readparameters::add("particles.ipshock_inject_z0",
-         "Z-Coordinate of the lower edge of particle injection region for the ipShock scenario", -1.e6);
-   Readparameters::add("particles.ipshock_inject_z1",
-         "Z-Coordinate of the upper edge of particle injection region for the ipShock scenario", 1.e6);
-   Readparameters::add("particles.ipshock_transmit",
-         "X-Coordinate of threshold for where particles are counted  as transmitted for the ipShock scenario", -10.e6);
-   Readparameters::add("particles.ipshock_reflect",
-         "X-Coordinate of threshold for where particles are counted  as reflected for the ipShock scenario", 10.e6);
+   Readparameters::add<Real>("particles.ipshock_inject_x0",
+         "X-Coordinate of the lower edge of particle injection region for the ipShock scenario",P::ipshock_inject_x0, -1.e6);
+   Readparameters::add<Real>("particles.ipshock_inject_x1",
+         "X-Coordinate of the upper edge of particle injection region for the ipShock scenario",P::ipshock_inject_x1, 1.e6);
+   Readparameters::add<Real>("particles.ipshock_inject_y0",
+         "Y-Coordinate of the lower edge of particle injection region for the ipShock scenario",P::ipshock_inject_y0, -1.e6);
+   Readparameters::add<Real>("particles.ipshock_inject_y1",
+         "Y-Coordinate of the upper edge of particle injection region for the ipShock scenario",P::ipshock_inject_y1, 1.e6);
+   Readparameters::add<Real>("particles.ipshock_inject_z0",
+         "Z-Coordinate of the lower edge of particle injection region for the ipShock scenario",P::ipshock_inject_z0, -1.e6);
+   Readparameters::add<Real>("particles.ipshock_inject_z1",
+         "Z-Coordinate of the upper edge of particle injection region for the ipShock scenario",P::ipshock_inject_z1, 1.e6);
+   Readparameters::add<Real>("particles.ipshock_transmit",
+         "X-Coordinate of threshold for where particles are counted  as transmitted for the ipShock scenario",P::ipshock_transmit, -10.e6);
+   Readparameters::add<Real>("particles.ipshock_reflect",
+         "X-Coordinate of threshold for where particles are counted  as reflected for the ipShock scenario",P::ipshock_reflect, 10.e6);
 
    return true;
 }
 
 bool ParticleParameters::getParameters() {
-   Readparameters::get("particles.input_filename_pattern",P::input_filename_pattern);
-   Readparameters::get("particles.output_filename_pattern",P::output_filename_pattern);
 
-   Readparameters::get("particles.mode",P::mode);
-
-   Readparameters::get("particles.init_x",P::init_x);
-   Readparameters::get("particles.init_y",P::init_y);
-   Readparameters::get("particles.init_z",P::init_z);
-
-   Readparameters::get("particles.dt",P::dt);
-   Readparameters::get("particles.input_dt", P::input_dt);
-   Readparameters::get("particles.start_time",P::start_time);
-   Readparameters::get("particles.end_time",P::end_time);
-   Readparameters::get("particles.num_particles",P::num_particles);
    if(P::dt == 0 || P::end_time == P::start_time) {
       std::cerr << "Error end_time == start_time! Won't do anything (and will probably crash now)." << std::endl;
       return false;
    }
-   Readparameters::get("particles.V_field_name",P::V_field_name);
-   Readparameters::get("particles.rho_field_name",P::rho_field_name);
-   Readparameters::get("particles.divide_rhov_by_rho",P::divide_rhov_by_rho);
 
-   Readparameters::get("particles.random_seed",P::random_seed);
 
    /* Look up particle distribution generator */
-   std::string distribution_name;
-   Readparameters::get("particles.distribution",distribution_name);
 
    std::map<std::string, Distribution*(*)(std::default_random_engine&)> distribution_lookup;
    distribution_lookup["maxwell"]=&createDistribution<Maxwell_Boltzmann>;
@@ -187,64 +174,40 @@ bool ParticleParameters::getParameters() {
    distribution_lookup["kappa2"]=&createDistribution<Kappa2>;
    distribution_lookup["kappa6"]=&createDistribution<Kappa6>;
 
-   if(distribution_lookup.find(distribution_name) == distribution_lookup.end()) {
-      std::cerr << "Error: particles.distribution value \"" << distribution_name
+   if(distribution_lookup.find(P::distribution_name) == distribution_lookup.end()) {
+      std::cerr << "Error: particles.distribution value \"" << P::distribution_name
          << "\" does not specify a valid distribution!" << std::endl;
       return false;
    } else {
-      P::distribution = distribution_lookup[distribution_name];
+      P::distribution = distribution_lookup[P::distribution_name];
    }
-
-   Readparameters::get("particles.temperature",P::temperature);
-   Readparameters::get("particles.particle_vel",P::particle_vel);
 
    // Boundaries
    std::map<std::string, Boundary*(*)(int)> boundaryLookup;
    boundaryLookup["DELETE"] = &createBoundary<OpenBoundary>;
    boundaryLookup["REFLECT"] = &createBoundary<ReflectBoundary>;
    boundaryLookup["PERIODIC"] = &createBoundary<PeriodicBoundary>;
-   std::string tempstring;
-   Readparameters::get("particles.boundary_behaviour_x",tempstring);
-   if(boundaryLookup.find(tempstring) == boundaryLookup.end()) {
-      std::cerr << "Error: invalid boundary condition \"" << tempstring << "\" in x-direction" << std::endl;
+
+   if(boundaryLookup.find(boundary_behaviour_x_string) == boundaryLookup.end()) {
+      std::cerr << "Error: invalid boundary condition \"" << boundary_behaviour_x_string << "\" in x-direction" << std::endl;
       exit(0);
    } else {
-      P::boundary_behaviour_x = boundaryLookup[tempstring](0);
+      P::boundary_behaviour_x = boundaryLookup[boundary_behaviour_x_string](0);
    }
-   Readparameters::get("particles.boundary_behaviour_y",tempstring);
-   if(boundaryLookup.find(tempstring) == boundaryLookup.end()) {
-      std::cerr << "Error: invalid boundary condition \"" << tempstring << "\" in y-direction" << std::endl;
+
+   if(boundaryLookup.find(boundary_behaviour_y_string) == boundaryLookup.end()) {
+      std::cerr << "Error: invalid boundary condition \"" << boundary_behaviour_y_string << "\" in y-direction" << std::endl;
       exit(0);
    } else {
-      P::boundary_behaviour_y = boundaryLookup[tempstring](1);
+      P::boundary_behaviour_y = boundaryLookup[boundary_behaviour_y_string](1);
    }
-   Readparameters::get("particles.boundary_behaviour_z",tempstring);
-   if(boundaryLookup.find(tempstring) == boundaryLookup.end()) {
-      std::cerr << "Error: invalid boundary condition \"" << tempstring << "\" in z-direction" << std::endl;
+
+   if(boundaryLookup.find(boundary_behaviour_z_string) == boundaryLookup.end()) {
+      std::cerr << "Error: invalid boundary condition \"" << boundary_behaviour_z_string << "\" in z-direction" << std::endl;
       exit(0);
    } else {
-      P::boundary_behaviour_z = boundaryLookup[tempstring](2);
+      P::boundary_behaviour_z = boundaryLookup[boundary_behaviour_z_string](2);
    }
-
-   Readparameters::get("particles.inner_boundary", P::precip_inner_boundary);
-   Readparameters::get("particles.precipitation_start_x", P::precip_start_x);
-   Readparameters::get("particles.precipitation_stop_x", P::precip_stop_x);
-
-   Readparameters::get("particles.reflect_start_y", P::reflect_start_y);
-   Readparameters::get("particles.reflect_stop_y", P::reflect_stop_y);
-   Readparameters::get("particles.reflect_y_scale", P::reflect_y_scale);
-   Readparameters::get("particles.reflect_x_offset", P::reflect_x_offset);
-   Readparameters::get("particles.reflect_upstream_boundary", P::reflect_upstream_boundary);
-   Readparameters::get("particles.reflect_downstream_boundary", P::reflect_downstream_boundary);
-
-   Readparameters::get("particles.ipshock_inject_x0", P::ipshock_inject_x0);
-   Readparameters::get("particles.ipshock_inject_x1", P::ipshock_inject_x1);
-   Readparameters::get("particles.ipshock_inject_y0", P::ipshock_inject_y0);
-   Readparameters::get("particles.ipshock_inject_y1", P::ipshock_inject_y1);
-   Readparameters::get("particles.ipshock_inject_z0", P::ipshock_inject_z0);
-   Readparameters::get("particles.ipshock_inject_z1", P::ipshock_inject_z1);
-   Readparameters::get("particles.ipshock_transmit", P::ipshock_transmit);
-   Readparameters::get("particles.ipshock_reflect", P::ipshock_reflect);
 
    return true;
 }

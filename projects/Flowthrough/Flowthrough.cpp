@@ -59,38 +59,33 @@ namespace projects {
 
    void Flowthrough::addParameters(){
       typedef Readparameters RP;
-      RP::add("Flowthrough.emptyBox","Is the simulation domain empty initially?",false);
-      RP::add("Flowthrough.densityModel","Plasma density model, 'Maxwellian' or 'SheetMaxwellian'",string("Maxwellian"));
-      RP::add("Flowthrough.densityWidth","Width of signal around origin",6.e7);
-      RP::add("Flowthrough.rescaleDensity","Rescale VDF to match spatial ",false);
-      RP::add("Flowthrough.Bx", "Magnetic field x component (T)", 0.0);
-      RP::add("Flowthrough.By", "Magnetic field y component (T)", 0.0);
-      RP::add("Flowthrough.Bz", "Magnetic field z component (T)", 0.0);
+      RP::add<bool>("Flowthrough.emptyBox","Is the simulation domain empty initially?",this->emptyBox,false);
+      RP::add<string>("Flowthrough.densityModel","Plasma density model, 'Maxwellian' or 'SheetMaxwellian'",this->densityModelString,string("Maxwellian"));
+      RP::add<Real>("Flowthrough.densityWidth","Width of signal around origin",this->densityWidth,6.e7);
+      RP::add<bool>("Flowthrough.rescaleDensity","Rescale VDF to match spatial ",this->rescaleDensityFlag,false);
+      RP::add<Real>("Flowthrough.Bx", "Magnetic field x component (T)", this->Bx,0.0);
+      RP::add<Real>("Flowthrough.By", "Magnetic field y component (T)", this->By,0.0);
+      RP::add<Real>("Flowthrough.Bz", "Magnetic field z component (T)", this->Bz,0.0);
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
+         FlowthroughSpeciesParameters* sP = new FlowthroughSpeciesParameters();
+
+         this->speciesParamsRead.push_back(sP);
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
-         RP::add(pop + "_Flowthrough.rho", "Number density (m^-3)", 0.0);
-         RP::add(pop + "_Flowthrough.rhoBase", "Background number density (m^-3)", 0.0);
-         RP::add(pop + "_Flowthrough.T", "Temperature (K)", 0.0);
-         RP::add(pop + "_Flowthrough.VX0", "Initial bulk velocity in x-direction", 0.0);
-         RP::add(pop + "_Flowthrough.VY0", "Initial bulk velocity in y-direction", 0.0);
-         RP::add(pop + "_Flowthrough.VZ0", "Initial bulk velocity in z-direction", 0.0);
+         RP::add<Real>(pop + "_Flowthrough.rho", "Number density (m^-3)", sP->rho,0.0);
+         RP::add<Real>(pop + "_Flowthrough.rhoBase", "Background number density (m^-3)", sP->rhoBase,0.0);
+         RP::add<Real>(pop + "_Flowthrough.T", "Temperature (K)", sP->T,0.0);
+         RP::add<Real>(pop + "_Flowthrough.VX0", "Initial bulk velocity in x-direction", sP->V0[0],0.0);
+         RP::add<Real>(pop + "_Flowthrough.VY0", "Initial bulk velocity in y-direction", sP->V0[1],0.0);
+         RP::add<Real>(pop + "_Flowthrough.VZ0", "Initial bulk velocity in z-direction", sP->V0[2],0.0);
       }
    }
 
    void Flowthrough::getParameters(){
-      Project::getParameters();
       int myRank;
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-      typedef Readparameters RP;
 
-      RP::get("Flowthrough.emptyBox",emptyBox);
-      RP::get("Flowthrough.Bx", this->Bx);
-      RP::get("Flowthrough.By", this->By);
-      RP::get("Flowthrough.Bz", this->Bz);
-      string densityModelString;
-      RP::get("Flowthrough.densityModel",densityModelString);
       if (densityModelString == "Maxwellian") densityModel = Maxwellian;
       else if (densityModelString == "SheetMaxwellian") densityModel = SheetMaxwellian;
       else if (densityModelString == "Square") densityModel = Square;
@@ -100,22 +95,8 @@ namespace projects {
          if (myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: Unknown option value!" << endl;
          exit(1);
       }
-      RP::get("Flowthrough.densityWidth",this->densityWidth);
-      RP::get("Flowthrough.rescaleDensity",this->rescaleDensityFlag);
-
-      // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
-         FlowthroughSpeciesParameters sP;
-
-         RP::get(pop + "_Flowthrough.rho", sP.rho);
-         RP::get(pop + "_Flowthrough.rhoBase", sP.rhoBase);
-         RP::get(pop + "_Flowthrough.T", sP.T);
-         RP::get(pop + "_Flowthrough.VX0", sP.V0[0]);
-         RP::get(pop + "_Flowthrough.VY0", sP.V0[1]);
-         RP::get(pop + "_Flowthrough.VZ0", sP.V0[2]);
-
-         speciesParams.push_back(sP);
+        this->speciesParams.push_back(*this->speciesParamsRead.at(i));
       }
    }
    Real Flowthrough::getCorrectNumberDensity(spatial_cell::SpatialCell* cell,const uint popID) const {

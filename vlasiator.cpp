@@ -20,6 +20,7 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include <CLI11.hpp>
 #include "common.h"
 #include <cstdlib>
 #include <iostream>
@@ -274,25 +275,51 @@ int simulate(int argn,char* args[]) {
    // init parameter file reader
    Readparameters readparameters(argn,args);
 
-   P::addParameters();
-
-   // Add parameters for number of populations
    getObjectWrapper().addParameters();
-   readparameters.parse();
+   P::addParameters();
+   sysBoundaryContainer.addSysBoundaryParameters(); //add parameter for bonudary.boundaries
+
+   auto app = readparameters.get_app();
+   readparameters.parse(true); //true to ignore config extras
+   getObjectWrapper().populationsParsed=true;
+   if (Readparameters::fullHelp or Readparameters::legacyHelp) {
+     Readparameters::helpRequested=true;
+   }
+   if (Readparameters::helpRequested) {
+     getObjectWrapper().addHelp();
+   }
+
+   bool hasVersionOption = readparameters.versionMessage();
+   MPI_Bcast(&hasVersionOption, sizeof(bool), MPI_BYTE, 0, MPI_COMM_WORLD);
+   if (hasVersionOption) {
+     MPI_Finalize();
+     exit(0);
+   }
+   getObjectWrapper().addPopulationParameters(); 
+   //objectwrapper.AddParameters adds the parameters during parse
+   //but the callback works such that those added parameters do not make it to the parse above, so
+   //Second parse to get the population specific parameters read.  
+   readparameters.parse(true); 
+   getObjectWrapper().getPopulationParameters(); //particleSpecies is populated here from particleSpeciesRead
+   sysBoundaryContainer.addParameters(); //add the parameters for parsed boundary.boundaries boundaries, including population specific ones
+   projects::createProject();
+   
+   readparameters.parse(false); // Final parse
+   readparameters.helpMessage(); // Call after last parse, exits after printing help if help requested 
+   Readparameters::parseComposing(); //has to be done afterwards, will do callbacks on the final addComposing values that are parsed here
    P::getParameters();
 
-   getObjectWrapper().addPopulationParameters();
-   sysBoundaryContainer.addParameters();
-   projects::Project::addParameters();
+   Project* project = getObjectWrapper().project;
 
-   Project* project = projects::createProject();
-   getObjectWrapper().project = project;
-   readparameters.parse(true, false); // 2nd parsing for specific population parameters
-   readparameters.helpMessage(); // Call after last parse, exits after printing help if help requested
-   getObjectWrapper().getPopulationParameters();
-   sysBoundaryContainer.getParameters();
+   sysBoundaryContainer.getParameters(); //this is now here incase some sysbounadary changes parameter during getParameters, that would be
+                                        // read into some project parameters, for example how it is currently with magnetosphere an ionosphereRadius
    project->getParameters();
-
+   if (Readparameters::checkCfg){
+      std::cout << "Config valid" << std::endl;
+      MPI_Finalize();
+      exit(0);
+   }
+   // project->printPopulations();
    #ifdef USE_GPU
    // Activate device, create streams
    gpu_init_device();

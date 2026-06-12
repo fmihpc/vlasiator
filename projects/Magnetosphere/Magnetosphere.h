@@ -46,7 +46,7 @@ namespace projects {
       virtual ~Magnetosphere();
 
       virtual bool initialize(void) override;
-      static void addParameters(void);
+      virtual void addParameters(void) override;
       virtual void getParameters(void) override;
       virtual void setProjectBField(fsgrids::perbspan perb,
                                     fsgrids::bgbspan bgb,
@@ -103,6 +103,7 @@ namespace projects {
 
       Real zeroOutComponents[3]; //0->x,1->y,2->z
 
+      std::vector<MagnetosphereSpeciesParameters*> speciesParamsRead;
       std::vector<MagnetosphereSpeciesParameters> speciesParams;
    }; // class Magnetosphere
 } // namespace projects

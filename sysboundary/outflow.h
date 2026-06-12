@@ -55,8 +55,8 @@ namespace SBC {
    public:
       Outflow();
       virtual ~Outflow();
-
-      static void addParameters();
+      
+      void addParameters();
       virtual void getParameters() override;
 
       virtual void initSysBoundary(
@@ -103,6 +103,8 @@ namespace SBC {
       virtual uint getIndex() const override;
 
    protected:
+      std::vector<std::string> populations;
+  
       /*! Array of bool telling which faces are going to be processed by the fields system boundary condition.*/
       bool facesToSkipFields[6];
       /*! Array of bool telling which faces are going to be reapplied upon restart.*/
@@ -111,8 +113,10 @@ namespace SBC {
       std::vector<std::string> faceList;
       /*! List of faces on which no fields outflow boundary conditions are to be applied ([xyz][+-]). */
       std::vector<std::string> faceNoFieldsList;
+      array<string, 6> vlasovSysBoundarySchemeName;
       std::vector<OutflowSpeciesParameters> speciesParams;
-
+      std::vector<OutflowSpeciesParameters*> speciesParamsRead;
+      
       /*! Factor by which to quench the inflowing parts of the velocity distribution function.*/
       Real quenchFactor;
 
