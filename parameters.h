@@ -63,7 +63,12 @@ struct Parameters {
    static int fractionalTimestep;
    static int myTimeclass; // hrm. The timeclass of this rank - not a great place for this.
    static int currentMaxTimeclass;
-   static int maxTimeclass;
+   static int initialMaxTimeclass;
+   static int timeclassBuffer;
+   static bool dynamicTimeclasses;
+   static Real timeclassDomainModifier;
+   static Real dtUpdateModifier;
+   static Real dtSettingModifier;   
    static int timeclassLBmantissa;
    static bool tc_leapfrog_init;
    static int tc_test_type;

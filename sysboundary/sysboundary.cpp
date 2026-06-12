@@ -655,7 +655,7 @@ void SysBoundary::setupL2OutflowAtRestart(dccrg::Dccrg<SpatialCell, dccrg::Carte
    }
    // Needed after copying VDFs in L1 Outflow cells or LUMI (and our communications) breaks.
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-      for(int timeclass=0; timeclass<=P::maxTimeclass; ++timeclass)
+      for(int timeclass=0; timeclass<=P::currentMaxTimeclass; ++timeclass)
          updateRemoteVelocityBlockLists(mpiGrid, popID,Neighborhoods::DIST_FUNC, timeclass);
    }
 }
@@ -689,7 +689,7 @@ void SysBoundary::applySysBoundaryVlasovConditions(
 
    // Loop over existing particle species
    for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID) {
-      for (int timeclass = 0; timeclass <= P::maxTimeclass; ++timeclass){
+      for (int timeclass = 0; timeclass <= P::currentMaxTimeclass; ++timeclass){
          SpatialCell::setCommunicatedSpecies(popID, timeclass);
          // update lists in neighborhood
          updateRemoteVelocityBlockLists(mpiGrid, popID, Neighborhoods::SYSBOUNDARIES, timeclass);
@@ -705,6 +705,8 @@ void SysBoundary::applySysBoundaryVlasovConditions(
          vector<CellID> localCells;
          vector<CellID> timeclassCells;
 
+         getBoundaryCellList(mpiGrid, mpiGrid.get_local_cells_not_on_process_boundary(Neighborhoods::SYSBOUNDARIES), localCells);
+
          for (size_t c=0; c<localCells.size(); c++) {
             const CellID cellID = localCells[c];
             SpatialCell* SC = mpiGrid[cellID];
@@ -713,8 +715,6 @@ void SysBoundary::applySysBoundaryVlasovConditions(
                timeclassCells.push_back(cellID);
             }
          }
-
-         getBoundaryCellList(mpiGrid, mpiGrid.get_local_cells_not_on_process_boundary(Neighborhoods::SYSBOUNDARIES), localCells);
 
    #pragma omp parallel for
          for (uint i = 0; i < localCells.size(); i++) {

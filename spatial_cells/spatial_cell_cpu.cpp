@@ -74,7 +74,7 @@ namespace spatial_cell {
          populations[popID].velocityBlockMinValue = spec.sparseMinValue;
          populations[popID].N_blocks = 0;
 
-         for (int tc = 0; tc <= P::maxTimeclass; tc++){
+         for (int tc = 0; tc <= P::initialMaxTimeclass; tc++){
             // ghostPopulations[{popID,tc}] = std::copy<Population>(Population{populations[popID]});
             ghostPopulations.try_emplace({popID,tc}, populations[popID]);
          }
@@ -796,6 +796,7 @@ namespace spatial_cell {
    void SpatialCell::set_max_r_dt(const uint popID,const Real& value) {
       debug_population_check(popID);
       populations[popID].max_dt[species::MAXRDT] = value;
+      this->parameters[CellParams::MAXRDT] = min(parameters[CellParams::MAXRDT], value);
       for (auto& ghostPop:ghostPopulations){
          ghostPop.second.max_dt[species::MAXRDT] = value;
       }
@@ -808,6 +809,7 @@ namespace spatial_cell {
    void SpatialCell::set_max_v_dt(const uint popID,const Real& value) {
       debug_population_check(popID);
       populations[popID].max_dt[species::MAXVDT] = value;
+      this->parameters[CellParams::MAXVDT] = min(parameters[CellParams::MAXVDT], value);
       for (auto& ghostPop:ghostPopulations){
          ghostPop.second.max_dt[species::MAXVDT] = value;
       }

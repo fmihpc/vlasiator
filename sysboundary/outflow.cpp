@@ -508,7 +508,7 @@ namespace SBC {
       mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::SYSBOUNDARIES_EXTENDED);
 
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-         for (int timeclass = 0; timeclass<=P::maxTimeclass; ++timeclass){
+         for (int timeclass = 0; timeclass<=P::currentMaxTimeclass; ++timeclass){
             SpatialCell::setCommunicatedSpecies(popID, timeclass);
             updateRemoteVelocityBlockLists(mpiGrid, popID, Neighborhoods::SYSBOUNDARIES,timeclass);
             SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA, true);

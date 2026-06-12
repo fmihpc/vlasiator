@@ -35,7 +35,9 @@ using namespace spatial_cell;
 
 void calculateAcceleration(
                            dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                           const Real dt
+                           const Real dt,
+                           bool accelerateSpecificCells = false,
+                           const vector<CellID>& cellsToAccelerate = {}
 );
 
 void calculateSpatialTranslation(
@@ -47,8 +49,8 @@ void calculateSpatialTranslation(
 // found in either arch_dt.cpp or gpu_dt.cpp
 void reduce_vlasov_dt(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                       const vector<CellID>& cells,
-                      Real (&dtMaxLocal)[3],
-                      Real (&dtMinMaxLocal)[3]);
+                      std::vector<Real>& dtMaxLocal,
+                      std::vector<Real>& dtMinMaxLocal);
 
 /** Calculate velocity moments for the given spatial cell.
  * This function is defined in the arch_moments.cpp file.*/
