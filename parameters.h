@@ -250,9 +250,9 @@ struct Parameters {
    static std::vector<std::string> mpiioValuesRestartRead;
    static std::vector<std::string> mpiioKeysRestartWrite;
    static std::vector<std::string> mpiioValuesRestartWrite;
-   static std::array<FsGridTools::Task_t,3> manualFsGridDecomposition;
-   static std::array<FsGridTools::Task_t,3> overrideReadFsGridDecomposition;
 
+   static std::array<fsgrid::Task_t,3> manualFsGridDecomposition;
+   static std::array<fsgrid::Task_t,3> overrideReadFsGridDecomposition;
    //Asterix  VDF Compression
    enum ASTERIX_COMPRESSION_METHODS{
            NONE,

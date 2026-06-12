@@ -137,34 +137,6 @@ void SysBoundary::addParameters() {
    }
 }
 
-/*! Add a new SBC::SysBoundaryCondition which has been created with new sysBoundary.
- * SysBoundary will take care of deleting it.
- *
- * \param bc SysBoundaryCondition object
- * \param project Project object
- * \param t Current time
- * \retval success If true, the given SBC::SysBoundaryCondition was added successfully.
- */
-  //Note as the getParameters isn't done in initSysBoundary, reason is that this is called way earlier than that
-  //and as such it's nicer to have it fail early if something is amiss.
-  //also the config checking leverages on this fact too.
-void SysBoundary::addSysBoundary(SBC::SysBoundaryCondition* bc, Project& project, creal& t) {
-   // Initialize the boundary condition
-   stringstream timername;
-   timername << "Initialize system boundary condition " << bc->getName();
-   phiprof::Timer timer{timername.str()};
-   bc->initSysBoundary(t, project);
-   timer.stop();
-
-   sysBoundaries.push_back(bc);
-   if (sysBoundaries.size() > 1) {
-      sysBoundaries.sort(precedenceSort);
-   }
-
-   // This assumes that only one instance of each type is created.
-   indexToSysBoundary[bc->getIndex()] = bc;
-}
-
 /*!\brief Initialise all system boundary conditions actually used.
  *
  * This function loops through the list of system boundary conditions listed as to be used
@@ -177,7 +149,7 @@ void SysBoundary::addSysBoundary(SBC::SysBoundaryCondition* bc, Project& project
  * \retval success If true, the initialisation of all system boundaries succeeded.
  * \sa addSysBoundary
  */
-void SysBoundary::getParameters(Project& project, creal& t) {
+void SysBoundary::getParameters() {
    int myRank;
    MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
    vector<string>::const_iterator it;

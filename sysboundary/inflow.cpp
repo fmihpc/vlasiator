@@ -28,7 +28,6 @@
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
-
 #include "../fieldsolver/fs_common.h"
 #include "../object_wrapper.h"
 #include "../vlasovsolver/vlasovmover.h"
@@ -283,7 +282,10 @@ namespace SBC {
 
    void Inflow::getFaces(bool* faces) {
       //in case the face is not yet initialized (for example during getParameters)
-      std::fill_n(facesToProcess, 6, false);
+      for(uint i=0; i<6; i++) {
+         facesToProcess[i] = false;
+      }
+
       for (auto& it : this->faceList) {
          if (it == "x+") {
             facesToProcess[0] = true;

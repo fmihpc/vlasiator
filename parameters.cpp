@@ -1161,30 +1161,7 @@ void Parameters::getParameters() {
       P::systemWrites.push_back(0);
    }
 
-   RP::get("PAD.enable", P::artificialPADiff);
-   RP::get("PAD.coefficient", P::PADcoefficient);
-   RP::get("PAD.CFL",P::PADCFL);
-   RP::get("PAD.vbins",P::PADvbins);
-   RP::get("PAD.mubins",P::PADmubins);
-   RP::get("PAD.file",P::PADnu0);
-   RP::get("PAD.fudge",P::PADfudge);
 
-   RP::get("fieldtracing.fieldLineTracer", tracerString);
-   RP::get("fieldtracing.tracer_max_allowed_error", FieldTracing::fieldTracingParameters.max_allowed_error);
-   RP::get("fieldtracing.tracer_max_attempts", FieldTracing::fieldTracingParameters.max_field_tracer_attempts);
-   RP::get("fieldtracing.tracer_min_dx", FieldTracing::fieldTracingParameters.min_tracer_dx_full_box);
-   RP::get("fieldtracing.fullbox_max_incomplete_cells", FieldTracing::fieldTracingParameters.fullbox_max_incomplete_cells);
-   RP::get("fieldtracing.fluxrope_max_incomplete_cells", FieldTracing::fieldTracingParameters.fluxrope_max_incomplete_cells);
-   RP::get("fieldtracing.fullbox_and_fluxrope_max_absolute_distance_to_trace", FieldTracing::fieldTracingParameters.fullbox_and_fluxrope_max_distance);
-   RP::get("fieldtracing.use_reconstruction_cache", FieldTracing::fieldTracingParameters.useCache);
-   RP::get("fieldtracing.fluxrope_max_curvature_radii_to_trace", FieldTracing::fieldTracingParameters.fluxrope_max_curvature_radii_to_trace);
-   RP::get("fieldtracing.fluxrope_max_curvature_radii_extent", FieldTracing::fieldTracingParameters.fluxrope_max_curvature_radii_extent);
-   RP::get("fieldtracing.min_allowed_x", FieldTracing::fieldTracingParameters.x_min);
-   RP::get("fieldtracing.min_allowed_y", FieldTracing::fieldTracingParameters.y_min);
-   RP::get("fieldtracing.min_allowed_z", FieldTracing::fieldTracingParameters.z_min);
-   RP::get("fieldtracing.max_allowed_x", FieldTracing::fieldTracingParameters.x_max);
-   RP::get("fieldtracing.max_allowed_y", FieldTracing::fieldTracingParameters.y_max);
-   RP::get("fieldtracing.max_allowed_z", FieldTracing::fieldTracingParameters.z_max);
    FieldTracing::fieldTracingParameters.x_min = max((double)FieldTracing::fieldTracingParameters.x_min, P::xmin + 4.0*P::dx_ini);
    FieldTracing::fieldTracingParameters.y_min = max((double)FieldTracing::fieldTracingParameters.y_min, P::ymin + 4.0*P::dy_ini);
    FieldTracing::fieldTracingParameters.z_min = max((double)FieldTracing::fieldTracingParameters.z_min, P::zmin + 4.0*P::dz_ini);
