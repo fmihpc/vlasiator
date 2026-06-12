@@ -875,6 +875,13 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
    vector<CellID> cellsToPropagateVector;
    int myRank;
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+
+   if (dt==0.0) {
+      for (auto c : cells) {
+         cellsToPropagateSet.insert(c);
+      }
+   }
+
    // std::cout << "-----------------calculateAcceleration at t="<<P::t << ", for dtfactor="<<dt<<"\n";
    if (dt == 0.0 && (P::tstep > 0 || P::fractionalTimestep > 0)) {
 
@@ -889,11 +896,15 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
             adjustVelocityBlocks(mpiGrid, cells, true, popID, tc);
          }
       }
-      // Needed to calculate _V moments afterwards for the local cells
-      // TODO also for ghost cells?
-      for (auto c : cells){
-         cellsToPropagateSet.insert(c);
-      }
+   //    // Needed to calculate _V moments afterwards for the local cells
+   //    // TODO also for ghost cells?
+   //    for (auto c : cells){
+   //       cellsToPropagateSet.insert(c);
+   //    }
+   // } else if (dt == 0.0 && (P::tstep == 0 && P::fractionalTimestep == 0)) { // zero dt step to initialize moments at the start of the sim, collect all cells
+   //    for (auto c : cells){
+   //       cellsToPropagateSet.insert(c);
+   //    }
    } else {
       // Fairly ugly but no goto
       phiprof::Timer accTimer {"semilag-acc"};
@@ -1129,7 +1140,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
    }
 
    // Recalculate "_V" velocity moments
-   calculateMoments_V(mpiGrid,cellsToPropagateVector,true,(dt==0));
+   calculateMoments_V(mpiGrid,cellsToPropagateVector,true,(dt==0.0));
 
    // std::cerr << "calculated V moments...\n";
 

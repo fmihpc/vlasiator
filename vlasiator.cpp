@@ -1850,7 +1850,7 @@ int simulate(int argn,char* args[]) {
             }
       }
 
-      if (P::tstep > P::tstep_min) {
+      if (P::tstep > P::tstep_min && (P::dynamicTimestep || P::currentMaxTimeclass > 0)) {
 
          //check if global base dt is fine, and update cell dt limits
          auto timestepvector = computeNewTimeStep(mpiGrid, technicalGrid, dtMaxLocal, dtMaxGlobal, dtMinMaxLocal, dtMinMaxGlobal);
@@ -2253,7 +2253,7 @@ int simulate(int argn,char* args[]) {
       //    CellParams::P_12
       // );
       
-      // updateParticlePopulations(mpiGrid);
+      updateParticlePopulations(mpiGrid);
 
       // momentsTimer.stop();
 
@@ -2277,7 +2277,7 @@ int simulate(int argn,char* args[]) {
          ++P::tstep;
          P::fractionalTimestep = 0;
       }
-      P::t += P::dt + P::dt*1.0/(1u << (P::currentMaxTimeclass));
+      P::t += P::dt;
    } // End main loop ----------------------------------------------------------
 
    double after = MPI_Wtime();
