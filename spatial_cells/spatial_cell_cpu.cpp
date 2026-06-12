@@ -834,7 +834,7 @@ namespace spatial_cell {
 
       }
 
-      for (auto tc: requested_timeclass_ghosts){
+      for (auto tc: get_all_ghosts()){
          for (size_t p=0; p<populations.size(); ++p) {
             const vmesh::LocalID amount
                = 2 + get_velocity_blocks(p, tc)->size()
