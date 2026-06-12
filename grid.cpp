@@ -125,13 +125,8 @@ void initializeGrids(
       // One extra layer for translation of ghost cells
       neighborhood_size++;
    }
-<<<<<<< HEAD
-   if (P::maxTimeclass > 0) {
-       neighborhood_size = max(neighborhood_size, 3+P::timeclassOuterHaloExtent+P::timeclassExactHaloExtent);
-=======
    if (P::initialMaxTimeclass > 0) {
        neighborhood_size = max(neighborhood_size, P::timeclassOuterHaloExtent+P::timeclassExactHaloExtent);
->>>>>>> dynamicDT-integration
    }
 
    const std::array<uint64_t, 3> grid_length = {{P::xcells_ini, P::ycells_ini, P::zcells_ini}};
