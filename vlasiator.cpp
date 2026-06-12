@@ -2189,7 +2189,7 @@ int simulate(int argn,char* args[]) {
          int nIterations, nRestarts;
          Real residual, minPotentialN, maxPotentialN, minPotentialS, maxPotentialS;
          SBC::ionosphereGrid.solve(nIterations, nRestarts, residual, minPotentialN, maxPotentialN, minPotentialS, maxPotentialS);
-         logFile << "tstep = " << P::tstep << "("<<P::fractionalTimestep<<"/"<< (1u << (P::currentMaxTimeclass)) << ")"
+         logFile << "tstep = " << P::tstep << "("<<P::fractionalTimestep+1<<"/"<< (1u << (P::currentMaxTimeclass)) << ")"
          << " t = " << P::t
          << " ionosphere iterations = " << nIterations
          << " restarts = " << nRestarts
@@ -2277,7 +2277,8 @@ int simulate(int argn,char* args[]) {
          ++P::tstep;
          P::fractionalTimestep = 0;
       }
-      P::t += P::dt;
+      P::t += P::timeclassDt[P::currentMaxTimeclass];
+      
    } // End main loop ----------------------------------------------------------
 
    double after = MPI_Wtime();

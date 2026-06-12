@@ -873,7 +873,7 @@ void prepareAMRLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
    if (P::currentMaxTimeclass > 0 || P::vlasovSolverGhostTranslate) {
       const vector<CellID>& localCells = getLocalCells();
       // std::cerr << __FILE__<<":" << __LINE__ <<"\n";
-      const vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(Neighborhoods::FULL);
+      const vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(Neighborhoods::VLASOV_SOLVER_GHOST_REQNEIGH);
       mpiGrid.force_update_cell_neighborhoods(remote_cells);
 
       for(int i = 0; i <= P::currentMaxTimeclass; ++i){
@@ -892,7 +892,7 @@ void prepareAMRLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
 
          prepareGhostTranslationCellLists(mpiGrid, tc_act_cells, timeghost_source[i], timeghost_active[i], i);
          // std::cerr << __FILE__<<":"<<__LINE__<<" "<< myRank << " timeclass i " << i <<"\n";
-      MPI_Barrier(MPI_COMM_WORLD);
+         MPI_Barrier(MPI_COMM_WORLD);
 
       }
    }
@@ -1550,13 +1550,9 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
             neighborhood.insert({{d, 0, 0}});
          }
       }
-      ss << "VLASOV_SOLVER_X_GHOST ";
       for (auto it : neighborhood){
          all_neighborhoods.emplace(it);
-         ss << "("<<it[0]<<","<<it[1]<<","<<it[2]<<")";
       }
-      ss << "\n";
-      std::cerr<< ss.str();
       if (!mpiGrid.add_neighborhood(Neighborhoods::VLASOV_SOLVER_X_GHOST, std::vector<neigh_t>(neighborhood.begin(), neighborhood.end()))){
          std::cerr << "Failed to add neighborhood Neighborhoods::VLASOV_SOLVER_X_GHOST \n";
          abort();

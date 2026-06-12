@@ -369,6 +369,9 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
 void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                               const uint dimension);
 
+
+int getNeigborhoodStencilLength();
+
 // pencils used for AMR translation
 extern std::array<setOfPencils,3> DimensionPencils;
 
