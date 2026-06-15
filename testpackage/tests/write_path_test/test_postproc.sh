@@ -9,4 +9,5 @@ if [[ ! -f $filepath_test ]]; then
    echo "File was not written to correct path at $filepath_test"
    exit 1
 fi
+mv ./testing/foo/bar/bulk* ./
 echo "Done"
