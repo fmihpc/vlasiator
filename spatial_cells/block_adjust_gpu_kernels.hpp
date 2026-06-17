@@ -716,7 +716,7 @@ __global__ void __launch_bounds__(GPUTHREADS*WARPSPERBLOCK, FULLBLOCKS_PER_MP) b
    const uint nCells = gridDim.y;
    const uint maxNeighbours = gridDim.z;
    const uint cellIndex = blockIdx.y + cellIterationOffset;
-   const uint neighIndex = blockIdx.y * maxNeighbours + blockIdx.z;
+   const uint neighIndex = (blockIdx.y + cellIterationOffset) * maxNeighbours + blockIdx.z;
 
    // Cells such as DO_NOT_COMPUTE are identified with a zero in the vmeshes pointer buffer
    if (vmeshes[cellIndex] == 0) {
@@ -781,7 +781,7 @@ __global__ void __launch_bounds__(GPUTHREADS*WARPSPERBLOCK, FULLBLOCKS_PER_MP) b
    //const uint nCells = gridDim.y;
    const uint maxNeighbours = gridDim.z;
    const uint cellIndex = blockIdx.y + cellIterationOffset;
-   const uint neighIndex = blockIdx.y * maxNeighbours + blockIdx.z;
+   const uint neighIndex = (blockIdx.y + cellIterationOffset) * maxNeighbours + blockIdx.z;
 
    const vmesh::VelocityMesh* __restrict__ vmeshCellIndex = vmeshes[cellIndex];
    const split::SplitVector<vmesh::GlobalID>* __restrict__ velocity_block_with_content_list = neigh_velocity_block_with_content_lists[neighIndex];
