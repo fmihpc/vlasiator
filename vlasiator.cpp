@@ -2023,7 +2023,7 @@ int simulate(int argn,char* args[]) {
 
       endOfDtCheck:
       
-      if (((P::tstep % P::rebalanceInterval == P::rebalanceInterval-1) && (P::fractionalTimestep == 0)) || P::prepareForRebalance == true) {
+      if (((P::tstep % P::rebalanceInterval == P::rebalanceInterval-1) && (P::fractionalTimestep == ((int)(1u << (P::currentMaxTimeclass))-1))) || P::prepareForRebalance == true) {
          if(P::prepareForRebalance == true) {
             overrideRebalanceNow = true;
          } else {
