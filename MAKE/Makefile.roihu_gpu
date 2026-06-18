@@ -18,6 +18,11 @@ LIB_MPI = -lgomp
 LIB_CUDA = -L/usr/local/cuda/lib64
 INC_CUDA = -isystem /usr/local/cuda/include
 
+#======== PAPI ==========
+#Add PAPI_MEM define to use papi to report memory consumption?
+CXXFLAGS +=  -DPAPI_MEM
+testpackage: CXXFLAGS +=  -DPAPI_MEM
+
 # module libraries
 LIB_PAPI = -lpapi
 LIB_BOOST = -lboost_program_options
