@@ -1270,17 +1270,24 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
             // std::cout << "is_local_n" << mpiGrid.is_local(neighbor) << "; do_tranlate " << do_translate_cell(mpiGrid[neighbor]) <<"\n";
             // std::cout << "active " << check_is_active(mpiGrid, neighbor, dimension, timeghost_active[timeclass], getLocalCells())<<"\n";
             if (P::currentMaxTimeclass == 0){
+               #ifdef DEBUG_PENCILS
+                  std::cerr << __FILE__<<":"<<__LINE__<<" Rank "<< myRank << " Checking for seed: " << celli << ", neighbor" << neighbor <<  ", phase A\n";
+               #endif
                if ( (myIndices[dimension] < nbrIndices[dimension]) ||
                     !check_is_active(mpiGrid, neighbor, dimension) ||
-                    !do_translate_cell(mpiGrid[neighbor]) )
+                    !do_translate_cell(mpiGrid[neighbor], 0))
                {
                   addToSeedIds = true;
                   break;
                }
             }
             else{
+               #ifdef DEBUG_PENCILS
+                  std::cerr << __FILE__<<":"<<__LINE__<<" Rank "<< myRank << " Checking for seed: " << celli << ", neighbor" << neighbor << " tc" << timeclass << ", phase A\n";
+                  std::cerr << __FILE__<<":"<<__LINE__<<" Rank "<< myRank << " Checking for seed: " << celli << ", neighbor cell ptr: " << mpiGrid[neighbor]  << ", phase A\n";
+               #endif
                if ( (myIndices[dimension] < nbrIndices[dimension]) ||
-                  !do_translate_cell(mpiGrid[neighbor]) ||
+                  !do_translate_cell(mpiGrid[neighbor], timeclass) ||
                   !check_is_active(mpiGrid, neighbor, dimension, timeghost_active[timeclass]) )
                {
                   addToSeedIds = true;
