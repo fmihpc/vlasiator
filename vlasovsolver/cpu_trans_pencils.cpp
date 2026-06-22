@@ -2,7 +2,7 @@
 #include "definitions.h"
 using namespace std;
 using namespace spatial_cell;
-
+#include "sstream"
 #include "cpu_trans_pencils.hpp"
 #include "../logger.h"
 
@@ -39,20 +39,23 @@ std::unordered_set<CellID> LocalSet_z;
 
 //Is cell translated? It is not translated if DO_NO_COMPUTE or if it is sysboundary cell and not in first sysboundarylayer
 bool do_translate_cell(const SpatialCell* const SC, const int tc){
-   if (P::currentMaxTimeclass == 0){
-      if(SC->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
-         (SC->sysBoundaryLayer != 1 && SC->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY)){
-         return false;
-      } else {
-         return true;
-      }
+   if(!SC){
+      int myRank;
+      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+
+      std::stringstream ss;
+      ss << myRank << ": Null SpatialCell in do_translate_cell, for timeclass " << tc;
+      throw std::invalid_argument(ss.str());
+   }
+   if(SC->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
+      (SC->sysBoundaryLayer != 1 && SC->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY)){
+      return false;
+   }
+   else if (P::currentMaxTimeclass == 0){
+      return true;
    }
    else{
-      if(SC->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
-         (SC->sysBoundaryLayer != 1 && SC->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY)){
-         return false;
-      }
-      else if(tc > -1) {// Check if it is our timeclasses turn to translate
+      if(tc > -1) {// Check if it is our timeclasses turn to translate
                   // TODO This is also handled when constructing cells to translate per timeclass. Superfluous?
          if(SC->get_timeclass_turn_r() == true || SC->requested_timeclass_ghosts.count(tc)){
             return true;
@@ -1156,7 +1159,7 @@ void buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_
       iy = 1;
       break;
    default:
-      cerr << __FILE__ << ":"<< __LINE__ << " Wrong dimension, abort"<<endl;
+      cerr << __FILE__ << ":"<< __LINE__ << " " << myRank << ": Wrong dimension, abort"<<endl;
       abort();
    }
    //ix = (dimension + 1) % 3; // incorrect for DCCRG
