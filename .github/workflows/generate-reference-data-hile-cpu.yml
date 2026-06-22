@@ -37,11 +37,11 @@ jobs:
          mkdir -p library-build
          BUILDDIR=library-build
          bash ./fetch_libraries.sh hile_cpu
-         srun -C c --job-name CI_ref_build_lib --interactive --nodes=1 -n 1 -c 16 --mem-per-cpu=2G -t 0:20:0 bash -c 'set -e; module load papi; module load cray-pmi; module load libfabric/1.22.0; export VLASIATOR_ARCH=hile_cpu; ./build_fetched_libraries hile_cpu'
+         srun -C c --job-name CI_ref_build_lib --interactive --nodes=1 -n 1 -c 16 --mem-per-cpu=2G -t 0:20:0 bash -c 'set -e; export VLASIATOR_ARCH=hile_cpu; source modules/modules.sh; ./build_fetched_libraries hile_cpu'
          rm -rf $BUILDDIR
       - name: Compile vlasiator (Testpackage build w/ HIP)
         run: |
-          srun -C c --job-name CI_tp_C_compile --interactive --nodes=1 -n 1 -c 16 --mem-per-cpu=2G -t 0:20:0 bash -c 'set -e; module load papi; module load cray-pmi; module load libfabric/1.22.0; export VLASIATOR_ARCH=hile_cpu; make -j 16 testpackage fluxfunction; sleep 10s'
+          srun -C c --job-name CI_tp_C_compile --interactive --nodes=1 -n 1 -c 16 --mem-per-cpu=2G -t 0:20:0 bash -c 'set -e; export VLASIATOR_ARCH=hile_cpu; source modules/modules.sh; make -j 16 testpackage fluxfunction; sleep 10s'
       - name: Make sure the output binary is visible in lustre
         uses: nick-fields/retry@v3
         with:
@@ -88,8 +88,8 @@ jobs:
     - name: Generate reference fluxfunction files
       run: |
         chmod +x $GITHUB_WORKSPACE/fluxfunction
-        srun -C c --job-name fluxtest --nodes=1 -n 1 -c 1 --mem-per-cpu=2G -t 0:10:0 bash -c 'module load papi; module load cray-pmi; module load libfabric/1.22.0; $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_small/bulk.0000001.vlsv equatorial.bin'
-        srun -C c --job-name fluxtest --nodes=1 -n 1 -c 1 --mem-per-cpu=2G -t 0:10:0 bash -c 'module load papi; module load cray-pmi; module load libfabric/1.22.0; $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_polar_small/bulk.0000001.vlsv polar.bin'
+        srun -C c --job-name fluxtest --nodes=1 -n 1 -c 1 --mem-per-cpu=2G -t 0:10:0 bash -c 'source modules/hile_cpu.sh; $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_small/bulk.0000001.vlsv equatorial.bin'
+        srun -C c --job-name fluxtest --nodes=1 -n 1 -c 1 --mem-per-cpu=2G -t 0:10:0 bash -c 'source modules/hile_cpu.sh; $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_polar_small/bulk.0000001.vlsv polar.bin'
         chmod 775 polar.bin equatorial.bin
         cp equatorial.bin polar.bin $REFERENCE_REVISION
         # No longer overwrites files in CI_reference/ but places in proper folder

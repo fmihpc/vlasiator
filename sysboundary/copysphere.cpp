@@ -38,18 +38,17 @@
 #include "../common.h"
 #include "../object_wrapper.h"
 
-
 #ifdef DEBUG_VLASIATOR
-   #define DEBUG_COPYSPHERE
+#define DEBUG_COPYSPHERE
 #endif
 #ifdef DEBUG_SYSBOUNDARY
-   #define DEBUG_COPYSPHERE
+#define DEBUG_COPYSPHERE
 #endif
 
 namespace SBC {
-   Copysphere::Copysphere(): SysBoundaryCondition() { }
+   Copysphere::Copysphere() : SysBoundaryCondition() {}
 
-   Copysphere::~Copysphere() { }
+   Copysphere::~Copysphere() {}
 
    void Copysphere::addParameters() {
       Readparameters::add("copysphere.centerX", "X coordinate of copysphere center (m)", 0.0);
@@ -57,12 +56,12 @@ namespace SBC {
       Readparameters::add("copysphere.centerZ", "Z coordinate of copysphere center (m)", 0.0);
       Readparameters::add("copysphere.radius", "Radius of copysphere (m).", 1.0e7);
       Readparameters::add("copysphere.geometry", "Select the geometry of the copysphere, 0: inf-norm (diamond), 1: 1-norm (square), 2: 2-norm (circle, DEFAULT), 3: 2-norm cylinder aligned with y-axis, use with polar plane/line dipole.", 2);
-      Readparameters::add("copysphere.precedence", "Precedence value of the copysphere system boundary condition (integer), the higher the stronger.", 2);
+      Readparameters::add( "copysphere.precedence", "Precedence value of the copysphere system boundary condition (integer), the higher the stronger.", 2);
       Readparameters::add("copysphere.reapplyUponRestart", "If 0 (default), keep going with the state existing in the restart file. If 1, calls again applyInitialState. Can be used to change boundary condition behaviour during a run.", 0);
-      Readparameters::add("copysphere.zeroPerB","If 0 (default), normal copysphere behaviour of magnetic field at inner boundary. If 1, keep magnetic field static at the inner boundary",0);
+      Readparameters::add("copysphere.zeroPerB", "If 0 (default), normal copysphere behaviour of magnetic field at inner boundary. If 1, keep magnetic field static at the inner boundary", 0);
 
       // Per-population parameters
-      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
+      for (uint i = 0; i < getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
 
          Readparameters::add(pop + "_copysphere.rho", "Number density of the copysphere (m^-3)", 0.0);
@@ -84,35 +83,35 @@ namespace SBC {
       Readparameters::get("copysphere.geometry", this->geometry);
       Readparameters::get("copysphere.precedence", this->precedence);
       uint reapply;
-      Readparameters::get("copysphere.reapplyUponRestart",reapply);
+      Readparameters::get("copysphere.reapplyUponRestart", reapply);
       this->applyUponRestart = false;
-      if(reapply == 1) {
+      if (reapply == 1) {
          this->applyUponRestart = true;
       }
       uint noperb;
-      Readparameters::get("copysphere.zeroPerB",noperb);
+      Readparameters::get("copysphere.zeroPerB", noperb);
       this->zeroPerB = false;
-      if(noperb == 1) {
+      if (noperb == 1) {
          this->zeroPerB = true;
       }
 
-      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-        const std::string& pop = getObjectWrapper().particleSpecies[i].name;
-        CopysphereSpeciesParameters sP;
+      for (uint i = 0; i < getObjectWrapper().particleSpecies.size(); i++) {
+         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
+         CopysphereSpeciesParameters sP;
 
-        Readparameters::get(pop + "_copysphere.rho", sP.rho);
-        Readparameters::get(pop + "_copysphere.VX0", sP.V0[0]);
-        Readparameters::get(pop + "_copysphere.VY0", sP.V0[1]);
-        Readparameters::get(pop + "_copysphere.VZ0", sP.V0[2]);
-        Readparameters::get(pop + "_copysphere.fluffiness", sP.fluffiness);
-        Readparameters::get(pop + "_copysphere.T", sP.T);
+         Readparameters::get(pop + "_copysphere.rho", sP.rho);
+         Readparameters::get(pop + "_copysphere.VX0", sP.V0[0]);
+         Readparameters::get(pop + "_copysphere.VY0", sP.V0[1]);
+         Readparameters::get(pop + "_copysphere.VZ0", sP.V0[2]);
+         Readparameters::get(pop + "_copysphere.fluffiness", sP.fluffiness);
+         Readparameters::get(pop + "_copysphere.T", sP.T);
 
-        // Failsafe, if density or temperature is zero, read from Magnetosphere
-        // (compare the corresponding verbose handling in projects/Magnetosphere/Magnetosphere.cpp)
-        if(sP.T == 0) {
+         // Failsafe, if density or temperature is zero, read from Magnetosphere
+         // (compare the corresponding verbose handling in projects/Magnetosphere/Magnetosphere.cpp)
+         if (sP.T == 0) {
             Readparameters::get(pop + "_Magnetosphere.T", sP.T);
          }
-         if(sP.rho == 0) {
+         if (sP.rho == 0) {
             Readparameters::get(pop + "_Magnetosphere.rho", sP.rho);
          }
 
@@ -120,10 +119,7 @@ namespace SBC {
       }
    }
 
-   void Copysphere::initSysBoundary(
-      creal& t,
-      Project &project
-   ) {
+   void Copysphere::initSysBoundary(creal& t, Project& project) {
       getParameters();
       dynamic = false;
 
@@ -132,26 +128,27 @@ namespace SBC {
       generateTemplateCell(project);
    }
 
-   Real getR(creal x,creal y,creal z, uint geometry, Real center[3]) {
+   Real getR(creal x, creal y, creal z, uint geometry, Real center[3]) {
 
       Real r;
 
-      switch(geometry) {
+      switch (geometry) {
       case 0:
          // infinity-norm, result is a diamond/square with diagonals aligned on the axes in 2D
-         r = fabs(x-center[0]) + fabs(y-center[1]) + fabs(z-center[2]);
+         r = fabs(x - center[0]) + fabs(y - center[1]) + fabs(z - center[2]);
          break;
       case 1:
          // 1-norm, result is is a grid-aligned square in 2D
-         r = max(max(fabs(x-center[0]), fabs(y-center[1])), fabs(z-center[2]));
+         r = max(max(fabs(x - center[0]), fabs(y - center[1])), fabs(z - center[2]));
          break;
       case 2:
          // 2-norm (Cartesian), result is a circle in 2D
-         r = sqrt((x-center[0])*(x-center[0]) + (y-center[1])*(y-center[1]) + (z-center[2])*(z-center[2]));
+         r = sqrt((x - center[0]) * (x - center[0]) + (y - center[1]) * (y - center[1]) +
+                  (z - center[2]) * (z - center[2]));
          break;
       case 3:
          // 2-norm (Cartesian) cylinder aligned on y-axis
-         r = sqrt((x-center[0])*(x-center[0]) + (z-center[2])*(z-center[2]));
+         r = sqrt((x - center[0]) * (x - center[0]) + (z - center[2]) * (z - center[2]));
          break;
       default:
          abort_mpi("copysphere.geometry has to be 0, 1 or 2.", 1);
@@ -160,11 +157,11 @@ namespace SBC {
       return r;
    }
 
-   void Copysphere::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
+   void Copysphere::assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+                                      fsgrids::technicalspan technical, FieldSolverGrid &fsgrid) {
       const vector<CellID>& cells = getLocalCells();
-      for(uint i=0; i<cells.size(); i++) {
-         if(mpiGrid[cells[i]]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
+      for (uint i = 0; i < cells.size(); i++) {
+         if (mpiGrid[cells[i]]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
             continue;
          }
 
@@ -172,27 +169,23 @@ namespace SBC {
          creal dx = cellParams[CellParams::DX];
          creal dy = cellParams[CellParams::DY];
          creal dz = cellParams[CellParams::DZ];
-         creal x = cellParams[CellParams::XCRD] + 0.5*dx;
-         creal y = cellParams[CellParams::YCRD] + 0.5*dy;
-         creal z = cellParams[CellParams::ZCRD] + 0.5*dz;
+         creal x = cellParams[CellParams::XCRD] + 0.5 * dx;
+         creal y = cellParams[CellParams::YCRD] + 0.5 * dy;
+         creal z = cellParams[CellParams::ZCRD] + 0.5 * dz;
 
-         if(getR(x,y,z,this->geometry,this->center) < this->radius) {
+         if (getR(x, y, z, this->geometry, this->center) < this->radius) {
             mpiGrid[cells[i]]->sysBoundaryFlag = this->getIndex();
          }
       }
-
    }
 
-   void Copysphere::applyInitialState(
-      dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
-      Project &project
-   ) {
+   void Copysphere::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+                                      fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
+                                      fsgrids::perbspan perb,
+                                      fsgrids::bgbspan bgb, Project& project) {
       const vector<CellID>& cells = getLocalCells();
-      #pragma omp parallel for
-      for (uint i=0; i<cells.size(); ++i) {
+   #pragma omp parallel for
+      for (uint i = 0; i < cells.size(); ++i) {
          SpatialCell* cell = mpiGrid[cells[i]];
          if (cell->sysBoundaryFlag != this->getIndex()) continue;
          for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
@@ -208,7 +201,8 @@ namespace SBC {
    }
 
    std::array<Real, 3> Copysphere::fieldSolverGetNormalDirection(
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+      fsgrids::technicalspan technical,
+      FieldSolverGrid &fsgrid,
       cint i,
       cint j,
       cint k
@@ -218,13 +212,15 @@ namespace SBC {
       static creal DIAG2 = 1.0 / sqrt(2.0);
       static creal DIAG3 = 1.0 / sqrt(3.0);
 
-      creal dx = technicalGrid.DX;
-      creal dy = technicalGrid.DY;
-      creal dz = technicalGrid.DZ;
-      const std::array<FsGridTools::FsIndex_t, 3> globalIndices = technicalGrid.getGlobalIndices(i,j,k);
-      creal x = P::xmin + (convert<Real>(globalIndices[0])+0.5)*dx;
-      creal y = P::ymin + (convert<Real>(globalIndices[1])+0.5)*dy;
-      creal z = P::zmin + (convert<Real>(globalIndices[2])+0.5)*dz;
+      const auto& gridSpacing = fsgrid.getGridSpacing();
+
+      creal dx = gridSpacing[0];
+      creal dy = gridSpacing[1];
+      creal dz = gridSpacing[2];
+      const std::array<fsgrid::FsSize_t, 3> globalIndices = fsgrid.localToGlobal(i, j, k);
+      creal x = P::xmin + (convert<Real>(globalIndices[0]) + 0.5) * dx;
+      creal y = P::ymin + (convert<Real>(globalIndices[1]) + 0.5) * dy;
+      creal z = P::zmin + (convert<Real>(globalIndices[2]) + 0.5) * dz;
       creal xsign = divideIfNonZero(x, fabs(x));
       creal ysign = divideIfNonZero(y, fabs(y));
       creal zsign = divideIfNonZero(z, fabs(z));
@@ -235,7 +231,8 @@ namespace SBC {
          if (Parameters::ycells_ini == 1) {
             if (Parameters::zcells_ini == 1) {
                // X,Y,Z
-               abort_mpi("What do you expect to do with a single-cell simulation of copysphere boundary type? Stop kidding.", 1);
+               abort_mpi(
+                   "What do you expect to do with a single-cell simulation of copysphere boundary type? Stop kidding.", 1);
                // end of X,Y,Z
             } else {
                // X,Y
@@ -248,42 +245,42 @@ namespace SBC {
             // end of X,Z
          } else {
             // X
-            switch(this->geometry) {
-               case 0:
-                  normalDirection[1] = DIAG2*ysign;
-                  normalDirection[2] = DIAG2*zsign;
+            switch (this->geometry) {
+            case 0:
+               normalDirection[1] = DIAG2 * ysign;
+               normalDirection[2] = DIAG2 * zsign;
+               break;
+            case 1:
+               if (fabs(y) == fabs(z)) {
+                  normalDirection[1] = ysign * DIAG2;
+                  normalDirection[2] = zsign * DIAG2;
                   break;
-               case 1:
-                  if(fabs(y) == fabs(z)) {
-                     normalDirection[1] = ysign*DIAG2;
-                     normalDirection[2] = zsign*DIAG2;
-                     break;
-                  }
-                  if(fabs(y) > (this->radius - dy)) {
-                     normalDirection[1] = ysign;
-                     break;
-                  }
-                  if(fabs(z) > (this->radius - dz)) {
-                     normalDirection[2] = zsign;
-                     break;
-                  }
-                  if(fabs(y) > (this->radius - 2.0*dy)) {
-                     normalDirection[1] = ysign;
-                     break;
-                  }
-                  if(fabs(z) > (this->radius - 2.0*dz)) {
-                     normalDirection[2] = zsign;
-                     break;
-                  }
+               }
+               if (fabs(y) > (this->radius - dy)) {
+                  normalDirection[1] = ysign;
                   break;
-               case 2:
-                  length = sqrt(y*y + z*z);
-                  normalDirection[1] = y / length;
-                  normalDirection[2] = z / length;
+               }
+               if (fabs(z) > (this->radius - dz)) {
+                  normalDirection[2] = zsign;
                   break;
-               default:
-                  std::cerr << __FILE__ << ":" << __LINE__ << ":" << "copysphere.geometry has to be 0, 1 or 2 with this grid shape." << std::endl;
-                  abort();
+               }
+               if (fabs(y) > (this->radius - 2.0 * dy)) {
+                  normalDirection[1] = ysign;
+                  break;
+               }
+               if (fabs(z) > (this->radius - 2.0 * dz)) {
+                  normalDirection[2] = zsign;
+                  break;
+               }
+               break;
+            case 2:
+               length = sqrt(y * y + z * z);
+               normalDirection[1] = y / length;
+               normalDirection[2] = z / length;
+               break;
+            default:
+               std::cerr << __FILE__ << ":" << __LINE__ << ":" << "copysphere.geometry has to be 0, 1 or 2 with this grid shape." << std::endl;
+               abort();
             }
             // end of X
          }
@@ -294,180 +291,180 @@ namespace SBC {
             // end of Y,Z
          } else {
             // Y
-            switch(this->geometry) {
-               case 0:
-                  normalDirection[0] = DIAG2*xsign;
-                  normalDirection[2] = DIAG2*zsign;
+            switch (this->geometry) {
+            case 0:
+               normalDirection[0] = DIAG2 * xsign;
+               normalDirection[2] = DIAG2 * zsign;
+               break;
+            case 1:
+               if (fabs(x) == fabs(z)) {
+                  normalDirection[0] = xsign * DIAG2;
+                  normalDirection[2] = zsign * DIAG2;
                   break;
-               case 1:
-                  if(fabs(x) == fabs(z)) {
-                     normalDirection[0] = xsign*DIAG2;
-                     normalDirection[2] = zsign*DIAG2;
-                     break;
-                  }
-                  if(fabs(x) > (this->radius - dx)) {
-                     normalDirection[0] = xsign;
-                     break;
-                  }
-                  if(fabs(z) > (this->radius - dz)) {
-                     normalDirection[2] = zsign;
-                     break;
-                  }
-                  if(fabs(x) > (this->radius - 2.0*dx)) {
-                     normalDirection[0] = xsign;
-                     break;
-                  }
-                  if(fabs(z) > (this->radius - 2.0*dz)) {
-                     normalDirection[2] = zsign;
-                     break;
-                  }
+               }
+               if (fabs(x) > (this->radius - dx)) {
+                  normalDirection[0] = xsign;
                   break;
-               case 2:
-               case 3:
-                  length = sqrt(x*x + z*z);
-                  normalDirection[0] = x / length;
-                  normalDirection[2] = z / length;
+               }
+               if (fabs(z) > (this->radius - dz)) {
+                  normalDirection[2] = zsign;
                   break;
-               default:
-                  std::cerr << __FILE__ << ":" << __LINE__ << ":" << "copysphere.geometry has to be 0, 1, 2 or 3 with this grid shape." << std::endl;
-                  abort();
+               }
+               if (fabs(x) > (this->radius - 2.0 * dx)) {
+                  normalDirection[0] = xsign;
+                  break;
+               }
+               if (fabs(z) > (this->radius - 2.0 * dz)) {
+                  normalDirection[2] = zsign;
+                  break;
+               }
+               break;
+            case 2:
+            case 3:
+               length = sqrt(x * x + z * z);
+               normalDirection[0] = x / length;
+               normalDirection[2] = z / length;
+               break;
+            default:
+               std::cerr << __FILE__ << ":" << __LINE__ << ":" << "copysphere.geometry has to be 0, 1, 2 or 3 with this grid shape." << std::endl;
+               abort();
             }
             // end of Y
          }
       } else if (Parameters::zcells_ini == 1) {
          // Z
-         switch(this->geometry) {
-            case 0:
-               normalDirection[0] = DIAG2*xsign;
-               normalDirection[1] = DIAG2*ysign;
+         switch (this->geometry) {
+         case 0:
+            normalDirection[0] = DIAG2 * xsign;
+            normalDirection[1] = DIAG2 * ysign;
+            break;
+         case 1:
+            if (fabs(x) == fabs(y)) {
+               normalDirection[0] = xsign * DIAG2;
+               normalDirection[1] = ysign * DIAG2;
                break;
-            case 1:
-               if(fabs(x) == fabs(y)) {
-                  normalDirection[0] = xsign*DIAG2;
-                  normalDirection[1] = ysign*DIAG2;
-                  break;
-               }
-               if(fabs(x) > (this->radius - dx)) {
-                  normalDirection[0] = xsign;
-                  break;
-               }
-               if(fabs(y) > (this->radius - dy)) {
-                  normalDirection[1] = ysign;
-                  break;
-               }
-               if(fabs(x) > (this->radius - 2.0*dx)) {
-                  normalDirection[0] = xsign;
-                  break;
-               }
-               if(fabs(y) > (this->radius - 2.0*dy)) {
-                  normalDirection[1] = ysign;
-                  break;
-               }
+            }
+            if (fabs(x) > (this->radius - dx)) {
+               normalDirection[0] = xsign;
                break;
-            case 2:
-               length = sqrt(x*x + y*y);
-               normalDirection[0] = x / length;
-               normalDirection[1] = y / length;
+            }
+            if (fabs(y) > (this->radius - dy)) {
+               normalDirection[1] = ysign;
                break;
-            default:
-               abort_mpi("copysphere.geometry has to be 0, 1 or 2 with this grid shape.", 1);
+            }
+            if (fabs(x) > (this->radius - 2.0 * dx)) {
+               normalDirection[0] = xsign;
+               break;
+            }
+            if (fabs(y) > (this->radius - 2.0 * dy)) {
+               normalDirection[1] = ysign;
+               break;
+            }
+            break;
+         case 2:
+            length = sqrt(x * x + y * y);
+            normalDirection[0] = x / length;
+            normalDirection[1] = y / length;
+            break;
+         default:
+            abort_mpi("copysphere.geometry has to be 0, 1 or 2 with this grid shape.", 1);
          }
          // end of Z
       } else {
          // 3D
-         switch(this->geometry) {
-            case 0:
-               normalDirection[0] = DIAG3*xsign;
-               normalDirection[1] = DIAG3*ysign;
-               normalDirection[2] = DIAG3*zsign;
+         switch (this->geometry) {
+         case 0:
+            normalDirection[0] = DIAG3 * xsign;
+            normalDirection[1] = DIAG3 * ysign;
+            normalDirection[2] = DIAG3 * zsign;
+            break;
+         case 1:
+            if (fabs(x) == fabs(y) && fabs(x) == fabs(z) && fabs(x) > this->radius - dx) {
+               normalDirection[0] = xsign * DIAG3;
+               normalDirection[1] = ysign * DIAG3;
+               normalDirection[2] = zsign * DIAG3;
                break;
-            case 1:
-               if(fabs(x) == fabs(y) && fabs(x) == fabs(z) && fabs(x) > this->radius - dx) {
-                  normalDirection[0] = xsign*DIAG3;
-                  normalDirection[1] = ysign*DIAG3;
-                  normalDirection[2] = zsign*DIAG3;
-                  break;
-               }
-               if(fabs(x) == fabs(y) && fabs(x) == fabs(z) && fabs(x) > this->radius - 2.0*dx) {
-                  normalDirection[0] = xsign*DIAG3;
-                  normalDirection[1] = ysign*DIAG3;
-                  normalDirection[2] = zsign*DIAG3;
-                  break;
-               }
-               if(fabs(x) == fabs(y) && fabs(x) > this->radius - dx && fabs(z) < this->radius - dz) {
-                  normalDirection[0] = xsign*DIAG2;
-                  normalDirection[1] = ysign*DIAG2;
-                  normalDirection[2] = 0.0;
-                  break;
-               }
-               if(fabs(y) == fabs(z) && fabs(y) > this->radius - dy && fabs(x) < this->radius - dx) {
-                  normalDirection[0] = 0.0;
-                  normalDirection[1] = ysign*DIAG2;
-                  normalDirection[2] = zsign*DIAG2;
-                  break;
-               }
-               if(fabs(x) == fabs(z) && fabs(x) > this->radius - dx && fabs(y) < this->radius - dy) {
-                  normalDirection[0] = xsign*DIAG2;
-                  normalDirection[1] = 0.0;
-                  normalDirection[2] = zsign*DIAG2;
-                  break;
-               }
-               if(fabs(x) == fabs(y) && fabs(x) > this->radius - 2.0*dx && fabs(z) < this->radius - 2.0*dz) {
-                  normalDirection[0] = xsign*DIAG2;
-                  normalDirection[1] = ysign*DIAG2;
-                  normalDirection[2] = 0.0;
-                  break;
-               }
-               if(fabs(y) == fabs(z) && fabs(y) > this->radius - 2.0*dy && fabs(x) < this->radius - 2.0*dx) {
-                  normalDirection[0] = 0.0;
-                  normalDirection[1] = ysign*DIAG2;
-                  normalDirection[2] = zsign*DIAG2;
-                  break;
-               }
-               if(fabs(x) == fabs(z) && fabs(x) > this->radius - 2.0*dx && fabs(y) < this->radius - 2.0*dy) {
-                  normalDirection[0] = xsign*DIAG2;
-                  normalDirection[1] = 0.0;
-                  normalDirection[2] = zsign*DIAG2;
-                  break;
-               }
-               if(fabs(x) > (this->radius - dx)) {
-                  normalDirection[0] = xsign;
-                  break;
-               }
-               if(fabs(y) > (this->radius - dy)) {
-                  normalDirection[1] = ysign;
-                  break;
-               }
-               if(fabs(z) > (this->radius - dz)) {
-                  normalDirection[2] = zsign;
-                  break;
-               }
-               if(fabs(x) > (this->radius - 2.0*dx)) {
-                  normalDirection[0] = xsign;
-                  break;
-               }
-               if(fabs(y) > (this->radius - 2.0*dy)) {
-                  normalDirection[1] = ysign;
-                  break;
-               }
-               if(fabs(z) > (this->radius - 2.0*dz)) {
-                  normalDirection[2] = zsign;
-                  break;
-               }
+            }
+            if (fabs(x) == fabs(y) && fabs(x) == fabs(z) && fabs(x) > this->radius - 2.0 * dx) {
+               normalDirection[0] = xsign * DIAG3;
+               normalDirection[1] = ysign * DIAG3;
+               normalDirection[2] = zsign * DIAG3;
                break;
-            case 2:
-               length = sqrt(x*x + y*y + z*z);
-               normalDirection[0] = x / length;
-               normalDirection[1] = y / length;
-               normalDirection[2] = z / length;
+            }
+            if (fabs(x) == fabs(y) && fabs(x) > this->radius - dx && fabs(z) < this->radius - dz) {
+               normalDirection[0] = xsign * DIAG2;
+               normalDirection[1] = ysign * DIAG2;
+               normalDirection[2] = 0.0;
                break;
-            case 3:
-               length = sqrt(x*x + z*z);
-               normalDirection[0] = x / length;
-               normalDirection[2] = z / length;
+            }
+            if (fabs(y) == fabs(z) && fabs(y) > this->radius - dy && fabs(x) < this->radius - dx) {
+               normalDirection[0] = 0.0;
+               normalDirection[1] = ysign * DIAG2;
+               normalDirection[2] = zsign * DIAG2;
                break;
-            default:
-               abort_mpi("copysphere.geometry has to be 0, 1, 2 or 3 with this grid shape.", 1);
+            }
+            if (fabs(x) == fabs(z) && fabs(x) > this->radius - dx && fabs(y) < this->radius - dy) {
+               normalDirection[0] = xsign * DIAG2;
+               normalDirection[1] = 0.0;
+               normalDirection[2] = zsign * DIAG2;
+               break;
+            }
+            if (fabs(x) == fabs(y) && fabs(x) > this->radius - 2.0 * dx && fabs(z) < this->radius - 2.0 * dz) {
+               normalDirection[0] = xsign * DIAG2;
+               normalDirection[1] = ysign * DIAG2;
+               normalDirection[2] = 0.0;
+               break;
+            }
+            if (fabs(y) == fabs(z) && fabs(y) > this->radius - 2.0 * dy && fabs(x) < this->radius - 2.0 * dx) {
+               normalDirection[0] = 0.0;
+               normalDirection[1] = ysign * DIAG2;
+               normalDirection[2] = zsign * DIAG2;
+               break;
+            }
+            if (fabs(x) == fabs(z) && fabs(x) > this->radius - 2.0 * dx && fabs(y) < this->radius - 2.0 * dy) {
+               normalDirection[0] = xsign * DIAG2;
+               normalDirection[1] = 0.0;
+               normalDirection[2] = zsign * DIAG2;
+               break;
+            }
+            if (fabs(x) > (this->radius - dx)) {
+               normalDirection[0] = xsign;
+               break;
+            }
+            if (fabs(y) > (this->radius - dy)) {
+               normalDirection[1] = ysign;
+               break;
+            }
+            if (fabs(z) > (this->radius - dz)) {
+               normalDirection[2] = zsign;
+               break;
+            }
+            if (fabs(x) > (this->radius - 2.0 * dx)) {
+               normalDirection[0] = xsign;
+               break;
+            }
+            if (fabs(y) > (this->radius - 2.0 * dy)) {
+               normalDirection[1] = ysign;
+               break;
+            }
+            if (fabs(z) > (this->radius - 2.0 * dz)) {
+               normalDirection[2] = zsign;
+               break;
+            }
+            break;
+         case 2:
+            length = sqrt(x * x + y * y + z * z);
+            normalDirection[0] = x / length;
+            normalDirection[1] = y / length;
+            normalDirection[2] = z / length;
+            break;
+         case 3:
+            length = sqrt(x * x + z * z);
+            normalDirection[0] = x / length;
+            normalDirection[2] = z / length;
+            break;
+         default:
+            abort_mpi("copysphere.geometry has to be 0, 1, 2 or 3 with this grid shape.", 1);
          }
          // end of 3D
       }
@@ -480,276 +477,156 @@ namespace SBC {
     *
     * -- Retain only the normal components of perturbed face B
     */
-   Real Copysphere::fieldSolverBoundaryCondMagneticField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & bGrid,
-      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & bgbGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-      cint i,
-      cint j,
-      cint k,
-      creal dt,
-      cuint component
-   ) {
-      if(this->zeroPerB == true){
-         return bGrid.get(i,j,k)->at(fsgrids::bfield::PERBX+component);
+   Real Copysphere::fieldSolverBoundaryCondMagneticField(fsgrids::perbspan b,
+                                                         fsgrids::constbgbspan bgb,
+                                                         fsgrids::consttechnicalspan technical,
+                                                         const std::array<Real, 3>& gridSpacing,
+                                                         const std::array<fsgrid::FsSize_t, 3>& globalCoordinates,
+                                                         const fsgrid::FsStencil& stencil, cuint component) {
+      const uint32_t perbComponent = fsgrids::bfield::PERBX + component;
+      const uint32_t bitfield = 1 << component;
+
+      // clang-format off
+      static constexpr std::array permutations = {
+          std::array {
+              0, 1, 2, 3, 4, 5,
+          },
+          std::array {
+              2, 3, 0, 1, 4, 5,
+          },
+          std::array {
+              4, 5, 0, 1, 2, 3,
+          },
+      };
+
+      const std::array permutation = permutations[component];
+
+      const std::array<size_t, 6> inds = {
+          stencil.moo(),
+          stencil.poo(),
+          stencil.omo(),
+          stencil.opo(),
+          stencil.oom(),
+          stencil.oop(),
+      };
+      // clang-format on
+
+      auto bitFieldSet = [&bitfield](auto& tech) { return (tech.SOLVE & bitfield) == bitfield; };
+      auto sbLayerIsOne = [](auto& tech) { return tech.sysBoundaryLayer == 1; };
+      auto averageNeigbours = [&technical, &b, &inds, &permutation, &perbComponent,
+                               &bitFieldSet](auto begin, auto end, auto& sum, auto& nCells) {
+         for (size_t i = begin; i < end; i++) {
+            const auto j = inds[permutation[i]];
+            if (bitFieldSet(technical[j])) {
+               sum += b[j][perbComponent];
+               nCells++;
+            }
+         }
+      };
+
+      auto averageAllNeighbours = [&stencil, &technical, &b, &perbComponent](auto predicateLambda, auto& sum,
+                                                                             auto& nCells) {
+         for (const auto& i : stencil.indices()) {
+            if (predicateLambda(technical[i])) {
+               sum += b[i][perbComponent];
+               nCells++;
+            }
+         }
+      };
+
+      Real sum = 0.0;
+      uint nCells = 0;
+      if (this->zeroPerB == true) {
+         sum = b[stencil.ooo()][perbComponent];
+         nCells = 1;
       } else {
-         if (technicalGrid.get(i,j,k)->sysBoundaryLayer == 1) {
-            switch(component) {
-               case 0:
-                  if (  ((technicalGrid.get(i-1,j,k)->SOLVE & compute::BX) == compute::BX)
-                     && ((technicalGrid.get(i+1,j,k)->SOLVE & compute::BX) == compute::BX)
-                  ) {
-                     return 0.5 * (bGrid.get(i-1,j,k)->at(fsgrids::bfield::PERBX) + bGrid.get(i+1,j,k)->at(fsgrids::bfield::PERBX));
-                  } else if ((technicalGrid.get(i-1,j,k)->SOLVE & compute::BX) == compute::BX) {
-                     return bGrid.get(i-1,j,k)->at(fsgrids::bfield::PERBX);
-                  } else if ((technicalGrid.get(i+1,j,k)->SOLVE & compute::BX) == compute::BX) {
-                     return bGrid.get(i+1,j,k)->at(fsgrids::bfield::PERBX);
-                  } else {
-                     Real retval = 0.0;
-                     uint nCells = 0;
-                     if ((technicalGrid.get(i,j-1,k)->SOLVE & compute::BX) == compute::BX) {
-                        retval += bGrid.get(i,j-1,k)->at(fsgrids::bfield::PERBX);
-                        nCells++;
-                     }
-                     if ((technicalGrid.get(i,j+1,k)->SOLVE & compute::BX) == compute::BX) {
-                        retval += bGrid.get(i,j+1,k)->at(fsgrids::bfield::PERBX);
-                        nCells++;
-                     }
-                     if ((technicalGrid.get(i,j,k-1)->SOLVE & compute::BX) == compute::BX) {
-                        retval += bGrid.get(i,j,k-1)->at(fsgrids::bfield::PERBX);
-                        nCells++;
-                     }
-                     if ((technicalGrid.get(i,j,k+1)->SOLVE & compute::BX) == compute::BX) {
-                        retval += bGrid.get(i,j,k+1)->at(fsgrids::bfield::PERBX);
-                        nCells++;
-                     }
-                     if (nCells == 0) {
-                        for (int a=i-1; a<i+2; a++) {
-                           for (int b=j-1; b<j+2; b++) {
-                              for (int c=k-1; c<k+2; c++) {
-                                 if ((technicalGrid.get(a,b,c)->SOLVE & compute::BX) == compute::BX) {
-                                    retval += bGrid.get(a,b,c)->at(fsgrids::bfield::PERBX);
-                                    nCells++;
-                                 }
-                              }
-                           }
-                        }
-                     }
-                     if (nCells == 0) {
-                        cerr << __FILE__ << ":" << __LINE__ << ": ERROR: this should not have fallen through." << endl;
-                        return 0.0;
-                     }
-                     return retval / nCells;
-                  }
-               case 1:
-                  if (  (technicalGrid.get(i,j-1,k)->SOLVE & compute::BY) == compute::BY
-                     && (technicalGrid.get(i,j+1,k)->SOLVE & compute::BY) == compute::BY
-                  ) {
-                     return 0.5 * (bGrid.get(i,j-1,k)->at(fsgrids::bfield::PERBY) + bGrid.get(i,j+1,k)->at(fsgrids::bfield::PERBY));
-                  } else if ((technicalGrid.get(i,j-1,k)->SOLVE & compute::BY) == compute::BY) {
-                     return bGrid.get(i,j-1,k)->at(fsgrids::bfield::PERBY);
-                  } else if ((technicalGrid.get(i,j+1,k)->SOLVE & compute::BY) == compute::BY) {
-                     return bGrid.get(i,j+1,k)->at(fsgrids::bfield::PERBY);
-                  } else {
-                     Real retval = 0.0;
-                     uint nCells = 0;
-                     if ((technicalGrid.get(i-1,j,k)->SOLVE & compute::BY) == compute::BY) {
-                        retval += bGrid.get(i-1,j,k)->at(fsgrids::bfield::PERBY);
-                        nCells++;
-                     }
-                     if ((technicalGrid.get(i+1,j,k)->SOLVE & compute::BY) == compute::BY) {
-                        retval += bGrid.get(i+1,j,k)->at(fsgrids::bfield::PERBY);
-                        nCells++;
-                     }
-                     if ((technicalGrid.get(i,j,k-1)->SOLVE & compute::BY) == compute::BY) {
-                        retval += bGrid.get(i,j,k-1)->at(fsgrids::bfield::PERBY);
-                        nCells++;
-                     }
-                     if ((technicalGrid.get(i,j,k+1)->SOLVE & compute::BY) == compute::BY) {
-                        retval += bGrid.get(i,j,k+1)->at(fsgrids::bfield::PERBY);
-                        nCells++;
-                     }
-                     if (nCells == 0) {
-                        for (int a=i-1; a<i+2; a++) {
-                           for (int b=j-1; b<j+2; b++) {
-                              for (int c=k-1; c<k+2; c++) {
-                                 if ((technicalGrid.get(a,b,c)->SOLVE & compute::BY) == compute::BY) {
-                                    retval += bGrid.get(a,b,c)->at(fsgrids::bfield::PERBY);
-                                    nCells++;
-                                 }
-                              }
-                           }
-                        }
-                     }
-                     if (nCells == 0) {
-                        cerr << __FILE__ << ":" << __LINE__ << ": ERROR: this should not have fallen through." << endl;
-                        return 0.0;
-                     }
-                     return retval / nCells;
-                  }
-               case 2:
-                  if (  (technicalGrid.get(i,j,k-1)->SOLVE & compute::BZ) == compute::BZ
-                     && (technicalGrid.get(i,j,k+1)->SOLVE & compute::BZ) == compute::BZ
-                  ) {
-                     return 0.5 * (bGrid.get(i,j,k-1)->at(fsgrids::bfield::PERBZ) + bGrid.get(i,j,k+1)->at(fsgrids::bfield::PERBZ));
-                  } else if ((technicalGrid.get(i,j,k-1)->SOLVE & compute::BZ) == compute::BZ) {
-                     return bGrid.get(i,j,k-1)->at(fsgrids::bfield::PERBZ);
-                  } else if ((technicalGrid.get(i,j,k+1)->SOLVE & compute::BZ) == compute::BZ) {
-                     return bGrid.get(i,j,k+1)->at(fsgrids::bfield::PERBZ);
-                  } else {
-                     Real retval = 0.0;
-                     uint nCells = 0;
-                     if ((technicalGrid.get(i-1,j,k)->SOLVE & compute::BZ) == compute::BZ) {
-                        retval += bGrid.get(i-1,j,k)->at(fsgrids::bfield::PERBZ);
-                        nCells++;
-                     }
-                     if ((technicalGrid.get(i+1,j,k)->SOLVE & compute::BZ) == compute::BZ) {
-                        retval += bGrid.get(i+1,j,k)->at(fsgrids::bfield::PERBZ);
-                        nCells++;
-                     }
-                     if ((technicalGrid.get(i,j-1,k)->SOLVE & compute::BZ) == compute::BZ) {
-                        retval += bGrid.get(i,j-1,k)->at(fsgrids::bfield::PERBZ);
-                        nCells++;
-                     }
-                     if ((technicalGrid.get(i,j+1,k)->SOLVE & compute::BZ) == compute::BZ) {
-                        retval += bGrid.get(i,j+1,k)->at(fsgrids::bfield::PERBZ);
-                        nCells++;
-                     }
-                     if (nCells == 0) {
-                        for (int a=i-1; a<i+2; a++) {
-                           for (int b=j-1; b<j+2; b++) {
-                              for (int c=k-1; c<k+2; c++) {
-                                 if ((technicalGrid.get(a,b,c)->SOLVE & compute::BZ) == compute::BZ) {
-                                    retval += bGrid.get(a,b,c)->at(fsgrids::bfield::PERBZ);
-                                    nCells++;
-                                 }
-                              }
-                           }
-                        }
-                     }
-                     if (nCells == 0) {
-                        cerr << __FILE__ << ":" << __LINE__ << ": ERROR: this should not have fallen through." << endl;
-                        return 0.0;
-                     }
-                     return retval / nCells;
-                  }
-               default:
-                  cerr << "ERROR: copysphere boundary tried to copy nonsensical magnetic field component " << component << endl;
-                  return 0.0;
-            }
-         } else { // L2 cells
-            Real retval = 0.0;
-            uint nCells = 0;
-            for (int a=i-1; a<i+2; a++) {
-               for (int b=j-1; b<j+2; b++) {
-                  for (int c=k-1; c<k+2; c++) {
-                     if (technicalGrid.get(a,b,c)->sysBoundaryLayer == 1) {
-                        retval += bGrid.get(a,b,c)->at(fsgrids::bfield::PERBX + component);
-                        nCells++;
-                     }
-                  }
-               }
-            }
+         if (sbLayerIsOne(technical[stencil.ooo()])) {
+            averageNeigbours(0ul, 2ul, sum, nCells);
+
             if (nCells == 0) {
-               cerr << __FILE__ << ":" << __LINE__ << ": ERROR: this should not have fallen through." << endl;
-               return 0.0;
+               averageNeigbours(2ul, 6ul, sum, nCells);
             }
-            return retval / nCells;
+
+            if (nCells == 0) {
+               averageAllNeighbours(bitFieldSet, sum, nCells);
+            }
+         } else {
+            // L2 cells
+            averageAllNeighbours(sbLayerIsOne, sum, nCells);
          }
       }
 
+      if (nCells == 0) {
+         cerr << __FILE__ << ":" << __LINE__ << ": ERROR: this should not have fallen through." << endl;
+         sum = 0.0;
+         nCells = 1;
+      }
+
+      return sum / nCells;
    }
 
-   void Copysphere::fieldSolverBoundaryCondElectricField(
-      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
-      cint i,
-      cint j,
-      cint k,
-      cuint component
-   ) {
-      EGrid.get(i,j,k)->at(fsgrids::efield::EX+component) = 0.0;
+   void Copysphere::fieldSolverBoundaryCondElectricField(fsgrids::efieldspan e,
+                                                         const fsgrid::FsStencil& stencil, cuint component) {
+      e[stencil.ooo()][fsgrids::efield::EX + component] = 0.0;
    }
 
-   void Copysphere::fieldSolverBoundaryCondHallElectricField(
-      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
-      cint i,
-      cint j,
-      cint k,
-      cuint component
-   ) {
-      std::array<Real, fsgrids::ehall::N_EHALL> * cp = EHallGrid.get(i,j,k);
+   void Copysphere::fieldSolverBoundaryCondHallElectricField(fsgrids::ehallspan ehall,
+                                                             const fsgrid::FsStencil& stencil, cuint component) {
+      std::array<Real, fsgrids::ehall::N_EHALL>& cp = ehall[stencil.ooo()];
       switch (component) {
-         case 0:
-            cp->at(fsgrids::ehall::EXHALL_000_100) = 0.0;
-            cp->at(fsgrids::ehall::EXHALL_010_110) = 0.0;
-            cp->at(fsgrids::ehall::EXHALL_001_101) = 0.0;
-            cp->at(fsgrids::ehall::EXHALL_011_111) = 0.0;
-            break;
-         case 1:
-            cp->at(fsgrids::ehall::EYHALL_000_010) = 0.0;
-            cp->at(fsgrids::ehall::EYHALL_100_110) = 0.0;
-            cp->at(fsgrids::ehall::EYHALL_001_011) = 0.0;
-            cp->at(fsgrids::ehall::EYHALL_101_111) = 0.0;
-            break;
-         case 2:
-            cp->at(fsgrids::ehall::EZHALL_000_001) = 0.0;
-            cp->at(fsgrids::ehall::EZHALL_100_101) = 0.0;
-            cp->at(fsgrids::ehall::EZHALL_010_011) = 0.0;
-            cp->at(fsgrids::ehall::EZHALL_110_111) = 0.0;
-            break;
-         default:
-            cerr << __FILE__ << ":" << __LINE__ << ":" << " Invalid component" << endl;
+      case 0:
+         cp[fsgrids::ehall::EXHALL_000_100] = 0.0;
+         cp[fsgrids::ehall::EXHALL_010_110] = 0.0;
+         cp[fsgrids::ehall::EXHALL_001_101] = 0.0;
+         cp[fsgrids::ehall::EXHALL_011_111] = 0.0;
+         break;
+      case 1:
+         cp[fsgrids::ehall::EYHALL_000_010] = 0.0;
+         cp[fsgrids::ehall::EYHALL_100_110] = 0.0;
+         cp[fsgrids::ehall::EYHALL_001_011] = 0.0;
+         cp[fsgrids::ehall::EYHALL_101_111] = 0.0;
+         break;
+      case 2:
+         cp[fsgrids::ehall::EZHALL_000_001] = 0.0;
+         cp[fsgrids::ehall::EZHALL_100_101] = 0.0;
+         cp[fsgrids::ehall::EZHALL_010_011] = 0.0;
+         cp[fsgrids::ehall::EZHALL_110_111] = 0.0;
+         break;
+      default:
+         cerr << __FILE__ << ":" << __LINE__ << ":" << " Invalid component" << endl;
       }
    }
 
    void Copysphere::fieldSolverBoundaryCondGradPeElectricField(
-      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
-      cint i,
-      cint j,
-      cint k,
-      cuint component
-   ) {
-      EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EXGRADPE+component) = 0.0;
+       fsgrids::egradpespan EGradPe, const fsgrid::FsStencil& stencil,
+       cuint component) {
+      EGradPe[stencil.ooo()][fsgrids::egradpe::EXGRADPE + component] = 0.0;
    }
 
-   void Copysphere::fieldSolverBoundaryCondDerivatives(
-      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
-      cint i,
-      cint j,
-      cint k,
-      cuint RKCase,
-      cuint component
-   ) {
-      this->setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, component);
-      return;
+   void Copysphere::fieldSolverBoundaryCondDerivatives(fsgrids::dperbspan dperb,
+                                                       fsgrids::dmomentsspan dmoments,
+                                                       const fsgrid::FsStencil& stencil, cuint RKCase, cuint component) {
+      this->setCellDerivativesToZero(dperb, dmoments, stencil, component);
    }
 
-   void Copysphere::fieldSolverBoundaryCondBVOLDerivatives(
-      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
-      cint i,
-      cint j,
-      cint k,
-      cuint component
-   ) {
-      // FIXME This should be OK as the BVOL derivatives are only used for Lorentz force JXB, which is not applied on the copy sphere cells.
-      this->setCellBVOLDerivativesToZero(volGrid, i, j, k, component);
+   void Copysphere::fieldSolverBoundaryCondBVOLDerivatives(fsgrids::volspan vols,
+                                                           const fsgrid::FsStencil& stencil, cuint component) {
+      // FIXME This should be OK as the BVOL derivatives are only used for Lorentz force JXB, which is not applied on the
+      // copy sphere cells.
+      this->setCellBVOLDerivativesToZero(vols, stencil, component);
    }
 
-   void Copysphere::vlasovBoundaryCondition(
-      dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      const CellID& cellID,
-      const uint popID,
-      const bool calculate_V_moments
-   ) {
-      this->vlasovBoundaryFluffyCopyFromAllCloseNbrs(mpiGrid, cellID, popID, calculate_V_moments, this->speciesParams[popID].fluffiness);
+   void Copysphere::vlasovBoundaryCondition(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+                                            const CellID& cellID, const uint popID, const bool calculate_V_moments) {
+      this->vlasovBoundaryFluffyCopyFromAllCloseNbrs(mpiGrid, cellID, popID, calculate_V_moments,
+                                                     this->speciesParams[popID].fluffiness);
    }
 
    /**
     * NOTE: This function must initialize all particle species!
     * @param project
     */
-   void Copysphere::generateTemplateCell(Project &project) {
+   void Copysphere::generateTemplateCell(Project& project) {
       // WARNING not 0.0 here or the dipole() function fails miserably.
       templateCell.sysBoundaryFlag = this->getIndex();
       templateCell.sysBoundaryLayer = 1;
@@ -762,8 +639,8 @@ namespace SBC {
 
       Real initRho, initT, initV0X, initV0Y, initV0Z;
       // Loop over particle species
-      for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-         templateCell.clear(popID,false); //clear, do not de-allocate memory
+      for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID) {
+         templateCell.clear(popID, false); // clear, do not de-allocate memory
          const CopysphereSpeciesParameters& sP = this->speciesParams[popID];
          const Real mass = getObjectWrapper().particleSpecies[popID].mass;
          initRho = sP.rho;
@@ -773,7 +650,7 @@ namespace SBC {
          initV0Z = sP.V0[2];
 
          // Find list of blocks to initialize.
-         const uint nRequested = SBC::findMaxwellianBlocksToInitialize(popID,templateCell, initRho, initT, initV0X, initV0Y, initV0Z);
+         const uint nRequested = SBC::findMaxwellianBlocksToInitialize(popID, templateCell, initRho, initT, initV0X, initV0Y, initV0Z);
          // stores in vmesh->getGrid() (localToGlobalMap)
          // with count in cell.get_population(popID).N_blocks
 
@@ -789,7 +666,7 @@ namespace SBC {
          vmesh::VelocityMesh *vmesh = templateCell.dev_get_velocity_mesh(popID);
          vmesh::VelocityBlockContainer* VBC = templateCell.dev_get_velocity_blocks(popID);
          #else
-         vmesh::VelocityMesh *vmesh = templateCell.get_velocity_mesh(popID);
+         vmesh::VelocityMesh* vmesh = templateCell.get_velocity_mesh(popID);
          vmesh::VelocityBlockContainer* VBC = templateCell.get_velocity_blocks(popID);
          #endif
          // Loop over blocks
@@ -830,7 +707,7 @@ namespace SBC {
 
       } // for-loop over particle species
 
-      calculateCellMoments(&templateCell,true,false,true);
+      calculateCellMoments(&templateCell, true, false, true);
 
       // WARNING Time-independence assumed here. Normal moments computed in setProjectCell
       templateCell.parameters[CellParams::RHOM_R] = templateCell.parameters[CellParams::RHOM];
@@ -851,22 +728,21 @@ namespace SBC {
       templateCell.parameters[CellParams::P_33_V] = templateCell.parameters[CellParams::P_33];
    }
 
-   void Copysphere::setCellFromTemplate(SpatialCell* cell,const uint popID) {
-      copyCellData(&templateCell,cell,false,popID,true); // copy also vdf, _V
-      copyCellData(&templateCell,cell,true,popID,false); // don't copy vdf again but copy _R now
+   void Copysphere::setCellFromTemplate(SpatialCell* cell, const uint popID) {
+      copyCellData(&templateCell, cell, false, popID, true); // copy also vdf, _V
+      copyCellData(&templateCell, cell, true, popID, false); // don't copy vdf again but copy _R now
       #ifdef USE_GPU
-      cell->setReservation(popID,templateCell.getReservation(popID));
+      cell->setReservation(popID, templateCell.getReservation(popID));
       #endif
    }
 
-   std::string Copysphere::getName() const {return "Copysphere";}
-   void Copysphere::getFaces(bool *faces) {}
+   std::string Copysphere::getName() const { return "Copysphere"; }
+   void Copysphere::getFaces(bool* faces) {}
 
    void Copysphere::updateState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-                                FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
-                                FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
-                                creal t) {}
+                                fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
+                                fsgrids::perbspan perb,
+                                fsgrids::bgbspan bgb, creal t) {}
 
-   uint Copysphere::getIndex() const {return sysboundarytype::COPYSPHERE;}
-}
+   uint Copysphere::getIndex() const { return sysboundarytype::COPYSPHERE; }
+} // namespace SBC

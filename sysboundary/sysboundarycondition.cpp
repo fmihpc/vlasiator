@@ -22,9 +22,9 @@
 
 /*!\file sysboundarycondition.cpp
  * \brief Implementation of the base class SysBoundaryCondition to handle system boundary cells.
- * 
+ *
  * \sa donotcompute.cpp ionosphere.cpp outflow.cpp setbyuser.cpp setmaxwellian.cpp
- * 
+ *
  */
 
 #include <cstdlib>
@@ -42,13 +42,13 @@ namespace SBC {
    // ************************************************************
    // ***** DEFINITIONS FOR BOUNDARYCONDITION BASE CLASS *****
    // ************************************************************
-   
+
    /*!\brief Function used to determine on which face(s) if any the cell at given coordinates is.
-    * 
+    *
     * This function is used by some of the classes inheriting from this base class.
-    * 
+    *
     * Depth is hard-coded to be 2 as other parts of the code (field solver especially) rely on that.
-    * 
+    *
     * \param isThisCellOnAFace Pointer to an array of 6 bool returning of each face whether the cell is on that face. Order: 0 x+; 1 x-; 2 y+; 3 y-; 4 z+; 5 z-
     * \param x Cell x coordinate
     * \param y Cell y coordinate
@@ -63,7 +63,7 @@ namespace SBC {
       const creal x,const creal y,const creal z,
       const creal dx,const creal dy,const creal dz,
       const bool excludeSlicesAndPeriodicDimensions //=false (default)
-   ) {
+   ) const {
       for(uint i=0; i<6; i++) {
          isThisCellOnAFace[i] = false;
       }
@@ -102,12 +102,12 @@ namespace SBC {
    }
 
    /*!\brief Function used to determine on which face(s) if any the cell with the given MPI id is on
-    * 
+    *
     * This function is used by some of the classes inheriting from this base class.
-    * 
+    *
     * Depth is hard-coded to be 2 as other parts of the code (field solver especially) rely on that.
     * So if a cell has less than two unique neighbors in some direction, it is considered to be on that face.
-    * 
+    *
     * \param isThisCellOnAFace Referemce to an std::array of 6 bool returning of each face whether the cell is on that face. Order: 0 x+; 1 x-; 2 y+; 3 y-; 4 z+; 5 z-
     * \param mpiGrid Reference to grid
     * \param id ID of cell to check
@@ -170,125 +170,119 @@ namespace SBC {
       }
       return;
    }
-   
+
    /*! SysBoundaryCondition base class constructor. The constructor is empty.*/
    SysBoundaryCondition::SysBoundaryCondition() { }
-   
+
    /*! SysBoundaryCondition base class virtual destructor. The destructor is empty.*/
    SysBoundaryCondition::~SysBoundaryCondition() { }
-   
+
    /*! SysBoundaryCondition base class instance of the addParameters function. Should not be used, each derived class should have its own.*/
    void SysBoundaryCondition::addParameters() {
       cerr << "ERROR: SysBoundaryCondition::addParameters called instead of derived class function!" << endl;
    }
-   
+
    /*! Function used to set the system boundary condition cell's derivatives to 0.
     * \param mpiGrid Grid
     * \param cellID The cell's ID.
     * \param component 0: x-derivatives, 1: y-derivatives, 2: z-derivatives, 3: xy-derivatives, 4: xz-derivatives, 5: yz-derivatives.
     */
-   void SysBoundaryCondition::setCellDerivativesToZero(
-      FsGrid< array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-      FsGrid< array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
-      cint i,
-      cint j,
-      cint k,
-      cuint component
-   ) {
-      array<Real, fsgrids::dperb::N_DPERB> * dPerBGrid0 = dPerBGrid.get(i,j,k);
-      array<Real, fsgrids::dmoments::N_DMOMENTS> * dMomentsGrid0 = dMomentsGrid.get(i,j,k);
+   void
+   SysBoundaryCondition::setCellDerivativesToZero(fsgrids::dperbspan dperb,
+                                                  fsgrids::dmomentsspan dmoments,
+                                                  const fsgrid::FsStencil& stencil, cuint component) {
+      auto& dPerBGrid0 = dperb[stencil.ooo()];
+      auto& dMomentsGrid0 = dmoments[stencil.ooo()];
       switch(component) {
          case 0: // x, xx
-            dMomentsGrid0->at(fsgrids::dmoments::drhomdx) = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::drhoqdx) = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::dp11dx) = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::dp22dx) = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::dp33dx) = 0.0;
-            dPerBGrid0->at(fsgrids::dperb::dPERBydx)  = 0.0;
-            dPerBGrid0->at(fsgrids::dperb::dPERBzdx)  = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::dVxdx)  = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::dVydx)  = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::dVzdx)  = 0.0;
-            dPerBGrid0->at(fsgrids::dperb::dPERBydxx) = 0.0;
-            dPerBGrid0->at(fsgrids::dperb::dPERBzdxx) = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::drhomdx] = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::drhoqdx] = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::dp11dx] = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::dp22dx] = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::dp33dx] = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::dVxdx] = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::dVydx] = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::dVzdx] = 0.0;
+
+            dPerBGrid0[fsgrids::dperb::dPERBydx] = 0.0;
+            dPerBGrid0[fsgrids::dperb::dPERBzdx] = 0.0;
+            dPerBGrid0[fsgrids::dperb::dPERBydxx] = 0.0;
+            dPerBGrid0[fsgrids::dperb::dPERBzdxx] = 0.0;
             break;
          case 1: // y, yy
-            dMomentsGrid0->at(fsgrids::dmoments::drhomdy) = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::drhoqdy) = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::dp11dy) = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::dp22dy) = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::dp33dy) = 0.0;
-            dPerBGrid0->at(fsgrids::dperb::dPERBxdy)  = 0.0;
-            dPerBGrid0->at(fsgrids::dperb::dPERBzdy)  = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::dVxdy)  = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::dVydy)  = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::dVzdy)  = 0.0;
-            dPerBGrid0->at(fsgrids::dperb::dPERBxdyy) = 0.0;
-            dPerBGrid0->at(fsgrids::dperb::dPERBzdyy) = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::drhomdy] = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::drhoqdy] = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::dp11dy] = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::dp22dy] = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::dp33dy] = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::dVxdy] = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::dVydy] = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::dVzdy] = 0.0;
+
+            dPerBGrid0[fsgrids::dperb::dPERBxdy] = 0.0;
+            dPerBGrid0[fsgrids::dperb::dPERBzdy] = 0.0;
+            dPerBGrid0[fsgrids::dperb::dPERBxdyy] = 0.0;
+            dPerBGrid0[fsgrids::dperb::dPERBzdyy] = 0.0;
             break;
          case 2: // z, zz
-            dMomentsGrid0->at(fsgrids::dmoments::drhomdz) = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::drhoqdz) = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::dp11dz) = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::dp22dz) = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::dp33dz) = 0.0;
-            dPerBGrid0->at(fsgrids::dperb::dPERBxdz)  = 0.0;
-            dPerBGrid0->at(fsgrids::dperb::dPERBydz)  = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::dVxdz)  = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::dVydz)  = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::dVzdz)  = 0.0;
-            dPerBGrid0->at(fsgrids::dperb::dPERBxdzz) = 0.0;
-            dPerBGrid0->at(fsgrids::dperb::dPERBydzz) = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::drhomdz] = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::drhoqdz] = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::dp11dz] = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::dp22dz] = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::dp33dz] = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::dVxdz] = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::dVydz] = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::dVzdz] = 0.0;
+
+            dPerBGrid0[fsgrids::dperb::dPERBxdz] = 0.0;
+            dPerBGrid0[fsgrids::dperb::dPERBydz] = 0.0;
+            dPerBGrid0[fsgrids::dperb::dPERBxdzz] = 0.0;
+            dPerBGrid0[fsgrids::dperb::dPERBydzz] = 0.0;
             break;
          case 3: // xy
-            dPerBGrid0->at(fsgrids::dperb::dPERBzdxy) = 0.0;
+            dPerBGrid0[fsgrids::dperb::dPERBzdxy] = 0.0;
             break;
          case 4: // xz
-            dPerBGrid0->at(fsgrids::dperb::dPERBydxz) = 0.0;
+            dPerBGrid0[fsgrids::dperb::dPERBydxz] = 0.0;
             break;
          case 5: // yz
-            dPerBGrid0->at(fsgrids::dperb::dPERBxdyz) = 0.0;
+            dPerBGrid0[fsgrids::dperb::dPERBxdyz] = 0.0;
             break;
          default:
             cerr << __FILE__ << ":" << __LINE__ << ":" << " Invalid component" << endl;
             abort_mpi("Invalid component", 1);
       }
    }
-   
+
    /*! Function used to set the system boundary condition cell's BVOL derivatives to 0.
     * \param mpiGrid Grid
     * \param cellID The cell's ID.
     * \param component 0: x-derivatives, 1: y-derivatives, 2: z-derivatives.
     */
-   void SysBoundaryCondition::setCellBVOLDerivativesToZero(
-      FsGrid< array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
-      cint i,
-      cint j,
-      cint k,
-      cuint component
-   ) {
-      array<Real, fsgrids::volfields::N_VOL> * volGrid0 = volGrid.get(i,j,k);
+   void SysBoundaryCondition::setCellBVOLDerivativesToZero(fsgrids::volspan vols,
+                                                           const fsgrid::FsStencil& stencil, cuint component) {
+      auto& vol = vols[stencil.ooo()];
       switch(component) {
          case 0:
-            volGrid0->at(fsgrids::volfields::dPERBXVOLdx) = 0.0;
-            volGrid0->at(fsgrids::volfields::dPERBYVOLdx) = 0.0;
-            volGrid0->at(fsgrids::volfields::dPERBZVOLdx) = 0.0;
+            vol[fsgrids::volfields::dPERBXVOLdx] = 0.0;
+            vol[fsgrids::volfields::dPERBYVOLdx] = 0.0;
+            vol[fsgrids::volfields::dPERBZVOLdx] = 0.0;
             break;
          case 1:
-            volGrid0->at(fsgrids::volfields::dPERBXVOLdy) = 0.0;
-            volGrid0->at(fsgrids::volfields::dPERBYVOLdy) = 0.0;
-            volGrid0->at(fsgrids::volfields::dPERBZVOLdy) = 0.0;
+            vol[fsgrids::volfields::dPERBXVOLdy] = 0.0;
+            vol[fsgrids::volfields::dPERBYVOLdy] = 0.0;
+            vol[fsgrids::volfields::dPERBZVOLdy] = 0.0;
             break;
          case 2:
-            volGrid0->at(fsgrids::volfields::dPERBXVOLdz) = 0.0;
-            volGrid0->at(fsgrids::volfields::dPERBYVOLdz) = 0.0;
-            volGrid0->at(fsgrids::volfields::dPERBZVOLdz) = 0.0;
+            vol[fsgrids::volfields::dPERBXVOLdz] = 0.0;
+            vol[fsgrids::volfields::dPERBYVOLdz] = 0.0;
+            vol[fsgrids::volfields::dPERBZVOLdz] = 0.0;
             break;
          default:
          abort_mpi("Invalid component", 1);
       }
    }
-   
+
    /*! Function used to copy the distribution and moments from (one of) the closest sysboundarytype::NOT_SYSBOUNDARY cell.
     * \param mpiGrid Grid
     * \param cellID The cell's ID.
@@ -304,7 +298,7 @@ namespace SBC {
          const bool copy_V_moments
    ) {
       const CellID closestCell = getTheClosestNonsysboundaryCell(cellID);
-      
+
       if(closestCell == INVALID_CELLID) {
          abort_mpi("No closest cell found!", 1);
       }
@@ -326,7 +320,7 @@ namespace SBC {
          const bool copy_V_moments
    ) {
       const CellID closestCell = getTheClosestL1OutflowCell(cellID);
-      
+
       if(closestCell == INVALID_CELLID) {
          abort_mpi("No closest L1 Outflow cell found!", 1);
       }
@@ -334,7 +328,7 @@ namespace SBC {
       copyCellData(mpiGrid[closestCell],mpiGrid[cellID], copyMomentsOnly, popID, copy_V_moments);
       boundaryTimer.stop();
    }
-   
+
    /*! Function used to average and copy the distribution and moments from all the closest sysboundarytype::NOT_SYSBOUNDARY cells.
     * \param mpiGrid Grid
     * \param cellID The cell's ID.
@@ -346,13 +340,13 @@ namespace SBC {
       const CellID& cellID,const uint popID, const bool copy_V_moments
    ) {
       const vector<CellID>& closestCells = getAllClosestNonsysboundaryCells(cellID);
-      
+
       if(closestCells[0] == INVALID_CELLID) {
          abort_mpi("No closest cell found!", 1);
       }
       averageCellData(mpiGrid, closestCells, mpiGrid[cellID], popID);
    }
-   
+
    /*! Function used to average and copy the distribution and moments from all the close sysboundarytype::NOT_SYSBOUNDARY cells.
     * \param mpiGrid Grid
     * \param cellID The cell's ID.
@@ -365,13 +359,13 @@ namespace SBC {
       const CellID& cellID,const uint popID,const bool copy_V_moments,const creal fluffiness
    ) {
       const vector<CellID>& closeCells = getAllCloseNonsysboundaryCells(cellID);
-      
+
       if(closeCells[0] == INVALID_CELLID) {
          abort_mpi("No close cell found!", 1);
       }
       averageCellData(mpiGrid, closeCells, mpiGrid[cellID], popID, fluffiness);
    }
-   
+
    /*! Function used to copy the distribution and moments from one cell to another.
     * \param from Pointer to parent cell to copy from.
     * \param to Pointer to destination cell.
@@ -407,7 +401,7 @@ namespace SBC {
             to->parameters[CellParams::P_33_R] = from->parameters[CellParams::P_33_R];
          }
       }
-      
+
       if(copyMomentsOnly) {
          to->get_population(popID).RHO = from->get_population(popID).RHO;
          if (copy_V_moments) {
@@ -435,7 +429,7 @@ namespace SBC {
          to->set_population(from->get_population(popID), popID);
       }
    }
-   
+
    /*! Take a list of cells and set the destination cell distribution function to the average of the list's cells'.
     * \param mpiGrid Grid
     * \param cellList Vector of cells to copy from.
@@ -490,7 +484,7 @@ namespace SBC {
          uint d2L1 = numeric_limits<uint>::max();
 
          // Only closer neighborhood for layer 1
-         if(mpiGrid[cellId]->sysBoundaryLayer == 1) {		      
+         if(mpiGrid[cellId]->sysBoundaryLayer == 1) {
             for (auto nbrPair : *mpiGrid.get_neighbors_of(cellId, Neighborhoods::SYSBOUNDARIES)) {
                if(nbrPair.first != INVALID_CELLID) {
                   CellID neighbor = nbrPair.first;
@@ -561,68 +555,73 @@ namespace SBC {
       }
       return true;
    }
-   
+
    /*! Get the cellID of the first closest cell of type NOT_SYSBOUNDARY found.
     * \param i,j,k Coordinates of the cell to start looking from
     * \return The cell index of that cell
     * \sa getAllClosestNonsysboundaryCells
     */
    array<int, 3> SysBoundaryCondition::getTheClosestNonsysboundaryCell(
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+      fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
       cint i,
       cint j,
       cint k
    ) {
-      const vector< array<int, 3> > closestCells = getAllClosestNonsysboundaryCells(technicalGrid, i, j, k);
+      const vector< array<int, 3> > closestCells = getAllClosestNonsysboundaryCells(technical, fsgrid, i, j, k);
       return closestCells.at(0);
    }
-   
+
    /*! Get the cellIDs of all the closest cells of type NOT_SYSBOUNDARY.
     * \param i,j,k Coordinates of the cell to start looking from
     * \return The vector of cell indices of those cells
     * \sa getTheClosestNonsysboundaryCell
     */
    vector< array<int, 3> > SysBoundaryCondition::getAllClosestNonsysboundaryCells(
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+      fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
       cint i,
       cint j,
       cint k
    ) {
+      const auto stencil = fsgrid.makeStencil(i, j, k);
       int distance = numeric_limits<int>::max();
-      vector< array<int,3> > closestCells;
-      
+      vector<array<int, 3>> closestCells;
+
       for (int kk=-2; kk<3; kk++) {
          for (int jj=-2; jj<3; jj++) {
             for (int ii=-2; ii<3 ; ii++) {
-               if( technicalGrid.get(i+ii,j+jj,k+kk) && technicalGrid.get(i+ii,j+jj,k+kk)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-                  distance = min(distance, ii*ii + jj*jj + kk*kk);
-               }
-            }
-         }
-      }
-      
-      for (int kk=-2; kk<3; kk++) {
-         for (int jj=-2; jj<3; jj++) {
-            for (int ii=-2; ii<3 ; ii++) {
-               if( technicalGrid.get(i+ii,j+jj,k+kk) && technicalGrid.get(i+ii,j+jj,k+kk)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-                  int d = ii*ii + jj*jj + kk*kk;
-                  if( d == distance ) {
-                     array<int, 3> cell = {i+ii, j+jj, k+kk};
-                     closestCells.push_back(cell);
+               if (stencil.cellExists(ii, jj, kk)) {
+                  if (technical[stencil.indexFromOffset(ii, jj, kk)].sysBoundaryFlag ==
+                      sysboundarytype::NOT_SYSBOUNDARY) {
+                     distance = min(distance, ii * ii + jj * jj + kk * kk);
                   }
                }
             }
          }
       }
-      
-      if(closestCells.size() == 0) {
-         array<int, 3> dummy  = {numeric_limits<int>::min()};
-         closestCells.push_back(dummy);
+
+      for (int kk=-2; kk<3; kk++) {
+         for (int jj=-2; jj<3; jj++) {
+            for (int ii=-2; ii<3 ; ii++) {
+               if (stencil.cellExists(ii, jj, kk)) {
+                  if (technical[stencil.indexFromOffset(ii, jj, kk)].sysBoundaryFlag ==
+                      sysboundarytype::NOT_SYSBOUNDARY) {
+                     const int d = ii * ii + jj * jj + kk * kk;
+                     if (d == distance) {
+                        closestCells.push_back({i + ii, j + jj, k + kk});
+                     }
+                  }
+               }
+            }
+         }
       }
-      
+
+      if (closestCells.empty()) {
+         closestCells.push_back({numeric_limits<int>::min()});
+      }
+
       return closestCells;
    }
-   
+
    /*! Get the cellID of the first closest cell of type NOT_SYSBOUNDARY found.
     * \param cellID ID of the cell to start look from.
     * \return The cell index of that cell
@@ -646,7 +645,7 @@ namespace SBC {
       vector<CellID> & closestCells = allClosestL1OutflowCells.at(cellID);
       return closestCells.at(0);
    }
-   
+
    /*! Get the cellIDs of all the closest cells of type NOT_SYSBOUNDARY.
     * \param cellID ID of the cell to start look from.
     * \return The vector of cell indices of those cells
@@ -658,7 +657,7 @@ namespace SBC {
       vector<CellID> & closestCells = allClosestNonsysboundaryCells.at(cellID);
       return closestCells;
    }
-   
+
    /*! Get the cellIDs of all the close cells of type NOT_SYSBOUNDARY.
     * \param cellID ID of the cell to start look from.
     * \return The vector of cell indices of those cells
@@ -669,59 +668,39 @@ namespace SBC {
       vector<CellID> & closeCells = allCloseNonsysboundaryCells.at(cellID);
       return closeCells;
    }
-   
+
    Real SysBoundaryCondition::fieldBoundaryCopyFromSolvingNbrMagneticField(
-      FsGrid< array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & bGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-      cint i,
-      cint j,
-      cint k,
-      cuint component,
-      cuint mask
-   ) {
-
+       fsgrids::perbspan b, fsgrids::consttechnicalspan technical,
+       const fsgrid::FsStencil& stencil, cuint component, cuint mask) {
       int distance = numeric_limits<int>::max();
-      vector< array<int,3> > closestCells;
+      auto closestCellIndex = 0;
 
-      for (int kk=-2; kk<3; kk++) {
-         for (int jj=-2; jj<3; jj++) {
-            for (int ii=-2; ii<3 ; ii++) {
-               if( technicalGrid.get(i+ii,j+jj,k+kk) // skip invalid cells returning NULL
-                   && (technicalGrid.get(i+ii,j+jj,k+kk)->SOLVE & mask) == mask // Did that guy solve this component?
-                   && technicalGrid.get(i+ii,j+jj,k+kk)->sysBoundaryFlag != sysboundarytype::DO_NOT_COMPUTE // Do not copy from there
-                   && technicalGrid.get(i+ii,j+jj,k+kk)->sysBoundaryFlag != sysboundarytype::OUTER_BOUNDARY_PADDING // Do not copy from there either
-               ) {
-                  distance = min(distance, ii*ii + jj*jj + kk*kk);
-               }
-            }
-         }
-      }
-
-      for (int kk=-2; kk<3; kk++) {
-         for (int jj=-2; jj<3; jj++) {
-            for (int ii=-2; ii<3 ; ii++) {
-               if( technicalGrid.get(i+ii,j+jj,k+kk) // skip invalid cells returning NULL
-                   && (technicalGrid.get(i+ii,j+jj,k+kk)->SOLVE & mask) == mask // Did that guy solve this component?
-                   && technicalGrid.get(i+ii,j+jj,k+kk)->sysBoundaryFlag != sysboundarytype::DO_NOT_COMPUTE // Do not copy from there
-                   && technicalGrid.get(i+ii,j+jj,k+kk)->sysBoundaryFlag != sysboundarytype::OUTER_BOUNDARY_PADDING // Do not copy from there either
-               ) {
-                  int d = ii*ii + jj*jj + kk*kk;
-                  if( d == distance ) {
-                     array<int, 3> cell = {i+ii, j+jj, k+kk};
-                     closestCells.push_back(cell);
+      for (auto kk = -2; kk < 3; kk++) {
+         for (auto jj = -2; jj < 3; jj++) {
+            for (auto ii = -2; ii < 3; ii++) {
+               if (stencil.cellExists(ii, jj, kk)) {
+                  const auto index = stencil.indexFromOffset(ii, jj, kk);
+                  const auto& tech = technical[index];
+                  const bool copyable = (tech.SOLVE & mask) == mask &&
+                                        tech.sysBoundaryFlag != sysboundarytype::DO_NOT_COMPUTE &&
+                                        tech.sysBoundaryFlag != sysboundarytype::OUTER_BOUNDARY_PADDING;
+                  const int d = ii * ii + jj * jj + kk * kk;
+                  if (copyable && d < distance) {
+                     distance = d;
+                     closestCellIndex = index;
                   }
                }
             }
          }
       }
 
-      if (closestCells.size() == 0) {
+      if (distance == numeric_limits<int>::max()) {
          abort_mpi("No closest cell found!", 1);
       }
 
-      return bGrid.get(closestCells[0][0], closestCells[0][1], closestCells[0][2])->at(fsgrids::bfield::PERBX+component);
+      return b[closestCellIndex][fsgrids::bfield::PERBX + component];
    }
-   
+
    /*! Function used in some cases to know which faces the system boundary condition is being applied to.
     * \param faces Pointer to array of 6 bool in which the values are returned whether the corresponding face is of that type. Order: 0 x+; 1 x-; 2 y+; 3 y-; 4 z+; 5 z-
     */
@@ -731,45 +710,26 @@ namespace SBC {
         faces[i]=false;
       }
    }
-   
+
    /*! Get the precedence value of the system boundary condition.
     * \return The precedence value of the system boundary condition as set by parameter.
     */
    uint SysBoundaryCondition::getPrecedence() const {return precedence;}
-   
+
    /*! Returns whether the boundary condition is dynamic in time.
     * \return Boolean value.
     */
    bool SysBoundaryCondition::isDynamic() const { return dynamic; }
    
    void SysBoundaryCondition::setPeriodicity(
-      bool isFacePeriodic[3]
+      std::array<bool, 3> isFacePeriodic
    ) {
-      for (uint i=0; i<3; i++) {
-         this->periodic[i] = isFacePeriodic[i];
-      }
+      this->periodic = isFacePeriodic;
    }
    
    /*! Get a bool telling whether to call again applyInitialState upon restarting the simulation. */
    bool SysBoundaryCondition::doApplyUponRestart() const {return this->applyUponRestart;}
-
-   void OuterBoundaryCondition::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
-      array<bool,6> isThisCellOnAFace;
-      
-      // Assign boundary flags to local DCCRG cells
-      for(const auto& id : getLocalCells()) {
-         if (mpiGrid[id]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) 
-            continue;
-
-         determineFace(isThisCellOnAFace, mpiGrid, id);
-         for (int i = 0; i < 6; ++i) {
-            if(facesToProcess[i] && isThisCellOnAFace[i]) {
-               mpiGrid[id]->sysBoundaryFlag = this->getIndex();
-            }
-         }
-      }
-   }
-
+   
    void SysBoundaryCondition::mapCellPotentialAndGetEXBDrift(
       std::array<Real, CellParams::N_SPATIAL_CELL_PARAMS>& cellParams
    ) {
@@ -872,6 +832,112 @@ namespace SBC {
       #endif
 
       return LID;
+   }
+
+   void determineFaceNoClassMembers(
+      bool* isThisCellOnAFace,
+      creal x, creal y, creal z,
+      creal dx, creal dy, creal dz,
+      const std::array<bool, 3> periodicity,
+      const bool excludeSlicesAndPeriodicDimensions//=false // (default)
+   ) {
+      for(uint i=0; i<6; i++) {
+         isThisCellOnAFace[i] = false;
+      }
+      if(x > Parameters::xmax - dx * 2) {
+         isThisCellOnAFace[0] = true;
+      }
+      if(x < Parameters::xmin + dx * 2) {
+         isThisCellOnAFace[1] = true;
+      }
+      if(y > Parameters::ymax - dy * 2) {
+         isThisCellOnAFace[2] = true;
+      }
+      if(y < Parameters::ymin + dy * 2) {
+         isThisCellOnAFace[3] = true;
+      }
+      if(z > Parameters::zmax - dz * 2) {
+         isThisCellOnAFace[4] = true;
+      }
+      if(z < Parameters::zmin + dz * 2) {
+         isThisCellOnAFace[5] = true;
+      }
+      if(excludeSlicesAndPeriodicDimensions == true) {
+         if (Parameters::xcells_ini == 1 || periodicity[0]) {
+            isThisCellOnAFace[0] = false;
+            isThisCellOnAFace[1] = false;
+         }
+         if (Parameters::ycells_ini == 1 || periodicity[1]) {
+            isThisCellOnAFace[2] = false;
+            isThisCellOnAFace[3] = false;
+         }
+         if (Parameters::zcells_ini == 1 || periodicity[2]) {
+            isThisCellOnAFace[4] = false;
+            isThisCellOnAFace[5] = false;
+         }
+      }
+   }
+
+   // The function above and the commented parts below make an implementation with lambda
+   // but it breaks some communicator and YPK did not manage to get a working version out of this.
+   // Left in the copies of variable so the [=] compiles without complaining.
+
+   void OuterBoundaryCondition::assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+                                  fsgrids::technicalspan technical, FieldSolverGrid &fsgrid) {
+      bool doAssign;
+      std::array<bool, 6> isThisCellOnAFace;
+
+      // Assign boundary flags to local DCCRG cells
+      const vector<CellID>& cells = getLocalCells();
+      for (auto& id : cells) {
+         if (mpiGrid[id]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
+            continue;
+         }
+         creal* const cellParams = &(mpiGrid[id]->parameters[0]);
+         creal dx = cellParams[CellParams::DX];
+         creal dy = cellParams[CellParams::DY];
+         creal dz = cellParams[CellParams::DZ];
+         creal x = cellParams[CellParams::XCRD] + 0.5 * dx;
+         creal y = cellParams[CellParams::YCRD] + 0.5 * dy;
+         creal z = cellParams[CellParams::ZCRD] + 0.5 * dz;
+
+         for(uint i=0; i<6; i++) {
+            isThisCellOnAFace[i] = false;
+         }
+         determineFace(isThisCellOnAFace.data(), x, y, z, dx, dy, dz);
+         // Comparison of the array defining which faces to use and the array telling on which faces this cell is
+         doAssign = false;
+         for (int j = 0; j < 6; j++) {
+            doAssign = doAssign || (facesToProcess[j] && isThisCellOnAFace[j]);
+         }
+         if (doAssign) {
+            mpiGrid[id]->sysBoundaryFlag = this->getIndex();
+         }
+      }
+      const auto index_local = this->getIndex();
+      const std::array<bool, 6> facesToProcess_local = facesToProcess;
+      const std::array<bool, 3> periodic_local = this->periodic;
+      // Assign boundary flags to local fsgrid cells
+      fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                        phiprof::initializeTimer("Assign sysboundary flags to fsgrid cells"), technical,
+                        [=](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+         creal dx = P::dx_ini * pow(2, -technical[stencil.ooo()].refLevel);
+         creal dy = P::dy_ini * pow(2, -technical[stencil.ooo()].refLevel);
+         creal dz = P::dz_ini * pow(2, -technical[stencil.ooo()].refLevel);
+
+         std::array<bool, 6> isThisCellOnAFace = {{false}};
+         bool doAssign = false;
+         const std::array<Real, 3> coords = coordinates.getPhysicalCoords(stencil.i, stencil.j, stencil.k);
+         const std::array<Real, 3> gridSpacing = coordinates.physicalGridSpacing;
+
+         determineFaceNoClassMembers(isThisCellOnAFace.data(), coords[0] + 0.5 * gridSpacing[0], coords[1] + 0.5 * gridSpacing[1], coords[2] + 0.5 * gridSpacing[2], dx, dy, dz, periodic_local);
+         for (int iface = 0; iface < 6; iface++) {
+            doAssign = doAssign || (facesToProcess_local[iface] && isThisCellOnAFace[iface]);
+         }
+         if (doAssign) {
+            technical[stencil.ooo()].sysBoundaryFlag = index_local;
+         }
+      });
    }
 
 } // namespace SBC

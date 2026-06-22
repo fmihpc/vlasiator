@@ -190,6 +190,8 @@ __host__ void gpu_init_device() {
    CREATE_SUBPOINTERS(gpuMemoryManager, host_returnReal, maxNThreads);
    CREATE_SUBPOINTERS(gpuMemoryManager, host_returnRealf, maxNThreads);
    CREATE_SUBPOINTERS(gpuMemoryManager, host_returnLID, maxNThreads);
+   CREATE_SUBPOINTERS(gpuMemoryManager, gpuInitBuffer, maxNThreads);
+   CREATE_SUBPOINTERS(gpuMemoryManager, gpuInitBlocks, maxNThreads);
 
 
    int *leastPriority = new int; // likely 0

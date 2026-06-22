@@ -53,7 +53,6 @@ namespace SBC {
       virtual uint getIndex() const override;
 
       void generateTemplateCell(spatial_cell::SpatialCell& templateCell, Real (&B)[3], int inputDataIndex, creal t) override;
-
    };
 }
 

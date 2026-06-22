@@ -43,11 +43,7 @@ export LD_PRELOAD=/wrk-kappa/users/markusb/vlasiator-mempool/libpreload-me.so
 # Would allow oversubscription of cores with hyperthreading, do not use.
 # export OMP_WAIT_POLICY=PASSIVE
 
-module load papi
-module load cray-pmi
-module load craype-accel-amd-gfx90a
-module load rocm/6.3.4
-module load libfabric/1.20.1
+source ../modules/hile_gpu.sh
 module list
 
 # threads per job (equal to -c )
