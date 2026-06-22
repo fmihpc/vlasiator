@@ -271,15 +271,47 @@ void report_memory_consumption(
          P::tstep, P::t, sum_mem[2]/GiB, sum_mem[5]/GiB);
    logFile << reportstring;
 
+   #ifdef USE_GPU
+   const double KiB = 1024.0;
+   // TODO: Clear duplicate output
+   // (local_cells_capacity, ghost_cells_capacity, local_cells_size, ghost_cells_size)
+   int gpuReportedUsage = gpu_reportMemory(mem[3], mem[4], mem[0], mem[1]);
+   int sumGpu = 0;
+   struct {
+      int value;
+      int rank;
+   } minGpu, gpuMemUsageLoc, maxGpu;
+   gpuMemUsageLoc.value = gpuReportedUsage;
+   gpuMemUsageLoc.rank = rank;
+
+   MPI_Reduce(&gpuReportedUsage, &sumGpu, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+   MPI_Reduce(&gpuMemUsageLoc, &maxGpu, 1, MPI_2INT, MPI_MAXLOC, 0, MPI_COMM_WORLD);
+   MPI_Reduce(&gpuMemUsageLoc, &minGpu, 1, MPI_2INT, MPI_MINLOC, 0, MPI_COMM_WORLD);
+
+   snprintf(reportstring,512, "(MEM) tstep %i t %.3g %-21s (GiB/rank; avg, min, max, sum): %-8.3g %-8.3g %-8.3g %-8.3g min rank %i max rank %i\n",
+         P::tstep, P::t, "Total reported GPU memory usage",  (double)sumGpu/((double)nProcs*KiB), (double)minGpu.value/KiB, (double)maxGpu.value/KiB, (double)sumGpu/KiB, minGpu.rank, maxGpu.rank);
+   logFile << reportstring;
+
+   size_t free_byte;
+   size_t total_byte;
+   CHK_ERR( gpuMemGetInfo( &free_byte, &total_byte) );
+   gpuReportedUsage = (total_byte-free_byte)/(1024*1024);
+   sumGpu = 0;
+   gpuMemUsageLoc.value = gpuReportedUsage;
+   gpuMemUsageLoc.rank = rank;
+
+   MPI_Reduce(&gpuReportedUsage, &sumGpu, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+   MPI_Reduce(&gpuMemUsageLoc, &maxGpu, 1, MPI_2INT, MPI_MAXLOC, 0, MPI_COMM_WORLD);
+   MPI_Reduce(&gpuMemUsageLoc, &minGpu, 1, MPI_2INT, MPI_MINLOC, 0, MPI_COMM_WORLD);
+
+   snprintf(reportstring,512, "(MEM) tstep %i t %.3g %-21s (GiB/rank; avg, min, max, sum): %-8.3g %-8.3g %-8.3g %-8.3g min rank %i max rank %i\n",
+         P::tstep, P::t, "Total reported GPU hardware usage",  (double)sumGpu/((double)nProcs*KiB), (double)minGpu.value/KiB, (double)maxGpu.value/KiB, (double)sumGpu/KiB, minGpu.rank, maxGpu.rank);
+   logFile << reportstring;
+
+   #endif
+
    logFile << writeVerbose;
 
    MPI_Comm_free(&interComm);
    MPI_Comm_free(&nodeComm);
-
-   #ifdef USE_GPU
-   // TODO: Clear duplicate output
-   // (local_cells_capacity, ghost_cells_capacity, local_cells_size, ghost_cells_size)
-   gpu_reportMemory(mem[3], mem[4], mem[0], mem[1]);
-
-   #endif
 }
