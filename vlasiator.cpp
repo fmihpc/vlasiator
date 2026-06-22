@@ -1850,7 +1850,7 @@ int simulate(int argn,char* args[]) {
             }
       }
 
-      if (P::tstep > P::tstep_min && (P::dynamicTimestep || P::currentMaxTimeclass > 0)) {
+      if ((P::tstep > P::tstep_min && (P::dynamicTimestep || P::currentMaxTimeclass > 0)) && P::tc_test_type == 0) {
 
          //check if global base dt is fine, and update cell dt limits
          auto timestepvector = computeNewTimeStep(mpiGrid, technicalGrid, dtMaxLocal, dtMaxGlobal, dtMinMaxLocal, dtMinMaxGlobal);
