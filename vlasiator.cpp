@@ -615,9 +615,19 @@ void initiateAllCellTimeclasses(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
 
    if(P::tc_test_type == 1){
 
-      if (P::dynamicTimestep) {
-         std::cerr << "using dynamic timestep and special test not supported, aborting...\n";
+      // if (P::dynamicTimestep) {
+      //    std::cerr << "using dynamic timestep and special test not supported, aborting...\n";
+      //    abort();
+      // }
+
+      if (P::initialMaxTimeclass != 1) {
+         std::cerr << "not supported, aborting...\n";
          abort();
+      }
+
+      if (P::dynamicTimestep) {
+         updateTimeclassDts(P::timeclassDt[1]*0.5); // halve the timestep lenghts as we want the longest dt to still be viable
+         P::dt = P::timeclassDt[P::currentMaxTimeclass];
       }
       
       // set cell TCs such that one half is tc0 and one half is tc1.
@@ -635,50 +645,26 @@ void initiateAllCellTimeclasses(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
       }
 
    }
-   else if(P::tc_test_type == 2 || P::tc_test_type == 3){ 
-      // std::cerr << "TC test 2\n";
-      // if(P::initialMaxTimeclass > 2){
-      //    std::cerr << "This test works best with timeclass 1 or 2\n";
-      //    // abort();
-      // }
-      // if(P::initialMaxTimeclass > 0) {
-      //    P::currentMaxTimeclass = P::initialMaxTimeclass;
-      // }
-      // else{
-      //    P::currentMaxTimeclass = 0;
-      // }
-      // // for(int i = 0; i <= P::initialMaxTimeclass; ++i){
-      // //    newTimeclassDts[i] = fsdt*pow(2,P::currentMaxTimeclass - min(i,P::currentMaxTimeclass));
-      // // }
-      // // P::timeclassDt = newTimeclassDts;
-      // // if(P::tcOverrideTimeclass > -1){
-      // //    localTimeClass = P::tcOverrideTimeclass;
-      // // }
-      // // else {
-      // //    localTimeClass = myRank % 2;
-      // // }
-      
-      // for (vector<CellID>::const_iterator cell_id=cells.begin(); cell_id!=cells.end(); ++cell_id) {
-      //    SpatialCell* cell = mpiGrid[*cell_id];
-      //    // cell->parameters[CellParams::TIMECLASS] = min(localTimeClass, P::maxTimeclass);
+   else if(P::tc_test_type == 2) { 
 
-      //    // first block: one half timeclass0 and other timeclassmax
-      //    // second block: three parts: timeclassmax-2, timeclassmax-1, timeclassmax
-      //    if (P::initialMaxTimeclass == 1) {
-      //       cell->parameters[CellParams::TIMECLASS] = min(int(cell->parameters[CellParams::XCRD] > -100/*epsilon*/)*P::initialMaxTimeclass, P::initialMaxTimeclass);
-      //    } else if (P::initialMaxTimeclass == 2) {
-      //       if (cell->parameters[CellParams::XCRD] < -15*(cell->parameters[CellParams::DX])) {
-      //          cell->parameters[CellParams::TIMECLASS] = 0;
-      //       } else if (cell->parameters[CellParams::XCRD] > 15*(cell->parameters[CellParams::DX])) {
-      //          cell->parameters[CellParams::TIMECLASS] = 2;
-      //       } else {
-      //          cell->parameters[CellParams::TIMECLASS] = 1;
-      //       }
-      //    } else if (P::initialMaxTimeclass == 3) {
-      //       cell->parameters[CellParams::TIMECLASS] = min(int(cell->parameters[CellParams::XCRD] > -100/*epsilon*/)*P::initialMaxTimeclass, P::initialMaxTimeclass);
-      //    }
-      //    cell->parameters[CellParams::TIMECLASSDT] = cell->get_tc_dt();
-      // }
+   //constant timeclass in whole simulation domain
+
+      if (P::tcOverrideTimeclass == -1 || P::dynamicTimestep) {
+         std::cerr << "please set timeclass for overriding and use static timestep...\n";
+         abort();
+      }
+
+      auto cells = getLocalCells();
+      for (vector<CellID>::const_iterator cell_id=cells.begin(); cell_id!=cells.end(); ++cell_id) {
+         SpatialCell* cell = mpiGrid[*cell_id];
+         
+         cell->parameters[CellParams::TIMECLASS] = P::tcOverrideTimeclass;
+         cell->parameters[CellParams::TIMECLASSDT] = P::timeclassDt[P::tcOverrideTimeclass];
+      
+      }
+
+   } else if(P::tc_test_type == 3) { 
+
       
    } else if (P::tc_test_type ==4) {
       // //for 2d testing with tc box in the middle
@@ -1850,7 +1836,7 @@ int simulate(int argn,char* args[]) {
             }
       }
 
-      if (P::tstep > P::tstep_min) {
+      if ((P::tstep > P::tstep_min && (P::dynamicTimestep || P::currentMaxTimeclass > 0)) && P::tc_test_type == 0) {
 
          //check if global base dt is fine, and update cell dt limits
          auto timestepvector = computeNewTimeStep(mpiGrid, technicalGrid, dtMaxLocal, dtMaxGlobal, dtMinMaxLocal, dtMinMaxGlobal);
@@ -2023,7 +2009,7 @@ int simulate(int argn,char* args[]) {
 
       endOfDtCheck:
       
-      if (((P::tstep % P::rebalanceInterval == P::rebalanceInterval-1) && (P::fractionalTimestep == 0)) || P::prepareForRebalance == true) {
+      if (((P::tstep % P::rebalanceInterval == P::rebalanceInterval-1) && (P::fractionalTimestep == ((int)(1u << (P::currentMaxTimeclass))-1))) || P::prepareForRebalance == true) {
          if(P::prepareForRebalance == true) {
             overrideRebalanceNow = true;
          } else {
@@ -2253,7 +2239,7 @@ int simulate(int argn,char* args[]) {
       //    CellParams::P_12
       // );
       
-      // updateParticlePopulations(mpiGrid);
+      updateParticlePopulations(mpiGrid);
 
       // momentsTimer.stop();
 
