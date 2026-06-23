@@ -239,7 +239,7 @@ for run in ${run_tests[*]}; do
            if [[ "${variables[$i]}" == "fg_"* ]]
            then
                A=$( $run_command_tools $diffbin --meshname=fsgrid  ${reference_result_dir}/${vlsv} ${vlsv_dir}/${vlsv} ${variables[$i]} ${indices[$i]} )
-               if [[ $? -eq 0 ]]; then
+               if [[ ! $? -eq 0 ]]; then
                   RUN_ERROR=1
                   touch $GITHUB_WORKSPACE/testpackage_failed
                fi
