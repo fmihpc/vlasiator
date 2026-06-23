@@ -30,13 +30,13 @@
 class Distribution
 {
    public:
-      Distribution(std::default_random_engine& _rand, Real _mass, Real _charge)
+      Distribution(std::knuth_b& _rand, Real _mass, Real _charge)
          : mass(_mass), charge(_charge),rand(_rand) {};
-      Distribution(std::default_random_engine& _rand);
+      Distribution(std::knuth_b& _rand);
       virtual Particle next_particle() = 0;
    protected:
       Real mass,charge;
-      std::default_random_engine& rand;
+      std::knuth_b& rand;
 };
 
 
@@ -45,12 +45,12 @@ class Maxwell_Boltzmann : public Distribution
 {
    public:
       /* Constructor where all parameters are explicitly given */
-      Maxwell_Boltzmann(std::default_random_engine& _rand,Real _mass, Real _charge, Real kT) :
+      Maxwell_Boltzmann(std::knuth_b& _rand,Real _mass, Real _charge, Real kT) :
          Distribution(_rand,_mass,_charge),
          velocity_distribution(0,sqrt(kT/mass)) {};
 
       /* Constructor that fishes parameters from the parameter-class by itself */
-      Maxwell_Boltzmann(std::default_random_engine& _rand);
+      Maxwell_Boltzmann(std::knuth_b& _rand);
       virtual Particle next_particle();
    private:
       std::normal_distribution<Real> velocity_distribution;
@@ -60,11 +60,11 @@ class Maxwell_Boltzmann : public Distribution
 class Monoenergetic : public Distribution
 {
    public:
-      Monoenergetic(std::default_random_engine& _rand,Real _mass, Real _charge, Real _vel) :
+      Monoenergetic(std::knuth_b& _rand,Real _mass, Real _charge, Real _vel) :
          Distribution(_rand, _mass, _charge),
          vel(_vel) {
          }
-      Monoenergetic(std::default_random_engine& _rand);
+      Monoenergetic(std::knuth_b& _rand);
 
       virtual Particle next_particle() {
          /* Sphere point-picking to get isotropic direction (from wolfram Mathworld) */
@@ -88,10 +88,10 @@ class Monoenergetic : public Distribution
 class Kappa : public Distribution
 {
    public:
-      Kappa(std::default_random_engine& _rand, Real _mass, Real _charge, Real _w0, Real _maxw0)
+      Kappa(std::knuth_b& _rand, Real _mass, Real _charge, Real _w0, Real _maxw0)
          : Distribution(_rand,_mass,_charge),w0(_w0),maxw0(_maxw0) {}
 
-      Kappa(std::default_random_engine& _rand) : Distribution(_rand) {
+      Kappa(std::knuth_b& _rand) : Distribution(_rand) {
          maxw0=50;
       }
 
@@ -128,11 +128,11 @@ class Kappa6 : public Kappa
 {
 
    public:
-      Kappa6(std::default_random_engine& _rand, double _mass, double _charge, double _w0, double _maxw0)
+      Kappa6(std::knuth_b& _rand, double _mass, double _charge, double _w0, double _maxw0)
          : Kappa(_rand,_mass,_charge,_w0,_maxw0){
             generate_lookup();
       }
-      Kappa6(std::default_random_engine& _rand);
+      Kappa6(std::knuth_b& _rand);
 
    private:
       virtual void generate_lookup() {
@@ -158,11 +158,11 @@ class Kappa6 : public Kappa
 class Kappa2 : public Kappa
 {
    public:
-      Kappa2(std::default_random_engine& _rand, double _mass, double _charge, double _w0, double _maxw0)
+      Kappa2(std::knuth_b& _rand, double _mass, double _charge, double _w0, double _maxw0)
          : Kappa(_rand,_mass,_charge,_w0,_maxw0){
             generate_lookup();
       }
-      Kappa2(std::default_random_engine& _rand);
+      Kappa2(std::knuth_b& _rand);
 
    private:
       virtual void generate_lookup() {
@@ -183,6 +183,6 @@ class Kappa2 : public Kappa
       }
 };
 
-template<typename T> Distribution* createDistribution(std::default_random_engine& rand) {
+template<typename T> Distribution* createDistribution(std::knuth_b& rand) {
    return new T(rand);
 }

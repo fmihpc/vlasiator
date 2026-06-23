@@ -121,7 +121,7 @@ namespace projects {
 
       // add an initial velocity perturbation to Vx
       // initialize RNG for calculating random phases for the initial perturbation
-      std::default_random_engine rndState;
+      std::knuth_b rndState;
       setRandomSeed(0,rndState);
       Real phase = 0.0;
 

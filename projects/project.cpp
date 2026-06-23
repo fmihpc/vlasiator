@@ -314,16 +314,16 @@ namespace projects {
    /** Get random number between 0 and 1.0. One should always first initialize the rng.
     * @param rngDataBuffer struct of type random_data
     * @return Uniformly distributed random number between 0 and 1.*/
-   Real Project::getRandomNumber(std::default_random_engine& randGen) const {
+   Real Project::getRandomNumber(std::knuth_b& randGen) const {
       return std::uniform_real_distribution<>(0,1)(randGen);
    }
 
    /** Set random seed (thread-safe). Seed is based on the seed read
     *  in from cfg + the seedModifier parameter
     * @param seedModifier value (e.g. CellID) to use as seed modifier
-    # @param randGen std::default_random_engine& to use
+    # @param randGen std::knuth_b& to use
    */
-   void Project::setRandomSeed(CellID seedModifier, std::default_random_engine& randGen) const {
+   void Project::setRandomSeed(CellID seedModifier, std::knuth_b& randGen) const {
       randGen.seed(this->seed+seedModifier);
    }
 
@@ -331,9 +331,9 @@ namespace projects {
     * this particular cellID. Can be used to make reproducible
     * simulations that do not depend on number of processes or threads.
     * @param cell SpatialCell used to infer CellID value to use as seed modifier
-    # @param randGen std::default_random_engine& to use
+    # @param randGen std::knuth_b& to use
    */
-   void Project::setRandomCellSeed(spatial_cell::SpatialCell* cell, std::default_random_engine& randGen) const {
+   void Project::setRandomCellSeed(spatial_cell::SpatialCell* cell, std::knuth_b& randGen) const {
       const creal x = cell->parameters[CellParams::XCRD];
       const creal y = cell->parameters[CellParams::YCRD];
       const creal z = cell->parameters[CellParams::ZCRD];

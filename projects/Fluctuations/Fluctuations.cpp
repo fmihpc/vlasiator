@@ -180,7 +180,7 @@ namespace projects {
 
    void Fluctuations::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
 
-      std::default_random_engine rndState;
+      std::knuth_b rndState;
       setRandomCellSeed(cell,rndState);
 
       this->rndRho=getRandomNumber(rndState);
@@ -215,7 +215,7 @@ namespace projects {
             auto& cell = perb[stencil.ooo()];
 
             const auto seedmodifier = coordinates.globalIDFromLocalCoordinates(stencil.i, stencil.j, stencil.k);
-            std::default_random_engine rndState_l;
+            std::knuth_b rndState_l;
             rndState_l.seed(seed+seedmodifier);
             Real rndBuffer[3];
             rndBuffer[0] = std::uniform_real_distribution<>(-0.5,0.5)(rndState_l);
