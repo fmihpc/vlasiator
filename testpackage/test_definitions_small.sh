@@ -235,8 +235,8 @@ variable_components[${index}]="0 0 1 2 0 1 2 0 1 2 0 1 2 0 1 2"
 test_name[${index}]="Magnetosphere_3D_small"
 comparison_vlsv[${index}]="bulk.0000001.vlsv bulk.0000002.vlsv"
 comparison_phiprof[${index}]="phiprof_0.txt"
-variable_names[${index}]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v fg_b fg_b fg_b fg_e fg_e fg_e"
-variable_components[${index}]="0 0 1 2 0 1 2 0 1 2"
+variable_names[${index}]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v fg_b fg_b fg_b fg_e fg_e fg_e vg_connection vg_connection_coordinates_fw vg_connection_coordinates_fw vg_connection_coordinates_fw  vg_connection_coordinates_bw vg_connection_coordinates_bw vg_connection_coordinates_bw"
+variable_components[${index}]="0 0 1 2 0 1 2 0 1 2 0 0 1 2 0 1 2"
 ((index+=1))
 
 # 24 Ionosphere 3D (not a very physical or successful test at the moment but verifies some things about IG grid and outputs all datareducers)
@@ -268,4 +268,4 @@ do
 done
 
 # Alternatively, set tests manually, e.g.
-# run_tests=( 1 6 9 )
+run_tests=( 23 )
