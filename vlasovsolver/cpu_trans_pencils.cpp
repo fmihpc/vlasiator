@@ -953,10 +953,8 @@ void buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_
 					vector<CellID> ids, const uint dimension,
 					vector<uint> path, const vector<pair<int,CellID>> &endIds) {
 
-   #ifdef DEBUG_PENCILS
    int myRank;
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-   #endif
    
    CellID nextNeighbor;
    CellID id = seedId.second;
