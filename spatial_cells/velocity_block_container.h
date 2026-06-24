@@ -77,6 +77,10 @@ namespace vmesh {
       ARCH_HOSTDEV const uint8_t* getRefined() const;
       ARCH_HOSTDEV uint8_t* getRefined(const vmesh::LocalID blockLID);
       ARCH_HOSTDEV const uint8_t* getRefined(const vmesh::LocalID blockLID) const;
+      ARCH_HOSTDEV uint8_t* getGhost();
+      ARCH_HOSTDEV const uint8_t* getGhost() const;
+      ARCH_HOSTDEV uint8_t* getGhost(const vmesh::LocalID blockLID);
+      ARCH_HOSTDEV const uint8_t* getGhost(const vmesh::LocalID blockLID) const;
       ARCH_HOSTDEV Real* getParameters();
       ARCH_HOSTDEV const Real* getParameters() const;
       ARCH_HOSTDEV Real* getParameters(const vmesh::LocalID blockLID);
@@ -108,10 +112,10 @@ namespace vmesh {
 
 #ifdef DEBUG_VBC
       const Realf& getData(const vmesh::LocalID blockLID,const unsigned int cell) const;
-      const Realf& getRefined(const vmesh::LocalID blockLID,const unsigned int cell) const;
+     //const Realf& getRefined(const vmesh::LocalID blockLID,const unsigned int cell) const;
       const Real& getParameters(const vmesh::LocalID blockLID,const unsigned int i) const;
       void setData(const vmesh::LocalID blockLID,const unsigned int cell,const Realf value);
-      void setRefined(const vmesh::LocalID blockLID,const unsigned int cell,const Realf value);
+     //void setRefined(const vmesh::LocalID blockLID,const unsigned int cell,const Realf value);
 #endif
 
    private:
@@ -121,12 +125,14 @@ namespace vmesh {
 #ifdef USE_GPU
       split::SplitVector<Realf> block_data;
       split::SplitVector<uint8_t> refined;
+      split::SplitVector<uint8_t> ghost;
       split::SplitVector<Real> parameters;
       size_t cachedCapacity;
       size_t cachedSize;
 #else
       std::vector<Realf,aligned_allocator<Realf,WID3> > block_data;
       std::vector<uint8_t> refined;
+      std::vector<uint8_t> ghost;
       std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS> > parameters;
 #endif
    };
@@ -135,17 +141,20 @@ namespace vmesh {
 #ifdef USE_GPU
       block_data = split::SplitVector<Realf>(INIT_VMESH_SIZE*WID3);
       refined = split::SplitVector<uint8_t>(INIT_VMESH_SIZE*WID3);
+      ghost = split::SplitVector<uint8_t>(INIT_VMESH_SIZE);
       parameters = split::SplitVector<Real>(INIT_VMESH_SIZE*BlockParams::N_VELOCITY_BLOCK_PARAMS);
       cachedCapacity = INIT_VMESH_SIZE;
       cachedSize = 0;
 #else
       block_data = std::vector<Realf,aligned_allocator<Realf,WID3>>(WID3);
       refined = std::vector<uint8_t>(WID3);
+      ghost = std::vector<uint8_t>();
       parameters = std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS>>(BlockParams::N_VELOCITY_BLOCK_PARAMS);
       //cachedCapacity = 1;
 #endif
       block_data.clear();
       refined.clear();
+      ghost.clear();
       parameters.clear();
       // gpuStream_t stream = gpu_getStream();
    }
@@ -156,17 +165,20 @@ namespace vmesh {
 #ifdef USE_GPU
       block_data = split::SplitVector<Realf>(other.cachedCapacity*WID3);
       refined = split::SplitVector<uint8_t>(other.cachedCapacity*WID3);
+      ghost = split::SplitVector<uint8_t>(other.cachedCapacity);
       parameters = split::SplitVector<Real>(other.cachedCapacity*BlockParams::N_VELOCITY_BLOCK_PARAMS);
       // Overwrite is like a copy assign but takes a stream
       gpuStream_t stream = gpu_getStream();
       block_data.overwrite(other.block_data,stream);
       refined.overwrite(other.refined,stream);
+      ghost.overwrite(other.ghost,stream);
       parameters.overwrite(other.parameters,stream);
       cachedSize = other.cachedSize;
       cachedCapacity = other.cachedCapacity;
 #else
       block_data = std::vector<Realf,aligned_allocator<Realf,WID3>>(other.block_data);
       refined = std::vector<uint8_t>(other.refined);
+      ghost = std::vector<uint8_t>(other.ghost);
       parameters = std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS>>(other.parameters);
       // block_data.reserve(other.capacity()*WID3);
       // parameters.reserve(other.capacity()*BlockParams::N_VELOCITY_BLOCK_PARAMS);
@@ -178,16 +190,19 @@ namespace vmesh {
       gpuStream_t stream = gpu_getStream();
       block_data.reserve(other.cachedCapacity*WID3, true, stream);
       refined.reserve(other.cachedCapacity*WID3, true, stream);
+      ghost.reserve(other.cachedCapacity, true, stream);
       parameters.reserve(other.cachedCapacity*BlockParams::N_VELOCITY_BLOCK_PARAMS, true, stream);
       // Overwrite is like a copy assign but takes a stream
       block_data.overwrite(other.block_data,stream);
       refined.overwrite(other.refined,stream);
+      ghost.overwrite(other.ghost,stream);
       parameters.overwrite(other.parameters,stream);
       cachedSize = other.cachedSize;
       cachedCapacity = other.cachedCapacity;
 #else
       block_data = other.block_data;
       refined = other.refined;
+      ghost = other.ghost;
       parameters = other.parameters;
       // block_data.reserve(other.capacity()*WID3);
       // parameters.reserve(other.capacity()*BlockParams::N_VELOCITY_BLOCK_PARAMS);
@@ -240,20 +255,23 @@ namespace vmesh {
          cachedCapacity = 1;
          block_data = split::SplitVector<Realf>(WID3);
 	 refined = split::SplitVector<uint8_t>(WID3);
+	 ghost = split::SplitVector<uint8_t>();
          parameters = split::SplitVector<Real>(BlockParams::N_VELOCITY_BLOCK_PARAMS);
       }
 #else
       if (shrink) {
          block_data = std::vector<Realf,aligned_allocator<Realf,WID3>>(WID3);
 	 refined = std::vector<uint8_t>(WID3);
+	 ghost = std::vector<uint8_t>();
          parameters = std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS>>(BlockParams::N_VELOCITY_BLOCK_PARAMS);
       }
 #endif
       block_data.clear();
+      ghost.clear();
       refined.clear();
       parameters.clear();
       #ifdef DEBUG_VBC
-      if ((block_data.size() != 0) || (refined.size() != 0) || (parameters.size() != 0)) {
+      if ((block_data.size() != 0) || (refined.size() != 0)  || (ghost.size() != 0)  || (parameters.size() != 0)) {
          std::cerr<<"VBC CLEAR FAILED"<<std::endl;
       }
       #endif
@@ -275,13 +293,17 @@ namespace vmesh {
          bool ok = true;
          const vmesh::LocalID currentCapacity = block_data.capacity()/WID3;
 	 const vmesh::LocalID currentCapacityR = refined.capacity()/WID3;
+	 const vmesh::LocalID currentCapacityG = ghost.capacity();
          const vmesh::LocalID currentCapacityP = parameters.capacity()/BlockParams::N_VELOCITY_BLOCK_PARAMS;
 	 const vmesh::LocalID numberOfBlocksR = refined.size()/WID3;
+	 const vmesh::LocalID numberOfBlocksG = ghost.size();
          const vmesh::LocalID numberOfBlocksP = parameters.size()/BlockParams::N_VELOCITY_BLOCK_PARAMS;
          if (source >= numberOfBlocks) ok = false;
          if (source >= currentCapacity) ok = false;
-	     if (source >= numberOfBlocksR) ok = false;
+	 if (source >= numberOfBlocksR) ok = false;
          if (source >= currentCapacityR) ok = false;
+	 if (source >= numberOfBlocksG) ok = false;
+         if (source >= currentCapacityG) ok = false;
          if (source >= numberOfBlocksP) ok = false;
          if (source >= currentCapacityP) ok = false;
          if (target >= numberOfBlocks) ok = false;
@@ -293,21 +315,23 @@ namespace vmesh {
          #ifdef USE_GPU
          if (cachedCapacity != currentCapacity) ok = false;
          #endif
-	     if (currentCapacityR != currentCapacity) ok = false;
+	 if (currentCapacityR != currentCapacity) ok = false;
          if (numberOfBlocksR != numberOfBlocks) ok = false;
+	 if (currentCapacityG != currentCapacity) ok = false;
+         if (numberOfBlocksG != numberOfBlocks) ok = false;
          if (currentCapacityP != currentCapacity) ok = false;
          if (numberOfBlocksP != numberOfBlocks) ok = false;
          if (ok == false) {
             #if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
             std::stringstream ss;
             ss << "VBC ERROR: invalid source LID=" << source << " in copy, target=" << target << " #blocks=" << numberOfBlocks << " capacity=" << currentCapacity << std::endl;
-            ss << "or sizes are wrong, data->size()=" << block_data.size()<< " refined.size()=" << refined.size() << " parameters.size()=" << parameters.size() << std::endl;
+            ss << "or sizes are wrong, data->size()=" << block_data.size()<< " refined.size()=" << refined.size() << " ghost.size()=" << ghost.size() << " parameters.size()=" << parameters.size() << std::endl;
             std::cerr << ss.str();
             sleep(1);
             exit(1);
             #else
-            printf("VBC error: invalid source LID=%u in copy, target=%u #blocks=%u capacity=%u \n or sizes are wrong, data->size()=%u refined.size()=%u parameters.size()=%u \n",
-                   source,target,numberOfBlocks,currentCapacity, (vmesh::LocalID)block_data.size(),(vmesh::LocalID)refined.size(),(vmesh::LocalID)parameters.size());
+            printf("VBC error: invalid source LID=%u in copy, target=%u #blocks=%u capacity=%u \n or sizes are wrong, data->size()=%u refined.size()=%u ghost.size()=%u parameters.size()=%u \n",
+                   source,target,numberOfBlocks,currentCapacity, (vmesh::LocalID)block_data.size(),(vmesh::LocalID)refined.size(),(vmesh::LocalID)ghost.size(),(vmesh::LocalID)parameters.size());
             assert(0);
             #endif
          }
@@ -318,7 +342,8 @@ namespace vmesh {
       }
       for (unsigned int i=0; i<WID3; ++i) {
          refined[target*WID3+i] = refined[source*WID3+i];
-      }
+      }   
+      ghost[target] = ghost[source];
       for (int i=0; i<BlockParams::N_VELOCITY_BLOCK_PARAMS; ++i) {
          parameters[target*BlockParams::N_VELOCITY_BLOCK_PARAMS+i] = parameters[source*BlockParams::N_VELOCITY_BLOCK_PARAMS+i];
       }
@@ -327,6 +352,8 @@ namespace vmesh {
                         block_data.begin() + WID3*(numberOfBlocks));
       refined.erase(refined.begin() + WID3*(numberOfBlocks-1),
                         refined.begin() + WID3*(numberOfBlocks));
+      ghost.erase(ghost.begin() + (numberOfBlocks-1),
+                        ghost.begin() + (numberOfBlocks));
       parameters.erase(parameters.begin() + BlockParams::N_VELOCITY_BLOCK_PARAMS*(numberOfBlocks-1),
                         parameters.begin() + BlockParams::N_VELOCITY_BLOCK_PARAMS*(numberOfBlocks));
 #ifdef USE_GPU
@@ -439,6 +466,46 @@ namespace vmesh {
       return refined.data() + blockLID*WID3;
    }
 
+  inline ARCH_HOSTDEV uint8_t* VelocityBlockContainer::getGhost() {
+    return ghost.data();
+  }
+
+  inline ARCH_HOSTDEV const uint8_t* VelocityBlockContainer::getGhost() const {
+    return ghost.data();
+  }
+
+   inline ARCH_HOSTDEV uint8_t* VelocityBlockContainer::getGhost(const vmesh::LocalID blockLID) {
+      #ifdef DEBUG_VBC
+         const vmesh::LocalID numberOfBlocks = ghost.size();
+         #if defined(USE_GPU) && (defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__))
+         if (blockLID >= numberOfBlocks) {
+            exitInvalidLocalID(blockLID);
+         }
+         #else
+         if (blockLID >= numberOfBlocks) {
+            exitInvalidLocalID(blockLID,"getGhost");
+         }
+         #endif
+      #endif
+      return ghost.data() + blockLID;
+   }
+
+   inline ARCH_HOSTDEV const uint8_t* VelocityBlockContainer::getGhost(const vmesh::LocalID blockLID) const {
+      #ifdef DEBUG_VBC
+         const vmesh::LocalID numberOfBlocks = ghost.size();
+         #if defined(USE_GPU) && (defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__))
+         if (blockLID >= numberOfBlocks) {
+            exitInvalidLocalID(blockLID);
+         }
+         #else
+         if (blockLID >= numberOfBlocks) {
+            exitInvalidLocalID(blockLID,"const getGhost const");
+         }
+         #endif
+      #endif
+      return ghost.data() + blockLID;
+   }
+
    inline ARCH_HOSTDEV Real* VelocityBlockContainer::getParameters() {
       return parameters.data();
    }
@@ -503,6 +570,8 @@ namespace vmesh {
                         block_data.begin() + WID3*(numberOfBlocks));
       refined.erase(refined.begin() + WID3*(numberOfBlocks-1),
                         refined.begin() + WID3*(numberOfBlocks));
+      ghost.erase(ghost.begin() + (numberOfBlocks-1),
+                        ghost.begin() + (numberOfBlocks));
       parameters.erase(parameters.begin() + BlockParams::N_VELOCITY_BLOCK_PARAMS*(numberOfBlocks-1),
                         parameters.begin() + BlockParams::N_VELOCITY_BLOCK_PARAMS*(numberOfBlocks));
 #ifdef USE_GPU
@@ -530,36 +599,40 @@ namespace vmesh {
          assert(0 && "ERROR! Attempting to grow block container on-device beyond capacity (::push_back).");
       }
       block_data.device_resize((numberOfBlocks+1)*WID3);
+      ghost.device_resize(numberOfBlocks+1);
       refined.device_resize((numberOfBlocks+1)*WID3);
       parameters.device_resize((numberOfBlocks+1)*BlockParams::N_VELOCITY_BLOCK_PARAMS);
       #elif defined(USE_GPU)
       setNewCapacity(numberOfBlocks+1,stream);
       block_data.resize((numberOfBlocks+1)*WID3,true,stream);
       refined.resize((numberOfBlocks+1)*WID3,true,stream);
+      ghost.resize(numberOfBlocks+1,true,stream);
       parameters.resize((numberOfBlocks+1)*BlockParams::N_VELOCITY_BLOCK_PARAMS,true,stream);
       #else
       setNewCapacity(numberOfBlocks+1);
       block_data.resize((numberOfBlocks+1)*WID3,true);
       refined.resize((numberOfBlocks+1)*WID3,true);
+      ghost.resize(numberOfBlocks+1,true);
       parameters.resize((numberOfBlocks+1)*BlockParams::N_VELOCITY_BLOCK_PARAMS,true);
       #endif
 
       #ifdef DEBUG_VBC
       const vmesh::LocalID currentCapacity = block_data.capacity()/WID3;
       const vmesh::LocalID currentCapacityR = refined.capacity()/WID3;
+      const vmesh::LocalID currentCapacityG = ghost.capacity();
       const vmesh::LocalID currentCapacityP = parameters.capacity()/BlockParams::N_VELOCITY_BLOCK_PARAMS;
       if (newIndex >= currentCapacity || newIndex >= currentCapacityP) {
          #if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
          std::stringstream ss;
          ss << "VBC ERROR in push_back, LID=" << newIndex << " for new block is out of bounds" << std::endl;
-         ss << "\t data->size()=" << block_data.size()  << " refined.size()=" << refined.size()  << " parameters.size()=" << parameters.size() << std::endl;
-         ss << "\t data->capacity()=" << block_data.capacity() << " refined.capacity()=" << refined.capacity()  << " parameters.capacity()=" << parameters.capacity() << std::endl;
+         ss << "\t data->size()=" << block_data.size()  << " refined.size()=" << refined.size()  << " ghost.size()=" << ghost.size()  << " parameters.size()=" << parameters.size() << std::endl;
+         ss << "\t data->capacity()=" << block_data.capacity() << " refined.capacity()=" << refined.capacity() << " ghost.capacity()=" << ghost.capacity()  << " parameters.capacity()=" << parameters.capacity() << std::endl;
          std::cerr << ss.str();
          sleep(1);
          exit(1);
          #else
-         printf("VBC ERROR in device push_back, LID=%u for new block is out of bounds\n  data->size()=%u refined->size()=%u parameters.size()=%u\n",
-                newIndex,(vmesh::LocalID)block_data.size(),(vmesh::LocalID)refined.size(),(vmesh::LocalID)parameters.size());
+         printf("VBC ERROR in device push_back, LID=%u for new block is out of bounds\n  data->size()=%u refined->size()=%u ghost->size()=%u parameters.size()=%u\n",
+                newIndex,(vmesh::LocalID)block_data.size(),(vmesh::LocalID)refined.size(),(vmesh::LocalID)ghost.size(),(vmesh::LocalID)parameters.size());
          assert(0);
          #endif
       }
@@ -592,35 +665,39 @@ namespace vmesh {
       }
       block_data.device_resize((numberOfBlocks+1)*WID3, false); //construct=false don't construct or set to zero (performed below)
       refined.device_resize((numberOfBlocks+1)*WID3, false); //construct=false don't construct or set to zero (performed below)
+      ghost.device_resize((numberOfBlocks+1), false); //construct=false don't construct or set to zero (performed below)
       parameters.device_resize((numberOfBlocks+1)*BlockParams::N_VELOCITY_BLOCK_PARAMS, false); //construct=false don't construct or set to zero (performed below)
       #elif defined(USE_GPU)
       setNewCapacity(numberOfBlocks+1,stream);
       block_data.resize((numberOfBlocks+1)*WID3,true,stream);
       refined.resize((numberOfBlocks+1)*WID3,true,stream);
+      ghost.resize((numberOfBlocks+1),true,stream);
       parameters.resize((numberOfBlocks+1)*BlockParams::N_VELOCITY_BLOCK_PARAMS,true,stream);
       #else
       setNewCapacity(numberOfBlocks+1);
       block_data.resize((numberOfBlocks+1)*WID3);
       refined.resize((numberOfBlocks+1)*WID3);
+      ghost.resize((numberOfBlocks+1));
       parameters.resize((numberOfBlocks+1)*BlockParams::N_VELOCITY_BLOCK_PARAMS);
       #endif
 
       #ifdef DEBUG_VBC
       const vmesh::LocalID currentCapacity = block_data.capacity()/WID3;
       const vmesh::LocalID currentCapacityR = refined.capacity()/WID3;
+      const vmesh::LocalID currentCapacityG = ghost.capacity();
       const vmesh::LocalID currentCapacityP = parameters.capacity()/BlockParams::N_VELOCITY_BLOCK_PARAMS;
       if (newIndex >= currentCapacity || newIndex >= currentCapacityR || newIndex >= currentCapacityP) {
          #if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
          std::stringstream ss;
          ss << "VBC ERROR in push_back_and_zero, LID=" << newIndex << " for new block is out of bounds" << std::endl;
-         ss << "\t data->size()=" << block_data.size() << " refined.size()=" << refined.size() << " parameters.size()=" << parameters.size() << std::endl;
-         ss << "\t data->capacity()=" << block_data.capacity() << " refined.capacity()=" << refined.capacity() << " parameters.capacity()=" << parameters.capacity() << std::endl;
+         ss << "\t data->size()=" << block_data.size() << " refined.size()=" << refined.size() << " ghost.size()=" << ghost.size() << " parameters.size()=" << parameters.size() << std::endl;
+         ss << "\t data->capacity()=" << block_data.capacity() << " refined.capacity()=" << refined.capacity()  << " ghost.capacity()=" << ghost.capacity() << " parameters.capacity()=" << parameters.capacity() << std::endl;
          std::cerr << ss.str();
          sleep(1);
          exit(1);
          #else
-         printf("VBC ERROR in device push_back_and_zero, LID=%u for new block is out of bounds \n data->size()=%u refined->size()=%u parameters.size()=%u \n",
-                newIndex,(vmesh::LocalID)block_data.size(),(vmesh::LocalID)refined.size(),(vmesh::LocalID)parameters.size());
+         printf("VBC ERROR in device push_back_and_zero, LID=%u for new block is out of bounds \n data->size()=%u refined->size()=%u ghost->size()=%u parameters.size()=%u \n",
+                newIndex,(vmesh::LocalID)block_data.size(),(vmesh::LocalID)refined.size(),(vmesh::LocalID)ghost.size(),(vmesh::LocalID)parameters.size());
          assert(0);
          #endif
       }
@@ -630,8 +707,9 @@ namespace vmesh {
          block_data[newIndex*WID3+i] = 0.0;
       }
       for (size_t i=0; i<WID3; ++i) {
-         refined[newIndex*WID3+i] = 0.0;
+         refined[newIndex*WID3+i] = false;
       }
+      ghost[newIndex] = 0;
       for (size_t i=0; i<BlockParams::N_VELOCITY_BLOCK_PARAMS; ++i) {
          parameters[newIndex*BlockParams::N_VELOCITY_BLOCK_PARAMS+i] = 0.0;
       }
@@ -664,16 +742,19 @@ namespace vmesh {
       }
       block_data.device_resize((numberOfBlocks+N_blocks)*WID3);
       refined.device_resize((numberOfBlocks+N_blocks)*WID3);
+      ghost.device_resize((numberOfBlocks+N_blocks));
       parameters.device_resize((numberOfBlocks+N_blocks)*BlockParams::N_VELOCITY_BLOCK_PARAMS);
       #elif defined(USE_GPU)
       setNewCapacity(numberOfBlocks+N_blocks,stream);
       block_data.resize((numberOfBlocks+N_blocks)*WID3,true,stream);
       refined.resize((numberOfBlocks+N_blocks)*WID3,true,stream);
+      ghost.resize((numberOfBlocks+N_blocks),true,stream);
       parameters.resize((numberOfBlocks+N_blocks)*BlockParams::N_VELOCITY_BLOCK_PARAMS,true,stream);
       #else
       setNewCapacity(numberOfBlocks+N_blocks);
       block_data.resize((numberOfBlocks+N_blocks)*WID3);
       refined.resize((numberOfBlocks+N_blocks)*WID3);
+      ghost.resize((numberOfBlocks+N_blocks));
       parameters.resize((numberOfBlocks+N_blocks)*BlockParams::N_VELOCITY_BLOCK_PARAMS);
       #endif
 
@@ -706,16 +787,19 @@ namespace vmesh {
       }
       block_data.device_resize((numberOfBlocks+N_blocks)*WID3, false); //construct=false don't construct or set to zero (performed below)
       refined.device_resize((numberOfBlocks+N_blocks)*WID3, false); //construct=false don't construct or set to zero (performed below)
+      ghost.device_resize(numberOfBlocks+N_blocks, false); //construct=false don't construct or set to zero (performed below)
       parameters.device_resize((numberOfBlocks+N_blocks)*BlockParams::N_VELOCITY_BLOCK_PARAMS, false); //construct=false don't construct or set to zero (performed below)
       #elif defined(USE_GPU)
       setNewCapacity(numberOfBlocks+N_blocks,stream);
       block_data.resize((numberOfBlocks+N_blocks)*WID3,true,stream);
       refined.resize((numberOfBlocks+N_blocks)*WID3,true,stream);
+      ghost.resize(numberOfBlocks+N_blocks,true,stream);
       parameters.resize((numberOfBlocks+N_blocks)*BlockParams::N_VELOCITY_BLOCK_PARAMS,true,stream);
       #else
       setNewCapacity(numberOfBlocks+N_blocks);
       block_data.resize((numberOfBlocks+N_blocks)*WID3);
       refined.resize((numberOfBlocks+N_blocks)*WID3);
+      ghost.resize(numberOfBlocks+N_blocks);
       parameters.resize((numberOfBlocks+N_blocks)*BlockParams::N_VELOCITY_BLOCK_PARAMS);
       #endif
 
@@ -735,6 +819,9 @@ namespace vmesh {
       }
       for (size_t i=0; i<WID3*N_blocks; ++i) {
          refined[newIndex*WID3+i] = false;
+      }
+      for (size_t i=0; i<N_blocks; ++i) {
+	ghost[newIndex+i] = 0;
       }
       for (size_t i=0; i<BlockParams::N_VELOCITY_BLOCK_PARAMS*N_blocks; ++i) {
          parameters[newIndex*BlockParams::N_VELOCITY_BLOCK_PARAMS+i] = 0.0;
@@ -776,10 +863,12 @@ namespace vmesh {
       // Passing eco flag = true to reserve tells splitvector we manage padding manually.
       block_data.reserve(newCapacity*WID3, true, stream);
       refined.reserve(newCapacity*WID3, true, stream);
+      ghost.reserve(newCapacity, true, stream);
       parameters.reserve(newCapacity*BlockParams::N_VELOCITY_BLOCK_PARAMS, true, stream);
       #else
       block_data.reserve(newCapacity*WID3);
       refined.reserve(newCapacity*WID3);
+      ghost.reserve(newCapacity);
       parameters.reserve(newCapacity*BlockParams::N_VELOCITY_BLOCK_PARAMS);
       #endif
 
@@ -806,16 +895,19 @@ namespace vmesh {
       // Overwrite/swap causing data corruption on LUMI-G, use reallocate method instead.
       block_data.reallocate(newCapacity*WID3, stream);
       refined.reallocate(newCapacity*WID3, stream);
+      ghost.reallocate(newCapacity, stream);
       parameters.reallocate(newCapacity*BlockParams::N_VELOCITY_BLOCK_PARAMS, stream);
       CHK_ERR( gpuStreamSynchronize(stream) );
       cachedCapacity = newCapacity;
 #else
       // Create with larger size (capacity), then resize down to actual size
       std::vector<Realf,aligned_allocator<Realf,WID3>> block_data_new(newCapacity*WID3);
-      std::vector<uint8_t> refined_new(newCapacity);
+      std::vector<uint8_t> refined_new(newCapacity*WID3);
+      std::vector<uint8_t> ghost_new(newCapacity);
       std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS>> parameters_new(newCapacity*BlockParams::N_VELOCITY_BLOCK_PARAMS);
       block_data_new.resize(numberOfBlocks*WID3);
       refined_new.resize(numberOfBlocks*WID3);
+      ghost_new.resize(numberOfBlocks);
       parameters_new.resize(numberOfBlocks*BlockParams::N_VELOCITY_BLOCK_PARAMS);
       for (size_t i=0; i<numberOfBlocks*WID3; ++i) {
          block_data_new[i] = block_data[i];
@@ -823,11 +915,15 @@ namespace vmesh {
       for (size_t i=0; i<numberOfBlocks*WID3; ++i) {
          refined_new[i] = refined[i];
       }
+      for (size_t i=0; i<numberOfBlocks; ++i) {
+	ghost_new[i] = ghost[i];
+      }
       for (size_t i=0; i<numberOfBlocks*BlockParams::N_VELOCITY_BLOCK_PARAMS; ++i) {
          parameters_new[i] = parameters[i];
       }
       block_data_new.swap(block_data);
       refined_new.swap(refined);
+      ghost_new.swap(ghost);
       parameters_new.swap(parameters);
 #endif
       return true;
@@ -846,17 +942,20 @@ namespace vmesh {
       parameters.resize((newSize)*BlockParams::N_VELOCITY_BLOCK_PARAMS,true,stream);
       block_data.resize((newSize)*WID3,true,stream);
       refined.resize((newSize)*WID3,true,stream);
+      ghost.resize(newSize,true,stream);
       #else
       const vmesh::LocalID currentCapacity = block_data.capacity()/WID3;
       assert(newSize <= currentCapacity && "ERROR! Attempting to grow block container on-device beyond capacity (::setNewSize).");
       block_data.device_resize((newSize)*WID3,false); //construct=false don't construct or set to zero
       refined.device_resize((newSize)*WID3,false); //construct=false don't construct or set to zero
+      ghost.device_resize(newSize,false); //construct=false don't construct or set to zero
       parameters.device_resize((newSize)*BlockParams::N_VELOCITY_BLOCK_PARAMS,false); //construct=false don't construct or set to zero
       #endif
 #else
       setNewCapacity(newSize);
       block_data.resize((newSize)*WID3);
       refined.resize((newSize)*WID3);
+      ghost.resize(newSize);
       parameters.resize((newSize)*BlockParams::N_VELOCITY_BLOCK_PARAMS);
 #endif
 
@@ -932,6 +1031,7 @@ namespace vmesh {
       }
       block_data.optimizeCPU(stream);
       refined.optimizeCPU(stream);
+      ghost.optimizeCPU(stream);
       parameters.optimizeCPU(stream);
       return;
    }
@@ -941,6 +1041,7 @@ namespace vmesh {
       }
       block_data.optimizeGPU(stream);
       refined.optimizeGPU(stream);
+      ghost.optimizeGPU(stream);
       parameters.optimizeGPU(stream);
       return;
    }
@@ -989,6 +1090,28 @@ namespace vmesh {
          exit(1);
       }
       return refined[blockLID*WID3+cell]; //May be bugged if it's not an integer
+   }
+
+    inline const uint8_t& VelocityBlockContainer::getGhost(const vmesh::LocalID blockLID,const unsigned int cell) const {
+      const vmesh::LocalID numberOfBlocks = block_data.size()/WID3;
+      bool ok = true;
+      if (cell >= WID3) {
+         ok = false;
+      }
+      if (blockLID >= numberOfBlocks) {
+         ok = false;
+      }
+      if (blockLID+cell >= ghost.size()) {
+         ok = false;
+      }
+      if (ok == false) {
+         std::stringstream ss;
+         ss << "VBC ERROR: out of bounds in getGhost, LID=" << blockLID << " cell=" << cell << " #blocks=" << numberOfBlocks << " ghost->size()=" << ghost.size() << std::endl;
+         std::cerr << ss.str();
+         sleep(1);
+         exit(1);
+      }
+      return ghost[blockLID+cell]; //May be bugged if it's not an integer
    }
 
    inline const Real& VelocityBlockContainer::getParameters(const vmesh::LocalID blockLID,const unsigned int cell) const {
@@ -1050,13 +1173,36 @@ namespace vmesh {
       }
       if (ok == false) {
          std::stringstream ss;
-         ss << "VBC ERROR: out of bounds in setRefined, LID=" << blockLID << " cell=" << cell << " #blocks=" << numberOfBlocks << " data->size()=" << refined.size() << std::endl;
+         ss << "VBC ERROR: out of bounds in setRefined, LID=" << blockLID << " cell=" << cell << " #blocks=" << numberOfBlocks << " refined->size()=" << refined.size() << std::endl;
          std::cerr << ss.str();
          sleep(1);
          exit(1);
       }
 
       refined[blockLID*WID3+cell] = value;
+   }
+
+    inline void VelocityBlockContainer::setGhost(const vmesh::LocalID blockLID,const unsigned int cell,const uint8_t value) {
+      const vmesh::LocalID numberOfBlocks = block_data.size()/WID3;
+      bool ok = true;
+      if (cell >= WID3) {
+         ok = false;
+      }
+      if (blockLID >= numberOfBlocks) {
+         ok = false;
+      }
+      if (blockLID+cell >= ghost.size()) {
+         ok = false;
+      }
+      if (ok == false) {
+         std::stringstream ss;
+         ss << "VBC ERROR: out of bounds in setGhost, LID=" << blockLID << " cell=" << cell << " #blocks=" << numberOfBlocks << " ghost->size()=" << ghost.size() << std::endl;
+         std::cerr << ss.str();
+         sleep(1);
+         exit(1);
+      }
+
+      ghost[blockLID+cell] = value;
    }
    
 #endif //debug VBC

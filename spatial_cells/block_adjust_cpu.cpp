@@ -33,6 +33,7 @@ namespace spatial_cell {
    void update_velocity_block_content_lists(
       dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const vector<CellID>& cells,
+      bool useGhost,
       const uint popID) {
 
       if (cells.size()==0) {
@@ -46,7 +47,7 @@ namespace spatial_cell {
 #pragma omp for schedule(dynamic)
          for (uint i=0; i<cells.size(); ++i) {
             mpiGrid[cells[i]]->updateSparseMinValue(popID);
-            mpiGrid[cells[i]]->update_velocity_block_content_lists(popID);
+            mpiGrid[cells[i]]->update_velocity_block_content_lists(popID,useGhost);
          }
          //  timer.stop();
       } // end parallel region

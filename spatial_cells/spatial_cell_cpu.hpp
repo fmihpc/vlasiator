@@ -252,6 +252,10 @@ namespace spatial_cell {
       const uint8_t* get_refined(const uint popID) const;
       uint8_t* get_refined(const vmesh::LocalID& blockLID,const uint popID);
       const uint8_t* get_refined(const vmesh::LocalID& blockLID,const uint popID) const;
+      uint8_t* get_ghost(const uint popID);
+      const uint8_t* get_ghost(const uint popID) const;
+      uint8_t* get_ghost(const vmesh::LocalID& blockLID,const uint popID);
+      const uint8_t* get_ghost(const vmesh::LocalID& blockLID,const uint popID) const;
       Real* get_block_parameters(const uint popID);
       const Real* get_block_parameters(const uint popID) const;
       Real* get_block_parameters(const vmesh::LocalID& blockLID,const uint popID);
@@ -325,7 +329,7 @@ namespace spatial_cell {
       // Templated function for storing a v-space read from a file or generated elsewhere
       template <typename fileReal> void add_velocity_blocks(const uint popID,const std::vector<vmesh::GlobalID>& blocks,fileReal* avgBuffer);
 
-      void update_velocity_block_content_lists(const uint popID);
+      void update_velocity_block_content_lists(const uint popID,bool useGhost);
       bool checkMesh(const uint popID);
       void clear(const uint popID, bool shrink=false);
       void setNewSizeClear(const uint popID, const vmesh::LocalID& newSize);
@@ -386,7 +390,7 @@ namespace spatial_cell {
     private:
       //SpatialCell& operator=(const SpatialCell&);
 
-      bool compute_block_has_content(const vmesh::GlobalID& block,const uint popID) const;
+     bool compute_block_has_content(const vmesh::GlobalID& block,const uint popID,const bool useGhost) const;
 
       static int activePopID;
       bool initialized;
@@ -464,6 +468,26 @@ namespace spatial_cell {
    inline const uint8_t* SpatialCell::get_refined(const vmesh::LocalID& blockLID,const uint popID) const {
       debug_population_check(popID,blockLID);
       return populations[popID].blockContainer->getRefined(blockLID);
+   }
+
+   inline uint8_t* SpatialCell::get_ghost(const uint popID) {
+      debug_population_check(popID);
+      return populations[popID].blockContainer->getGhost();
+   }
+
+   inline const uint8_t* SpatialCell::get_ghost(const uint popID) const {
+      debug_population_check(popID);
+      return populations[popID].blockContainer->getGhost();
+   }
+
+   inline uint8_t* SpatialCell::get_ghost(const vmesh::LocalID& blockLID,const uint popID) {
+      debug_population_check(popID,blockLID);
+      return populations[popID].blockContainer->getGhost(blockLID);
+   }
+
+   inline const uint8_t* SpatialCell::get_ghost(const vmesh::LocalID& blockLID,const uint popID) const {
+      debug_population_check(popID,blockLID);
+      return populations[popID].blockContainer->getGhost(blockLID);
    }
 
    inline Real* SpatialCell::get_block_parameters(const uint popID) {
