@@ -897,7 +897,7 @@ void RefinedVamr(spatial_cell::SpatialCell* cell){
 		}
 	      }
 	    }
-	    Datagros/=8;
+	    Datagros/=8.0;
 		    
 	    Realf D = abs( data[localID*WID3+cellIndex(1+i,1+j,1+k)] - Datagros ); // The idea is to always have the central cell
 
@@ -1000,7 +1000,7 @@ std::unordered_set<vmesh::GlobalID> ListBlockExist[getObjectWrapper().particleSp
 		  		  }
 				}
 	      	  }
-	      	  Datagros/=8;
+	      	  Datagros/=8.0;
 	    	      	     		    
 	      	  Realf D = abs( data[localID*WID3+cellIndex(1+i,1+j,1+k)] - Datagros ); // The idea is to always have the central cell	   
 
@@ -1195,7 +1195,7 @@ for (size_t c=0; c<cells.size(); ++c) {
 		  		  }
 				}
 	      	  }
-	      	  Datagros/=8;
+	      	  Datagros/=8.0;
 	    	      	     		    
 	      	  Realf D = abs( data[localID*WID3+cellIndex(1+i,1+j,1+k)] - Datagros ); // The idea is to always have the central cell	   
 
@@ -1455,7 +1455,7 @@ for (size_t c=0; c<cells.size(); ++c) {
 		  		  }
 				}
 	      	  }
-	      	  Datagros/=8;
+	      	  Datagros/=8.0;
 	    	      	     		    
 	      	  Realf D = abs( data[localID*WID3+cellIndex(1+i,1+j,1+k)] - Datagros ); // The idea is to always have the central cell	   
 
