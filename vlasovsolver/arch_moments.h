@@ -98,6 +98,12 @@ void RefinedOrder3(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 void RefinedOrder5(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const std::vector<CellID>& cells);
 
+void SmallRefinedOrder1(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   const std::vector<CellID>& cells);
+
+void GhostFixation(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+		   const std::vector<CellID>& cells);
+
 // ***** TEMPLATE FUNCTION DEFINITIONS ***** //
 
 /** Calculate the zeroth and first velocity moments for the given

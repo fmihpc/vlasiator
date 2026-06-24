@@ -1115,6 +1115,8 @@ std::unordered_set<vmesh::GlobalID> ListBlockExist[getObjectWrapper().particleSp
 		    vmesh::GlobalID globalIDgros=vmeshgros->getGlobalID(Indicesgros);
 		    vmesh::LocalID  localIDgros=vmeshgros->getLocalID(globalIDgros);
 	    	vmesh::LocalID  localIDcreated=vmesh->getLocalID(globalID);
+		uint8_t *ghost = cell->get_velocity_blocks(popID)->getGhost(localIDcreated);
+		ghost[0]=1;
 	  
 	    	for (int i2=0; i2<2; ++i2) {
 	      	  for (int j2=0; j2<2; ++j2) {
@@ -1129,16 +1131,24 @@ std::unordered_set<vmesh::GlobalID> ListBlockExist[getObjectWrapper().particleSp
 		  		  data[localIDcreated*WID3+cellIndex(2*i2+1,2*j2+1,2*k2+1)]=datagros[localIDgros*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)];
 				}
 	      	  }
-	    	} 
-	  
-	  	}
-
-	  }
-
+		}
+		
+	    	}else{
+		    vmesh::VelocityMesh* vmesh    = cell->get_velocity_mesh(popID);
+		    vmesh::LocalID  localIDcreated=vmesh->getLocalID(globalID);
+		    uint8_t *ghost = cell->get_velocity_blocks(popID)->getGhost(localIDcreated);
+		    ghost[0]=1;
+		  }
+		}
     }else{
-	  for (vmesh::GlobalID globalID : ListBlockExist[popID]) {
-	    cell->add_velocity_block(globalID,popID);
-	  }
+	for (vmesh::GlobalID globalID : ListBlockExist[popID]) {
+	  cell->add_velocity_block(globalID,popID);
+	  //ghost not important for this one
+	  vmesh::VelocityMesh* vmesh    = cell->get_velocity_mesh(popID);
+	  vmesh::LocalID  localIDcreated=vmesh->getLocalID(globalID);
+	  uint8_t *ghost = cell->get_velocity_blocks(popID)->getGhost(localIDcreated);
+	  ghost[0]=1;
+	}
     }
       
   }
@@ -1656,4 +1666,77 @@ for (size_t c=0; c<cells.size(); ++c) {
   }
 }
 }      
+}
+
+void SmallRefinedOrder1(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   const std::vector<CellID>& cells){
+
+#pragma omp parallel for schedule(dynamic,1)
+for (size_t c=0; c<cells.size(); ++c) {
+SpatialCell* cell = mpiGrid[cells[c]];
+
+ for (int popID=1; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+   if(getObjectWrapper().particleSpecies[popID].MaxRefinementLevel>0){
+     vmesh::VelocityMesh* vmesh    = cell->get_velocity_mesh(popID);
+     Realf *data = cell->get_velocity_blocks(popID)->getData();
+     uint8_t *ghost = cell->get_velocity_blocks(popID)->getGhost();
+
+     vmesh::LocalID Localsize= vmesh->size();
+     for (vmesh::LocalID localID=0; localID<Localsize; ++localID) {
+       if(ghost[localID]==0){ //either we keeped it
+	 // Here the idea will be to check if we keep the cell or not
+	 // Two possibility, sum all the block and compare with the central sum to know if this block should be refined
+	 // Or compare using the level bellow
+
+	 Realf Datagrosgros = 0;
+	 Realf Datagros = 0; 
+	   
+	 for (int i=0; i<WID3; ++i) {
+	   Datagrosgros += data[localID*WID3+i];
+	 }		    	  	  
+	 Datagrosgros/=WID3;
+	 for (int i2=0; i2<2; ++i2) {
+	   for (int j2=0; j2<2; ++j2) {
+	     for (int k2=0; k2<2; ++k2) {
+	       Datagros += data[localID*WID3+cellIndex(1+i2,1+j2,1+k2)];
+	     }
+	   }
+	 }   	  
+	 Datagros/=8.0;	      	     		    
+	 Realf D = abs( Datagrosgros - Datagros ); // The idea is to always have the central cell	   
+	 if (D > cell->getVelocityBlockMinValue(0)){
+	   // We keep the cell
+	   ghost[localID]=1;
+	 }else{
+	   //If the blocks don't need to exist anymore, they are removed
+	   vmesh::VelocityMesh* vmesh  = cell->get_velocity_mesh(popID); 
+	   vmesh::GlobalID globalID = vmesh->getGlobalID(localID);
+	   cell->remove_velocity_block(globalID,popID);
+	   Localsize-=1;
+	   localID-=1;
+	 }
+
+       }	      	
+     }
+   }
+ }
+ }
+
+}
+
+
+void GhostFixation(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   const std::vector<CellID>& cells){
+
+#pragma omp parallel for schedule(dynamic,1)
+for (size_t c=0; c<cells.size(); ++c) {
+  SpatialCell* cell = mpiGrid[cells[c]];
+  for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+      vmesh::VelocityMesh* vmesh    = cell->get_velocity_mesh(popID);
+      uint8_t *ghost = cell->get_velocity_blocks(popID)->getGhost();     
+      for (vmesh::LocalID localID=0; localID<vmesh->size(); ++localID) {
+	  ghost[localID]=1;
+      }	  
+  }
+ }    
 }

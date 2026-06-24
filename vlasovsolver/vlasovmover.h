@@ -84,7 +84,11 @@ void calculateInterpolatedVelocityMoments(
 */
 void calculateInitialVelocityMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
 
+void RefinedOrderX(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+		   const std::vector<CellID>& cells);
 
+void FixedGhost(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+		   const std::vector<CellID>& cells);
 
 #endif
 

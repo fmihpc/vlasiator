@@ -476,7 +476,7 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
       performs a full neighbour block list update, and is called for all accelerated cells.
    **/
    if (step > 0 && step < (globalMaxSubcycles - 1)) {
-      adjustVelocityBlocks(mpiGrid, acceleratedCells, false, popID);
+     adjustVelocityBlocks(mpiGrid, acceleratedCells, false, popID, true);
    }
 }
 
@@ -494,13 +494,17 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
    int myRank;
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
 
+   if (P::activateVamr){
+     SmallRefinedOrder1(mpiGrid, cells);
+   }
+
    if (dt == 0.0 && P::tstep > 0) {
 
       // Even if acceleration is turned off we need to adjust velocity blocks
       // because the boundary conditions may have altered the velocity space,
       // and to update changes in no-content blocks during translation.
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-         adjustVelocityBlocks(mpiGrid, cells, true, popID);
+	adjustVelocityBlocks(mpiGrid, cells, true, popID, true);
       }
    } else {
       // Fairly ugly but no goto
@@ -528,10 +532,6 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
          for (size_t c=0; c<cells.size(); ++c) {
             SpatialCell* SC = mpiGrid[cells[c]];
             const vmesh::VelocityMesh* vmesh = SC->get_velocity_mesh(popID);
-
-	//    if (P::activateVamr && getObjectWrapper().particleSpecies[popID].RefinementLevel<getObjectWrapper().particleSpecies[popID].MaxRefinementLevel){
-	//      changeRefined(SC,popID);
-	//    }
 
             // disregard boundary cells, in preparation for acceleration
             if (  (SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) ||
@@ -576,40 +576,31 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
             // Accelerate population over one subcycle step
             calculateAcceleration(popID,(uint)globalMaxSubcycles,step,mpiGrid,acceleratedCells,dt);
             if(step==0 && (uint)globalMaxSubcycles > 1){
-	            adjustVelocityBlocks(mpiGrid, cells, false, popID);
+	      adjustVelocityBlocks(mpiGrid, cells, false, popID, true);
 	         }
          } // for-loop over acceleration substeps
 
          // final adjust for all cells, also updating full remote block lists
-         adjustVelocityBlocks(mpiGrid, cells, true, popID);
+         adjustVelocityBlocks(mpiGrid, cells, true, popID, true);
       } // for-loop over particle species
    }
 
-   	if (P::activateVamr){
-	  phiprof::Timer vAMR_accel_modif {"vAMR in acceleration"};
-      phiprof::Timer vAMR_transfer_accel {"vAMR transfer between grids in accel"};
-      for (uint popID=(getObjectWrapper().particleSpecies.size()-1); popID>0; --popID) {
-      	//Transfert the info from popID to popID-1
-       	if(getObjectWrapper().particleSpecies[popID].RefinementLevel>0){
-          vamr_transfer_values(mpiGrid,cells,popID-1);
-       	}
-      }
-	  vAMR_transfer_accel.stop();
-	  if (ShouldRefined){
-		phiprof::Timer vAMR_refined {"vAMR refined grid"};
-	 	if (P::vAMRorder==1){
-	   	  RefinedOrder1(mpiGrid,cells);
-	 	}else if(P::vAMRorder==3){
-	   	  RefinedOrder3(mpiGrid,cells);
-	 	}else if(P::vAMRorder==5){
-	   	  RefinedOrder5(mpiGrid,cells);
-	 	}else {
-	   	  std::cout<< " The specifief order is wrong :  "<< P::vAMRorder << " choice of 1 by default " <<std::endl;
-	   	  RefinedOrder1(mpiGrid,cells);
-	 	}
-		vAMR_refined.stop();	
+   if (P::activateVamr){
+     phiprof::Timer vAMR_accel_modif {"vAMR in acceleration"};
+     phiprof::Timer vAMR_transfer_accel {"vAMR transfer between grids in accel"};
+     for (uint popID=(getObjectWrapper().particleSpecies.size()-1); popID>0; --popID) {
+       //Transfert the info from popID to popID-1
+       if(getObjectWrapper().particleSpecies[popID].RefinementLevel>0){
+	 vamr_transfer_values(mpiGrid,cells,popID-1);
+       }
      }
-	 vAMR_accel_modif.stop();   
+     vAMR_transfer_accel.stop();
+     if (ShouldRefined){
+       phiprof::Timer vAMR_refined {"vAMR refined grid"};
+       RefinedOrderX(mpiGrid,cells);
+       vAMR_refined.stop();	
+     }
+     vAMR_accel_modif.stop();   
    }
 
    // Recalculate "_V" velocity moments
@@ -704,4 +695,22 @@ void calculateInitialVelocityMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_G
       SC->parameters[CellParams::P_13_DT2] = SC->parameters[CellParams::P_13];
       SC->parameters[CellParams::P_23_DT2] = SC->parameters[CellParams::P_23];
    } // for-loop over spatial cells
+}
+
+void RefinedOrderX(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   const std::vector<CellID>& cells){
+  if (P::vAMRorder==1){
+    RefinedOrder1(mpiGrid,cells);
+  }else if(P::vAMRorder==3){
+    RefinedOrder3(mpiGrid,cells);
+  }else if(P::vAMRorder==5){
+    RefinedOrder5(mpiGrid,cells);
+  }else {
+    RefinedOrder1(mpiGrid,cells);
+  }
+}
+
+void FixedGhost(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   const std::vector<CellID>& cells){
+  GhostFixation(mpiGrid,cells);
 }
