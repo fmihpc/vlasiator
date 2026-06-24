@@ -1,11 +1,10 @@
 #!/bin/bash -l
 #SBATCH --job-name=gpuTest
 #SBATCH --account=project_2017838
-#SBATCH --time=00:10:00
-#SBATCH --partition=gpupilot
-#SBATCH --ntasks-per-node=1 --cpus-per-task=7
+#SBATCH --time=00:15:00
+#SBATCH --partition=gputest
+#SBATCH --ntasks-per-node=1 --cpus-per-task=72
 #SBATCH --nodes=1
-#SBATCH --dependency=singleton
 #SBATCH --gres=gpu:gh200:1
 
 # If 1, the reference vlsv files are generated
@@ -36,7 +35,7 @@ nodes=$SLURM_NNODES
 cat << EOF > select_gpu_${SLURM_JOB_ID}
 #!/bin/bash
 export CUDA_VISIBLE_DEVICES=\$SLURM_LOCALID
-export OMP_NUM_THREADS=7
+export OMP_NUM_THREADS=72
 LD_PRELOAD=/scratch/project_2017838/mikael/MPI_Pancake/libmpipancake.so exec \$*
 EOF
 chmod +x ./select_gpu_${SLURM_JOB_ID}
@@ -44,10 +43,6 @@ chmod +x ./select_gpu_${SLURM_JOB_ID}
 run_command="srun -n 1 ${SLURM_SUBMIT_DIR}/select_gpu_${SLURM_JOB_ID} "
 small_run_command="srun -n 1 ${SLURM_SUBMIT_DIR}/select_gpu_${SLURM_JOB_ID} "
 run_command_tools="srun -n 1 ${SLURM_SUBMIT_DIR}/select_gpu_${SLURM_JOB_ID}"
-
-#run_command="srun -n 1 --cpu-bind=${CPU_BIND} ${SLURM_SUBMIT_DIR}/select_gpu_${SLURM_JOB_ID} "
-#small_run_command="srun -n 1 --cpu-bind=${CPU_BIND} ${SLURM_SUBMIT_DIR}/select_gpu_${SLURM_JOB_ID} "
-#run_command_tools="srun -n 1 --cpu-bind=${CPU_BIND} ${SLURM_SUBMIT_DIR}/select_gpu_${SLURM_JOB_ID}"
 
 umask 007
 
