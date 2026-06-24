@@ -288,7 +288,7 @@ void report_memory_consumption(
    MPI_Reduce(&gpuMemUsageLoc, &maxGpu, 1, MPI_2INT, MPI_MAXLOC, 0, MPI_COMM_WORLD);
    MPI_Reduce(&gpuMemUsageLoc, &minGpu, 1, MPI_2INT, MPI_MINLOC, 0, MPI_COMM_WORLD);
 
-   snprintf(reportstring,512, "(MEM) tstep %i t %.3g %-21s (GiB/rank; avg, min, max, sum): %-8.3g %-8.3g %-8.3g %-8.3g min rank %i max rank %i\n",
+   snprintf(reportstring,512, "(MEM) tstep %i t %.3g %-21s   (GiB/rank; avg, min, max, sum): %-8.3g %-8.3g %-8.3g %-8.3g min rank %i max rank %i\n",
          P::tstep, P::t, "Total reported GPU memory usage",  (double)sumGpu/((double)nProcs*KiB), (double)minGpu.value/KiB, (double)maxGpu.value/KiB, (double)sumGpu/KiB, minGpu.rank, maxGpu.rank);
    logFile << reportstring;
 
