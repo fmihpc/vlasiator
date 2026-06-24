@@ -285,8 +285,12 @@ void initializeGrids(
          mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] = 0;
       }
 
+      if (P::activateVamr){
+	FixedGhost(mpiGrid,cells);
+      } 
+
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-         adjustVelocityBlocks(mpiGrid,cells,true,popID);
+	adjustVelocityBlocks(mpiGrid,cells,true,popID,true);
          // set initial LB metric based on number of blocks
          #pragma omp parallel for schedule(static)
          for (size_t i=0; i<cells.size(); ++i) {
@@ -833,7 +837,8 @@ void prepareAMRLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
 bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                           const vector<CellID>& cellsToAdjust,
                           bool doPrepareToReceiveBlocks,
-                          const uint popID) {
+                          const uint popID,
+			  bool useGhost) {
    phiprof::Timer readjustBlocksTimer {"re-adjust blocks", {"Block adjustment"}};
    SpatialCell::setCommunicatedSpecies(popID);
 
@@ -847,7 +852,7 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
    }
 
    // Batch call
-   update_velocity_block_content_lists(mpiGrid,validCells,popID);
+   update_velocity_block_content_lists(mpiGrid,validCells,useGhost,popID);
 
    // Get updated lists for blocks with content in spatial neighbours
    phiprof::Timer transferTimer {"Transfer with_content_list", {"MPI"}};

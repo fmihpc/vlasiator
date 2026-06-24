@@ -101,7 +101,8 @@ void deallocateRemoteCellBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
 bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                           const std::vector<CellID>& cellsToAdjust,
                           bool doPrepareToReceiveBlocks,
-                          const uint popID);
+                          const uint popID,
+			  bool useGhost);
 
 /*! Shrink to fit velocity space data to save memory.
  * \param mpiGrid Spatial grid
