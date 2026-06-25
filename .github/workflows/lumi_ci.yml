@@ -1,0 +1,221 @@
+name: LUMI-CI
+
+on:
+  # Dispatch this workflow whenever master or dev get a PR or commit
+  push:
+    branches : ["dev","master"]
+  pull_request:
+    branches: ["dev","master"]
+  # ... or when the workflow is started manually
+  workflow_dispatch:
+
+concurrency:
+   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+   cancel-in-progress: true
+
+jobs:
+
+  get_git_diff:
+    runs-on: ubuntu-latest
+    outputs:
+       RUN_TP: ${{ steps.gitdiff.outputs.RUN_TP }}
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Get git diff
+        id: gitdiff
+        run: |
+          cd $GITHUB_WORKSPACE
+          #chmod +x ./.github/workflows/CI_git_diff.sh
+          echo Comparing PR branch against ${{ github.base_ref }}
+          if [[ $(./.github/workflows/CI_git_diff.sh ${{ github.base_ref }} ) = "no_test" ]]; then
+            echo "RUN_TP=False" >> $GITHUB_OUTPUT
+            echo "Not running testpackage"
+            exit 0
+          fi
+          echo "Running testpackage"
+
+  get_git_diff_check:
+    runs-on: ubuntu-latest
+    needs: get_git_diff
+    if: ${{ needs.get_git_diff.outputs.RUN_TP != 'False' }}
+    steps:
+      - name: Checking whether to run tests
+        run: |
+          echo "Running testpackage"
+
+  build_libraries_lumi_hipcc:
+    runs-on: lumi
+    outputs:
+       VLASIATOR_ARCH: ${{ steps.runbuild.outputs.VLASIATOR_ARCH }}
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: Run library build script
+        id: runbuild
+        run: |
+          export VLASIATOR_ARCH=lumi_hipcc
+          echo $VLASIATOR_ARCH >> $GITHUB_OUTPUT
+          srun --interactive -C g -J build_libs_$VLASIATOR_ARCH -n 1 -c 16 bash -c "hostname ; realpath modules/modules.sh ; source modules/$VLASIATOR_ARCH.sh ; ./fetch_and_build_libraries.sh $VLASIATOR_ARCH"
+      - name: Build libraries tar
+        run: tar -zcf libraries-${{ steps.runbuild.outputs.VLASIATOR_ARCH }}.tar.gz libraries-${{ steps.runbuild.outputs.VLASIATOR_ARCH }}/
+      - name: Upload libraries as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: libraries-${{ steps.runbuild.outputs.VLASIATOR_ARCH }}
+          path: libraries-${{ steps.runbuild.outputs.VLASIATOR_ARCH }}.tar.gz
+          retention-days: 5
+          if-no-files-found: error
+    
+
+  build_TP_LUMI-G:
+    runs-on: lumi
+    needs: build_libraries_lumi_hipcc
+    steps:
+      - name: Clean workspace
+        run: |
+          RUN_STRING=$( cat << MORO
+          rm -rf libraries library-build testpackage
+          rm -f libraries-${{ needs.build_libraries_lumi_hipcc.outputs.VLASIATOR_ARCH }}.tar.gz testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
+          rm -f *.xml
+          MORO
+          )
+          srun -C g bash -c "$RUN_STRING"
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: Make clean
+        run: VLASIATOR_ARCH=${{ needs.build_libraries_lumi_hipcc.outputs.VLASIATOR_ARCH }} make clean
+      - name: Fetch libraries
+        uses: actions/download-artifact@v5
+        with:
+          name: libraries-${{ needs.build_libraries_lumi_hipcc.outputs.VLASIATOR_ARCH }}
+      - name: Unpack libraries
+        run: tar -zxf libraries-${{ needs.build_libraries_lumi_hipcc.outputs.VLASIATOR_ARCH }}.tar.gz
+      - uses: ursg/gcc-problem-matcher@master
+      - name: Compile vlasiator (Testpackage build w/ HIP)
+        run: |
+          srun -C g --job-name CI_tp_G_compile --interactive --nodes=1 -n 1 -c 16 --mem-per-cpu=2G -t 0:20:0 bash -c 'hostname ; realpath modules/modules.sh ; export VLASIATOR_ARCH=${{ needs.build_libraries_lumi_hipcc.outputs.VLASIATOR_ARCH }}; source modules/modules.sh ; make -j 16 testpackage; sleep 10s'
+      - name: Make sure the output binary is visible in lustre
+        uses: nick-fields/retry@v3
+        with:
+          timeout_seconds: 15
+          max_attempts: 3
+          retry_on: error
+          command: ls vlasiator
+      - name: Upload testpackage binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: vlasiator-testpackage-${{ needs.build_libraries_lumi_hipcc.outputs.VLASIATOR_ARCH }}
+          path: vlasiator
+          if-no-files-found: error
+
+  build_tools_lumi:
+    runs-on: lumi
+    needs: build_libraries_lumi_hipcc
+
+    steps:
+      - name: Clean workspace
+        run: |
+          RUN_STRING=$( cat << MORO
+          rm -rf libraries library-build testpackage
+          rm -f libraries-${{ needs.build_libraries_lumi_hipcc.outputs.VLASIATOR_ARCH }}.tar.gz testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
+          rm -f *.xml
+          MORO
+          )
+          srun -C c bash -c "$RUN_STRING"
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: Make clean
+        run: VLASIATOR_ARCH=${{ needs.build_libraries_lumi_hipcc.outputs.VLASIATOR_ARCH }} make clean
+      - uses: ursg/gcc-problem-matcher@master
+      - name: Compile tools
+        run: |
+          srun -C c --job-name CI_tools --interactive --nodes=1 -n 1 -c 1 --mem-per-cpu=2G -t 0:10:0 bash -c 'hostname ; realpath modules/modules.sh ; export VLASIATOR_ARCH=${{ needs.build_libraries_lumi_hipcc.outputs.VLASIATOR_ARCH }}; source modules/modules.sh ; make vlsvextract vlsvdiff fluxfunction; sleep 10s'
+      - name: Upload tools binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: vlasiator-tools-${{ needs.build_libraries_lumi_hipcc.outputs.VLASIATOR_ARCH }}
+          path: |
+            vlsvextract_DP
+            vlsvdiff_DP
+            fluxfunction
+          if-no-files-found: error
+
+  run_TP_LUMI-G:
+    runs-on: lumi
+    needs: [build_TP_LUMI-G, build_tools_lumi, get_git_diff_check,build_libraries_lumi_hipcc]
+    continue-on-error: true
+
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v4
+      with:
+        submodules: false
+    - name: Download testpackage binary
+      uses: actions/download-artifact@v4
+      with:
+        name: vlasiator-testpackage-${{ needs.build_libraries_lumi_hipcc.outputs.VLASIATOR_ARCH }}
+    - name: Download tools
+      uses: actions/download-artifact@v4
+      with:
+        name: vlasiator-tools-${{ needs.build_libraries_lumi_hipcc.outputs.VLASIATOR_ARCH }}
+    - name: Run testpackage
+      id: run
+      run: |
+        chmod +x $GITHUB_WORKSPACE/vlasiator
+        chmod +x $GITHUB_WORKSPACE/vlsv*_DP
+        cd testpackage
+        # Delete any old run directories
+        rm -rf run_20*
+        sbatch -W -o testpackage_run_output.txt ./small_test_${{ needs.build_libraries_lumi_hipcc.outputs.VLASIATOR_ARCH }}_github_ci.sh
+        PARSE_OUTPUT_CMD=$( cat << MORO
+        echo "Job finished, checking output."
+        cat testpackage_run_output.txt
+        cat $GITHUB_STEP_SUMMARY > $GITHUB_WORKSPACE/testpackage_check_description.txt
+        cd $GITHUB_WORKSPACE
+        ls -halB testpackage_check_description.txt
+        tar -czf testpackage-output-${{ needs.build_libraries_lumi_hipcc.outputs.VLASIATOR_ARCH }}.tar.gz testpackage_check_description.txt testpackage_output_variables.txt
+        MORO
+        )
+        srun --job-name CI_package_results -C c -N 1 -c 1 --mem=1G bash -c "$PARSE_OUTPUT_CMD"
+        if [ -f $GITHUB_WORKSPACE/testpackage_failed ]; then
+          # Fail this step if any test failed.
+          exit 1
+        fi
+    - name: Scancel dangling job upon cancellation
+      if: cancelled()
+      run: |
+        # Try accessing the job id echoed by the job script.
+        scancel ${{ steps.run.outputs.SLURM_JOB_ID }}
+    - name: Make sure the output tarball is visible in lustre
+      uses: nick-fields/retry@v3
+      with:
+        timeout_seconds: 15
+        max_attempts: 3
+        retry_on: error
+        command: ls $GITHUB_WORKSPACE/testpackage-output-${{ needs.build_libraries_lumi_hipcc.outputs.VLASIATOR_ARCH }}.tar.gz
+    - name: Upload testpackage output
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: testpackage-output-${{ needs.build_libraries_lumi_hipcc.outputs.VLASIATOR_ARCH }}
+        path: testpackage-output-${{ needs.build_libraries_lumi_hipcc.outputs.VLASIATOR_ARCH }}.tar.gz
+    - name: Run fluxfunction test
+      run: |
+        chmod +x $GITHUB_WORKSPACE/fluxfunction
+        export VLASIATOR_ARCH=${{ needs.build_libraries_lumi_hipcc.outputs.VLASIATOR_ARCH }}
+        srun -C c --job-name fluxtest --nodes=1 -n 1 -c 1 --mem-per-cpu=2G -t 0:10:0 bash -c 'hostname ; realpath modules/modules.sh ; source modules/modules.sh ; $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_small/bulk.0000001.vlsv equatorial.bin'
+        srun -C c --job-name fluxtest --nodes=1 -n 1 -c 1 --mem-per-cpu=2G -t 0:10:0 bash -c 'hostname ; realpath modules/modules.sh ; source modules/modules.sh ; $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_polar_small/bulk.0000001.vlsv polar.bin'
+        diff -q equatorial.bin /turso/group/spacephysics/vlasiator/testpackage/CI_reference/equatorial.bin || if [ $? -eq 1 ] ; then true; else false; fi
+        diff -q polar.bin /turso/group/spacephysics/vlasiator/testpackage/CI_reference/polar.bin || if [ $? -eq 1 ] ; then true; else false; fi
+
+
