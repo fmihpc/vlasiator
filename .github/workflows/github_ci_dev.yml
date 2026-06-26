@@ -21,13 +21,19 @@ jobs:
       matrix: 
         include:
           - runner: hile
-            arch: [hile_cpu,hile_gpu]
+            arch: hile_gpu
+            compile_tp: true
+          - runner: hile
+            arch: hile_cpu
             compile_tp: true
           - runner: carrington
-            arch: ["ukko_dgx","carrington_gcc_openmpi"]
+            arch: ukko_dgx
+            compile_tp: true
+          - runner: carrington
+            arch: carrington_gcc_openmpi
             compile_tp: true
           - runner: risc-v
-            arch: ["pioneer"]
+            arch: pioneer
             compile_tp: false
     runs-on: ubuntu-latest
     if: false
