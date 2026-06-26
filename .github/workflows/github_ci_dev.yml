@@ -109,6 +109,8 @@ jobs:
       #   run: |
       #     export VLASIATOR_ARCH=${{ matrix.arch }}
       #     ./.github/workflows/slurm_run.sh "CLEANUP"
+      - name: test
+        if: ${{ matrix.compile_tp }}
       - *cleanup
       - name: Checkout source
         uses: actions/checkout@v4
