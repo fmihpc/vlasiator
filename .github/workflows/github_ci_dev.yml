@@ -15,6 +15,7 @@ concurrency:
 
 jobs:
   _dummytest:
+    runs-on: ubuntu-latest
     if: false
     steps:
     - &checksrc
@@ -69,7 +70,7 @@ jobs:
 
     steps:
       - uses: lukka/get-cmake@latest
-      - <<: *checksrc
+      - *checksrc
       - name: Install build dependencies
         run: |
           apt-get update
@@ -108,7 +109,7 @@ jobs:
       #   run: |
       #     export VLASIATOR_ARCH=${{ matrix.arch }}
       #     ./.github/workflows/slurm_run.sh "CLEANUP"
-      - <<: *cleanup
+      - *cleanup
       - name: Checkout source
         uses: actions/checkout@v4
         with:
