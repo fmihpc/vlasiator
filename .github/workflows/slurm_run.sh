@@ -1,0 +1,99 @@
+#!/bin/bash
+
+#Flags for core/node counts etc
+declare -A core_flags
+core_flags["carrington_gcc_openmpi"]='-n 1 -c 16'
+core_flags["ukko_dgx"]='-n 1 -c 64'
+core_flags["pioneer"]='-n 1 -c 64'
+core_flags["hile_gpu"]='-n 1 -c 16'
+core_flags["hile_cpu"]='-n 1 -c 16'
+
+#Constraints for compiling stuff
+declare -A constraint
+constraint["carrington_gcc_openmpi"]='--constraint="ukko|carrington" -p short'
+# constraint["ukko_dgx"]='--constraint="v100" -gres="gpu:V100" -p gpu'
+constraint["ukko_dgx"]='--constraint="ukko" -p gpu'
+constraint["pioneer"]='--constraint="pioneer" -p pioneer' #not sure if pty needed for pioneer
+constraint["hile_gpu"]='-C g'
+constraint["hile_cpu"]='-C c'
+
+#Constraints used for smaller jobs like compiling/removing files/catting etc
+declare -A constraint_small
+constraint_small["carrington_gcc_openmpi"]='--constraint="ukko|carrington"'
+constraint_small["ukko_dgx"]='--constraint="ukko"'
+constraint_small["pioneer"]='--constraint="pioneer"'
+constraint_small["hile_gpu"]='-C g'
+constraint_small["hile_cpu"]='-C c'
+
+#Memory flags for compiling, note that with --exclusive it is better to use --mem since --mem-per-cpu counts the whole node apparently
+declare -A mem_flags
+mem_flags["carrington_gcc_openmpi"]='--mem=40G'
+mem_flags["ukko_dgx"]='--mem=16G'
+mem_flags["pioneer"]=''
+mem_flags["hile_gpu"]='--mem=32G'
+mem_flags["hile_cpu"]='--mem=32G'
+
+declare -A compile_flags_prod
+compile_flags_prod["ukko_dgx"]='COMPFLAGS="-DDEBUG_VLASIATOR -DDEBUG_SOLVERS -DDEBUG_IONOSPHERE -DHASHINATOR_DEBUG -DDEBUG_SPATIAL_CELL -DDEBUG_VMESH -DDEBUG_VBC -DDEBUG_ACC "'
+
+declare -A compile_flags_tp
+compile_flags_tp["ukko_dgx"]='COMPFLAGS="-DDEBUG_VLASIATOR -DDEBUG_SOLVERS -DDEBUG_IONOSPHERE -DHASHINATOR_DEBUG -DDEBUG_SPATIAL_CELL -DDEBUG_VMESH -DDEBUG_VBC -DDEBUG_ACC -DUSE_WARPACCESSOR "'
+
+#Flags for bigger sruns, like compiling
+flags="--interactive -n 1 ${platform_flags[$VLASIATOR_ARCH]} ${constraint[$VLASIATOR_ARCH]}"
+
+#flags for smaller sruns, like removing files/small tests
+small_flags="--interactive -n 1 ${constraint_small[$VLASIATOR_ARCH]} -c 1"
+
+#Module load part
+modules="hostname; realpath modules/modules.sh; source modules/$VLASIATOR_ARCH"
+
+#Build libraries
+if [[ $1 == "BUILD_LIBS" ]]; then
+  RUN_STRING=$(
+    cat <<MORO
+rm -rf libraries library-build testpackage
+rm -f libraries-$VLASIATOR_ARCH.tar.gz testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
+rm -f *.xml
+MORO
+  )
+
+  srun ${small_flags[$VLASIATOR_ARCH]} bash -c "$RUN_STRING"
+  srun ${small_flags[$VLASIATOR_ARCH]} ${platform_flags[$VLASIATOR_ARCH]} -J build_libraries_CI bash -lc "$modules ./fetch_and_build_libraries.sh $VLASIATOR_ARCH"
+fi
+#Build tools
+
+if [[ $1 == "BUILD_TOOLS" ]]; then
+  srun ${constraint[$VLASIATOR_ARCH]} --job-name CI_TOOLS_COMPILE --interactive --nodes=1 -n 1 -c 1 --mem=4G -t 0:10:0 bash -c "$modules make vlsvextract vlsvdiff fluxfunction ; sleep 10s"
+fi
+#Compile prod
+
+if [[ $1 == "COMPILE_PROD" ]]; then
+  COMPILE_STRING="$modules make -j $(echo ${core_flags[$VLASIATOR_ARCH]} | grep -Po '\-c \d+' | grep -Po '\d+')"
+  srun ${constraint[$VLASIATOR_ARCH]} --job-name CI_PROD_COMPILE --interactive ${mem_flags[$VLASIATOR_ARCH]} ${core_flags[$VLASIATOR_ARCH]} -t 0:10:0 bash -c "${compile_flags_prod[$VLASIATOR_ARCH]} $COMPILE_STRING ; sleep 10s"
+fi
+
+#Compile TP
+if [[ $1 == "COMPILE_TP" ]]; then
+  srun ${constraint[$VLASIATOR_ARCH]} --job-name CI_TP_COMPILE --interactive ${mem_flags[$VLASIATOR_ARCH]} ${core_flags[$VLASIATOR_ARCH]} -t 0:10:0 bash -c "${compile_flags_tp[$VLASIATOR_ARCH]} $COMPILE_STRING testpackage ; sleep 10s"
+fi
+
+#Run TP
+if [[ $1 == "RUN_TP" ]]; then
+  echo "Unimplented for now"
+fi
+
+#fluxtest
+if [[ $1 == "FLUXTEST" ]]; then
+  FLUXTEST_STRING="$modules $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_small/bulk.0000001.vlsv equatorial.bin ; $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_polar_small/bulk.0000001.vlsv polar.bin"
+  chmod +x $GITHUB_WORKSPACE/fluxfunction
+  srun ${constraint_small[$VLASIATOR_ARCH]} --job-name CI_FLUXTEST -N 1 -c 1 --mem=2G -t 0:10:0 bash -c "$FLUXTEST_STRING"
+
+  diff -q equatorial.bin /turso/group/spacephysics/vlasiator/testpackage/CI_reference/equatorial.bin || if [ $? -eq 1 ]; then true; else false; fi
+  diff -q polar.bin /turso/group/spacephysics/vlasiator/testpackage/CI_reference/polar.bin || if [ $? -eq 1 ]; then true; else false; fi
+fi
+#Results
+
+if [[ $1 == $PARSE_OUTPUT_CMD ]]; then
+  srun --job-name CI_package_results ${constraint_small} -c 1 -N 1 --mem=2G bash -c "$PARSE_OUTPUT_CMD"
+fi

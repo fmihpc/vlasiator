@@ -1,0 +1,109 @@
+name: Github-CI
+
+on:
+  # Dispatch this workflow whenever master or dev get a PR or commit
+  push:
+    branches : ["dev","master"]
+  pull_request:
+    branches: ["dev","master"]
+  # ... or when the workflow is started manually
+  workflow_dispatch:
+
+concurrency:
+   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+   cancel-in-progress: true
+
+jobs:
+
+  get_git_diff:
+    runs-on: ubuntu-latest
+    outputs:
+       RUN_TP: ${{ steps.gitdiff.outputs.RUN_TP }}
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Get git diff
+        id: gitdiff
+        run: |
+          cd $GITHUB_WORKSPACE
+          #chmod +x ./.github/workflows/CI_git_diff.sh
+          echo Comparing PR branch against ${{ github.base_ref }}
+          if [[ $(./.github/workflows/CI_git_diff.sh ${{ github.base_ref }} ) = "no_test" ]]; then
+            echo "RUN_TP=False" >> $GITHUB_OUTPUT
+            echo "Not running testpackage"
+            exit 0
+          fi
+          echo "Running testpackage"
+  get_git_diff_check:
+    runs-on: ubuntu-latest
+    needs: get_git_diff
+    if: ${{ needs.get_git_diff.outputs.RUN_TP != 'False' }}
+    steps:
+      - name: Checking whether to run tests
+        run: |
+          echo "Running testpackage"
+
+  build_libraries_github:
+    # Build libraries for the current version of the docker image
+    # (to be used in any subsequent compilation and run jobs on said image)
+
+    runs-on: ubuntu-latest
+    container: ursg/vlasiator_ci:20250909_1
+
+    steps:
+      - uses: lukka/get-cmake@latest
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: Install build dependencies
+        run: |
+          apt-get update
+          apt-get install -y g++ build-essential cmake make libopenmpi-dev openmpi-bin libboost-program-options-dev zstd
+      - name: Run library build script
+        run: ./fetch_and_build_libraries.sh
+      - name: Build libraries tar
+        run: tar --zstd -cf libraries-docker.tar.zstd libraries-docker/
+      - name: Upload libraries as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: libraries-docker
+          path: libraries-docker.tar.zstd
+          retention-days: 5
+          if-no-files-found: error
+
+  build_libraries_runners:
+
+    #continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: hile
+            arch: [hile_cpu,hile_gpu]
+          - runner: carrington
+            arch: ["ukko_dgx","carrington_gcc_openmpi"]
+          - runner: risc-v
+            arch: ["pioneer"]
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: Run library build script ${{ matrix.arch }}
+        run: | 
+          export VLASIATOR_ARCH=${{ matrix.arch }}
+          ./.github/workflows/slurm_run.sh "BUILD_LIBS"
+      - name: Build libraries tar
+        run: tar -zcf libraries-${{ matrix.arch }}.tar.gz libraries-${{ matrix.arch }}/
+      - name: Upload libraries as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: libraries-${{ matrix.arch }}
+          path: libraries-${{ matrix.arch }}.tar.gz
+          retention-days: 5
+          if-no-files-found: error
+
