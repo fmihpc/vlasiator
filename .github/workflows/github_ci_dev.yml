@@ -92,7 +92,7 @@ jobs:
     #continue-on-error: true
     strategy:
       fail-fast: false
-      matrix: &runnermatrix
+      matrix: 
         include:
           - runner: hile
             arch: [hile_cpu,hile_gpu]
@@ -135,7 +135,17 @@ jobs:
     runs-on: carrington
     strategy:
       fail-fast: false
-      matrix: *runnermatrix
+      matrix: 
+        include:
+          - runner: hile
+            arch: [hile_cpu,hile_gpu]
+            compile_tp: true
+          - runner: carrington
+            arch: ["ukko_dgx","carrington_gcc_openmpi"]
+            compile_tp: true
+          - runner: risc-v
+            arch: ["pioneer"]
+            compile_tp: false
         
     needs: build_libraries_runners
     if: ${{ matrix.compile_tp }}
