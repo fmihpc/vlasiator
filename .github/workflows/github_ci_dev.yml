@@ -114,29 +114,29 @@ jobs:
           path: libraries-docker.tar.zstd
           retention-days: 5
           if-no-files-found: error
-
-  build_libraries:
-    #continue-on-error: true
-    
-    strategy: *strategy
-
-    runs-on: ${{ matrix.runner }}
-    steps:
-      - *checksrc 
-      - *cleanup
-      - name: Run library build script ${{ matrix.arch }}
-        run: | 
-          export VLASIATOR_ARCH=${{ matrix.arch }}
-          ./.github/workflows/slurm_run.sh "BUILD_LIBS"
-      - name: Build libraries tar
-        run: tar -zcf libraries-${{ matrix.arch }}.tar.gz libraries-${{ matrix.arch }}/
-      - name: Upload libraries as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: libraries-${{ matrix.arch }}
-          path: libraries-${{ matrix.arch }}.tar.gz
-          retention-days: 5
-          if-no-files-found: error
+  #
+  # build_libraries:
+  #   #continue-on-error: true
+  #
+  #   strategy: *strategy
+  #
+  #   runs-on: ${{ matrix.runner }}
+  #   steps:
+  #     - *checksrc 
+  #     - *cleanup
+  #     - name: Run library build script ${{ matrix.arch }}
+  #       run: | 
+  #         export VLASIATOR_ARCH=${{ matrix.arch }}
+  #         ./.github/workflows/slurm_run.sh "BUILD_LIBS"
+  #     - name: Build libraries tar
+  #       run: tar -zcf libraries-${{ matrix.arch }}.tar.gz libraries-${{ matrix.arch }}/
+  #     - name: Upload libraries as artifact
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: libraries-${{ matrix.arch }}
+  #         path: libraries-${{ matrix.arch }}.tar.gz
+  #         retention-days: 5
+  #         if-no-files-found: error
 
 
   build_TP:
@@ -154,12 +154,10 @@ jobs:
     - *cleanup
     - name: Make clean
       run: VLASIATOR_ARCH=${{ matrix.arch }} make clean
-    - name: Fetch libraries
-      uses: actions/download-artifact@v5
-      with:
-        name: libraries-${{ matrix.arch }}
-    - name: Unpack libraries
-      run: tar -zxf libraries-${{ matrix.arch }}.tar.gz
+    - name: Run library build script ${{ matrix.arch }}
+      run: | 
+        export VLASIATOR_ARCH=${{ matrix.arch }}
+        ./.github/workflows/slurm_run.sh "BUILD_LIBS"
     - uses: ursg/gcc-problem-matcher@master
     - name: Compile vlasiator (Testpackage build)
       run: |
@@ -180,7 +178,6 @@ jobs:
     
     strategy: *strategy
 
-    needs: build_libraries
     runs-on: ${{ matrix.runner }}
     steps:
       - *checksrc
@@ -188,10 +185,10 @@ jobs:
       - name: Make clean
         run: VLASIATOR_ARCH=${{ matrix.arch }} make clean
       - uses: ursg/gcc-problem-matcher@master
-      - name: Fetch libraries
-        uses: actions/download-artifact@v5
-        with:
-          name: libraries-${{ matrix.arch }}
+      - name: Run library build script ${{ matrix.arch }}
+        run: | 
+          export VLASIATOR_ARCH=${{ matrix.arch }}
+          ./.github/workflows/slurm_run.sh "BUILD_LIBS"
       - name: Unpack libraries
         run: tar -zxf libraries-hile_gpu.tar.gz
 
@@ -221,6 +218,10 @@ jobs:
         - *cleanup
         - name: Make clean
           run: VLASIATOR_ARCH=${{ matrix.arch }} make clean
+        - name: Run library build script ${{ matrix.arch }}
+          run: | 
+            export VLASIATOR_ARCH=${{ matrix.arch }}
+            ./.github/workflows/slurm_run.sh "BUILD_LIBS"
         - uses: ursg/gcc-problem-matcher@master
         - name: Compile tools 
           run: |
