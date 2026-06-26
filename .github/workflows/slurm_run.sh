@@ -65,17 +65,17 @@ fi
 #|         BUILD LIBS           |
 #0++++++++++++++++++++++++++++++0
 if [[ $1 == "BUILD_LIBS" ]]; then
-  srun ${small_flags[$VLASIATOR_ARCH]} ${platform_flags[$VLASIATOR_ARCH]} -J build_libraries_CI bash -lc "$modules ./fetch_and_build_libraries.sh $VLASIATOR_ARCH"
+  srun ${small_flags[$VLASIATOR_ARCH]} ${platform_flags[$VLASIATOR_ARCH]} -J build_libraries_CI bash -lc "$modules ; ./fetch_and_build_libraries.sh $VLASIATOR_ARCH"
 fi
 
 #0++++++++++++++++++++++++++++++0
 #|         BUILD TOOLS          |
 #0++++++++++++++++++++++++++++++0
 if [[ $1 == "BUILD_TOOLS" ]]; then
-  srun ${constraint[$VLASIATOR_ARCH]} --job-name CI_TOOLS_COMPILE --interactive --nodes=1 -n 1 -c 1 --mem=4G -t 0:10:0 bash -c "$modules make vlsvextract vlsvdiff fluxfunction ; sleep 10s"
+  srun ${constraint[$VLASIATOR_ARCH]} --job-name CI_TOOLS_COMPILE --interactive --nodes=1 -n 1 -c 1 --mem=4G -t 0:10:0 bash -c "$modules ; make vlsvextract vlsvdiff fluxfunction ; sleep 10s"
 fi
 
-COMPILE_STRING="$modules make -j $(echo ${core_flags[$VLASIATOR_ARCH]} | grep -Po '\-c \d+' | grep -Po '\d+')"
+COMPILE_STRING="$modules ; make -j $(echo ${core_flags[$VLASIATOR_ARCH]} | grep -Po '\-c \d+' | grep -Po '\d+')"
 
 #0++++++++++++++++++++++++++++++0
 #|         COMPILE PROD         |
@@ -102,7 +102,7 @@ fi
 #|         RUN FLUXTEST         |
 #0++++++++++++++++++++++++++++++0
 if [[ $1 == "FLUXTEST" ]]; then
-  FLUXTEST_STRING="$modules $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_small/bulk.0000001.vlsv equatorial.bin ; $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_polar_small/bulk.0000001.vlsv polar.bin"
+  FLUXTEST_STRING="$modules ; $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_small/bulk.0000001.vlsv equatorial.bin ; $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_polar_small/bulk.0000001.vlsv polar.bin"
   chmod +x $GITHUB_WORKSPACE/fluxfunction
   srun ${constraint_small[$VLASIATOR_ARCH]} --job-name CI_FLUXTEST -N 1 -c 1 --mem=2G -t 0:10:0 bash -c "$FLUXTEST_STRING"
 
