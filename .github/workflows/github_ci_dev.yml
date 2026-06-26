@@ -213,6 +213,7 @@ jobs:
       # NOTE is lacking libraries at the moment
       strategy: *strategy
 
+      needs: build_libraries
       runs-on: ${{ matrix.runner }}
 
       steps:
