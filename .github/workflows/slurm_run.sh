@@ -2,43 +2,43 @@
 
 #Flags for core/node counts etc for compiling/heavier srun calls
 declare -A core_flags
-core_flags["carrington_gcc_openmpi"]='-n 1 -c 16'
-core_flags["ukko_dgx"]='-n 1 -c 64'
-core_flags["pioneer"]='-n 1 -c 64'
-core_flags["hile_gpu"]='-n 1 -c 16'
-core_flags["hile_cpu"]='-n 1 -c 16'
+core_flags["carrington_gcc_openmpi"]="-n 1 -c 16"
+core_flags["ukko_dgx"]="-n 1 -c 64"
+core_flags["pioneer"]="-n 1 -c 64"
+core_flags["hile_gpu"]="-n 1 -c 16"
+core_flags["hile_cpu"]="-n 1 -c 16"
 
 #Constraints for compiling stuff
 declare -A constraint
-constraint["carrington_gcc_openmpi"]='--constraint="ukko|carrington" -p short'
-# constraint["ukko_dgx"]='--constraint="v100" -gres="gpu:V100" -p gpu'
-constraint["ukko_dgx"]='--constraint="ukko" -p gpu'
-constraint["pioneer"]='--constraint="pioneer" -p pioneer' #not sure if pty needed for pioneer
-constraint["hile_gpu"]='-C g'
-constraint["hile_cpu"]='-C c'
+constraint["carrington_gcc_openmpi"]="--constraint=ukko|carrington -p short"
+# constraint["ukko_dgx"]="--constraint="v100" -gres="gpu:V100" -p gpu"
+constraint["ukko_dgx"]="--constraint=ukko -p gpu"
+constraint["pioneer"]="--constraint=pioneer -p pioneer" #not sure if pty needed for pioneer
+constraint["hile_gpu"]="-C g"
+constraint["hile_cpu"]="-C c"
 
 #Constraints used for smaller jobs like compiling/removing files/catting etc
 declare -A constraint_small
-constraint_small["carrington_gcc_openmpi"]='--constraint="ukko|carrington"'
-constraint_small["ukko_dgx"]='--constraint="ukko"'
-constraint_small["pioneer"]='--constraint="pioneer"'
-constraint_small["hile_gpu"]='-C g'
-constraint_small["hile_cpu"]='-C c'
+constraint_small["carrington_gcc_openmpi"]="--constraint=ukko|carrington"
+constraint_small["ukko_dgx"]="--constraint=ukko"
+constraint_small["pioneer"]="--constraint=pioneer"
+constraint_small["hile_gpu"]="-C g"
+constraint_small["hile_cpu"]="-C c"
 
 #Memory flags for compiling, note that with --exclusive it is better to use --mem since --mem-per-cpu counts the whole node apparently
 declare -A mem_flags
-mem_flags["carrington_gcc_openmpi"]='--mem=40G'
-mem_flags["ukko_dgx"]='--mem=16G'
-mem_flags["pioneer"]=''
-mem_flags["hile_gpu"]='--mem=32G'
-mem_flags["hile_cpu"]='--mem=32G'
+mem_flags["carrington_gcc_openmpi"]="--mem=40G"
+mem_flags["ukko_dgx"]="--mem=16G"
+mem_flags["pioneer"]=""
+mem_flags["hile_gpu"]="--mem=32G"
+mem_flags["hile_cpu"]="--mem=32G"
 
 declare -A compile_flags_prod
 compile_flags_prod["ukko_dgx"]='COMPFLAGS="-DDEBUG_VLASIATOR -DDEBUG_SOLVERS -DDEBUG_IONOSPHERE -DHASHINATOR_DEBUG -DDEBUG_SPATIAL_CELL -DDEBUG_VMESH -DDEBUG_VBC -DDEBUG_ACC "'
 
 declare -A compile_flags_tp
 compile_flags_tp["ukko_dgx"]='COMPFLAGS="-DDEBUG_VLASIATOR -DDEBUG_SOLVERS -DDEBUG_IONOSPHERE -DHASHINATOR_DEBUG -DDEBUG_SPATIAL_CELL -DDEBUG_VMESH -DDEBUG_VBC -DDEBUG_ACC -DUSE_WARPACCESSOR "'
-
+srun --constraint="ukko" -p gpu --job-name CI_tools_compile --interactive --nodes=1 -n 1 -c 1 --mem-per-cpu=2G -t 0:10:0 bash -c
 #Flags for bigger sruns, like compiling
 flags="--interactive -n 1 ${platform_flags[$VLASIATOR_ARCH]} ${constraint[$VLASIATOR_ARCH]}"
 #flags for smaller sruns, like removing files/small tests
@@ -70,7 +70,7 @@ if [[ $1 == "BUILD_LIBS" ]]; then
 fi
 
 #0++++++++++++++++++++++++++++++0
-#|         BUILD TOOLS          |
+#|         BUILD TOOLS          |srun --constraint="ukko" -p gpu --job-name CI_tools_compile --interactive --nodes=1 -n 1 -c 1 --mem-per-cpu=2G -t 0:10:0 bash -c
 #0++++++++++++++++++++++++++++++0
 if [[ $1 == "BUILD_TOOLS" ]]; then
   bash -c "srun ${constraint[$VLASIATOR_ARCH]} --job-name CI_TOOLS_COMPILE --interactive --nodes=1 -n 1 -c 1 --mem=4G -t 0:10:0 bash -c \"$modules make vlsvextract vlsvdiff fluxfunction ; sleep 10s\""
