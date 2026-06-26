@@ -59,21 +59,21 @@ rm -f libraries-$VLASIATOR_ARCH.tar.gz testpackage_check_description.txt testpac
 rm -f *.xml
 MORO
   )
-  bash -c "srun ${small_flags[$VLASIATOR_ARCH]} bash -c \"$CLEAN_STRING\""
+  srun ${small_flags[$VLASIATOR_ARCH]} bash -c "$CLEAN_STRING"
 fi
 
 #0++++++++++++++++++++++++++++++0
 #|         BUILD LIBS           |
 #0++++++++++++++++++++++++++++++0
 if [[ $1 == "BUILD_LIBS" ]]; then
-  bash -c "srun ${small_flags[$VLASIATOR_ARCH]} ${platform_flags[$VLASIATOR_ARCH]} -J build_libraries_CI bash -lc \"$modules ./fetch_and_build_libraries.sh $VLASIATOR_ARCH\""
+  srun ${small_flags[$VLASIATOR_ARCH]} ${platform_flags[$VLASIATOR_ARCH]} -J build_libraries_CI bash -lc "$modules ./fetch_and_build_libraries.sh $VLASIATOR_ARCH"
 fi
 
 #0++++++++++++++++++++++++++++++0
-#|         BUILD TOOLS          |srun --constraint="ukko" -p gpu --job-name CI_tools_compile --interactive --nodes=1 -n 1 -c 1 --mem-per-cpu=2G -t 0:10:0 bash -c
+#|         BUILD TOOLS          |
 #0++++++++++++++++++++++++++++++0
 if [[ $1 == "BUILD_TOOLS" ]]; then
-  bash -c "srun ${constraint[$VLASIATOR_ARCH]} --job-name CI_TOOLS_COMPILE --interactive --nodes=1 -n 1 -c 1 --mem=4G -t 0:10:0 bash -c \"$modules make vlsvextract vlsvdiff fluxfunction ; sleep 10s\""
+  srun ${constraint[$VLASIATOR_ARCH]} --job-name CI_TOOLS_COMPILE --interactive --nodes=1 -n 1 -c 1 --mem=4G -t 0:10:0 bash -c "$modules make vlsvextract vlsvdiff fluxfunction ; sleep 10s"
 fi
 
 COMPILE_STRING="$modules make -j $(echo ${core_flags[$VLASIATOR_ARCH]} | grep -Po '\-c \d+' | grep -Po '\d+')"
@@ -82,14 +82,14 @@ COMPILE_STRING="$modules make -j $(echo ${core_flags[$VLASIATOR_ARCH]} | grep -P
 #|         COMPILE PROD         |
 #0++++++++++++++++++++++++++++++0
 if [[ $1 == "COMPILE_PROD" ]]; then
-  bash -c "srun ${constraint[$VLASIATOR_ARCH]} --job-name CI_PROD_COMPILE --interactive ${mem_flags[$VLASIATOR_ARCH]} ${core_flags[$VLASIATOR_ARCH]} -t 0:10:0 bash -c \"${compile_flags_prod[$VLASIATOR_ARCH]} $COMPILE_STRING ; sleep 10s\""
+  srun ${constraint[$VLASIATOR_ARCH]} --job-name CI_PROD_COMPILE --interactive ${mem_flags[$VLASIATOR_ARCH]} ${core_flags[$VLASIATOR_ARCH]} -t 0:10:0 bash -c "${compile_flags_prod[$VLASIATOR_ARCH]} $COMPILE_STRING ; sleep 10s"
 fi
 
 #0++++++++++++++++++++++++++++++0
 #|         COMPILE TP           |
 #0++++++++++++++++++++++++++++++0
 if [[ $1 == "COMPILE_TP" ]]; then
-  bash -c "srun ${constraint[$VLASIATOR_ARCH]} --job-name CI_TP_COMPILE --interactive ${mem_flags[$VLASIATOR_ARCH]} ${core_flags[$VLASIATOR_ARCH]} -t 0:10:0 bash -c \"${compile_flags_tp[$VLASIATOR_ARCH]} $COMPILE_STRING testpackage ; sleep 10s\""
+  srun ${constraint[$VLASIATOR_ARCH]} --job-name CI_TP_COMPILE --interactive ${mem_flags[$VLASIATOR_ARCH]} ${core_flags[$VLASIATOR_ARCH]} -t 0:10:0 bash -c "${compile_flags_tp[$VLASIATOR_ARCH]} $COMPILE_STRING testpackage ; sleep 10s"
 fi
 
 #0++++++++++++++++++++++++++++++0
@@ -105,7 +105,7 @@ fi
 if [[ $1 == "FLUXTEST" ]]; then
   FLUXTEST_STRING="$modules $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_small/bulk.0000001.vlsv equatorial.bin ; $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_polar_small/bulk.0000001.vlsv polar.bin"
   chmod +x $GITHUB_WORKSPACE/fluxfunction
-  bash -c "srun ${constraint_small[$VLASIATOR_ARCH]} --job-name CI_FLUXTEST -N 1 -c 1 --mem=2G -t 0:10:0 bash -c \"$FLUXTEST_STRING\""
+  srun ${constraint_small[$VLASIATOR_ARCH]} --job-name CI_FLUXTEST -N 1 -c 1 --mem=2G -t 0:10:0 bash -c "$FLUXTEST_STRING"
 
   diff -q equatorial.bin /turso/group/spacephysics/vlasiator/testpackage/CI_reference/equatorial.bin || if [ $? -eq 1 ]; then true; else false; fi
   diff -q polar.bin /turso/group/spacephysics/vlasiator/testpackage/CI_reference/polar.bin || if [ $? -eq 1 ]; then true; else false; fi
@@ -115,5 +115,5 @@ fi
 #|         RESULTS              |
 #0++++++++++++++++++++++++++++++0
 if [[ $1 == $PARSE_OUTPUT_CMD ]]; then
-  bash -c "srun --job-name CI_package_results ${constraint_small} -c 1 -N 1 --mem=2G bash -c \"$PARSE_OUTPUT_CMD\""
+  srun --job-name CI_package_results ${constraint_small} -c 1 -N 1 --mem=2G bash -c "$PARSE_OUTPUT_CMD"
 fi
