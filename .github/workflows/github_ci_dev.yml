@@ -13,6 +13,18 @@ concurrency:
    group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
    cancel-in-progress: true
 
+reusable_steps:
+  checkoutsource: &checksrc
+    name: Checkout source
+    uses: actions/checkout@v4
+    with:
+      submodules: true
+  cleanupworkspace: &cleanup    
+    name: Clean workspace
+    run: |
+      export VLASIATOR_ARCH=${{ matrix.arch }}
+      ./.github/workflows/slurm_run.sh "CLEANUP"
+
 jobs:
 
   get_git_diff:
@@ -54,10 +66,7 @@ jobs:
 
     steps:
       - uses: lukka/get-cmake@latest
-      - name: Checkout source
-        uses: actions/checkout@v4
-        with:
-          submodules: true
+      - <<: *checksrc
       - name: Install build dependencies
         run: |
           apt-get update
@@ -79,16 +88,24 @@ jobs:
     #continue-on-error: true
     strategy:
       fail-fast: false
-      matrix:
+      matrix: &runnermatrix
         include:
           - runner: hile
             arch: [hile_cpu,hile_gpu]
+            compile_tp: true
           - runner: carrington
             arch: ["ukko_dgx","carrington_gcc_openmpi"]
+            compile_tp: true
           - runner: risc-v
             arch: ["pioneer"]
+            compile_tp: false
     runs-on: ${{ matrix.runner }}
     steps:
+      # - name: Clean workspace
+      #   run: |
+      #     export VLASIATOR_ARCH=${{ matrix.arch }}
+      #     ./.github/workflows/slurm_run.sh "CLEANUP"
+      - <<: *cleanup
       - name: Checkout source
         uses: actions/checkout@v4
         with:
@@ -107,3 +124,49 @@ jobs:
           retention-days: 5
           if-no-files-found: error
 
+
+  build_TP:
+    # Build Vlasiator with testpackage flags, on the carrington cluster
+    # (for subsequent running of the integration test package)
+    runs-on: carrington
+    strategy:
+      fail-fast: false
+      matrix: *runnermatrix
+        
+    needs: build_libraries_runners
+    if: ${{ matrix.compile_tp }}
+    steps:
+    - name: Clean workspace
+      run: |
+        export VLASIATOR_ARCH=${{ matrix.arch }}
+        ./.github/workflows/slurm_run.sh "CLEANUP"
+    - name: Checkout source
+      uses: actions/checkout@v4
+      with:
+        submodules: true
+    - name: Make clean
+      run: VLASIATOR_ARCH=${{ matrix.arch }} make clean
+    - name: Fetch libraries
+      uses: actions/download-artifact@v5
+      with:
+        name: libraries-${{ matrix.arch }}
+    - name: Unpack libraries
+      run: tar -zxf libraries-${{ matrix.arch }}.tar.gz
+    - uses: ursg/gcc-problem-matcher@master
+    - name: Compile vlasiator (Testpackage build)
+      run: |
+        export VLASIATOR_ARCH=${{ matrix.arch }}
+        ./.github/workflows/slurm_run.sh "COMPILE_TP"
+    - name: Make sure the output binary is visible in lustre
+      uses: nick-fields/retry@v3
+      with:
+        timeout_seconds: 15
+        max_attempts: 3
+        retry_on: error
+        command: ls vlasiator
+    - name: Upload testpackage binary
+      uses: actions/upload-artifact@v4
+      with:
+        name: vlasiator-testpackage
+        path: vlasiator
+        if-no-files-found: error

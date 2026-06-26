@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#Flags for core/node counts etc
+#Flags for core/node counts etc for compiling/heavier srun calls
 declare -A core_flags
 core_flags["carrington_gcc_openmpi"]='-n 1 -c 16'
 core_flags["ukko_dgx"]='-n 1 -c 64'
@@ -41,49 +41,67 @@ compile_flags_tp["ukko_dgx"]='COMPFLAGS="-DDEBUG_VLASIATOR -DDEBUG_SOLVERS -DDEB
 
 #Flags for bigger sruns, like compiling
 flags="--interactive -n 1 ${platform_flags[$VLASIATOR_ARCH]} ${constraint[$VLASIATOR_ARCH]}"
-
 #flags for smaller sruns, like removing files/small tests
 small_flags="--interactive -n 1 ${constraint_small[$VLASIATOR_ARCH]} -c 1"
-
 #Module load part
 modules="hostname; realpath modules/modules.sh; source modules/$VLASIATOR_ARCH"
 
-#Build libraries
-if [[ $1 == "BUILD_LIBS" ]]; then
-  RUN_STRING=$(
+#--------------------------------different srun calls------------------------------
+
+#0++++++++++++++++++++++++++++++0
+#|         CLEANUP              |
+#0++++++++++++++++++++++++++++++0
+if [[ $1 == "CLEANUP" ]]; then
+  CLEAN_STRING=$(
     cat <<MORO
 rm -rf libraries library-build testpackage
 rm -f libraries-$VLASIATOR_ARCH.tar.gz testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
 rm -f *.xml
 MORO
   )
+  srun ${small_flags[$VLASIATOR_ARCH]} bash -c "$CLEAN_STRING"
+fi
 
-  srun ${small_flags[$VLASIATOR_ARCH]} bash -c "$RUN_STRING"
+#0++++++++++++++++++++++++++++++0
+#|         BUILD LIBS           |
+#0++++++++++++++++++++++++++++++0
+if [[ $1 == "BUILD_LIBS" ]]; then
   srun ${small_flags[$VLASIATOR_ARCH]} ${platform_flags[$VLASIATOR_ARCH]} -J build_libraries_CI bash -lc "$modules ./fetch_and_build_libraries.sh $VLASIATOR_ARCH"
 fi
-#Build tools
 
+#0++++++++++++++++++++++++++++++0
+#|         BUILD TOOLS          |
+#0++++++++++++++++++++++++++++++0
 if [[ $1 == "BUILD_TOOLS" ]]; then
   srun ${constraint[$VLASIATOR_ARCH]} --job-name CI_TOOLS_COMPILE --interactive --nodes=1 -n 1 -c 1 --mem=4G -t 0:10:0 bash -c "$modules make vlsvextract vlsvdiff fluxfunction ; sleep 10s"
 fi
-#Compile prod
 
+COMPILE_STRING="$modules make -j $(echo ${core_flags[$VLASIATOR_ARCH]} | grep -Po '\-c \d+' | grep -Po '\d+')"
+
+#0++++++++++++++++++++++++++++++0
+#|         COMPILE PROD         |
+#0++++++++++++++++++++++++++++++0
 if [[ $1 == "COMPILE_PROD" ]]; then
-  COMPILE_STRING="$modules make -j $(echo ${core_flags[$VLASIATOR_ARCH]} | grep -Po '\-c \d+' | grep -Po '\d+')"
   srun ${constraint[$VLASIATOR_ARCH]} --job-name CI_PROD_COMPILE --interactive ${mem_flags[$VLASIATOR_ARCH]} ${core_flags[$VLASIATOR_ARCH]} -t 0:10:0 bash -c "${compile_flags_prod[$VLASIATOR_ARCH]} $COMPILE_STRING ; sleep 10s"
 fi
 
-#Compile TP
+#0++++++++++++++++++++++++++++++0
+#|         COMPILE TP           |
+#0++++++++++++++++++++++++++++++0
 if [[ $1 == "COMPILE_TP" ]]; then
   srun ${constraint[$VLASIATOR_ARCH]} --job-name CI_TP_COMPILE --interactive ${mem_flags[$VLASIATOR_ARCH]} ${core_flags[$VLASIATOR_ARCH]} -t 0:10:0 bash -c "${compile_flags_tp[$VLASIATOR_ARCH]} $COMPILE_STRING testpackage ; sleep 10s"
 fi
 
-#Run TP
+#0++++++++++++++++++++++++++++++0
+#|         RUN TP               |
+#0++++++++++++++++++++++++++++++0
 if [[ $1 == "RUN_TP" ]]; then
   echo "Unimplented for now"
 fi
 
-#fluxtest
+#0++++++++++++++++++++++++++++++0
+#|         RUN FLUXTEST         |
+#0++++++++++++++++++++++++++++++0
 if [[ $1 == "FLUXTEST" ]]; then
   FLUXTEST_STRING="$modules $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_small/bulk.0000001.vlsv equatorial.bin ; $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_polar_small/bulk.0000001.vlsv polar.bin"
   chmod +x $GITHUB_WORKSPACE/fluxfunction
@@ -92,8 +110,10 @@ if [[ $1 == "FLUXTEST" ]]; then
   diff -q equatorial.bin /turso/group/spacephysics/vlasiator/testpackage/CI_reference/equatorial.bin || if [ $? -eq 1 ]; then true; else false; fi
   diff -q polar.bin /turso/group/spacephysics/vlasiator/testpackage/CI_reference/polar.bin || if [ $? -eq 1 ]; then true; else false; fi
 fi
-#Results
 
+#0++++++++++++++++++++++++++++++0
+#|         RESULTS              |
+#0++++++++++++++++++++++++++++++0
 if [[ $1 == $PARSE_OUTPUT_CMD ]]; then
   srun --job-name CI_package_results ${constraint_small} -c 1 -N 1 --mem=2G bash -c "$PARSE_OUTPUT_CMD"
 fi
