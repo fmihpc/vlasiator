@@ -148,7 +148,6 @@ jobs:
             compile_tp: false
         
     needs: build_libraries_runners
-    if: ${{ matrix.compile_tp }}
     steps:
     - name: test
       if: ${{ matrix.compile_tp }}
