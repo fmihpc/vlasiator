@@ -151,6 +151,7 @@ jobs:
     steps:
     - name: test
       if: ${{ matrix.compile_tp }}
+      run: echo ""
     - name: Clean workspace
       run: |
         export VLASIATOR_ARCH=${{ matrix.arch }}
