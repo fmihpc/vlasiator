@@ -1,4 +1,4 @@
-name: Github-CI
+name: TURSO_CI
 
 on:
   # Dispatch this workflow whenever master or dev get a PR or commit
@@ -14,7 +14,8 @@ concurrency:
    cancel-in-progress: true
 
 jobs:
-  _dummytest:
+  #Dummy job to be able to reuse the steps later
+  _definitions:
     runs-on: ubuntu-latest
     if: false
     steps:
@@ -87,10 +88,9 @@ jobs:
           retention-days: 5
           if-no-files-found: error
 
-  build_libraries_runners:
-
+  build_libraries:
     #continue-on-error: true
-    strategy:
+    strategy: &strategy
       fail-fast: false
       matrix: 
         include:
@@ -133,25 +133,13 @@ jobs:
     # Build Vlasiator with testpackage flags, on the carrington cluster
     # (for subsequent running of the integration test package)
     runs-on: carrington
-    strategy:
-      fail-fast: false
-      matrix: 
-        include:
-          - runner: hile
-            arch: [hile_cpu,hile_gpu]
-            compile_tp: true
-          - runner: carrington
-            arch: ["ukko_dgx","carrington_gcc_openmpi"]
-            compile_tp: true
-          - runner: risc-v
-            arch: ["pioneer"]
-            compile_tp: false
+    strategy: *strategy
         
-    needs: build_libraries_runners
+    needs: build_libraries
     steps:
-    - name: test
+    - name: Check whether to run this step
       if: ${{ matrix.compile_tp }}
-      run: echo ""
+      run: echo "Running"
     - name: Clean workspace
       run: |
         export VLASIATOR_ARCH=${{ matrix.arch }}
@@ -186,3 +174,93 @@ jobs:
         name: vlasiator-testpackage
         path: vlasiator
         if-no-files-found: error
+
+
+  build_prod_debug:
+    # Build Vlasiator with production flags and all the debug flags enabled, on the HILE cluster using
+    # its AMD gpus
+    strategy:
+      fail-fast: false
+      matrix: 
+        include:
+          - runner: hile
+            arch: [hile_cpu,hile_gpu]
+            compile_tp: true
+          - runner: carrington
+            arch: ["ukko_dgx","carrington_gcc_openmpi"]
+            compile_tp: true
+          - runner: risc-v
+            arch: ["pioneer"]
+            compile_tp: false
+        
+    needs: build_libraries
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - *cleanup
+      - *checksrc
+      - name: Make clean
+        run: VLASIATOR_ARCH=${{ matrix.arch }} make clean
+      - uses: ursg/gcc-problem-matcher@master
+      - name: Fetch libraries
+        uses: actions/download-artifact@v5
+        with:
+          name: libraries-${{ matrix.arch }}
+      - name: Unpack libraries
+        run: tar -zxf libraries-hile_gpu.tar.gz
+
+      - name: Compile vlasiator 
+        run: |
+          export VLASIATOR_ARCH=${{ matrix.arch }}
+          ./.github/workflows/slurm_run.sh "COMPILE_PROD"
+      - name: Make sure the output binary is visible in lustre
+        uses: nick-fields/retry@v3
+        with:
+          timeout_seconds: 15
+          max_attempts: 3
+          retry_on: error
+          command: ls vlasiator
+      - name: Upload testpackage binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: vlasiator-prod-debug-${{ matrix.arch }}
+          path: vlasiator
+          if-no-files-found: error
+
+  build_tools:
+      # Build vlsvdiff and vlsvextract for testpackage use
+      # NOTE is lacking libraries at the moment
+      strategy:
+      fail-fast: false
+      matrix: 
+        include:
+          - runner: hile
+            arch: [hile_cpu,hile_gpu]
+            compile_tp: true
+          - runner: carrington
+            arch: ["ukko_dgx","carrington_gcc_openmpi"]
+            compile_tp: true
+          - runner: risc-v
+            arch: ["pioneer"]
+            compile_tp: false
+      runs-on: ${{ matrix.runner }}
+
+      steps:
+        - *cleanup
+        - *checksrc
+        - name: Make clean
+          run: VLASIATOR_ARCH=${{ matrix.arch }} make clean
+        - uses: ursg/gcc-problem-matcher@master
+        - name: Compile tools 
+          run: |
+            export VLASIATOR_ARCH=${{ matrix.arch }}
+            ./.github/workflows/slurm_run.sh "BUILD_TOOLS"
+        - name: Upload tools binaries
+          uses: actions/upload-artifact@v4
+          with:
+            name: vlasiator-tools-${{ matrix.arch }}
+            path: |
+              vlsvextract_DP
+              vlsvdiff_DP
+              fluxfunction
+            if-no-files-found: error
+
