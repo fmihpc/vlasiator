@@ -16,6 +16,19 @@ concurrency:
 jobs:
   #Dummy job to be able to reuse the steps later
   _definitions:
+    strategy: &strategy
+      fail-fast: false
+      matrix: 
+        include:
+          - runner: hile
+            arch: [hile_cpu,hile_gpu]
+            compile_tp: true
+          - runner: carrington
+            arch: ["ukko_dgx","carrington_gcc_openmpi"]
+            compile_tp: true
+          - runner: risc-v
+            arch: ["pioneer"]
+            compile_tp: false
     runs-on: ubuntu-latest
     if: false
     steps:
@@ -29,6 +42,14 @@ jobs:
       run: |
         export VLASIATOR_ARCH=${{ matrix.arch }}
         ./.github/workflows/slurm_run.sh "CLEANUP"
+    - &binaryVisible
+      name: Make sure the output binary is visible in lustre
+      uses: nick-fields/retry@v3
+      with:
+        timeout_seconds: 15
+        max_attempts: 3
+        retry_on: error
+        command: ls vlasiator
 
 
   
@@ -90,30 +111,13 @@ jobs:
 
   build_libraries:
     #continue-on-error: true
-    strategy: &strategy
-      fail-fast: false
-      matrix: 
-        include:
-          - runner: hile
-            arch: [hile_cpu,hile_gpu]
-            compile_tp: true
-          - runner: carrington
-            arch: ["ukko_dgx","carrington_gcc_openmpi"]
-            compile_tp: true
-          - runner: risc-v
-            arch: ["pioneer"]
-            compile_tp: false
+    
+    strategy: *strategy
+
     runs-on: ${{ matrix.runner }}
     steps:
-      # - name: Clean workspace
-      #   run: |
-      #     export VLASIATOR_ARCH=${{ matrix.arch }}
-      #     ./.github/workflows/slurm_run.sh "CLEANUP"
+      - *checksrc 
       - *cleanup
-      - name: Checkout source
-        uses: actions/checkout@v4
-        with:
-          submodules: true
       - name: Run library build script ${{ matrix.arch }}
         run: | 
           export VLASIATOR_ARCH=${{ matrix.arch }}
@@ -140,14 +144,8 @@ jobs:
     - name: Check whether to run this step
       if: ${{ matrix.compile_tp }}
       run: echo "Running"
-    - name: Clean workspace
-      run: |
-        export VLASIATOR_ARCH=${{ matrix.arch }}
-        ./.github/workflows/slurm_run.sh "CLEANUP"
-    - name: Checkout source
-      uses: actions/checkout@v4
-      with:
-        submodules: true
+    - *checksrc 
+    - *cleanup
     - name: Make clean
       run: VLASIATOR_ARCH=${{ matrix.arch }} make clean
     - name: Fetch libraries
@@ -161,13 +159,7 @@ jobs:
       run: |
         export VLASIATOR_ARCH=${{ matrix.arch }}
         ./.github/workflows/slurm_run.sh "COMPILE_TP"
-    - name: Make sure the output binary is visible in lustre
-      uses: nick-fields/retry@v3
-      with:
-        timeout_seconds: 15
-        max_attempts: 3
-        retry_on: error
-        command: ls vlasiator
+    - *binaryVisible
     - name: Upload testpackage binary
       uses: actions/upload-artifact@v4
       with:
@@ -179,25 +171,14 @@ jobs:
   build_prod_debug:
     # Build Vlasiator with production flags and all the debug flags enabled, on the HILE cluster using
     # its AMD gpus
-    strategy:
-      fail-fast: false
-      matrix: 
-        include:
-          - runner: hile
-            arch: [hile_cpu,hile_gpu]
-            compile_tp: true
-          - runner: carrington
-            arch: ["ukko_dgx","carrington_gcc_openmpi"]
-            compile_tp: true
-          - runner: risc-v
-            arch: ["pioneer"]
-            compile_tp: false
-        
+    
+    strategy: *strategy
+
     needs: build_libraries
     runs-on: ${{ matrix.runner }}
     steps:
-      - *cleanup
       - *checksrc
+      - *cleanup
       - name: Make clean
         run: VLASIATOR_ARCH=${{ matrix.arch }} make clean
       - uses: ursg/gcc-problem-matcher@master
@@ -212,13 +193,8 @@ jobs:
         run: |
           export VLASIATOR_ARCH=${{ matrix.arch }}
           ./.github/workflows/slurm_run.sh "COMPILE_PROD"
-      - name: Make sure the output binary is visible in lustre
-        uses: nick-fields/retry@v3
-        with:
-          timeout_seconds: 15
-          max_attempts: 3
-          retry_on: error
-          command: ls vlasiator
+
+      - *binaryVisible
       - name: Upload testpackage binary
         uses: actions/upload-artifact@v4
         with:
@@ -229,24 +205,13 @@ jobs:
   build_tools:
       # Build vlsvdiff and vlsvextract for testpackage use
       # NOTE is lacking libraries at the moment
-      strategy:
-        fail-fast: false
-        matrix: 
-          include:
-            - runner: hile
-              arch: [hile_cpu,hile_gpu]
-              compile_tp: true
-            - runner: carrington
-              arch: ["ukko_dgx","carrington_gcc_openmpi"]
-              compile_tp: true
-            - runner: risc-v
-              arch: ["pioneer"]
-              compile_tp: false
+      strategy: *strategy
+
       runs-on: ${{ matrix.runner }}
 
       steps:
-        - *cleanup
         - *checksrc
+        - *cleanup
         - name: Make clean
           run: VLASIATOR_ARCH=${{ matrix.arch }} make clean
         - uses: ursg/gcc-problem-matcher@master
