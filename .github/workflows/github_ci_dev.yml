@@ -56,7 +56,10 @@ jobs:
         max_attempts: 3
         retry_on: error
         command: ls vlasiator
-
+    - &ifCompileTP
+      name: Check whether to run this step 
+      if: ${{ matrix.compile_tp }}
+      run: echo "Running"
 
   
   get_git_diff:
@@ -146,9 +149,7 @@ jobs:
     strategy: *strategy
         
     steps:
-    - name: Check whether to run this step
-      if: ${{ matrix.compile_tp }}
-      run: echo "Running"
+    - *ifCompileTP
     - *checksrc 
     - *cleanup
     - name: Make clean
@@ -234,4 +235,22 @@ jobs:
               vlsvdiff_DP
               fluxfunction
             if-no-files-found: error
+
+  run_TP:
+      # Build vlsvdiff and vlsvextract for testpackage use
+      # NOTE is lacking libraries at the moment
+      strategy: *strategy
+
+      runs-on: ${{ matrix.runner }}
+      
+      needs: [build_TP,build_tools]
+
+      steps:
+        - *ifCompileTP
+        - *checksrc
+        - *cleanup
+        - name: Make clean
+          run: VLASIATOR_ARCH=${{ matrix.arch }} make clean
+        - uses: ursg/gcc-problem-matcher@master
+
 

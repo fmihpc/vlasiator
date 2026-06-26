@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 #Flags for core/node counts etc for compiling/heavier srun calls
 declare -A core_flags
@@ -59,6 +59,7 @@ rm -f *.xml
 MORO
   )
   srun ${small_flags[$VLASIATOR_ARCH]} bash -c "$CLEAN_STRING"
+  exit $?
 fi
 
 #0++++++++++++++++++++++++++++++0
@@ -66,6 +67,7 @@ fi
 #0++++++++++++++++++++++++++++++0
 if [[ $1 == "BUILD_LIBS" ]]; then
   srun ${small_flags[$VLASIATOR_ARCH]} ${platform_flags[$VLASIATOR_ARCH]} --mem=8G -J build_libraries_CI bash -lc "$modules ; ./fetch_and_build_libraries.sh $VLASIATOR_ARCH"
+  exit $?
 fi
 
 #0++++++++++++++++++++++++++++++0
@@ -73,6 +75,7 @@ fi
 #0++++++++++++++++++++++++++++++0
 if [[ $1 == "BUILD_TOOLS" ]]; then
   srun ${constraint[$VLASIATOR_ARCH]} --job-name CI_TOOLS_COMPILE --interactive --nodes=1 -n 1 -c 1 --mem=4G -t 0:10:0 bash -c "$modules ; make vlsvextract vlsvdiff fluxfunction ; sleep 10s"
+  exit $?
 fi
 
 COMPILE_STRING="$modules ; make -j $(echo ${core_flags[$VLASIATOR_ARCH]} | grep -Po '\-c \d+' | grep -Po '\d+')"
@@ -82,6 +85,7 @@ COMPILE_STRING="$modules ; make -j $(echo ${core_flags[$VLASIATOR_ARCH]} | grep 
 #0++++++++++++++++++++++++++++++0
 if [[ $1 == "COMPILE_PROD" ]]; then
   srun ${constraint[$VLASIATOR_ARCH]} --job-name CI_PROD_COMPILE --interactive ${mem_flags[$VLASIATOR_ARCH]} ${core_flags[$VLASIATOR_ARCH]} -t 0:10:0 bash -c "${compile_flags_prod[$VLASIATOR_ARCH]} $COMPILE_STRING ; sleep 10s"
+  exit $?
 fi
 
 #0++++++++++++++++++++++++++++++0
@@ -89,6 +93,7 @@ fi
 #0++++++++++++++++++++++++++++++0
 if [[ $1 == "COMPILE_TP" ]]; then
   srun ${constraint[$VLASIATOR_ARCH]} --job-name CI_TP_COMPILE --interactive ${mem_flags[$VLASIATOR_ARCH]} ${core_flags[$VLASIATOR_ARCH]} -t 0:10:0 bash -c "${compile_flags_tp[$VLASIATOR_ARCH]} $COMPILE_STRING testpackage ; sleep 10s"
+  exit $?
 fi
 
 #0++++++++++++++++++++++++++++++0
@@ -96,6 +101,7 @@ fi
 #0++++++++++++++++++++++++++++++0
 if [[ $1 == "RUN_TP" ]]; then
   echo "Unimplented for now"
+  exit $?
 fi
 
 #0++++++++++++++++++++++++++++++0
@@ -115,4 +121,5 @@ fi
 #0++++++++++++++++++++++++++++++0
 if [[ $1 == $PARSE_OUTPUT_CMD ]]; then
   srun --job-name CI_package_results ${constraint_small} -c 1 -N 1 --mem=2G bash -c "$PARSE_OUTPUT_CMD"
+  exit $?
 fi
