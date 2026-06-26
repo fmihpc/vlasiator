@@ -145,7 +145,6 @@ jobs:
     runs-on: carrington
     strategy: *strategy
         
-    needs: build_libraries
     steps:
     - name: Check whether to run this step
       if: ${{ matrix.compile_tp }}
@@ -210,7 +209,6 @@ jobs:
       # NOTE is lacking libraries at the moment
       strategy: *strategy
 
-      needs: build_libraries
       runs-on: ${{ matrix.runner }}
 
       steps:
