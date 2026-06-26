@@ -38,7 +38,6 @@ compile_flags_prod["ukko_dgx"]='COMPFLAGS="-DDEBUG_VLASIATOR -DDEBUG_SOLVERS -DD
 
 declare -A compile_flags_tp
 compile_flags_tp["ukko_dgx"]='COMPFLAGS="-DDEBUG_VLASIATOR -DDEBUG_SOLVERS -DDEBUG_IONOSPHERE -DHASHINATOR_DEBUG -DDEBUG_SPATIAL_CELL -DDEBUG_VMESH -DDEBUG_VBC -DDEBUG_ACC -DUSE_WARPACCESSOR "'
-srun --constraint="ukko" -p gpu --job-name CI_tools_compile --interactive --nodes=1 -n 1 -c 1 --mem-per-cpu=2G -t 0:10:0 bash -c
 #Flags for bigger sruns, like compiling
 flags="--interactive -n 1 ${platform_flags[$VLASIATOR_ARCH]} ${constraint[$VLASIATOR_ARCH]}"
 #flags for smaller sruns, like removing files/small tests
