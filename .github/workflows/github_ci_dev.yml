@@ -230,18 +230,18 @@ jobs:
       # Build vlsvdiff and vlsvextract for testpackage use
       # NOTE is lacking libraries at the moment
       strategy:
-      fail-fast: false
-      matrix: 
-        include:
-          - runner: hile
-            arch: [hile_cpu,hile_gpu]
-            compile_tp: true
-          - runner: carrington
-            arch: ["ukko_dgx","carrington_gcc_openmpi"]
-            compile_tp: true
-          - runner: risc-v
-            arch: ["pioneer"]
-            compile_tp: false
+        fail-fast: false
+        matrix: 
+          include:
+            - runner: hile
+              arch: [hile_cpu,hile_gpu]
+              compile_tp: true
+            - runner: carrington
+              arch: ["ukko_dgx","carrington_gcc_openmpi"]
+              compile_tp: true
+            - runner: risc-v
+              arch: ["pioneer"]
+              compile_tp: false
       runs-on: ${{ matrix.runner }}
 
       steps:
