@@ -13,20 +13,23 @@ concurrency:
    group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
    cancel-in-progress: true
 
-x-steps:
-  checkoutsource: &checksrc
-    name: Checkout source
-    uses: actions/checkout@v4
-    with:
-      submodules: true
-  cleanupworkspace: &cleanup    
-    name: Clean workspace
-    run: |
-      export VLASIATOR_ARCH=${{ matrix.arch }}
-      ./.github/workflows/slurm_run.sh "CLEANUP"
-
 jobs:
+  _dummytest:
+    if: false
+    steps:
+    - &checksrc
+      name: Checkout source
+      uses: actions/checkout@v4
+      with:
+        submodules: true
+    - &cleanup
+      name: Clean workspace
+      run: |
+        export VLASIATOR_ARCH=${{ matrix.arch }}
+        ./.github/workflows/slurm_run.sh "CLEANUP"
 
+
+  
   get_git_diff:
     runs-on: ubuntu-latest
     outputs:
