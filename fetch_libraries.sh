@@ -14,7 +14,7 @@ echo "Fetching library files for platform $PLATFORM"
 PHIPROF_COMMIT="fb9b37b3d7ce592069143de465c53caf5fb80e1d"
 VLSV_COMMIT="0d06db7078ee7066f69180b559c506c4cb0d7f1b"
 PAPI_COMMIT="25a278ee5f4ccc9a2263e90ff8c15a1a58b2b7ed"
-TRILINOS_COMMIT="zoltanLBSafeAllreduce-issue15235"
+TRILINOS_BRANCH="zoltanLBSafeAllreduce-issue15235"
 ZFP_COMMIT="f2046180a8fea296646236d7d612d89b52841d46"
 TUCKER_OCTREE_COMMIT="3bc42470a5b486d947005bebf03d8846a4af9aa4"
 
@@ -62,10 +62,9 @@ if [[ $PLATFORM != "-leonardo_booster" && $PLATFORM != "-karolina_cuda" && $PLAT
 fi
 
 # Zoltan
-git clone --depth=1 https://github.com/ykempf/Trilinos.git
-cd Trilinos
-git_use_commit $TRILINOS_COMMIT
-cd ..
+git clone --depth=1 --branch="$TRILINOS_BRANCH" https://github.com/ykempf/Trilinos.git
+#cd Trilinos
+#cd ..
 
 # Boost (only if system module not available)
 if [[ $PLATFORM == "-leonardo_booster" || $PLATFORM == "-leonardo_dcgp" || $PLATFORM == "-karolina_cuda" || $PLATFORM == "-karolina_gcc" || $PLATFORM == "-ukko_dgx" || $PLATFORM == "-mahti_gcc_build" || $PLATFORM == "-frankenstein_hopper2_cuda" ]]; then
