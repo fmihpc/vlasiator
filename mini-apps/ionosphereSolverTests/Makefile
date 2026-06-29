@@ -12,13 +12,13 @@ FLAGS += -Wno-cast-function-type
 INC_FSGRID=-I../../submodules/fsgrid/
 INC_DCCRG=-I../../submodules/dccrg/
 INC_EIGEN = -isystem ../../submodules/eigen/
-
 CXXFLAGS := $(filter-out -DASTERIX_MLP,$(CXXFLAGS))
 CXXFLAGS := $(filter-out -DASTERIX_OCTREE,$(CXXFLAGS))
 CXXFLAGS := $(filter-out -DASTERIX_ZFP,$(CXXFLAGS))
 LIBS := $(filter-out LIB_NN_COMPRESSOR,$(LIBS))
 LIBS := $(filter-out LIB_ZFP,$(LIBS))
 LIBS := $(filter-out LIB_OCTREE_COMPRESSOR,$(LIBS))
+
 # Default makefile target: only build the test binaries, don't run anything
 # (in particular, nothing that would require python)
 default: main differentialFlux sigmaProfiles

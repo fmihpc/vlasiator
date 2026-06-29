@@ -936,7 +936,7 @@ int simulate(int argn,char* args[]) {
                    P::systemWriteDistributionCompressed
                ) == false
             ) {
-               cerr << "FAILED TO WRITE GRID AT" << __FILE__ << " " << __LINE__ << endl;
+               cerr << "FAILED TO WRITE GRID AT " << __FILE__ << " " << __LINE__ << endl;
             }
             P::systemWrites[i]++;
             // Special case for large timesteps

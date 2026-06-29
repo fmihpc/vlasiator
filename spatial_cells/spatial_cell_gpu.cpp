@@ -441,7 +441,7 @@ namespace spatial_cell {
       const gpuStream_t stream = gpu_getStream();
 
       vmesh::VelocityMesh* host_vmesh    = populations[popID].vmesh;
-      vmesh::VelocityMesh* dev_vmesh    = populations[popID].dev_vmesh;
+      vmesh::VelocityMesh* dev_vmesh    = gpuMemoryManager.getPointer<vmesh::VelocityMesh>(populations[popID].dev_vmesh);
       vmesh::GlobalID* _withContentData = velocity_block_with_content_list->data();
 
       // Evaluate velocity halo for local content blocks
@@ -621,8 +621,8 @@ namespace spatial_cell {
       // populations[popID].vmesh->print();
       // Grow the vmesh and block container, if necessary. Try performing this on-device, if possible.
       resize_vbc_kernel_pre<<<1, 1, 0, stream>>> (
-         populations[popID].dev_vmesh,
-         populations[popID].dev_blockContainer,
+         gpuMemoryManager.getPointer<vmesh::VelocityMesh>(populations[popID].dev_vmesh),
+         gpuMemoryManager.getPointer<vmesh::VelocityBlockContainer>(populations[popID].dev_blockContainer),
          dev_list_with_replace_new,
          dev_list_delete,
          dev_list_to_replace,
@@ -662,8 +662,8 @@ namespace spatial_cell {
       // dynamically allocated per block for this call in addition to the statically allocated memory.
       //CHK_ERR( gpuStreamSynchronize(stream) );
       update_velocity_blocks_kernel<<<launchBlocks, vlasiBlocksPerWorkUnit * WID3, 0, stream>>> (
-         populations[popID].dev_vmesh,
-         populations[popID].dev_blockContainer,
+         gpuMemoryManager.getPointer<vmesh::VelocityMesh>(populations[popID].dev_vmesh),
+         gpuMemoryManager.getPointer<vmesh::VelocityBlockContainer>(populations[popID].dev_blockContainer),
          dev_list_with_replace_new,
          dev_list_delete,
          dev_list_to_replace,
@@ -680,8 +680,8 @@ namespace spatial_cell {
       if (nBlocksAfterAdjust < nBlocksBeforeAdjust) {
          // Should not re-allocate on shrinking, so do on-device
          resize_vbc_kernel_post<<<1, 1, 0, stream>>> (
-            populations[popID].dev_vmesh,
-            populations[popID].dev_blockContainer,
+            gpuMemoryManager.getPointer<vmesh::VelocityMesh>(populations[popID].dev_vmesh),
+            gpuMemoryManager.getPointer<vmesh::VelocityBlockContainer>(populations[popID].dev_blockContainer),
             nBlocksAfterAdjust
             );
          CHK_ERR( gpuPeekAtLastError() );
@@ -748,8 +748,8 @@ namespace spatial_cell {
       // dynamically allocated per block for this call in addition to the statically allocated memory.
       //update_velocity_block_content_lists_kernel<<<launchBlocks, WID3, WID3*sizeof(int), stream>>> (
       update_velocity_block_content_lists_kernel<<<launchBlocks, (vlasiBlocksPerWorkUnit * WID3), 0, stream>>> (
-         populations[popID].dev_vmesh,
-         populations[popID].dev_blockContainer,
+         gpuMemoryManager.getPointer<vmesh::VelocityMesh>(populations[popID].dev_vmesh),
+         gpuMemoryManager.getPointer<vmesh::VelocityBlockContainer>(populations[popID].dev_blockContainer),
          dev_velocity_block_with_content_map,
          dev_velocity_block_with_no_content_map,
          velocity_block_min_value
@@ -1071,8 +1071,8 @@ namespace spatial_cell {
          const uint launchBlocks = 1 + ((newSize - 1) / (WARPSPERBLOCK*GPUTHREADS));
          #endif
          update_vmesh_and_blockparameters_kernel<<<launchBlocks, (WARPSPERBLOCK*GPUTHREADS), 0, stream>>> (
-            populations[popID].dev_vmesh,
-            populations[popID].dev_blockContainer,
+            gpuMemoryManager.getPointer<vmesh::VelocityMesh>(populations[popID].dev_vmesh),
+            gpuMemoryManager.getPointer<vmesh::VelocityBlockContainer>(populations[popID].dev_blockContainer),
             newSize
             );
          CHK_ERR( gpuPeekAtLastError() );
