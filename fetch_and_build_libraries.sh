@@ -4,6 +4,11 @@ set -e   # Abort on error
 
 WORKSPACE=`pwd`
 
+SH_FILES_DIR=`dirname $0`
+if [[ z$SH_FILES_DIR == "z" ]]; then
+	SH_FILES_DIR="."
+fi
+
 if [[ z$1 != "z" ]]; then
    PLATFORM=-$1
    echo "Using platform $PLATFORM as provided to the script."
@@ -27,12 +32,12 @@ else
    ln -s $BUILDDIR library-build
 fi
 
-bash ./fetch_libraries.sh ${PLATFORM:1}
+bash $(SH_FILES_DIR)/fetch_libraries.sh ${PLATFORM:1}
 if [[ -f ./modules/${PLATFORM:1}.sh ]]
 then
    source modules/${PLATFORM:1}.sh
 fi
-source build_fetched_libraries.sh ${PLATFORM:1}
+source $(SH_FILES_DIR)/build_fetched_libraries.sh ${PLATFORM:1}
 
 # Clean up build directory
 rm -rf $BUILDDIR
