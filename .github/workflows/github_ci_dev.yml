@@ -141,9 +141,25 @@ jobs:
           retention-days: 5
           if-no-files-found: error
 
-  build_libraries_hile-g:
+  build_libraries_hile_gpu:
     runs-on: hile
+    strategy:
+      matrix: 
+        arch: hile_gpu
+
     steps: *buildLibs
+  
+  test_job:
+    runs-on: hile
+    strategy:
+      matrix: 
+        arch: hile_gpu
+
+    needs: build_libraries_{{ matrix.arch }}
+    steps:
+      - name: Testing
+        run: |
+          echo "Success"
 
   build_TP:
     # Build Vlasiator with testpackage flags, on the carrington cluster
