@@ -642,6 +642,7 @@ __global__ static void resize_and_empty_kernel (
 
       uint64_t get_cell_memory_capacity();
       uint64_t get_cell_memory_size();
+      void prepare_to_receive_blocks_gather(const uint popID, const uint cellIndex, uint& maxNewSize);
       void prepare_to_receive_blocks(const uint popID);
       bool shrink_to_fit();
       size_t size(const uint popID) const;
@@ -1317,5 +1318,7 @@ __global__ static void resize_and_empty_kernel (
    }
 
 } // namespaces
+
+void prepare_to_receive_blocks_multicell(const uint popID, const uint numberOfCells, uint maxNewSize);
 
 #endif

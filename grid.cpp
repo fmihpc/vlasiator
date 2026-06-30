@@ -942,7 +942,6 @@ void updateRemoteVelocityBlockLists(
    // TODO: using #pragma omp parallel for sometimes causes a deadlock somewhere
    // inside this loop on GPUs. Underlying cause yet to be identified.
    #pragma omp parallel for
-#endif
    for (unsigned int i = 0; i < incoming_cells.size(); ++i) {
       uint64_t cell_id = incoming_cells[i];
       SpatialCell* cell = mpiGrid[cell_id];
@@ -965,6 +964,52 @@ void updateRemoteVelocityBlockLists(
       }
       cell->prepare_to_receive_blocks(popID);
    }
+#else
+   CREATE_UNIQUE_POINTER(gpuMemoryManager, host_vmeshesReceive);
+   CREATE_UNIQUE_POINTER(gpuMemoryManager, dev_vmeshesReceive);
+   CREATE_UNIQUE_POINTER(gpuMemoryManager, host_blockContainersReceive);
+   CREATE_UNIQUE_POINTER(gpuMemoryManager, dev_blockContainersReceive);
+   CREATE_UNIQUE_POINTER(gpuMemoryManager, host_newSizes);
+   CREATE_UNIQUE_POINTER(gpuMemoryManager, dev_newSizes);
+   HOST_ALLOCATE_GPU(gpuMemoryManager, host_vmeshesReceive, incoming_cells.size()*sizeof(vmesh::VelocityMesh*));
+   ALLOCATE_GPU(gpuMemoryManager, dev_vmeshesReceive, incoming_cells.size()*sizeof(vmesh::VelocityMesh*));
+   HOST_ALLOCATE_GPU(gpuMemoryManager, host_blockContainersReceive, incoming_cells.size()*sizeof(vmesh::VelocityBlockContainer*));
+   ALLOCATE_GPU(gpuMemoryManager, dev_blockContainersReceive, incoming_cells.size()*sizeof(vmesh::VelocityBlockContainer*));
+   HOST_ALLOCATE_GPU(gpuMemoryManager, host_newSizes, incoming_cells.size()*sizeof(uint));
+   ALLOCATE_GPU(gpuMemoryManager, dev_newSizes, incoming_cells.size()*sizeof(uint));
+
+   int cellIndex = 0;
+   uint maxNewSize = 0;
+   for (unsigned int i = 0; i < incoming_cells.size(); ++i) {
+      uint64_t cell_id = incoming_cells[i];
+      SpatialCell* cell = mpiGrid[cell_id];
+      if (cell == NULL) {
+         #ifdef DEBUG_VLASIATOR
+         for (const auto& cell: mpiGrid.local_cells) {
+            if (cell.id == cell_id) {
+               cerr << __FILE__ << ":" << __LINE__ << std::endl;
+               abort();
+            }
+            for (const auto& neighbor: cell.neighbors_of) {
+               if (neighbor.id == cell_id) {
+                  cerr << __FILE__ << ":" << __LINE__ << std::endl;
+                  abort();
+               }
+            }
+         }
+         #endif
+         continue;
+      }
+      cell->prepare_to_receive_blocks_gather(popID, cellIndex, maxNewSize);
+      cellIndex++;
+   }
+
+   CHK_ERR( gpuMemcpy(GET_POINTER(gpuMemoryManager, vmesh::VelocityMesh*, dev_vmeshesReceive), GET_POINTER(gpuMemoryManager, vmesh::VelocityMesh*, host_vmeshesReceive), incoming_cells.size()*sizeof(vmesh::VelocityMesh*), gpuMemcpyHostToDevice) );
+   CHK_ERR( gpuMemcpy(GET_POINTER(gpuMemoryManager, vmesh::VelocityBlockContainer*, dev_blockContainersReceive), GET_POINTER(gpuMemoryManager, vmesh::VelocityBlockContainer*, host_blockContainersReceive), incoming_cells.size()*sizeof(vmesh::VelocityBlockContainer*), gpuMemcpyHostToDevice) );
+   CHK_ERR( gpuMemcpy(GET_POINTER(gpuMemoryManager, uint, dev_newSizes), GET_POINTER(gpuMemoryManager, uint, host_newSizes), incoming_cells.size()*sizeof(uint), gpuMemcpyHostToDevice) );
+
+   prepare_to_receive_blocks_multicell(popID, cellIndex, maxNewSize);
+#endif
 
    receivesTimer.stop(incoming_cells.size(), "SpatialCells");
 }
