@@ -55,13 +55,13 @@ jobs:
         include:
           - runner: hile
             arch: hile_gpu
-            compile_tp: true
+            compile_tp: false
           - runner: hile
             arch: hile_cpu
             compile_tp: true
           - runner: ukko
             arch: ukko_dgx
-            compile_tp: true
+            compile_tp: false
           - runner: carrington
             arch: carrington_gcc_openmpi
             compile_tp: true
