@@ -111,7 +111,6 @@ jobs:
     - &makeClean
       name: Make clean
       run: make clean
-
     - uses: ursg/gcc-problem-matcher@master
     - &buildLibs
       name: Run library build script ${{ matrix.arch }}
@@ -123,23 +122,19 @@ jobs:
       background: true
       run: |
         ./.github/workflows/slurm_run.sh "COMPILE_TP"
-    
     - &compileProd
       name: Compile prod
       if: ${{ ! matrix.compile_tp }}
       background: true
       run: |
         ./.github/workflows/slurm_run.sh "COMPILE_PROD"
-
     - &compileTools
       name: Compile tools 
       background: true
       run: |
         ./.github/workflows/slurm_run.sh "BUILD_TOOLS"
-
     - name: Wait for tools and tp to compile
       wait-all: 
-
     - &checkVlasiatorBinaryVisibility
       name: Make sure the output binary is visible in lustre
       uses: nick-fields/retry@v3
@@ -148,20 +143,17 @@ jobs:
         max_attempts: 3
         retry_on: error
         command: ls vlasiator
-
     - &runTP
       name: Run TP
       id: run
       if: ${{ matrix.compile_tp }}
       run: |
         ./.github/workflows/slurm_run.sh "RUN_TP"
-
     - name: Scancel dangling job upon cancellation
       if: cancelled()
       run: |
         # Try accessing the job id echoed by the job script.
         scancel ${{ steps.run.outputs.SLURM_JOB_ID }}
-
     - &uploadTestpackageOutput
       name: Upload testpackage output
       uses: actions/upload-artifact@v4
@@ -169,13 +161,11 @@ jobs:
       with:
         name: testpackage-output
         path: testpackage-output.tar.gz
-
     - &fluxTest
       name: Run fluxfunction test
       if: ${{ matrix.compile_tp }}
       run: |
         ./.github/workflows/slurm_run.sh "FLUXTEST"
-
     - &uploadTools
       name: Upload tools binaries
       uses: actions/upload-artifact@v4
@@ -186,7 +176,6 @@ jobs:
           vlsvdiff_DP
           fluxfunction
         if-no-files-found: error
-
     - &uploadTP
       name: Upload testpackage binary
       uses: actions/upload-artifact@v4
@@ -194,7 +183,6 @@ jobs:
         name: vlasiator-testpackage
         path: vlasiator
         if-no-files-found: error
-
     - &uploadLibs
       name: Upload libraries as artifact
       uses: actions/upload-artifact@v4
