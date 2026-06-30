@@ -83,6 +83,7 @@ jobs:
             exit 0
           fi
           echo "Running testpackage"
+
   get_git_diff_check:
     runs-on: ubuntu-latest
     needs: get_git_diff
@@ -118,51 +119,85 @@ jobs:
           retention-days: 5
           if-no-files-found: error
   #
-  build_libraries:
+  # build_libraries:
+  #   #Build libraries definition
+  #   # strategy: *strategy
+  #   if: false
+  #   # runs-on: ${{ matrix.runner }}
+  #   steps: &buildLibs
+  #     - *checksrc 
+  #     - *cleanup
+  #     - name: Run library build script ${{ matrix.arch }}
+  #       run: | 
+  #         export VLASIATOR_ARCH=${{ matrix.arch }}
+  #         ./.github/workflows/slurm_run.sh "BUILD_LIBS"
+  #     - name: Build libraries tar
+  #       run: tar -zcf libraries-${{ matrix.arch }}.tar.gz libraries-${{ matrix.arch }}/
+  #     - name: Upload libraries as artifact
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: libraries-${{ matrix.arch }}
+  #         path: libraries-${{ matrix.arch }}.tar.gz
+  #         retention-days: 5
+  #         if-no-files-found: error
+  #     #
+  #
 
-    strategy: *strategy
-    if: false
-    runs-on: ${{ matrix.runner }}
-    steps: &buildLibs
-      - *checksrc 
-      - *cleanup
-      - name: Run library build script ${{ matrix.arch }}
-        run: | 
-          export VLASIATOR_ARCH=${{ matrix.arch }}
-          ./.github/workflows/slurm_run.sh "BUILD_LIBS"
-      - name: Build libraries tar
-        run: tar -zcf libraries-${{ matrix.arch }}.tar.gz libraries-${{ matrix.arch }}/
-      - name: Upload libraries as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: libraries-${{ matrix.arch }}
-          path: libraries-${{ matrix.arch }}.tar.gz
-          retention-days: 5
-          if-no-files-found: error
-
-
-
-  build_TP:
+  testpackage:
     # Build Vlasiator with testpackage flags, on the carrington cluster
     # (for subsequent running of the integration test package)
     strategy: *strategy
     runs-on: ${{ matrix.runner }} 
-    steps: &buildTP
-    - *ifCompileTP
+    steps:
     - *checksrc 
     - *cleanup
     - name: Make clean
       run: VLASIATOR_ARCH=${{ matrix.arch }} make clean
+    - uses: ursg/gcc-problem-matcher@master
+
     - name: Run library build script ${{ matrix.arch }}
       run: | 
         export VLASIATOR_ARCH=${{ matrix.arch }}
         ./.github/workflows/slurm_run.sh "BUILD_LIBS"
-    - uses: ursg/gcc-problem-matcher@master
+
     - name: Compile vlasiator (Testpackage build)
+      if: ${{ matrix.compile_tp }}
+      background: true
       run: |
         export VLASIATOR_ARCH=${{ matrix.arch }}
         ./.github/workflows/slurm_run.sh "COMPILE_TP"
+    
+    - name: Compile prod
+      if: ${{ ! matrix.compile_tp }}
+      run: |
+        export VLASIATOR_ARCH=${{ matrix.arch }}
+        ./.github/workflows/slurm_run.sh "COMPILE_PROD"
+
+    - name: Compile tools 
+      background: true
+      run: |
+        export VLASIATOR_ARCH=${{ matrix.arch }}
+        ./.github/workflows/slurm_run.sh "BUILD_TOOLS"
+
+    - name: Wait for tools and tp to compile
+      wait-all: 
+
     - *binaryVisible
+    - name: Run TP
+      if: ${{ matrix.compile_tp }}
+      run: |
+        echo "Not implemnted yet!"
+
+    - name: Upload tools binaries
+      uses: actions/upload-artifact@v4
+      with:
+        name: vlasiator-tools-${{ matrix.arch }}
+        path: |
+          vlsvextract_DP
+          vlsvdiff_DP
+          fluxfunction
+        if-no-files-found: error
+
     - name: Upload testpackage binary
       uses: actions/upload-artifact@v4
       with:
@@ -170,105 +205,106 @@ jobs:
         path: vlasiator
         if-no-files-found: error
 
-  build_libraries_hile_gpu:
-      runs-on: hile
-      strategy:
-        matrix: 
-          include:
-            - arch: hile_gpu
-
-      steps: *buildLibs
-    
-  test_job:
-      runs-on: hile
-      strategy:
-        matrix: 
-          include:
-            - arch: hile_gpu
-
-      needs: build_libraries_hile_gpu
-      
-      steps: *buildTP
-
-  build_prod_debug:
-    # Build Vlasiator with production flags and all the debug flags enabled, on the HILE cluster using
-    # its AMD gpus
-    
-    strategy: *strategy
-
-    runs-on: ${{ matrix.runner }}
-    steps:
-      - *checksrc
-      - *cleanup
-      - name: Make clean
-        run: VLASIATOR_ARCH=${{ matrix.arch }} make clean
-      - uses: ursg/gcc-problem-matcher@master
-      - name: Run library build script ${{ matrix.arch }}
-        run: | 
-          export VLASIATOR_ARCH=${{ matrix.arch }}
-          ./.github/workflows/slurm_run.sh "BUILD_LIBS"
-      - name: Unpack libraries
-        run: tar -zxf libraries-${{ matrix.arch }}.tar.gz
-
-      - name: Compile vlasiator 
-        run: |
-          export VLASIATOR_ARCH=${{ matrix.arch }}
-          ./.github/workflows/slurm_run.sh "COMPILE_PROD"
-
-      - *binaryVisible
-      - name: Upload testpackage binary
-        uses: actions/upload-artifact@v4
-        with:
-          name: vlasiator-prod-debug-${{ matrix.arch }}
-          path: vlasiator
-          if-no-files-found: error
-
-  build_tools:
+  # alternative way to handle things
+  # build_libraries_hile_gpu:
+  #     runs-on: hile
+  #     strategy:
+  #       matrix: 
+  #         include:
+  #           - arch: hile_gpu
+  #
+  #     steps: *buildLibs
+  #
+  # build_TP_hile_gpu:
+  #     runs-on: hile
+  #     strategy:
+  #       matrix: 
+  #         include:
+  #           - arch: hile_gpu
+  #
+  #     needs: build_libraries_hile_gpu
+  #
+  #     steps: *buildTP
+  ##
+  #build_prod_debug:
+  #  # Build Vlasiator with production flags and all the debug flags enabled, on the HILE cluster using
+  #  # its AMD gpus
+  #
+  #  strategy: *strategy
+  #
+  #  runs-on: ${{ matrix.runner }}
+  #  steps:
+  #    - *checksrc
+  #    - *cleanup
+  #    - name: Make clean
+  #      run: VLASIATOR_ARCH=${{ matrix.arch }} make clean
+  #    - uses: ursg/gcc-problem-matcher@master
+  #    - name: Run library build script ${{ matrix.arch }}
+  #      run: | 
+  #        export VLASIATOR_ARCH=${{ matrix.arch }}
+  #        ./.github/workflows/slurm_run.sh "BUILD_LIBS"
+  #    - name: Unpack libraries
+  #      run: tar -zxf libraries-${{ matrix.arch }}.tar.gz
+  #
+  #    - name: Compile vlasiator 
+  #      run: |
+  #        export VLASIATOR_ARCH=${{ matrix.arch }}
+  #        ./.github/workflows/slurm_run.sh "COMPILE_PROD"
+  #
+  #    - *binaryVisible
+  #    - name: Upload testpackage binary
+  #      uses: actions/upload-artifact@v4
+  #      with:
+  #        name: vlasiator-prod-debug-${{ matrix.arch }}
+  #        path: vlasiator
+  #        if-no-files-found: error
+  #
+  #build_tools:
       # Build vlsvdiff and vlsvextract for testpackage use
       # NOTE is lacking libraries at the moment
-      strategy: *strategy
-
-      runs-on: ${{ matrix.runner }}
-
-      steps:
-        - *checksrc
-        - *cleanup
-        - name: Make clean
-          run: VLASIATOR_ARCH=${{ matrix.arch }} make clean
-        - name: Run library build script ${{ matrix.arch }}
-          run: | 
-            export VLASIATOR_ARCH=${{ matrix.arch }}
-            ./.github/workflows/slurm_run.sh "BUILD_LIBS"
-        - uses: ursg/gcc-problem-matcher@master
-        - name: Compile tools 
-          run: |
-            export VLASIATOR_ARCH=${{ matrix.arch }}
-            ./.github/workflows/slurm_run.sh "BUILD_TOOLS"
-        - name: Upload tools binaries
-          uses: actions/upload-artifact@v4
-          with:
-            name: vlasiator-tools-${{ matrix.arch }}
-            path: |
-              vlsvextract_DP
-              vlsvdiff_DP
-              fluxfunction
-            if-no-files-found: error
-
-  run_TP:
-      # Build vlsvdiff and vlsvextract for testpackage use
-      # NOTE is lacking libraries at the moment
-      strategy: *strategy
-
-      runs-on: ${{ matrix.runner }}
-      
-      needs: [build_TP,build_tools]
-
-      steps:
-        - *ifCompileTP
-        - *checksrc
-        - *cleanup
-        - name: Make clean
-          run: VLASIATOR_ARCH=${{ matrix.arch }} make clean
-        - uses: ursg/gcc-problem-matcher@master
-
+      # strategy: *strategy
+      #
+      # runs-on: ${{ matrix.runner }}
+      #
+      # steps:
+      #   - *checksrc
+      #   - *cleanup
+      #   - name: Make clean
+      #     run: VLASIATOR_ARCH=${{ matrix.arch }} make clean
+      #   - name: Run library build script ${{ matrix.arch }}
+      #     run: | 
+      #       export VLASIATOR_ARCH=${{ matrix.arch }}
+      #       ./.github/workflows/slurm_run.sh "BUILD_LIBS"
+      #   - uses: ursg/gcc-problem-matcher@master
+      #   - name: Compile tools 
+      #     run: |
+      #       export VLASIATOR_ARCH=${{ matrix.arch }}
+      #       ./.github/workflows/slurm_run.sh "BUILD_TOOLS"
+      #   - name: Upload tools binaries
+      #     uses: actions/upload-artifact@v4
+      #     with:
+      #       name: vlasiator-tools-${{ matrix.arch }}
+      #       path: |
+      #         vlsvextract_DP
+      #         vlsvdiff_DP
+      #         fluxfunction
+      #       if-no-files-found: error
+  #
+  # run_TP:
+  #     # Build vlsvdiff and vlsvextract for testpackage use
+  #     # NOTE is lacking libraries at the moment
+  #     strategy: *strategy
+  #
+  #     runs-on: ${{ matrix.runner }}
+  #
+  #     needs: [build_TP,build_tools]
+  #
+  #     steps:
+  #       - *ifCompileTP
+  #       - *checksrc
+  #       - *cleanup
+  #       - name: Make clean
+  #         run: VLASIATOR_ARCH=${{ matrix.arch }} make clean
+  #       - uses: ursg/gcc-problem-matcher@master
+  #
 
