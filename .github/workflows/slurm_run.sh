@@ -104,10 +104,10 @@ fi
 #|         RUN TP               |
 #0++++++++++++++++++++++++++++++0
 if [[ $1 == "RUN_TP" ]]; then
-  if [[ "$VLASIATOR_ARCH"=="carrington_gcc_openmpi" || "$VLASIATOR_ARCH"=="hile_cpu" ]]; then
+  if [[ "$VLASIATOR_ARCH" == "carrington_gcc_openmpi" || "$VLASIATOR_ARCH" == "hile_cpu" ]]; then
     
     #Platform specific expections can be added here
-    if [[ "$VLASIATOR_ARCH"=="carrington_gcc_openmpi" ]]; then
+    if [[ "$VLASIATOR_ARCH" == "carrington_gcc_openmpi" ]]; then
       export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/libraries-carrington_gcc_openmpi/lib
     fi
 
