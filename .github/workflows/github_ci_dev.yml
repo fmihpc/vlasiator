@@ -134,7 +134,7 @@ jobs:
       run: |
         ./.github/workflows/slurm_run.sh "BUILD_TOOLS"
     - name: Wait for tools and tp to compile
-      wait-all: 
+      wait-all: true 
     - &checkVlasiatorBinaryVisibility
       name: Make sure the output binary is visible in lustre
       uses: nick-fields/retry@v3
