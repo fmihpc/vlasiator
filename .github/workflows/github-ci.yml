@@ -715,8 +715,6 @@ jobs:
 
   build_arm64:
     runs-on: ubuntu-24.04-arm
-    needs: build_libraries_arm64
-
     steps:
     - name: Checkout source
       uses: actions/checkout@v4
@@ -889,7 +887,7 @@ jobs:
         chmod +x $GITHUB_WORKSPACE/vlasiator
         chmod +x $GITHUB_WORKSPACE/vlsv*_DP
         cd testpackage
-        # Delete any old run directories
+        # Delete any old run directories 
         rm -rf run_20*
         export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/libraries-carrington_gcc_openmpi/lib
         sbatch -W -o testpackage_run_output.txt ./small_test_carrington_github_ci.sh || true
