@@ -32,7 +32,7 @@ constraint_small["hile_cpu"]="-C c"
 #Memory flags for compiling, note that with --exclusive it is better to use --mem since --mem-per-cpu counts the whole node apparently
 declare -A mem_flags
 mem_flags["carrington_gcc_openmpi"]="--mem=40G"
-mem_flags["ukko_dgx"]="--mem=16G"
+mem_flags["ukko_dgx"]="--mem=64G"
 mem_flags["pioneer"]=""
 mem_flags["hile_gpu"]="--mem=32G"
 mem_flags["hile_cpu"]="--mem=32G"

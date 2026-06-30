@@ -102,15 +102,15 @@ jobs:
       VLASIATOR_ARCH: ${{ matrix.arch }}
     steps:
       #The & tags can be reused in other job steps with `- *tagname`
+    - &cleanWorkspace
+      name: Clean workspace
+      run: |
+        ./.github/workflows/slurm_run.sh "CLEANUP"
     - &checkoutSource
       name: Checkout source
       uses: actions/checkout@v4
       with:
         submodules: true 
-    - &cleanWorkspace
-      name: Clean workspace
-      run: |
-        ./.github/workflows/slurm_run.sh "CLEANUP"
     - &makeClean
       name: Make clean
       run: make clean
