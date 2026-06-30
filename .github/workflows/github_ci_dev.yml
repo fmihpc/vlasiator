@@ -153,7 +153,8 @@ jobs:
     runs-on: hile
     strategy:
       matrix: 
-        - arch: hile_gpu
+        include:
+          - arch: hile_gpu
 
     needs: build_libraries_hile_gpu
     steps: *buildTP
