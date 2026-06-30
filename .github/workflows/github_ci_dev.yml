@@ -194,7 +194,7 @@ jobs:
           retention-days: 5
           if-no-files-found: error
 
-  build_libraries_arm64:
+  build_arm64:
     # Build libraries on macos with M1 hardware, to test both macOS and aarch64 compatibility
     runs-on: ubuntu-24.04-arm
 
@@ -218,9 +218,9 @@ jobs:
       - name: Compile vlasiator (Release build)
         run: |
           VLASIATOR_ARCH=github_actions_arm64 make -j 4
-  #add build arm
+
   build_github:
-    # Build Vlasiator with production flags
+    fail-fast: false
     strategy:
       matrix:
         compile_flags: ["prod","prod_debug","ord1_time","ord1_space"]
