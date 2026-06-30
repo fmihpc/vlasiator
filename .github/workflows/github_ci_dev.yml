@@ -157,7 +157,7 @@ jobs:
         include:
           - arch: hile_gpu
 
-    needs: build_libraries_{{ matrix.arch }}
+    needs: build_libraries_${{ matrix.arch }}
     steps:
       - name: Testing
         run: |
