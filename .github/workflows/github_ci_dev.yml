@@ -357,7 +357,7 @@ jobs:
   check_cfg_files:
     runs-on: ubuntu-latest
     container: ursg/vlasiator_ci:20250909_1
-    needs: [build_libraries_github, build_prod]
+    needs: [build_libraries_github, build_github]
     steps:
     - name: Checkout source
       uses: actions/checkout@v4
