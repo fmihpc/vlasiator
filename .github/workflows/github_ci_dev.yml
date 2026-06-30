@@ -220,8 +220,8 @@ jobs:
           VLASIATOR_ARCH=github_actions_arm64 make -j 4
 
   build_github:
-    fail-fast: false
     strategy:
+      fail-fast: false
       matrix:
         compile_flags: ["prod","prod_debug","ord1_time","ord1_space"]
     runs-on: ubuntu-latest
