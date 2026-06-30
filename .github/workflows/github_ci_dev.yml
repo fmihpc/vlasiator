@@ -14,53 +14,6 @@ concurrency:
    cancel-in-progress: true
 
 jobs:
-  #Dummy job to be able to reuse the steps later
-  _definitions:
-    strategy: &strategy
-      fail-fast: false
-      matrix: 
-        include:
-          - runner: hile
-            arch: hile_gpu
-            compile_tp: true
-          - runner: hile
-            arch: hile_cpu
-            compile_tp: true
-          - runner: carrington
-            arch: ukko_dgx
-            compile_tp: true
-          - runner: carrington
-            arch: carrington_gcc_openmpi
-            compile_tp: true
-          - runner: risc-v
-            arch: pioneer
-            compile_tp: false
-    runs-on: ubuntu-latest
-    if: false
-    steps:
-    - &checksrc
-      name: Checkout source
-      uses: actions/checkout@v4
-      with:
-        submodules: true
-    - &cleanup
-      name: Clean workspace
-      run: |
-        export VLASIATOR_ARCH=${{ matrix.arch }}
-        ./.github/workflows/slurm_run.sh "CLEANUP"
-    - &binaryVisible
-      name: Make sure the output binary is visible in lustre
-      uses: nick-fields/retry@v3
-      with:
-        timeout_seconds: 15
-        max_attempts: 3
-        retry_on: error
-        command: ls vlasiator
-    - &ifCompileTP
-      name: Check whether to run this step 
-      if: ${{ matrix.compile_tp }}
-      run: echo "Running"
-
   
   get_git_diff:
     runs-on: ubuntu-latest
@@ -118,7 +71,140 @@ jobs:
           path: libraries-docker.tar.zstd
           retention-days: 5
           if-no-files-found: error
-  #
+
+  testpackage:
+    # Build Vlasiator with testpackage flags, on the carrington cluster
+    # (for subsequent running of the integration test package)
+    strategy: &strategy
+      fail-fast: false
+      matrix: 
+        include:
+          - runner: hile
+            arch: hile_gpu
+            compile_tp: true
+          - runner: hile
+            arch: hile_cpu
+            compile_tp: true
+          - runner: ukko
+            arch: ukko_dgx
+            compile_tp: true
+          - runner: carrington
+            arch: carrington_gcc_openmpi
+            compile_tp: true
+          - runner: risc-v
+            arch: pioneer
+            compile_tp: false
+    runs-on: ${{ matrix.runner }} 
+    env:
+      VLASIATOR_ARCH: ${{ matrix.arch }}
+    steps:
+      #The & tags can be reused in other job steps with `- *tagname`
+    - &checkoutSource
+      name: Checkout source
+      uses: actions/checkout@v4
+      with:
+        submodules: true 
+    - &cleanWorkspace
+      name: Clean workspace
+      run: |
+        ./.github/workflows/slurm_run.sh "CLEANUP"
+    - &makeClean
+      name: Make clean
+      run: make clean
+
+    - uses: ursg/gcc-problem-matcher@master
+    - &buildLibs
+      name: Run library build script ${{ matrix.arch }}
+      run: | 
+        ./.github/workflows/slurm_run.sh "BUILD_LIBS"
+    - &compileTP
+      name: Compile vlasiator (Testpackage build)
+      if: ${{ matrix.compile_tp }}
+      background: true
+      run: |
+        ./.github/workflows/slurm_run.sh "COMPILE_TP"
+    
+    - &compileProd
+      name: Compile prod
+      if: ${{ ! matrix.compile_tp }}
+      background: true
+      run: |
+        ./.github/workflows/slurm_run.sh "COMPILE_PROD"
+
+    - &compileTools
+      name: Compile tools 
+      background: true
+      run: |
+        ./.github/workflows/slurm_run.sh "BUILD_TOOLS"
+
+    - name: Wait for tools and tp to compile
+      wait-all: 
+
+    - &checkVlasiatorBinaryVisibility
+      name: Make sure the output binary is visible in lustre
+      uses: nick-fields/retry@v3
+      with:
+        timeout_seconds: 15
+        max_attempts: 3
+        retry_on: error
+        command: ls vlasiator
+
+    - &runTP
+      name: Run TP
+      id: run
+      if: ${{ matrix.compile_tp }}
+      run: |
+        ./.github/workflows/slurm_run.sh "RUN_TP"
+
+    - name: Scancel dangling job upon cancellation
+      if: cancelled()
+      run: |
+        # Try accessing the job id echoed by the job script.
+        scancel ${{ steps.run.outputs.SLURM_JOB_ID }}
+
+    - &uploadTestpackageOutput
+      name: Upload testpackage output
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: testpackage-output
+        path: testpackage-output.tar.gz
+
+    - &fluxTest
+      name: Run fluxfunction test
+      if: ${{ matrix.compile_tp }}
+      run: |
+        ./.github/workflows/slurm_run.sh "FLUXTEST"
+
+    - &uploadTools
+      name: Upload tools binaries
+      uses: actions/upload-artifact@v4
+      with:
+        name: vlasiator-tools-${{ matrix.arch }}
+        path: |
+          vlsvextract_DP
+          vlsvdiff_DP
+          fluxfunction
+        if-no-files-found: error
+
+    - &uploadTP
+      name: Upload testpackage binary
+      uses: actions/upload-artifact@v4
+      with:
+        name: vlasiator-testpackage
+        path: vlasiator
+        if-no-files-found: error
+
+    - &uploadLibs
+      name: Upload libraries as artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: libraries-${{ matrix.arch }}
+        path: libraries-${{ matrix.arch }}.tar.gz
+        retention-days: 5
+        if-no-files-found: error
+
+    #
   # build_libraries:
   #   #Build libraries definition
   #   # strategy: *strategy
@@ -142,69 +228,6 @@ jobs:
   #         if-no-files-found: error
   #     #
   #
-
-  testpackage:
-    # Build Vlasiator with testpackage flags, on the carrington cluster
-    # (for subsequent running of the integration test package)
-    strategy: *strategy
-    runs-on: ${{ matrix.runner }} 
-    steps:
-    - *checksrc 
-    - *cleanup
-    - name: Make clean
-      run: VLASIATOR_ARCH=${{ matrix.arch }} make clean
-    - uses: ursg/gcc-problem-matcher@master
-
-    - name: Run library build script ${{ matrix.arch }}
-      run: | 
-        export VLASIATOR_ARCH=${{ matrix.arch }}
-        ./.github/workflows/slurm_run.sh "BUILD_LIBS"
-
-    - name: Compile vlasiator (Testpackage build)
-      if: ${{ matrix.compile_tp }}
-      background: true
-      run: |
-        export VLASIATOR_ARCH=${{ matrix.arch }}
-        ./.github/workflows/slurm_run.sh "COMPILE_TP"
-    
-    - name: Compile prod
-      if: ${{ ! matrix.compile_tp }}
-      run: |
-        export VLASIATOR_ARCH=${{ matrix.arch }}
-        ./.github/workflows/slurm_run.sh "COMPILE_PROD"
-
-    - name: Compile tools 
-      background: true
-      run: |
-        export VLASIATOR_ARCH=${{ matrix.arch }}
-        ./.github/workflows/slurm_run.sh "BUILD_TOOLS"
-
-    - name: Wait for tools and tp to compile
-      wait-all: 
-
-    - *binaryVisible
-    - name: Run TP
-      if: ${{ matrix.compile_tp }}
-      run: |
-        echo "Not implemnted yet!"
-
-    - name: Upload tools binaries
-      uses: actions/upload-artifact@v4
-      with:
-        name: vlasiator-tools-${{ matrix.arch }}
-        path: |
-          vlsvextract_DP
-          vlsvdiff_DP
-          fluxfunction
-        if-no-files-found: error
-
-    - name: Upload testpackage binary
-      uses: actions/upload-artifact@v4
-      with:
-        name: vlasiator-testpackage
-        path: vlasiator
-        if-no-files-found: error
-
   # alternative way to handle things
   # build_libraries_hile_gpu:
   #     runs-on: hile
@@ -307,4 +330,31 @@ jobs:
   #         run: VLASIATOR_ARCH=${{ matrix.arch }} make clean
   #       - uses: ursg/gcc-problem-matcher@master
   #
+  #Dummy job to be able to reuse the steps later
+  # _definitions:
+  #   runs-on: ubuntu-latest
+  #   if: false
+  #   steps:
+  #   - &checksrc
+  #     name: Checkout source
+  #     uses: actions/checkout@v4
+  #     with:
+  #       submodules: true
+  #   - &cleanup
+  #     name: Clean workspace
+  #     run: |
+  #       export VLASIATOR_ARCH=${{ matrix.arch }}
+  #       ./.github/workflows/slurm_run.sh "CLEANUP"
+  #   - &binaryVisible
+  #     name: Make sure the output binary is visible in lustre
+  #     uses: nick-fields/retry@v3
+  #     with:
+  #       timeout_seconds: 15
+  #       max_attempts: 3
+  #       retry_on: error
+  #       command: ls vlasiator
+  #   # - &ifCompileTP
+  #   #   name: Check whether to run this step 
+  #   #   if: ${{ matrix.compile_tp }}
+  #   #   run: echo "Running"
 

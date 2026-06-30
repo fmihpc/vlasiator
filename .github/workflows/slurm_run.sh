@@ -104,8 +104,39 @@ fi
 #|         RUN TP               |
 #0++++++++++++++++++++++++++++++0
 if [[ $1 == "RUN_TP" ]]; then
-  echo "Unimplented for now"
-  exit $?
+  if [[ "$VLASIATOR_ARCH"=="carrington_gcc_openmpi" || "$VLASIATOR_ARCH"=="hile_cpu" ]]; then
+    
+    #Platform specific expections can be added here
+    if [[ "$VLASIATOR_ARCH"=="carrington_gcc_openmpi" ]]; then
+      export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/libraries-carrington_gcc_openmpi/lib
+    fi
+
+    chmod +x $GITHUB_WORKSPACE/vlasiator
+    chmod +x $GITHUB_WORKSPACE/vlsv*_DP
+    cd testpackage
+    # Delete any old run directories
+    rm -rf run_20*
+
+    sbatch -W -o testpackage_run_output.txt ./small_test_${VLASIATOR_ARCH}_github_ci.sh || true
+    PARSE_OUTPUT_CMD=$( cat << MORO
+echo "Job finished, checking output."
+cat testpackage_run_output.txt
+cat $GITHUB_STEP_SUMMARY > $GITHUB_WORKSPACE/testpackage_check_description.txt
+cd $GITHUB_WORKSPACE
+ls -halB testpackage_check_description.txt
+tar -czf testpackage-output-$VLASIATOR_ARCH.tar.gz testpackage_check_description.txt testpackage_output_variables.txt
+MORO
+    )
+    srun --job-name CI_package_results ${constraint_small[$VLASIATOR_ARCH]} -N 1 -c 1 --mem=3G bash -c "$PARSE_OUTPUT_CMD"
+    if [ -f $GITHUB_WORKSPACE/testpackage_failed ]; then
+      # Fail this step if any test failed.
+      exit 1
+    fi
+  else 
+    echo "RUN_TP for $VLASIATOR_ARCH not implemented"
+    exit 1
+  fi
+  exit 0 
 fi
 
 #0++++++++++++++++++++++++++++++0
@@ -120,10 +151,10 @@ if [[ $1 == "FLUXTEST" ]]; then
   diff -q polar.bin /turso/group/spacephysics/vlasiator/testpackage/CI_reference/polar.bin || if [ $? -eq 1 ]; then true; else false; fi
 fi
 
-#0++++++++++++++++++++++++++++++0
-#|         RESULTS              |
-#0++++++++++++++++++++++++++++++0
-if [[ $1 == $PARSE_OUTPUT_CMD ]]; then
-  srun --job-name CI_package_results ${constraint_small} -c 1 -N 1 --mem=2G bash -c "$PARSE_OUTPUT_CMD"
-  exit $?
-fi
+##0++++++++++++++++++++++++++++++0
+##|         RESULTS              |
+##0++++++++++++++++++++++++++++++0
+#if [[ $1 == $PARSE_OUTPUT_CMD ]]; then
+#  srun --job-name CI_package_results ${constraint_small} -c 1 -N 1 --mem=2G bash -c "$PARSE_OUTPUT_CMD"
+#  exit $?
+#fi
