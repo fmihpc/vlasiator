@@ -113,6 +113,7 @@ if [[ $1 == "RUN_TP" ]]; then
 
     chmod +x $GITHUB_WORKSPACE/vlasiator
     chmod +x $GITHUB_WORKSPACE/vlsv*_DP
+    echo $PWD
     cd testpackage
     # Delete any old run directories
     rm -rf run_20*
@@ -136,7 +137,6 @@ MORO
     echo "RUN_TP for $VLASIATOR_ARCH not implemented"
     exit 1
   fi
-  exit 0 
 fi
 
 #0++++++++++++++++++++++++++++++0
