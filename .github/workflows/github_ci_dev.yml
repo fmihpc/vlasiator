@@ -301,7 +301,7 @@ jobs:
   run_ionosphere_LFMtest:
     runs-on: ubuntu-latest
     container: ursg/vlasiator_ci:20250909_1
-    needs: [build_ionosphereTests, get_git_diff_check]
+    needs: [build_ionosphereTests]
     steps:
     - name: Checkout source
       uses: actions/checkout@v4
