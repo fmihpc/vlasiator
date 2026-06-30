@@ -190,7 +190,7 @@ jobs:
           export VLASIATOR_ARCH=${{ matrix.arch }}
           ./.github/workflows/slurm_run.sh "BUILD_LIBS"
       - name: Unpack libraries
-        run: tar -zxf libraries-hile_gpu.tar.gz
+        run: tar -zxf libraries-${{ matrix.arch }}.tar.gz
 
       - name: Compile vlasiator 
         run: |

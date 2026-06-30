@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+if [[ -z $VLASIATOR_ARCH ]]; then
+  echo "VLASIATOR_ARCH not set!"
+  exit 1
+fi
 #Flags for core/node counts etc for compiling/heavier srun calls
 declare -A core_flags
 core_flags["carrington_gcc_openmpi"]="-n 1 -c 16"
@@ -41,7 +45,7 @@ compile_flags_tp["ukko_dgx"]='COMPFLAGS="-DDEBUG_VLASIATOR -DDEBUG_SOLVERS -DDEB
 #Flags for bigger sruns, like compiling
 flags="--interactive -n 1 ${platform_flags[$VLASIATOR_ARCH]} ${constraint[$VLASIATOR_ARCH]}"
 #flags for smaller sruns, like removing files/small tests
-small_flags="--interactive -n 1 ${constraint_small[$VLASIATOR_ARCH]} -c 1"
+small_flags="--interactive ${constraint_small[$VLASIATOR_ARCH]} -n 1 -c 1"
 #Module load part
 modules="hostname; realpath modules/modules.sh; source modules/$VLASIATOR_ARCH.sh"
 
