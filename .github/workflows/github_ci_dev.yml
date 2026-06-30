@@ -119,7 +119,6 @@ jobs:
           if-no-files-found: error
   #
   build_libraries:
-    #continue-on-error: true
 
     strategy: *strategy
     if: false
@@ -150,26 +149,22 @@ jobs:
 
     steps: *buildLibs
   
-  test_job:
+  hile_tp:
     runs-on: hile
     strategy:
       matrix: 
-        include:
-          - arch: hile_gpu
+        - arch: hile_gpu
 
-    needs: build_libraries_${{ matrix.arch }}
-    steps:
-      - name: Testing
-        run: |
-          echo "Success"
+    needs: build_libraries_hile_gpu
+    steps: *buildTP
 
   build_TP:
     # Build Vlasiator with testpackage flags, on the carrington cluster
     # (for subsequent running of the integration test package)
-    runs-on: carrington
     strategy: *strategy
-        
-    steps:
+    if: false
+    runs-on: ${{ matrix.runner }} 
+    steps: &buildTP
     - *ifCompileTP
     - *checksrc 
     - *cleanup
