@@ -70,6 +70,7 @@ jobs:
             compile_tp: false
     runs-on: ${{ matrix.runner }} 
     needs: get_git_diff
+    if: github.repository_owner == 'fmihpc'
     env:
       VLASIATOR_ARCH: ${{ matrix.arch }}
     steps:
