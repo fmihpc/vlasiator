@@ -145,7 +145,8 @@ jobs:
     runs-on: hile
     strategy:
       matrix: 
-        arch: hile_gpu
+        include:
+          - arch: hile_gpu
 
     steps: *buildLibs
   
@@ -153,7 +154,8 @@ jobs:
     runs-on: hile
     strategy:
       matrix: 
-        arch: hile_gpu
+        include:
+          - arch: hile_gpu
 
     needs: build_libraries_{{ matrix.arch }}
     steps:
