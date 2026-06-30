@@ -30,7 +30,7 @@ jobs:
           cd $GITHUB_WORKSPACE
           #chmod +x ./.github/workflows/CI_git_diff.sh
           echo Comparing PR branch against ${{ github.base_ref }}
-          if [[ $(./.github/workflows/CI_git_diff.sh ${{ github.base_ref }} ) = "no_test" ]]; then
+          if [[ $(./.github/workflows/CI_git_diff.sh ${{ github.base_ref }} ) == "no_test" ]]; then
             echo "RUN_TP=False" >> $GITHUB_OUTPUT
             echo "Not running testpackage"
             exit 0
@@ -196,7 +196,6 @@ jobs:
           if-no-files-found: error
 
   build_arm64:
-    # Build libraries on macos with M1 hardware, to test both macOS and aarch64 compatibility
     runs-on: ubuntu-24.04-arm
 
     steps:
@@ -243,13 +242,13 @@ jobs:
     - name: Compile vlasiator (Release build)
       run: |
         make clean
-        if [[ ${{ matrix.compile_flags }}=="prod" ]]; then
+        if [[ ${{ matrix.compile_flags }} == "prod" ]]; then
           make -j 3
-        else if [[ ${{ matrix.compile_flags }}=="ord1_time" ]]; then
+        else if [[ ${{ matrix.compile_flags }} == "ord1_time" ]]; then
           COMPFLAGS="-DFS_1ST_ORDER_TIME" make -j 3
-        else if [[ ${{ matrix.compile_flags }}=="ord1_time" ]]; then
+        else if [[ ${{ matrix.compile_flags }} == "ord1_space" ]]; then
           COMPFLAGS="-DFS_1ST_ORDER_SPACE" make -j 3
-        else if [[ ${{ matrix.compile_flags }}=="ord1_time" ]]; then
+        else if [[ ${{ matrix.compile_flags }} == "prod_debug" ]]; then
           COMPFLAGS="-DDEBUG_VLASIATOR -DDEBUG_SOLVERS -DDEBUG_IONOSPHERE -DDEBUG_SPATIAL_CELL -DDEBUG_VMESH -DDEBUG_VBC -DDEBUG_ACC" make -j 3
         else
           echo "Unknown compile_flags entry \"${{ matrix.compile_flags }}\" !"
