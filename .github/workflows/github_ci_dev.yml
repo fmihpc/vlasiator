@@ -149,23 +149,20 @@ jobs:
 
     steps: *buildLibs
   
-  test_job:
+  build_TP_HILE_GPU:
     runs-on: hile
     strategy:
       matrix: 
         include:
           - arch: hile_gpu
-
     needs: build_libraries_hile_gpu
-    steps:
-      - name: Testing
-        run: |
-          echo "Success"
+    steps: *buildTP
 
   build_TP:
     # Build Vlasiator with testpackage flags, on the carrington cluster
     # (for subsequent running of the integration test package)
     strategy: *strategy
+    if: false
     runs-on: ${{ matrix.runner }} 
     steps: &buildTP
     - *ifCompileTP
