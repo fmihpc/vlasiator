@@ -118,29 +118,32 @@ jobs:
           retention-days: 5
           if-no-files-found: error
   #
-  # build_libraries:
-  #   #continue-on-error: true
-  #
-  #   strategy: *strategy
-  #
-  #   runs-on: ${{ matrix.runner }}
-  #   steps:
-  #     - *checksrc 
-  #     - *cleanup
-  #     - name: Run library build script ${{ matrix.arch }}
-  #       run: | 
-  #         export VLASIATOR_ARCH=${{ matrix.arch }}
-  #         ./.github/workflows/slurm_run.sh "BUILD_LIBS"
-  #     - name: Build libraries tar
-  #       run: tar -zcf libraries-${{ matrix.arch }}.tar.gz libraries-${{ matrix.arch }}/
-  #     - name: Upload libraries as artifact
-  #       uses: actions/upload-artifact@v4
-  #       with:
-  #         name: libraries-${{ matrix.arch }}
-  #         path: libraries-${{ matrix.arch }}.tar.gz
-  #         retention-days: 5
-  #         if-no-files-found: error
+  build_libraries:
+    #continue-on-error: true
 
+    strategy: *strategy
+    if: false
+    runs-on: ${{ matrix.runner }}
+    steps: &buildLibs
+      - *checksrc 
+      - *cleanup
+      - name: Run library build script ${{ matrix.arch }}
+        run: | 
+          export VLASIATOR_ARCH=${{ matrix.arch }}
+          ./.github/workflows/slurm_run.sh "BUILD_LIBS"
+      - name: Build libraries tar
+        run: tar -zcf libraries-${{ matrix.arch }}.tar.gz libraries-${{ matrix.arch }}/
+      - name: Upload libraries as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: libraries-${{ matrix.arch }}
+          path: libraries-${{ matrix.arch }}.tar.gz
+          retention-days: 5
+          if-no-files-found: error
+
+  build_libraries_hile-g:
+    runs-on: hile
+    *buildLibs
 
   build_TP:
     # Build Vlasiator with testpackage flags, on the carrington cluster
