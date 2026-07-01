@@ -275,16 +275,13 @@ jobs:
         path: vlasiator
         if-no-files-found: error
 
-  build_ionosphereTests:
+  ionosphereTests_github:
     # Build IonosphereSolverTests miniApp
     runs-on: ubuntu-latest
     container: ursg/vlasiator_ci:20250909_1
     needs: build_libraries_github
     steps:
-    - name: Checkout source
-      uses: actions/checkout@v4
-      with:
-        submodules: true
+    - *checkSource
     - name: Download libraries
       uses: actions/download-artifact@v5
       with:
@@ -304,20 +301,6 @@ jobs:
           mini-apps/ionosphereSolverTests/differentialFlux
           mini-apps/ionosphereSolverTests/sigmaProfiles
         if-no-files-found: error
-
-  run_ionosphere_LFMtest:
-    runs-on: ubuntu-latest
-    container: ursg/vlasiator_ci:20250909_1
-    needs: [build_ionosphereTests]
-    steps:
-    - name: Checkout source
-      uses: actions/checkout@v4
-      with:
-        submodules: false
-    - name: Download ionosphereTests
-      uses: actions/download-artifact@v5
-      with:
-        name: ionosphereTests
     - name: Set up Python
       uses: actions/setup-python@v3
     - name: Install uv
@@ -336,7 +319,6 @@ jobs:
         uv pip install --editable analysator
     - name: Run LFMtest
       run: |
-        ls 
         chmod +x $GITHUB_WORKSPACE/main
         cd mini-apps/ionosphereSolverTests/
         OMP_NUM_THREADS=1 $GITHUB_WORKSPACE/main -N 2000 -r 40 90 -r 50 90 -r 60 80 -sigma 10 -fac merkin2010 -gaugeFix equator45 -o LFMtest.vlsv -maxIter 10000
