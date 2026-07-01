@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 
+#This will echo the bash commands in the github view
 set -x
 
 if [[ -z $VLASIATOR_ARCH ]]; then
   echo "VLASIATOR_ARCH not set!"
   exit 1
 fi
+
 #Flags for core/node counts etc for compiling/heavier srun calls
 declare -A core_flags
 core_flags["carrington_gcc_openmpi"]="-n 1 -c 16"
@@ -39,22 +41,18 @@ mem_flags["pioneer"]=""
 mem_flags["hile_gpu"]="--mem=32G"
 mem_flags["hile_cpu"]="--mem=32G"
 
+#Production compile flags
 declare -A compile_flags_prod
 compile_flags_prod["ukko_dgx"]='COMPFLAGS="-DDEBUG_VLASIATOR -DDEBUG_SOLVERS -DDEBUG_IONOSPHERE -DHASHINATOR_DEBUG -DDEBUG_SPATIAL_CELL -DDEBUG_VMESH -DDEBUG_VBC -DDEBUG_ACC "'
 
+#testpackage/debug compile flags
 declare -A compile_flags_tp
 compile_flags_tp["ukko_dgx"]='COMPFLAGS="-DDEBUG_VLASIATOR -DDEBUG_SOLVERS -DDEBUG_IONOSPHERE -DHASHINATOR_DEBUG -DDEBUG_SPATIAL_CELL -DDEBUG_VMESH -DDEBUG_VBC -DDEBUG_ACC -DUSE_WARPACCESSOR "'
 
-#Flags for bigger sruns, like compiling
-# flags="--interactive -n 1 ${platform_flags[$VLASIATOR_ARCH]} ${constraint[$VLASIATOR_ARCH]}"
-#flags for smaller sruns, like removing files/small tests
-# small_flags="--interactive ${constraint_small[$VLASIATOR_ARCH]} -n 1 -c 1"
 #Module load part
 modules="hostname; realpath modules/modules.sh; source modules/$VLASIATOR_ARCH.sh"
 
 #--------------------------------different srun calls------------------------------
-
-#todo add echo of the constraints etc
 
 #0++++++++++++++++++++++++++++++0
 #|         CLEANUP              |
@@ -62,7 +60,7 @@ modules="hostname; realpath modules/modules.sh; source modules/$VLASIATOR_ARCH.s
 if [[ $1 == "CLEANUP" ]]; then
   CLEAN_STRING=$(
     cat <<MORO
-rm -rf libraries-$VLASIATOR_ARCH library-build testpackage
+rm -rf libraries-$VLASIATOR_ARCH library-build testpackage libraries
 rm -f libraries-$VLASIATOR_ARCH.tar.gz testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
 rm -f *.xml
 echo "Cleaned up workspace"
@@ -157,11 +155,3 @@ if [[ $1 == "FLUXTEST" ]]; then
   diff -q equatorial.bin /turso/group/spacephysics/vlasiator/testpackage/CI_reference/equatorial.bin || if [ $? -eq 1 ]; then true; else false; fi
   diff -q polar.bin /turso/group/spacephysics/vlasiator/testpackage/CI_reference/polar.bin || if [ $? -eq 1 ]; then true; else false; fi
 fi
-
-##0++++++++++++++++++++++++++++++0
-##|         RESULTS              |
-##0++++++++++++++++++++++++++++++0
-#if [[ $1 == $PARSE_OUTPUT_CMD ]]; then
-#  srun --job-name CI_package_results ${constraint_small} -c 1 -N 1 --mem=2G bash -c "$PARSE_OUTPUT_CMD"
-#  exit $?
-#fi

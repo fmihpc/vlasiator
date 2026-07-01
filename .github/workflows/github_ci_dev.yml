@@ -43,21 +43,31 @@ jobs:
       fail-fast: false
       matrix: 
         include:
+            #one could maybe add name: entry for clarity?
           - runner: hile
             arch: hile_gpu
             compile_tp: false
+            run_tp: false
           - runner: hile
             arch: hile_cpu
             compile_tp: true
+            run_tp: true
           - runner: ukko
             arch: ukko_dgx
             compile_tp: false
+            run_tp: false
+          - runner: ukko
+            arch: ukko_dgx
+            compile_tp: true
+            run_tp: false
           - runner: carrington
             arch: carrington_gcc_openmpi
             compile_tp: true
+            run_tp: true
           - runner: risc-v
             arch: pioneer
             compile_tp: false
+            run_tp: false
     runs-on: ${{ matrix.runner }} 
     needs: get_git_diff
     if: github.repository_owner == 'fmihpc'
@@ -117,7 +127,7 @@ jobs:
     - &runTP
       name: Run TP
       id: run
-      if: ${{ matrix.compile_tp && needs.get_git_diff.outputs.RUN_TP != 'False' }}
+      if: ${{ matrix.run_tp && matrix.compile_tp && needs.get_git_diff.outputs.RUN_TP != 'False' }}
       run: |
         ./.github/workflows/slurm_run.sh "RUN_TP"
     - name: Scancel dangling job upon cancellation
