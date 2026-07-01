@@ -43,12 +43,13 @@ mem_flags["hile_cpu"]="--mem=32G"
 
 #Production compile flags
 declare -A compile_flags_prod
-compile_flags_prod["ukko_dgx"]='COMPFLAGS="-DDEBUG_VLASIATOR -DDEBUG_SOLVERS -DDEBUG_IONOSPHERE -DHASHINATOR_DEBUG -DDEBUG_SPATIAL_CELL -DDEBUG_VMESH -DDEBUG_VBC -DDEBUG_ACC "'
-
-#testpackage/debug compile flags
 declare -A compile_flags_tp
-compile_flags_tp["ukko_dgx"]='COMPFLAGS="-DDEBUG_VLASIATOR -DDEBUG_SOLVERS -DDEBUG_IONOSPHERE -DHASHINATOR_DEBUG -DDEBUG_SPATIAL_CELL -DDEBUG_VMESH -DDEBUG_VBC -DDEBUG_ACC -DUSE_WARPACCESSOR "'
 
+if [[ $2 == "true" ]]; then
+  #testpackage/debug compile flags
+  compile_flags_prod["ukko_dgx"]='COMPFLAGS="-DDEBUG_VLASIATOR -DDEBUG_SOLVERS -DDEBUG_IONOSPHERE -DHASHINATOR_DEBUG -DDEBUG_SPATIAL_CELL -DDEBUG_VMESH -DDEBUG_VBC -DDEBUG_ACC "'
+  compile_flags_tp["ukko_dgx"]='COMPFLAGS="-DDEBUG_VLASIATOR -DDEBUG_SOLVERS -DDEBUG_IONOSPHERE -DHASHINATOR_DEBUG -DDEBUG_SPATIAL_CELL -DDEBUG_VMESH -DDEBUG_VBC -DDEBUG_ACC -DUSE_WARPACCESSOR "'
+fi
 #Module load part
 modules="hostname; realpath modules/modules.sh; source modules/$VLASIATOR_ARCH.sh"
 

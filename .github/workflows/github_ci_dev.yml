@@ -44,30 +44,56 @@ jobs:
       matrix: 
         include:
             #one could maybe add name: entry for clarity?
-          - runner: hile
+          - name: prod
+            runner: hile
             arch: hile_gpu
             compile_tp: false
             run_tp: false
-          - runner: hile
+            debug: false
+
+          - name: testpackage run
+            runner: hile
             arch: hile_cpu
             compile_tp: true
             run_tp: true
-          - runner: ukko
+            debug: false
+
+          # commented for now because why do we need this?
+          # - name: testpackage
+          #   runner: ukko
+          #   arch: ukko_dgx
+          #   compile_tp: true
+          #   run_tp: false
+          #   debug: false
+
+          - name: prod_WA_debug
+            runner: ukko
             arch: ukko_dgx
             compile_tp: false
             run_tp: false
-          - runner: ukko
+            debug: true
+
+          - name: testpackage_debug 
+            runner: ukko
             arch: ukko_dgx
             compile_tp: true
             run_tp: false
-          - runner: carrington
+            debug: true
+
+          - name: testpackage run
+            runner: carrington
             arch: carrington_gcc_openmpi
             compile_tp: true
             run_tp: true
-          - runner: risc-v
+            debug: false
+
+          - name: prod 
+            runner: risc-v
             arch: pioneer
             compile_tp: false
             run_tp: false
+            debug: false
+
     runs-on: ${{ matrix.runner }} 
     needs: get_git_diff
     if: github.repository_owner == 'fmihpc'
@@ -102,13 +128,13 @@ jobs:
       if: ${{ matrix.compile_tp }}
       background: true
       run: |
-        ./.github/workflows/slurm_run.sh "COMPILE_TP"
+        ./.github/workflows/slurm_run.sh "COMPILE_TP" ${{ matrix.debug }}
     - &compileProd
       name: Compile prod
       if: ${{ ! matrix.compile_tp }}
       background: true
       run: |
-        ./.github/workflows/slurm_run.sh "COMPILE_PROD"
+        ./.github/workflows/slurm_run.sh "COMPILE_PROD" ${{ matrix.debug }}
     - &compileTools
       name: Compile tools 
       background: true
