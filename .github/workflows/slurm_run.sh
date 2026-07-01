@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env bash -v
 
 if [[ -z $VLASIATOR_ARCH ]]; then
   echo "VLASIATOR_ARCH not set!"
