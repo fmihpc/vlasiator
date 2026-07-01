@@ -98,7 +98,7 @@ jobs:
     - &packageLibraries
       name: Packaging libraries
       continue-on-error: true
-      run: tar -zxf libraries-${{ matrix.arch }}.tar.gz
+      run: tar -zcf libraries-${{ matrix.arch }}.tar.gz libraries-${{ matrix.arch }}/
     - &compileTP
       name: Compile vlasiator (Testpackage build)
       if: ${{ matrix.compile_tp }}
@@ -262,7 +262,8 @@ jobs:
         elif [[ "${{ matrix.compile_flags }}" == "prod_debug" ]]; then
           COMPFLAGS="-DDEBUG_VLASIATOR -DDEBUG_SOLVERS -DDEBUG_IONOSPHERE -DDEBUG_SPATIAL_CELL -DDEBUG_VMESH -DDEBUG_VBC -DDEBUG_ACC" make -j 3
         else
-          echo "Unknown compile_flags entry \"${{ matrix.compile_flags }}\" !"
+          echo "Unknown compile_flags entry ${{ matrix.compile_flags }} !"
+          exit 1
         fi
 
     - name: Upload release binary
