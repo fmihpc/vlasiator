@@ -281,7 +281,7 @@ jobs:
     container: ursg/vlasiator_ci:20250909_1
     needs: build_libraries_github
     steps:
-    - *checkSource
+    - *checkoutSource
     - name: Download libraries
       uses: actions/download-artifact@v5
       with:
