@@ -67,7 +67,7 @@ rm -f libraries-$VLASIATOR_ARCH.tar.gz testpackage_check_description.txt testpac
 rm -f *.xml
 MORO
   )
-  srun ${small_flags[$VLASIATOR_ARCH]} bash -c "$CLEAN_STRING"
+  srun ${constraint_small[$VLASIATOR_ARCH]} bash -c "$CLEAN_STRING"
   exit $?
 fi
 
