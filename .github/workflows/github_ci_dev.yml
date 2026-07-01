@@ -37,14 +37,6 @@ jobs:
           fi
           echo "Running testpackage"
 
-  # get_git_diff_check:
-  #   runs-on: ubuntu-latest
-  #   needs: get_git_diff
-  #   if: ${{ needs.get_git_diff.outputs.RUN_TP != 'False' }}
-  #   steps:
-  #     - name: Checking whether to run tests
-  #       run: |
-  #         echo "Running testpackage"
 
   testpackage:
     strategy: &strategy
