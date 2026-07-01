@@ -51,6 +51,8 @@ modules="hostname; realpath modules/modules.sh; source modules/$VLASIATOR_ARCH.s
 
 #--------------------------------different srun calls------------------------------
 
+#todo add echo of the constraints etc
+
 #0++++++++++++++++++++++++++++++0
 #|         CLEANUP              |
 #0++++++++++++++++++++++++++++++0
@@ -105,7 +107,7 @@ fi
 #0++++++++++++++++++++++++++++++0
 if [[ $1 == "RUN_TP" ]]; then
   if [[ "$VLASIATOR_ARCH" == "carrington_gcc_openmpi" || "$VLASIATOR_ARCH" == "hile_cpu" ]]; then
-    
+
     #Platform specific expections can be added here
     if [[ "$VLASIATOR_ARCH" == "carrington_gcc_openmpi" ]]; then
       export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/libraries-carrington_gcc_openmpi/lib
@@ -119,7 +121,8 @@ if [[ $1 == "RUN_TP" ]]; then
     rm -rf run_20*
 
     sbatch -W -o testpackage_run_output.txt ./small_test_${VLASIATOR_ARCH}_github_ci.sh || true
-    PARSE_OUTPUT_CMD=$( cat << MORO
+    PARSE_OUTPUT_CMD=$(
+      cat <<MORO
 echo "Job finished, checking output."
 cat testpackage_run_output.txt
 cat $GITHUB_STEP_SUMMARY > $GITHUB_WORKSPACE/testpackage_check_description.txt
@@ -133,7 +136,7 @@ MORO
       # Fail this step if any test failed.
       exit 1
     fi
-  else 
+  else
     echo "RUN_TP for $VLASIATOR_ARCH not implemented"
     exit 1
   fi
