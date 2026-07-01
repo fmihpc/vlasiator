@@ -391,10 +391,12 @@ jobs:
       run: |
         chmod +x $GITHUB_WORKSPACE/vlasiator
     - name: Check cfg files in projects/
-      run: |
+      env:
+          CFGFOLDER: projects
+      run: &checkCfg | 
         retval=0
         set +e
-        for cfg in `find projects -name \*.cfg`; do
+        for cfg in `find $CFGFOLDER -name \*.cfg`; do
           echo -n "Testing cfg file $cfg... "
           PRINT_ONLY_ERRORS=true LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/libraries-docker/lib tools/check_vlasiator_cfg.sh $GITHUB_WORKSPACE/vlasiator $cfg 2>&1 > cfgtest.out
           if [ $? != 0 ]; then
@@ -411,35 +413,10 @@ jobs:
         done
         exit $retval
     - name: Check cfg files in samples/
-      run: |
-        retval=0
-        set +e
-        for cfg in `find samples -name \*.cfg`; do
-          echo -n "Testing cfg file $cfg... "
-          PRINT_ONLY_ERRORS=true LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/libraries-docker/lib tools/check_vlasiator_cfg.sh $GITHUB_WORKSPACE/vlasiator $cfg 2>&1 > cfgtest.out
-          if [ $? != 0 ]; then
-            echo "FAILED:";
-            cat cfgtest.out;
-            retval=127
-          else
-            echo "ok."
-          fi;
-        done
-        exit $retval
+      env:
+          CFGFOLDER: samples
+      run: *checkCfg
     - name: Check cfg files in testpackage/
-      run: |
-        retval=0
-        set +e
-        for cfg in `find testpackage -name \*.cfg`; do
-          echo -n "Testing cfg file $cfg... "
-          PRINT_ONLY_ERRORS=true LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/libraries-docker/lib tools/check_vlasiator_cfg.sh $GITHUB_WORKSPACE/vlasiator $cfg 2>&1 > cfgtest.out
-          if [ $? != 0 ]; then
-            echo "FAILED:";
-            cat cfgtest.out;
-            retval=127
-          else
-            echo "ok."
-          fi;
-        done
-        exit $retval
-
+      env:
+          CFGFOLDER: testpackage
+      run: *checkCfg
