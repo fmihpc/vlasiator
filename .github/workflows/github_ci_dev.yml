@@ -76,8 +76,8 @@ jobs:
     - &cleanWorkspace
       name: Clean workspace
       run: |
-        git fetch
-        git checkout origin/dev -- ./.github/workflows/slurm_run.sh
+        # git fetch $GITHUB_REF
+        git checkout $GITHUB_REF -- ./.github/workflows/slurm_run.sh
         ./.github/workflows/slurm_run.sh "CLEANUP"
     - &checkoutSource
       name: Checkout source
@@ -186,8 +186,8 @@ jobs:
       - &githubLibs
         name: Install build dependencies
         run: |
-          apt-get update
-          apt-get install -y g++ build-essential cmake make libopenmpi-dev openmpi-bin libboost-program-options-dev zstd
+          sudo apt-get update
+          sudo apt-get install -y g++ build-essential cmake make libopenmpi-dev openmpi-bin libboost-program-options-dev zstd
       - name: Run library build script
         run: ./fetch_and_build_libraries.sh
       - name: Build libraries tar
@@ -249,11 +249,11 @@ jobs:
         make clean
         if [[ ${{ matrix.compile_flags }} == "prod" ]]; then
           make -j 3
-        else if [[ ${{ matrix.compile_flags }} == "ord1_time" ]]; then
+        elif [[ ${{ matrix.compile_flags }} == "ord1_time" ]]; then
           COMPFLAGS="-DFS_1ST_ORDER_TIME" make -j 3
-        else if [[ ${{ matrix.compile_flags }} == "ord1_space" ]]; then
+        elif [[ ${{ matrix.compile_flags }} == "ord1_space" ]]; then
           COMPFLAGS="-DFS_1ST_ORDER_SPACE" make -j 3
-        else if [[ ${{ matrix.compile_flags }} == "prod_debug" ]]; then
+        elif [[ ${{ matrix.compile_flags }} == "prod_debug" ]]; then
           COMPFLAGS="-DDEBUG_VLASIATOR -DDEBUG_SOLVERS -DDEBUG_IONOSPHERE -DDEBUG_SPATIAL_CELL -DDEBUG_VMESH -DDEBUG_VBC -DDEBUG_ACC" make -j 3
         else
           echo "Unknown compile_flags entry \"${{ matrix.compile_flags }}\" !"
