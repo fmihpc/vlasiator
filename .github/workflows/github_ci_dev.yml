@@ -72,11 +72,10 @@ jobs:
     env:
       VLASIATOR_ARCH: ${{ matrix.arch }}
     steps:
-      #The & tags can be reused in other job steps with `- *tagname`
+      #The & tags can be reused in other job steps with `- *tagname` scroll down for examples on how *checkoutSource has been used
     - &cleanWorkspace
       name: Clean workspace
       run: |
-        # git fetch HEAD
         git checkout HEAD -- ./.github/workflows/slurm_run.sh
         #uncomment below once in the dev branch
         # git fetch origin dev
@@ -306,12 +305,10 @@ jobs:
     - name: Install uv
       uses: astral-sh/setup-uv@v6
     - name: install Gnuplot
-      background: true
       run: |
         apt update
         apt -y install gnuplot-nox
-    - name: checkout Analysator
-      background: true
+    - name: checkout & install Analysator
       run: |
         cd mini-apps/ionosphereSolverTests/
         git clone https://github.com/fmihpc/analysator
@@ -319,8 +316,6 @@ jobs:
         uv venv CI_env
         . CI_env/bin/activate
         uv pip install --editable analysator
-    - name: Wait for background jobs
-      wait-all: true
     - name: Run LFMtest
       run: |
         chmod +x $GITHUB_WORKSPACE/mini-apps/ionosphereSolverTests/main
@@ -333,7 +328,7 @@ jobs:
         ./plot_LFMtest.gp
     - name: Run atmospheric profile test
       run: |
-        chmod +x $GITHUB_WORKSPACE/mini-apps/ionosphereSolverTests//sigmaProfiles
+        chmod +x $GITHUB_WORKSPACE/mini-apps/ionosphereSolverTests/sigmaProfiles
         cd mini-apps/ionosphereSolverTests/
         ./sigmaProfiles 1e6 1.16046e7 > atmosphere.dat
         ./sigmaProfiles 1e6 1.16046e8 > atmosphere10.dat
