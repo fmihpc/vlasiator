@@ -76,8 +76,8 @@ jobs:
     - &cleanWorkspace
       name: Clean workspace
       run: |
-        # git fetch $GITHUB_REF
-        git checkout $GITHUB_REF -- ./.github/workflows/slurm_run.sh
+        # git fetch $HEAD
+        git checkout HEAD -- ./.github/workflows/slurm_run.sh
         ./.github/workflows/slurm_run.sh "CLEANUP"
     - &checkoutSource
       name: Checkout source
