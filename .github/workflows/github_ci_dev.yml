@@ -379,7 +379,7 @@ jobs:
     - name: Download release binary
       uses: actions/download-artifact@v5
       with:
-        name: vlasiator-release
+        name: vlasiator-prod
     - name: Make release binary executable
       run: |
         chmod +x $GITHUB_WORKSPACE/vlasiator
