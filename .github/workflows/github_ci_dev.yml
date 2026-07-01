@@ -47,8 +47,6 @@ jobs:
   #         echo "Running testpackage"
 
   testpackage:
-    # Build Vlasiator with testpackage flags, on the carrington cluster
-    # (for subsequent running of the integration test package)
     strategy: &strategy
       fail-fast: false
       matrix: 
@@ -78,6 +76,7 @@ jobs:
     - &cleanWorkspace
       name: Clean workspace
       run: |
+        git checkout origin/dev -- ./.github/workflows/slurm_run.sh
         ./.github/workflows/slurm_run.sh "CLEANUP"
     - &checkoutSource
       name: Checkout source
@@ -92,6 +91,10 @@ jobs:
       name: Run library build script ${{ matrix.arch }}
       run: | 
         ./.github/workflows/slurm_run.sh "BUILD_LIBS"
+    - &packageLibraries
+      name: Packaging libraries
+      continue-on-error: true
+      run: tar -zxf libraries-${{ matrix.arch }}.tar.gz
     - &compileTP
       name: Compile vlasiator (Testpackage build)
       if: ${{ matrix.compile_tp }}
@@ -132,6 +135,7 @@ jobs:
         scancel ${{ steps.run.outputs.SLURM_JOB_ID }}
     - &uploadTestpackageOutput
       name: Upload testpackage output
+      continue-on-error: true
       uses: actions/upload-artifact@v4
       if: always()
       with:
@@ -271,13 +275,6 @@ jobs:
       uses: actions/checkout@v4
       with:
         submodules: true
-          #    - name: Download libraries
-          #      uses: actions/download-artifact@v5
-          #      with:
-          #        name: libraries
-          #    - name: Unpack libraries
-          #      run: tar --zstd -xf libraries.tar.zstd
-          #    - uses: ursg/gcc-problem-matcher@master
     - name: Download libraries
       uses: actions/download-artifact@v5
       with:
