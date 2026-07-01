@@ -62,7 +62,7 @@ modules="hostname; realpath modules/modules.sh; source modules/$VLASIATOR_ARCH.s
 if [[ $1 == "CLEANUP" ]]; then
   CLEAN_STRING=$(
     cat <<MORO
-rm -rf libraries library-build testpackage
+rm -rf libraries-$VLASIATOR_ARCH library-build testpackage
 rm -f libraries-$VLASIATOR_ARCH.tar.gz testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
 rm -f *.xml
 echo "Cleaned up workspace"
