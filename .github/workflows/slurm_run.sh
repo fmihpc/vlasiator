@@ -44,10 +44,11 @@ compile_flags_prod["ukko_dgx"]='COMPFLAGS="-DDEBUG_VLASIATOR -DDEBUG_SOLVERS -DD
 
 declare -A compile_flags_tp
 compile_flags_tp["ukko_dgx"]='COMPFLAGS="-DDEBUG_VLASIATOR -DDEBUG_SOLVERS -DDEBUG_IONOSPHERE -DHASHINATOR_DEBUG -DDEBUG_SPATIAL_CELL -DDEBUG_VMESH -DDEBUG_VBC -DDEBUG_ACC -DUSE_WARPACCESSOR "'
+
 #Flags for bigger sruns, like compiling
-flags="--interactive -n 1 ${platform_flags[$VLASIATOR_ARCH]} ${constraint[$VLASIATOR_ARCH]}"
+# flags="--interactive -n 1 ${platform_flags[$VLASIATOR_ARCH]} ${constraint[$VLASIATOR_ARCH]}"
 #flags for smaller sruns, like removing files/small tests
-small_flags="--interactive ${constraint_small[$VLASIATOR_ARCH]} -n 1 -c 1"
+# small_flags="--interactive ${constraint_small[$VLASIATOR_ARCH]} -n 1 -c 1"
 #Module load part
 modules="hostname; realpath modules/modules.sh; source modules/$VLASIATOR_ARCH.sh"
 
@@ -74,7 +75,7 @@ fi
 #|         BUILD LIBS           |
 #0++++++++++++++++++++++++++++++0
 if [[ $1 == "BUILD_LIBS" ]]; then
-  srun ${small_flags[$VLASIATOR_ARCH]} ${platform_flags[$VLASIATOR_ARCH]} --mem=8G -J build_libraries_CI bash -lc "$modules ; ./fetch_and_build_libraries.sh $VLASIATOR_ARCH"
+  srun ${constraint_small[$VLASIATOR_ARCH]} ${platform_flags[$VLASIATOR_ARCH]} --mem=8G -J build_libraries_CI bash -lc "$modules ; ./fetch_and_build_libraries.sh $VLASIATOR_ARCH"
   exit $?
 fi
 
