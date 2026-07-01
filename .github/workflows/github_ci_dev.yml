@@ -171,7 +171,7 @@ jobs:
         path: testpackage-output.tar.gz
     - &fluxTest
       name: Run fluxfunction test
-      if: ${{ matrix.compile_tp }}
+      if: ${{ matrix.run_tp }}
       run: |
         ./.github/workflows/slurm_run.sh "FLUXTEST"
     - &uploadTools
