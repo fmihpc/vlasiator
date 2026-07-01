@@ -306,10 +306,12 @@ jobs:
     - name: Install uv
       uses: astral-sh/setup-uv@v6
     - name: install Gnuplot
+      background: true
       run: |
         apt update
         apt -y install gnuplot-nox
     - name: checkout Analysator
+      background: true
       run: |
         cd mini-apps/ionosphereSolverTests/
         git clone https://github.com/fmihpc/analysator
@@ -318,10 +320,11 @@ jobs:
         . CI_env/bin/activate
         uv pip install --editable analysator
     - name: Run LFMtest
+      wait-all: true
       run: |
-        chmod +x $GITHUB_WORKSPACE/main
+        chmod +x $GITHUB_WORKSPACE/mini-apps/ionosphereSolverTests/main
         cd mini-apps/ionosphereSolverTests/
-        OMP_NUM_THREADS=1 $GITHUB_WORKSPACE/main -N 2000 -r 40 90 -r 50 90 -r 60 80 -sigma 10 -fac merkin2010 -gaugeFix equator45 -o LFMtest.vlsv -maxIter 10000
+        OMP_NUM_THREADS=1 ./main -N 2000 -r 40 90 -r 50 90 -r 60 80 -sigma 10 -fac merkin2010 -gaugeFix equator45 -o LFMtest.vlsv -maxIter 10000
         export TMPDIR=$RUNNER_TEMP
         . CI_env/bin/activate
         export PTNONINTERACTIVE=1
@@ -329,11 +332,11 @@ jobs:
         ./plot_LFMtest.gp
     - name: Run atmospheric profile test
       run: |
-        chmod +x $GITHUB_WORKSPACE/sigmaProfiles
+        chmod +x $GITHUB_WORKSPACE/mini-apps/ionosphereSolverTests//sigmaProfiles
         cd mini-apps/ionosphereSolverTests/
-        $GITHUB_WORKSPACE/sigmaProfiles 1e6 1.16046e7 > atmosphere.dat
-        $GITHUB_WORKSPACE/sigmaProfiles 1e6 1.16046e8 > atmosphere10.dat
-        $GITHUB_WORKSPACE/sigmaProfiles 1e6 1.16046e9 > atmosphere100.dat
+        ./sigmaProfiles 1e6 1.16046e7 > atmosphere.dat
+        ./sigmaProfiles 1e6 1.16046e8 > atmosphere10.dat
+        ./sigmaProfiles 1e6 1.16046e9 > atmosphere100.dat
         ./plotAtmosphere.gp
     - name: Upload ionosphereTest result images
       uses: actions/upload-artifact@v4
