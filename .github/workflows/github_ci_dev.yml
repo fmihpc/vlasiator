@@ -76,6 +76,7 @@ jobs:
     - &cleanWorkspace
       name: Clean workspace
       run: |
+        git fetch
         git checkout origin/dev -- ./.github/workflows/slurm_run.sh
         ./.github/workflows/slurm_run.sh "CLEANUP"
     - &checkoutSource
