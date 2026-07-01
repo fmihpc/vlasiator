@@ -319,8 +319,9 @@ jobs:
         uv venv CI_env
         . CI_env/bin/activate
         uv pip install --editable analysator
-    - name: Run LFMtest
+    - name: Wait for background jobs
       wait-all: true
+    - name: Run LFMtest
       run: |
         chmod +x $GITHUB_WORKSPACE/mini-apps/ionosphereSolverTests/main
         cd mini-apps/ionosphereSolverTests/
