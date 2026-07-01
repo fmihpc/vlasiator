@@ -73,6 +73,10 @@ jobs:
       VLASIATOR_ARCH: ${{ matrix.arch }}
     steps:
       #The & tags can be reused in other job steps with `- *tagname` scroll down for examples on how *checkoutSource has been used
+    - name: Checkout source debug
+      uses: actions/checkout@v4
+      with:
+        submodules: false
     - &cleanWorkspace
       name: Clean workspace
       run: |
