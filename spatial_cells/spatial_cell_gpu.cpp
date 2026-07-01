@@ -1050,7 +1050,7 @@ namespace spatial_cell {
       return populations[popID].velocityBlockMinValue;
    }
 
-   /** Prepares this spatial cell to receive the velocity grid over MPI.
+   /** Gather pointers from this spatial cell for preparing to receive the velocity grid over MPI.
     * At this stage we have received a new block list (over MPI or from
     * an initializatiom function), but the rest of the cell structures
     * have not been adapted to this new list. Here we re-initialize
@@ -1200,7 +1200,7 @@ namespace spatial_cell {
 
 } // namespace spatial_cell
 
-/** Prepares this spatial cell to receive the velocity grid over MPI.
+/** Prepares all spatial cells to receive the velocity grid over MPI.
  * At this stage we have received a new block list (over MPI or from
  * an initializatiom function), but the rest of the cell structures
  * have not been adapted to this new list. Here we re-initialize
