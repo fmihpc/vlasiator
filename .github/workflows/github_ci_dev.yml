@@ -251,6 +251,7 @@ jobs:
     - uses: ursg/gcc-problem-matcher@master
 
     - name: Compile vlasiator (Release build)
+      shell: bash
       run: |
         make clean
         if [ '${{ matrix.compile_flags }}' == 'prod' ]; then
