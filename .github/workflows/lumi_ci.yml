@@ -56,7 +56,7 @@ jobs:
       - name: Drop SSH key into VM
         run: |
           mkdir -p .ssh/
-          echo "${{ secrets.LUMI_SSH_KEY }}" > .ssh/id_lumi
+          echo -e "${{ secrets.LUMI_SSH_KEY }}\n" > .ssh/id_lumi
           sudo chmod 600 .ssh/id_lumi
       - name: Connect to Lumi
         run: |
