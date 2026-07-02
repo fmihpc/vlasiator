@@ -52,14 +52,13 @@ jobs:
       lumikey: ${{ secrets.LUMI_SSH_KEY }}
     outputs:
        VLASIATOR_ARCH: ${{ steps.runbuild.outputs.VLASIATOR_ARCH }}
-    defaults:
-      run:
-        shell: echo $lumikey | ssh lrb_462001599_ci@lumi.csc.fi -i /dev/stdin  bash -s {0}
+    # defaults:
+    #   run:
     steps:
-      # - name: Checkout source
-      #   uses: actions/checkout@v4
-      #   with:
-      #     submodules: true
+      - name: testing
+        shell: bash
+        run: | 
+          echo $lumikey | ssh lrb_462001599_ci@lumi.csc.fi -i /dev/stdin  whoami
       - name: testing
         run: | 
           whoami
