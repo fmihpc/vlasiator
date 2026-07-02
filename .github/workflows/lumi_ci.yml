@@ -53,7 +53,8 @@ jobs:
     outputs:
        VLASIATOR_ARCH: ${{ steps.runbuild.outputs.VLASIATOR_ARCH }}
     defaults:
-      shell: ssh lrb_462001599_ci@lumi.csc.fi -i ${{ secrets.LUMI_SSH_KEY }}  bash -s {0}
+      run:
+        shell: ssh lrb_462001599_ci@lumi.csc.fi -i ${{ secrets.LUMI_SSH_KEY }}  bash -s {0}
     steps:
       # - name: Checkout source
       #   uses: actions/checkout@v4
