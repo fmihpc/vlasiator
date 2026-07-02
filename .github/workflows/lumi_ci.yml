@@ -58,7 +58,9 @@ jobs:
       - name: testing
         shell: bash
         run: | 
-          echo $lumikey | ssh lrb_462001599_ci@lumi.csc.fi -i /dev/stdin -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null whoami
+          echo $lumikey > key
+          chmod 700 key
+          ssh lrb_462001599_ci@lumi.csc.fi -i key -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null whoami
       - name: testing
         run: | 
           whoami
