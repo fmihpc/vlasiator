@@ -78,7 +78,7 @@ LIB_PAPI = -lpapi -L/opt/cray/pe/papi/7.1.0.1/lib -Wl,-rpath=/opt/cray/pe/papi/7
 
 #======== Compiled libraries ========
 INC_ZOLTAN = -isystem $(LIBRARY_PREFIX)/include
-LIB_ZOLTAN = -lzoltan
+LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/lib64 -lzoltan -Wl,-rpath=$(LIBRARY_PREFIX)/lib64
 
 INC_VLSV = -isystem $(LIBRARY_PREFIX)/include
 LIB_VLSV = -lvlsv
