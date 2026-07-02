@@ -1134,13 +1134,6 @@ int simulate(int argn,char* args[]) {
          // Make sure the ionosphere communicator is up-to-date, in case inner boundary cells
          // moved.
          SBC::ionosphereGrid.updateIonosphereCommunicator(mpiGrid, technical.view(), fsgrid);
-
-         #ifdef USE_GPU
-         phiprof::Timer memTimer {"memory-report"};
-         memTimer.start();
-         report_memory_consumption(mpiGrid);
-         memTimer.stop();
-         #endif
       }
 
       //get local cells
