@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   secret-test-job:
-    runs-on: ukko
+    runs-on: ubuntu-latest
     env: # Or as an environment variable
       secret: ${{ secrets.SECRET_TEST }}
     steps:
@@ -27,7 +27,7 @@ jobs:
           set -x
           echo $secret
           echo $secret > test.txt
-          echo test.txt
+          cat test.txt
 
 
   get_git_diff:
