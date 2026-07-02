@@ -47,30 +47,37 @@ jobs:
           echo "Running testpackage"
 
   build_libraries_lumi_hipcc:
-    runs-on: lumi
+    runs-on: ubuntu-latest
+    env:
+      lumikey: ${{ secrets.LUMI_SSH_KEY }}
     outputs:
        VLASIATOR_ARCH: ${{ steps.runbuild.outputs.VLASIATOR_ARCH }}
-
+    defaults:
+      shell: ssh lrb_462001599_ci@lumi.csc.fi -i ${{ secrets.LUMI_SSH_KEY }}  bash -s {0}
     steps:
-      - name: Checkout source
-        uses: actions/checkout@v4
-        with:
-          submodules: true
+      # - name: Checkout source
+      #   uses: actions/checkout@v4
+      #   with:
+      #     submodules: true
+      - name: testing
+        run: | 
+          whoami
       - name: Run library build script
         id: runbuild
         run: |
-          export VLASIATOR_ARCH=lumi_hipcc
-          echo $VLASIATOR_ARCH >> $GITHUB_OUTPUT
-          srun --interactive -C g -J build_libs_$VLASIATOR_ARCH -n 1 -c 16 bash -c "hostname ; realpath modules/modules.sh ; source modules/$VLASIATOR_ARCH.sh ; ./fetch_and_build_libraries.sh $VLASIATOR_ARCH"
-      - name: Build libraries tar
-        run: tar -zcf libraries-${{ steps.runbuild.outputs.VLASIATOR_ARCH }}.tar.gz libraries-${{ steps.runbuild.outputs.VLASIATOR_ARCH }}/
-      - name: Upload libraries as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: libraries-${{ steps.runbuild.outputs.VLASIATOR_ARCH }}
-          path: libraries-${{ steps.runbuild.outputs.VLASIATOR_ARCH }}.tar.gz
-          retention-days: 5
-          if-no-files-found: error
+          hostname
+          # export VLASIATOR_ARCH=lumi_hipcc
+          # echo $VLASIATOR_ARCH >> $GITHUB_OUTPUT
+          # srun --interactive -C g -J build_libs_$VLASIATOR_ARCH -n 1 -c 16 bash -c "hostname ; realpath modules/modules.sh ; source modules/$VLASIATOR_ARCH.sh ; ./fetch_and_build_libraries.sh $VLASIATOR_ARCH"
+      # - name: Build libraries tar
+      #   run: tar -zcf libraries-${{ steps.runbuild.outputs.VLASIATOR_ARCH }}.tar.gz libraries-${{ steps.runbuild.outputs.VLASIATOR_ARCH }}/
+      # - name: Upload libraries as artifact
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: libraries-${{ steps.runbuild.outputs.VLASIATOR_ARCH }}
+      #     path: libraries-${{ steps.runbuild.outputs.VLASIATOR_ARCH }}.tar.gz
+      #     retention-days: 5
+      #     if-no-files-found: error
     
 
   build_TP_LUMI-G:
