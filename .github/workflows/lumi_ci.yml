@@ -58,13 +58,10 @@ jobs:
       - name: testing
         shell: bash
         run: | 
-          echo $lumikey | ssh lrb_462001599_ci@lumi.csc.fi -i /dev/stdin  whoami
+          echo $lumikey | ssh lrb_462001599_ci@lumi.csc.fi -i /dev/stdin -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null whoami
       - name: testing
         run: | 
           whoami
-      - name: Run library build script
-        id: runbuild
-        run: |
           hostname
           # export VLASIATOR_ARCH=lumi_hipcc
           # echo $VLASIATOR_ARCH >> $GITHUB_OUTPUT
