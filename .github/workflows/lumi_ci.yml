@@ -55,11 +55,10 @@ jobs:
     steps:
       - name: Drop SSH key into VM
         run: |
-
+          
           mkdir -p .ssh/
-          echo -e "${{ secrets.LUMI_SSH_KEY }}\n" > .ssh/id_lumi
+          echo "${{ secrets.LUMI_SSH_KEY }}" > .ssh/id_lumi
           sudo chmod 600 .ssh/id_lumi
-          eval "$(ssh-agent -s)"
           ssh -i .ssh/id_lumi -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5 -o BatchMode=yes -o PasswordAuthentication=no -o IdentitiesOnly=yes lrb_462001599_ci@lumi.csc.fi "touch test; whoami"
           # export VLASIATOR_ARCH=lumi_hipcc
           # echo $VLASIATOR_ARCH >> $GITHUB_OUTPUT
