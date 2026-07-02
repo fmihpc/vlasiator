@@ -18,9 +18,10 @@
 
 # If 1, the reference vlsv files are generated
 # If 0 then we check the v1
+# hello
 create_verification_files=0
 
-# Folder for all reference data 
+# Folder for all reference data
 reference_dir="/scratch/project_462000358/testpackage_2025/"
 cd $SLURM_SUBMIT_DIR
 
@@ -34,7 +35,7 @@ reference_revision="current"
 #LD_PRELOAD=/users/marbat/git/vlasiator-mempool/libpreload-me-2309.so
 
 # set up GPU/CPU bindings
-cat << EOF > select_gpu_${SLURM_JOB_ID}
+cat <<EOF >select_gpu_${SLURM_JOB_ID}
 #!/bin/bash
 export ROCR_VISIBLE_DEVICES=\$SLURM_LOCALID
 export OMP_NUM_THREADS=7
