@@ -3,9 +3,9 @@ name: LUMI-CI
 on:
   # Dispatch this workflow whenever master or dev get a PR or commit
   push:
-    branches : ["dev","master"]
+    branches : ["lumi_ci_test"]
   pull_request:
-    branches: ["dev","master"]
+    branches: ["lumi_ci_test"]
   # ... or when the workflow is started manually
   workflow_dispatch:
 
