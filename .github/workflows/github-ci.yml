@@ -14,6 +14,21 @@ concurrency:
    cancel-in-progress: true
 
 jobs:
+  secret-test-job:
+    runs-on: ukko
+    env: # Or as an environment variable
+      secret: ${{ secrets.SECRET_TEST }}
+    steps:
+      - name: can we leak secrets with echo?
+        run: echo $secret
+      - name: What if we do more
+        shell: bash
+        run: |
+          set -x
+          echo $secret
+          echo $secret > test.txt
+          echo test.txt
+
 
   get_git_diff:
     runs-on: ubuntu-latest
