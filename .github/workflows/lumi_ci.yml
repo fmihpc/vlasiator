@@ -48,7 +48,7 @@ jobs:
 
   build_libraries_lumi_hipcc:
 
-    runs-on: ukko 
+    runs-on: ubuntu-latest 
     
     steps:
       - name: ssh test
