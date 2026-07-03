@@ -108,6 +108,33 @@ uint64_t get_node_free_memory(){
       fclose(in_file);
    }
 
+   #ifdef USE_GPU
+   // On systems where GPU HBM is exposed as coherent NUMA memory (e.g. GH200),
+   // /proc/meminfo MemFree includes GPU free memory. Subtract free pages in
+   // Movable zones, which is where GPU HBM appears on such systems.
+   // On conventional systems Movable zones are empty, making this a no-op.
+   uint64_t movableFreeBytes = 0;
+   FILE *zoneinfo = fopen("/proc/zoneinfo", "r");
+   if (zoneinfo) {
+      char line[256];
+      bool inMovable = false;
+      while (fgets(line, sizeof(line), zoneinfo)) {
+         if (strncmp(line, "Node ", 5) == 0) {
+            inMovable = strstr(line, "Movable") != NULL;
+         } else if (inMovable) {
+            unsigned long pages = 0;
+            if (sscanf(line, " nr_free_pages %lu", &pages) == 1) {
+               movableFreeBytes += (uint64_t)pages * sysconf(_SC_PAGESIZE);
+            }
+         }
+      }
+      fclose(zoneinfo);
+   }
+   if (movableFreeBytes < mem_proc_free) {
+      mem_proc_free -= movableFreeBytes;
+   }
+   #endif
+
    return mem_proc_free;
 }
 /*! Measures memory consumption and writes it into logfile.
