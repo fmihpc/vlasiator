@@ -122,8 +122,8 @@ if [[ $1 == "RUN_TP" ]]; then
     cd testpackage
     # Delete any old run directories
     rm -rf run_20*
-
-    sbatch -W -o testpackage_run_output.txt ./small_test_${VLASIATOR_ARCH}_github_ci.sh || true
+    echo "TP_PID=$$" >> $GITHUB_OUTPUT
+    sbatch -W -o testpackage_run_output.txt -J "CI_TP_$$" ./small_test_${VLASIATOR_ARCH}_github_ci.sh || true
     PARSE_OUTPUT_CMD=$(
       cat <<MORO
 echo "Job finished, checking output."
