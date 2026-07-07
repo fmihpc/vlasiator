@@ -9,7 +9,7 @@ then
       echo -e "Module list now:\n"
       module list
    else
-      echo -e "\nERROR, modules/"${VLASIATOR_ARCH}".sh not found!!\n"
+      echo -e "\nERROR, modules/"${VLASIATOR_ARCH}".sh not found!!\n Make sure you are in the root folder!"
    fi
 else
    if [[ z$1 != "z" ]]
