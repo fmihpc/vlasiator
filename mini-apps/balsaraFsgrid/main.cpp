@@ -2,13 +2,141 @@
 #include "../../fieldsolver/fs_common.h"
 #include "../../fieldsolver/fs_limiters.h"
 #include <cmath>
+#include <cstdlib>
 #include <fsgrid.hpp>
 #include <iostream>
+#include <mpi.h>
+#include "../../logger.h"
+#include "../../object_wrapper.h"
 
+Logger logFile, diagnostic;
 using namespace std;
+using namespace SBC;
 using namespace fsgrids;
+// uint Parameters::ohmHallTerm = 0;
 
-uint Parameters::ohmHallTerm = 0;
+struct Param {
+  static uint ohmHallTerm;
+  static Real xmin;    /*!< X-coordinate of the lower left corner of the spatial grid. */
+  static Real xmax;    /*!< X-coordinate of the upper right corner of the spatial grid. */
+  static Real ymin;    /*!< Y-coordinate of the lower left corner of the spatial grid. */
+  static Real ymax;    /*!< Y-coordinate of the upper right corner of the spatial grid. */
+  static Real zmin;    /*!< Z-coordinate of the lower left corner of the spatial grid. */
+  static Real zmax;    /*!< Z-coordinate of the upper right corner of the spatial grid. */
+  static Real dx_ini;  /*!< Initial size of spatial cell in x-direction. */
+  static Real dy_ini;  /*!< Initial size of spatial cell in y-direction. */
+  static Real dz_ini;  /*!< Initial size of spatial cell in z-direction. */
+  static int xcells_ini;
+  static int ycells_ini;
+  static int zcells_ini;
+  static int amrMaxSpatialRefLevel;
+  static std::array<fsgrid::Task_t,3> manualFsGridDecomposition;
+  static void addParameters();
+  static void getParameters();
+};
+typedef Param Pb;
+uint Pb::ohmHallTerm;
+Real Pb::xmin;    /*!< X-coordinate of the lower left corner of the spatial grid. */
+Real Pb::xmax;    /*!< X-coordinate of the upper right corner of the spatial grid. */
+Real Pb::ymin;    /*!< Y-coordinate of the lower left corner of the spatial grid. */
+Real Pb::ymax;    /*!< Y-coordinate of the upper right corner of the spatial grid. */
+Real Pb::zmin;    /*!< Z-coordinate of the lower left corner of the spatial grid. */
+Real Pb::zmax;    /*!< Z-coordinate of the upper right corner of the spatial grid. */
+Real Pb::dx_ini;  /*!< Initial size of spatial cell in x-direction. */
+Real Pb::dy_ini;  /*!< Initial size of spatial cell in y-direction. */
+Real Pb::dz_ini;  /*!< Initial size of spatial cell in z-direction. */
+int Pb::xcells_ini;
+int Pb::ycells_ini;
+int Pb::zcells_ini;
+
+int Pb::amrMaxSpatialRefLevel=0;
+std::array<fsgrid::Task_t,3> Pb::manualFsGridDecomposition = {0,0,0};
+
+ObjectWrapper objectWrapper;
+SysBoundary sysBoundary;
+ObjectWrapper& getObjectWrapper() {
+   return objectWrapper;
+}
+std::vector<CellID> localCellDummy;
+const std::vector<CellID>& getLocalCells() { return localCellDummy; }
+SysBoundary::SysBoundary() {}
+SysBoundary::~SysBoundary() {}
+species::Species::~Species() {}
+
+
+int globalflags::bailingOut = 0;
+bool globalflags::writeRestart = false;
+bool globalflags::writeRecover = false;
+bool globalflags::balanceLoad = false;
+bool globalflags::doRefine = false;
+bool globalflags::ionosphereJustSolved = false;
+void Pb::addParameters() {
+  Readparameters::add(
+       "fieldsolver.ohmHallTerm",
+       "Enable/choose spatial order of the Hall term in Ohm's law. 0: off, 1: 1st spatial order, 2: 2nd spatial order",
+       0);
+   Readparameters::add(
+       "fieldsolver.manualFsGridDecompositionX",
+       "Manual FsGridDecomposition for field solver grid.", 0);
+   Readparameters::add(
+       "fieldsolver.manualFsGridDecompositionY",
+       "Manual FsGridDecomposition for field solver grid.", 0);
+   Readparameters::add(
+       "fieldsolver.manualFsGridDecompositionZ",
+       "Manual FsGridDecomposition for field solver grid.", 0);
+   Readparameters::add("gridbuilder.x_min", "Minimum value of the x-coordinate.", NAN);
+   Readparameters::add("gridbuilder.x_max", "Maximum value of the x-coordinate.", NAN);
+   Readparameters::add("gridbuilder.y_min", "Minimum value of the y-coordinate.", NAN);
+   Readparameters::add("gridbuilder.y_max", "Maximum value of the y-coordinate.", NAN);
+   Readparameters::add("gridbuilder.z_min", "Minimum value of the z-coordinate.", NAN);
+   Readparameters::add("gridbuilder.z_max", "Maximum value of the z-coordinate.", NAN);
+   Readparameters::add("AMR.max_spatial_level", "Maximum absolute spatial mesh refinement level", (uint)0);
+   Readparameters::add("gridbuilder.x_length", "Number of cells in x-direction in initial grid.", 0);
+   Readparameters::add("gridbuilder.y_length", "Number of cells in y-direction in initial grid.", 0);
+   Readparameters::add("gridbuilder.z_length", "Number of cells in z-direction in initial grid.", 0);
+   Readparameters::add("gridbuilder.dx_ini", "Number of cells in x-direction in initial grid.",NAN);
+   Readparameters::add("gridbuilder.dy_ini", "Number of cells in y-direction in initial grid.",NAN);
+   Readparameters::add("gridbuilder.dz_ini", "Number of cells in z-direction in initial grid.",NAN);
+}
+
+void Pb::getParameters() {
+   int myRank;
+   
+   MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
+   Readparameters::get("fieldsolver.ohmHallTerm", Pb::ohmHallTerm);
+   Readparameters::get("gridbuilder.x_min", Pb::xmin);
+   Readparameters::get("gridbuilder.x_max", Pb::xmax);
+   Readparameters::get("gridbuilder.y_min", Pb::ymin);
+   Readparameters::get("gridbuilder.y_max", Pb::ymax);
+   Readparameters::get("gridbuilder.z_min", Pb::zmin);
+   Readparameters::get("gridbuilder.z_max", Pb::zmax);
+   Readparameters::get("AMR.max_spatial_level", Pb::amrMaxSpatialRefLevel);
+   Readparameters::get("gridbuilder.x_length", Pb::xcells_ini);
+   Readparameters::get("gridbuilder.y_length", Pb::ycells_ini);
+   Readparameters::get("gridbuilder.z_length", Pb::zcells_ini);
+   Readparameters::get("gridbuilder.dx_ini",Pb::dx_ini);
+   Readparameters::get("gridbuilder.dy_ini",Pb::dy_ini);
+   Readparameters::get("gridbuilder.dz_ini",Pb::dz_ini);
+   if ( isnan(Pb::dx_ini) || isnan(Pb::dy_ini) || isnan(Pb::dz_ini)) {
+    if ( Pb::xcells_ini == 0 || Pb::ycells_ini == 0 || Pb::zcells_ini == 0 ) {
+      if (myRank == MASTER_RANK)
+         std::cerr << "one of d[x,y or z]_ini and [x,y or z]cells_ini not given, exiting!\nPleae either set the d[x,y,z]_ini or [x,y,z]cells_ini variables! " << std::endl;
+      exit(1);
+    }
+    std::cout << "gridbuilder.d[x,y or z]_ini not set! Will calculate these values from _length and _max/min" << std::endl;
+    Pb::dx_ini = (Pb::xmax - Pb::xmin) / Pb::xcells_ini;
+    Pb::dy_ini = (Pb::ymax - Pb::ymin) / Pb::ycells_ini;
+    Pb::dz_ini = (Pb::zmax - Pb::zmin) / Pb::zcells_ini;
+   }
+
+   fsgrid::Task_t temp_task_t;
+   Readparameters::get("fieldsolver.manualFsGridDecompositionX", temp_task_t);
+   Pb::manualFsGridDecomposition[0] = temp_task_t;
+   Readparameters::get("fieldsolver.manualFsGridDecompositionY", temp_task_t);
+   Pb::manualFsGridDecomposition[1] = temp_task_t;
+   Readparameters::get("fieldsolver.manualFsGridDecompositionZ", temp_task_t);
+   Pb::manualFsGridDecomposition[2] = temp_task_t;
+}
 
 // Very simplified version of CalculateDerivatives from fieldsolver/derivatives.cpp
 void calculateDerivatives(const fsgrid::FsStencil& stencil, fsgrids::perbspan perb,
@@ -26,7 +154,7 @@ void calculateDerivatives(const fsgrid::FsStencil& stencil, fsgrids::perbspan pe
       dPerB[fsgrids::dperb::dPERBydx] = limiter(leftPerB[fsgrids::bfield::PERBY], centPerB[fsgrids::bfield::PERBY], rghtPerB[fsgrids::bfield::PERBY]);
       dPerB[fsgrids::dperb::dPERBzdx] = limiter(leftPerB[fsgrids::bfield::PERBZ], centPerB[fsgrids::bfield::PERBZ], rghtPerB[fsgrids::bfield::PERBZ]);
 
-      if (Parameters::ohmHallTerm < 2) {
+      if (Pb::ohmHallTerm < 2) {
          dPerB[fsgrids::dperb::dPERBydxx] = 0.0;
          dPerB[fsgrids::dperb::dPERBzdxx] = 0.0;
       } else {
@@ -44,7 +172,7 @@ void calculateDerivatives(const fsgrid::FsStencil& stencil, fsgrids::perbspan pe
       dPerB[fsgrids::dperb::dPERBxdy] = limiter(leftPerB[fsgrids::bfield::PERBX], centPerB[fsgrids::bfield::PERBX], rghtPerB[fsgrids::bfield::PERBX]);
       dPerB[fsgrids::dperb::dPERBzdy] = limiter(leftPerB[fsgrids::bfield::PERBZ], centPerB[fsgrids::bfield::PERBZ], rghtPerB[fsgrids::bfield::PERBZ]);
 
-      if (Parameters::ohmHallTerm < 2) {
+      if (Pb::ohmHallTerm < 2) {
          dPerB[fsgrids::dperb::dPERBxdyy] = 0.0;
          dPerB[fsgrids::dperb::dPERBzdyy] = 0.0;
       } else {
@@ -61,7 +189,7 @@ void calculateDerivatives(const fsgrid::FsStencil& stencil, fsgrids::perbspan pe
       dPerB[fsgrids::dperb::dPERBxdz] = limiter(leftPerB[fsgrids::bfield::PERBX], centPerB[fsgrids::bfield::PERBX], rghtPerB[fsgrids::bfield::PERBX]);
       dPerB[fsgrids::dperb::dPERBydz] = limiter(leftPerB[fsgrids::bfield::PERBY], centPerB[fsgrids::bfield::PERBY], rghtPerB[fsgrids::bfield::PERBY]);
 
-      if (Parameters::ohmHallTerm < 2) {
+      if (Pb::ohmHallTerm < 2) {
          dPerB[fsgrids::dperb::dPERBxdzz] = 0.0;
          dPerB[fsgrids::dperb::dPERBydzz] = 0.0;
       } else {
@@ -70,7 +198,7 @@ void calculateDerivatives(const fsgrid::FsStencil& stencil, fsgrids::perbspan pe
       }
    }
 
-   if (Parameters::ohmHallTerm < 2) {
+   if (Pb::ohmHallTerm < 2) {
       dPerB[fsgrids::dperb::dPERBxdyz] = 0.0;
       dPerB[fsgrids::dperb::dPERBydxz] = 0.0;
       dPerB[fsgrids::dperb::dPERBzdxy] = 0.0;
@@ -122,31 +250,24 @@ int main(int argc, char** argv) {
    }
    const int masterProcessID = 0;
 
-   // Parse parameters
-   if (argc == 1) {
-      cerr << "Running with default options. Run main --help to see available settings." << endl;
-   }
-   for (int i = 1; i < argc; i++) {
-      cerr << "Unknown command line option \"" << argv[i] << "\"" << endl;
-      cerr << endl;
-      cerr << "main" << endl;
-      cerr << "Paramters:" << endl;
-      cerr << " none! :D" << endl;
-
-      return 1;
-   }
-
+   Readparameters readparameters(argc,argv);
+   Pb::addParameters();
+   readparameters.parse(true, true); // 2nd parsing for specific population parameters
+   Pb::getParameters();
+   Readparameters::helpMessage();
+  
    phiprof::initialize();
 
+
    // Set up fsgrids
-   const std::array<int, 3> fsGridDimensions = {5, 5, 5};
+   const std::array<uint, 3> fsGridDimensions = {5, 5, 5};
    const std::array<bool, 3> periodicity{true, true, true};
 
-   const std::array gridSpacing{P::dx_ini / pow(2, P::amrMaxSpatialRefLevel),
-                                P::dy_ini / pow(2, P::amrMaxSpatialRefLevel),
-                                P::dz_ini / pow(2, P::amrMaxSpatialRefLevel)};
-   const std::array physicalGlobalStart{P::xmin, P::ymin, P::zmin};
-   const auto decomposition = P::manualFsGridDecomposition;
+   const std::array gridSpacing{Pb::dx_ini / pow(2, Pb::amrMaxSpatialRefLevel),
+                                Pb::dy_ini / pow(2, Pb::amrMaxSpatialRefLevel),
+                                Pb::dz_ini / pow(2, Pb::amrMaxSpatialRefLevel)};
+   const std::array physicalGlobalStart{Pb::xmin, Pb::ymin, Pb::zmin};
+   const auto decomposition = Pb::manualFsGridDecomposition;
 
    MPI_Comm parentComm = MPI_COMM_WORLD;
    const auto numFsProcs = [&]() {
@@ -162,7 +283,6 @@ int main(int argc, char** argv) {
    fsgrid::FsData<fsgrids::technical> technical(fsgrid.getNumStorageCells());
    fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>> perb(fsgrid.getNumStorageCells());
    fsgrid::FsData<std::array<Real, fsgrids::dperb::N_DPERB>> dperb(fsgrid.getNumStorageCells());
-
    // Fill in values
    for (int i = 0; i < 5; i++) {
       for (int j = 0; j < 5; j++) {
@@ -193,7 +313,7 @@ int main(int argc, char** argv) {
       for (int j = 0; j < 5; j++) {
          for (int k = 0; k < 5; k++) {
             const auto stencil = fsgrid.makeStencil(i, j, k);
-            calculateDerivatives(stencil, perb, dperb, technical, fsgrid);
+            calculateDerivatives(stencil, perb.view(), dperb.view(), technical.view(), fsgrid);
          }
       }
    }
