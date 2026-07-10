@@ -171,7 +171,16 @@ variable_names[${index}]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v fg_b
 variable_components[${index}]="0 0 1 2 0 1 2 0 1 2"
 ((index+=1))
 
-# 17 Restart write with translation, acceleration, and fieldsolver
+# 17 Restart read and propagate with translation only single MPI rank
+test_name[${index}]="restart_read_single_rank"
+comparison_vlsv[${index}]="initial-grid.0000000.vlsv bulk.0000002.vlsv"
+comparison_phiprof[${index}]="phiprof_0.txt"
+variable_names[${index}]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v fg_b fg_b fg_b fg_e fg_e fg_e"
+variable_components[${index}]="0 0 1 2 0 1 2 0 1 2"
+single_cell[${index}]=1 #This will use only 1 MPI rank
+((index+=1))
+
+# 18 Restart write with translation, acceleration, and fieldsolver
 test_name[${index}]="restart_write_acc"
 comparison_vlsv[${index}]="bulk.0000001.vlsv"
 comparison_phiprof[${index}]="phiprof_0.txt"
@@ -179,7 +188,7 @@ variable_names[${index}]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v fg_b
 variable_components[${index}]="0 0 1 2 0 1 2 0 1 2"
 ((index+=1))
 
-# 18 Restart read and propagate with translation, acceleration, and fieldsolver
+# 19 Restart read and propagate with translation, acceleration, and fieldsolver
 test_name[${index}]="restart_read_acc"
 comparison_vlsv[${index}]="initial-grid.0000000.vlsv bulk.0000002.vlsv"
 comparison_phiprof[${index}]="phiprof_0.txt"
@@ -187,11 +196,20 @@ variable_names[${index}]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v fg_b
 variable_components[${index}]="0 0 1 2 0 1 2 0 1 2"
 ((index+=1))
 
+# 20 Restart read and propagate with translation, acceleration, and fieldsolver single MPI rank
+test_name[${index}]="restart_read_acc_single_rank"
+comparison_vlsv[${index}]="initial-grid.0000000.vlsv bulk.0000002.vlsv"
+comparison_phiprof[${index}]="phiprof_0.txt"
+variable_names[${index}]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v fg_b fg_b fg_b fg_e fg_e fg_e"
+variable_components[${index}]="0 0 1 2 0 1 2 0 1 2"
+single_cell[${index}]=1 #This will use only 1 MPI rank
+((index+=1))
+
 #######
-# FIELDSOLVER TESTS (19..20)
+# FIELDSOLVER TESTS (21..22)
 #######
 
-# 19 3D Field solver test
+# 21 3D Field solver test
 test_name[${index}]="test_fp_fsolver_only_3D"
 comparison_vlsv[${index}]="fullf.0000001.vlsv"
 comparison_phiprof[${index}]="phiprof_0.txt"
@@ -199,7 +217,7 @@ variable_names[${index}]="fg_b fg_b fg_b fg_e fg_e fg_e"
 variable_components[${index}]="0 1 2 0 1 2"
 ((index+=1))
 
-# 20 3D Field solver test w/ subcycles
+# 22 3D Field solver test w/ subcycles
 test_name[${index}]="test_fp_substeps"
 comparison_vlsv[${index}]="fullf.0000001.vlsv"
 comparison_phiprof[${index}]="phiprof_0.txt"
@@ -208,10 +226,10 @@ variable_components[${index}]="0 1 2 0 1 2"
 ((index+=1))
 
 #######
-# GLOBAL 2D TESTS (21..22)
+# GLOBAL 2D TESTS (23..24)
 #######
 
-# 21 Very small ecliptic magnetosphere, no subcycling in ACC or FS
+# 23 Very small ecliptic magnetosphere, no subcycling in ACC or FS
 test_name[${index}]="Magnetosphere_small"
 comparison_vlsv[${index}]="bulk.0000001.vlsv bulk.0000002.vlsv"
 comparison_phiprof[${index}]="phiprof_0.txt"
@@ -219,7 +237,7 @@ variable_names[${index}]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v fg_b
 variable_components[${index}]="0 0 1 2 0 1 2 0 1 2"
 ((index+=1))
 
-# 22 Very small polar magnetosphere, with subcycling in ACC or FS
+# 24 Very small polar magnetosphere, with subcycling in ACC or FS
 test_name[${index}]="Magnetosphere_polar_small"
 comparison_vlsv[${index}]="bulk.0000001.vlsv bulk.0000002.vlsv"
 comparison_phiprof[${index}]="phiprof_0.txt"
@@ -228,10 +246,10 @@ variable_components[${index}]="0 0 1 2 0 1 2 0 1 2 0 1 2 0 1 2"
 ((index+=1))
 
 #######
-# GLOBAL 3D TESTS (23..24)
+# GLOBAL 3D TESTS (25..26)
 #######
 
-# 23 Magnetosphere 3D, very small, 40 timesteps
+# 25 Magnetosphere 3D, very small, 40 timesteps
 test_name[${index}]="Magnetosphere_3D_small"
 comparison_vlsv[${index}]="bulk.0000001.vlsv bulk.0000002.vlsv"
 comparison_phiprof[${index}]="phiprof_0.txt"
@@ -239,7 +257,7 @@ variable_names[${index}]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v fg_b
 variable_components[${index}]="0 0 1 2 0 1 2 0 1 2"
 ((index+=1))
 
-# 24 Ionosphere 3D (not a very physical or successful test at the moment but verifies some things about IG grid and outputs all datareducers)
+# 26 Ionosphere 3D (not a very physical or successful test at the moment but verifies some things about IG grid and outputs all datareducers)
 test_name[${index}]="Ionosphere_small"
 comparison_vlsv[${index}]="bulk.0000001.vlsv bulk.0000002.vlsv"
 comparison_phiprof[${index}]="phiprof_0.txt"
@@ -248,10 +266,10 @@ variable_components[${index}]="0 0 1 2 0 1 2 0 1 2 0 0 0 0"
 ((index+=1))
 
 #######
-# SUBGRID TESTS (25)
+# SUBGRID TESTS (27)
 #######
 
-# 25  Pitch-angle diffusion test
+# 27  Pitch-angle diffusion test
 test_name[${index}]="subgrid_1_diffusion"
 comparison_vlsv[${index}]="bulk.0000001.vlsv"
 comparison_phiprof[${index}]="phiprof_0.txt"
