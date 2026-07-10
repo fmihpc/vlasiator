@@ -151,7 +151,7 @@ variable_components[${index}]="0 0 1 2 0 0 0 1 2 0 1 2"
 ((index+=1))
 
 #######
-# RESTARTING TESTS (15..18)
+# RESTARTING TESTS (15..20)
 #######
 
 # Restart tests. Writing and reading
