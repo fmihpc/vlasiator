@@ -67,7 +67,8 @@ bool ObjectWrapper::addPopulationParameters() {
      RP::add(pop + "_vspace.vz_length","Initial number of velocity blocks in vz-direction.",1);
      RP::add(pop + "_vspace.max_refinement_level","Old maximum allowed mesh refinement level.", 1);
      RP::add(pop + "_vspace.vamr_refinement_level","New maximum allowed mesh refinement level.", 0);
-     RP::add(pop + "_vspace.vamr_minValue","MinValue ratio between vamr grids.", 1);
+     RP::add(pop + "_vspace.vamr_criteria_method","Choice of the method for the vamr criteria.", 1);
+     RP::add(pop + "_vspace.vamr_criteria_value","Value of epsilon for the vamr refinement criteria.", 1e-15);
 
      // Thermal / suprathermal parameters
      Readparameters::add(pop + "_thermal.vx", "Center coordinate for the maxwellian distribution. Used for calculating the suprathermal moments.", -500000.0);
@@ -184,7 +185,8 @@ bool ObjectWrapper::getPopulationParameters() {
       RP::get(pop + "_vspace.vz_length",vMesh.gridLength[2]);
 
       // Vamr parameters that are saved in species
-      RP::get(pop + "_vspace.vamr_minValue",species.minValueRefinementShift);
+       RP::get(pop + "_vspace.vamr_criteria_method",  species.CriteriaMethod);
+       RP::get(pop + "_vspace.vamr_criteria_value",  species.CriteriaValue);
 
       if(P::activateVamr && species.RefinementLevel>0) {
 	vMesh.gridLength[0] *= (1u << species.RefinementLevel);
