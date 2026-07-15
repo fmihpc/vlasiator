@@ -144,8 +144,11 @@ for run in ${run_tests[*]}; do
    echo "running ${test_name[$run]} "
 
    # Run the actual simulation
-   if [[ ${single_cell[$run]} ]]; then
-      { $small_run_command $bin --run_config=${test_name[$run]}.cfg 2>&1 1>&3 3>&- | tee $GITHUB_WORKSPACE/stderr.txt; exit ${PIPESTATUS[0]}; } 3>&1 1>&2 | tee $GITHUB_WORKSPACE/stdout.txt
+   if [[ ${ranks[$run]} ]]; then
+      if [[ ${ranks[$run]} == "half" ]]; then
+        ranks[$run]=$((SLURM_NTASKS/2))
+      fi
+      { $small_run_command -n ${ranks[$run]} $bin --run_config=${test_name[$run]}.cfg 2>&1 1>&3 3>&- | tee $GITHUB_WORKSPACE/stderr.txt; exit ${PIPESTATUS[0]}; } 3>&1 1>&2 | tee $GITHUB_WORKSPACE/stdout.txt
    else
       { $run_command $bin --run_config=${test_name[$run]}.cfg 2>&1 1>&3 3>&- | tee $GITHUB_WORKSPACE/stderr.txt; exit ${PIPESTATUS[0]}; } 3>&1 1>&2 | tee $GITHUB_WORKSPACE/stdout.txt
    fi
