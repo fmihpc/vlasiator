@@ -181,7 +181,7 @@ ranks[${index}]=1 #This will use only 1 MPI rank
 ((index+=1))
 
 # 18 Restart read and propagate with translation only half of max MPI ranks
-test_name[${index}]="restart_read_single_rank"
+test_name[${index}]="restart_read_multi_rank"
 comparison_vlsv[${index}]="initial-grid.0000000.vlsv bulk.0000002.vlsv"
 comparison_phiprof[${index}]="phiprof_0.txt"
 variable_names[${index}]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v fg_b fg_b fg_b fg_e fg_e fg_e"
@@ -215,7 +215,7 @@ ranks[${index}]=1 #This will use only 1 MPI rank
 ((index+=1))
 
 # 22 Restart read and propagate with translation, acceleration, and fieldsolver half of max MPI ranks
-test_name[${index}]="restart_read_single_rank"
+test_name[${index}]="restart_read_multi_rank"
 comparison_vlsv[${index}]="initial-grid.0000000.vlsv bulk.0000002.vlsv"
 comparison_phiprof[${index}]="phiprof_0.txt"
 variable_names[${index}]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v fg_b fg_b fg_b fg_e fg_e fg_e"
