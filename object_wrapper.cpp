@@ -112,7 +112,7 @@ bool ObjectWrapper::getPopulationParameters() {
 	   species::Species newSpecies;
 	   vmesh::MeshParameters newVMesh;
      	 
-	   newSpecies.name = newVMesh.name = pop; // + std::to_string(j+1); Put only in the output files
+	   newSpecies.name = newVMesh.name = pop; // + std::to_string(j+1); Will only be done for the output files
 	   newSpecies.velocityMesh = j+k+1;
 	   getObjectWrapper().particleSpecies.insert(getObjectWrapper().particleSpecies.begin()+j+k+1, newSpecies);
 	   vmesh::getMeshWrapper()->velocityMeshesCreation->insert(vmesh::getMeshWrapper()->velocityMeshesCreation->begin() +j+k+1,newVMesh);
