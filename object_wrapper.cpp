@@ -66,9 +66,9 @@ bool ObjectWrapper::addPopulationParameters() {
      RP::add(pop + "_vspace.vy_length","Initial number of velocity blocks in vy-direction.",1);
      RP::add(pop + "_vspace.vz_length","Initial number of velocity blocks in vz-direction.",1);
      RP::add(pop + "_vspace.max_refinement_level","Old maximum allowed mesh refinement level.", 1);
-     RP::add(pop + "_vspace.vamr_refinement_level","New maximum allowed mesh refinement level.", 0);
-     RP::add(pop + "_vspace.vamr_criteria_method","Choice of the method for the vamr criteria.", 1);
-     RP::add(pop + "_vspace.vamr_criteria_value","Value of epsilon for the vamr refinement criteria.", 1e-15);
+     RP::add(pop + "_vspace.vamr_refinement_level","New maximum allowed mesh refinement level. 0 is an homogenous grid, X will give X+1 grids.", 0);
+     RP::add(pop + "_vspace.vamr_criteria_method","Choice of the method for the vamr criteria. 0 : d>10e-15 ,  1 : d > eps  , 2 : d > eps 2^-R . Eitheir 0 will be taken.", 0);
+     RP::add(pop + "_vspace.vamr_criteria_value","Value of epsilon (eps) for the vamr refinement criteria. Used only if vamr_criteria_method is 1 or 2.", 1e-15);
 
      // Thermal / suprathermal parameters
      Readparameters::add(pop + "_thermal.vx", "Center coordinate for the maxwellian distribution. Used for calculating the suprathermal moments.", -500000.0);
