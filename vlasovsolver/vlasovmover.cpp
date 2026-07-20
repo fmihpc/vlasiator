@@ -254,7 +254,6 @@ void calculateSpatialGhostTranslation(
    return;
 }
 
-
 /*!
 
   Propagates the distribution function in spatial space.
@@ -310,35 +309,36 @@ void calculateSpatialTranslation(
       nPencils.resize(local_propagated_cells.size()+1, 0);
    }
    computeTimer.stop();
-   
+
+   // Translate all particle species
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-     string profName = "translate "+getObjectWrapper().particleSpecies[popID].name;
-     phiprof::Timer timer {profName};
-     SpatialCell::setCommunicatedSpecies(popID);
-     if (P::vlasovSolverGhostTranslate && (P::amrMaxSpatialRefLevel > 0) ) {
-       // All-local ghost translation with coalesced communication
-       // Not yet implemented for non-AMR solver
-       calculateSpatialGhostTranslation(
-          mpiGrid,
-          local_propagated_cells, // Used for LB
-          nPencils,
-          (Realf)dt,
-          popID,
-          time
-          );
-     } else {
-       // Classic method with included remote contribution through MPI
-       calculateSpatialTranslation(
-          mpiGrid,
-          local_propagated_cells,
-          remoteTargetCellsx,
-          remoteTargetCellsy,
-          remoteTargetCellsz,
-          nPencils,
-          (Realf)dt,
-          popID,
-          time
-          );
+      string profName = "translate "+getObjectWrapper().particleSpecies[popID].name;
+      phiprof::Timer timer {profName};
+      SpatialCell::setCommunicatedSpecies(popID);
+      if (P::vlasovSolverGhostTranslate && (P::amrMaxSpatialRefLevel > 0) ) {
+         // All-local ghost translation with coalesced communication
+         // Not yet implemented for non-AMR solver
+         calculateSpatialGhostTranslation(
+            mpiGrid,
+            local_propagated_cells, // Used for LB
+            nPencils,
+            (Realf)dt,
+            popID,
+            time
+            );
+      } else {
+         // Classic method with included remote contribution through MPI
+         calculateSpatialTranslation(
+            mpiGrid,
+            local_propagated_cells,
+            remoteTargetCellsx,
+            remoteTargetCellsy,
+            remoteTargetCellsz,
+            nPencils,
+            (Realf)dt,
+            popID,
+            time
+            );
       }
    }
 
