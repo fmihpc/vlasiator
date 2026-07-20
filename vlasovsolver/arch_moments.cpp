@@ -705,7 +705,7 @@ void vamr_transfer_values(
 #pragma omp parallel for schedule(dynamic,1)
   for (size_t c=0; c<cells.size(); ++c) {
     SpatialCell* cell = mpiGrid[cells[c]];
-	Realf minValue = 0; //cell->getVelocityBlockMinValue(popID); //0
+	Realf minValue = 0; //cell->getVelocityBlockMinValue(popID);
 	  
 #ifdef USE_GPU
       vmesh::VelocityMesh* vmesh    = cell->dev_get_velocity_mesh(popID);
@@ -890,7 +890,7 @@ void RefinedVamr(spatial_cell::SpatialCell* cell){
 	  for (int k=0; k<2; ++k) {
 	    
 	    
-	    Realf Datagros = 0; // écriture plus simple car directement R-1
+	    Realf Datagros = 0;
 
 	    for (int i2=0; i2<2; ++i2) {
 	      for (int j2=0; j2<2; ++j2) {
@@ -903,8 +903,7 @@ void RefinedVamr(spatial_cell::SpatialCell* cell){
 		    
 	    Realf D = abs( data[localID*WID3+cellIndex(1+i,1+j,1+k)] - Datagros ); // The idea is to always have the central cell
 
-	    vmesh::GlobalID globalID = vmesh->getGlobalID(localID); //peut être que tout ça peut être remplacé par un flag sur refined
-	    vmesh::LocalID Indices[3];
+	    vmesh::GlobalID globalID = vmesh->getGlobalID(localID); 
 	    vmesh->getIndices(globalID, Indices[0], Indices[1], Indices[2]);
 
 	    vmesh::LocalID Indicesraf[3];
@@ -946,7 +945,7 @@ void RefinedVamr(spatial_cell::SpatialCell* cell){
 	      }
 	    }else{ //We could also add something that remove the current level
 	      if(exist){ //don't know if all the things with refinedraf and refined are mandatory
-		cell->remove_velocity_block(globalIDraf,popID+1); //modifier refined		
+		cell->remove_velocity_block(globalIDraf,popID+1); 	
 	      }
 	    }
 	     
@@ -1059,7 +1058,7 @@ std::unordered_set<vmesh::GlobalID> ListBlockExist[getObjectWrapper().particleSp
 		Indices[1] = Indicesraf[1]/2;
 		Indices[2] = Indicesraf[2]/2;
 	
-		int addWidthV = 0; //getObjectWrapper().particleSpecies[popID].sparseBlockAddWidthV; //plus l'écart de block entre 2 grilles
+		int addWidthV = 0; //getObjectWrapper().particleSpecies[popID].sparseBlockAddWidthV; //Replace species.sparseBlockAddWidthV
 		for (int offset_vx=-addWidthV;offset_vx<=addWidthV;offset_vx++) {
 	  	  for (int offset_vy=-addWidthV;offset_vy<=addWidthV;offset_vy++) {
 	    	for (int offset_vz=-addWidthV;offset_vz<=addWidthV;offset_vz++) {
@@ -1320,7 +1319,7 @@ for (size_t c=0; c<cells.size(); ++c) {
 		Indices[1] = Indicesraf[1]/2;
 		Indices[2] = Indicesraf[2]/2;
 	
-		int addWidthV = 1;//getObjectWrapper().particleSpecies[popID].sparseBlockAddWidthV; //plus l'écart de block entre 2 grilles
+		int addWidthV = 1;//getObjectWrapper().particleSpecies[popID].sparseBlockAddWidthV;
 		for (int offset_vx=-addWidthV;offset_vx<=addWidthV;offset_vx++) {
 	 	  for (int offset_vy=-addWidthV;offset_vy<=addWidthV;offset_vy++) {
 	    	for (int offset_vz=-addWidthV;offset_vz<=addWidthV;offset_vz++) {
@@ -1392,7 +1391,7 @@ for (size_t c=0; c<cells.size(); ++c) {
 		    		for (int j4=-1; j4<2; ++j4){
 		      		  for (int k4=-1; k4<2; ++k4){
 			      
-						int i5=2*i+i2+i4;//*(1-2*i3);
+						int i5=2*i+i2+i4;
 						int j5=2*j+j2+j4;
 						int k5=2*k+k2+k4;
 
@@ -1633,7 +1632,7 @@ void RefinedOrder5(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 		Indices[1] = Indicesraf[1]/2;
 		Indices[2] = Indicesraf[2]/2;
 	
-		int addWidthV = 1;//getObjectWrapper().particleSpecies[popID].sparseBlockAddWidthV; //plus l'écart de block entre 2 grilles
+		int addWidthV = 1;//getObjectWrapper().particleSpecies[popID].sparseBlockAddWidthV; //Replace species.sparseBlockAddWidthV
 		  for (int offset_vx=-addWidthV;offset_vx<=addWidthV;offset_vx++) {
 	  		for (int offset_vy=-addWidthV;offset_vy<=addWidthV;offset_vy++) {
 	    	  for (int offset_vz=-addWidthV;offset_vz<=addWidthV;offset_vz++) {
@@ -1704,7 +1703,7 @@ void RefinedOrder5(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 		    	  for (int j4=-2; j4<3; ++j4){
 		      		for (int k4=-2; k4<3; ++k4){
 			      
-					  int i5=2*i+i2+i4;//*(1-2*i3);
+					  int i5=2*i+i2+i4;
 					  int j5=2*j+j2+j4;
 					  int k5=2*k+k2+k4;
 
