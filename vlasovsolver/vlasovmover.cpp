@@ -342,16 +342,16 @@ void calculateSpatialTranslation(
       }
    }
 
-   phiprof::Timer vAMR_transfer {"vAMR transfer between grids in spatial"};
    if (P::activateVamr){
+	 phiprof::Timer vAMR_transfer {"vAMR transfer between grids in spatial"};
      for (uint popID=(getObjectWrapper().particleSpecies.size()-1); popID>0; --popID) {
        //Transfert the info from popID to popID-1
        if(getObjectWrapper().particleSpecies[popID].RefinementLevel>0){
          vamr_transfer_values(mpiGrid,local_propagated_cells,popID-1);
        }
      }
+     vAMR_transfer.stop();
    }
-   vAMR_transfer.stop();
 
    if (Parameters::prepareForRebalance == true) {
       // clear weight on all local cells
