@@ -504,7 +504,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
       // because the boundary conditions may have altered the velocity space,
       // and to update changes in no-content blocks during translation.
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-	adjustVelocityBlocks(mpiGrid, cells, true, popID, true);
+	    adjustVelocityBlocks(mpiGrid, cells, true, popID, true);
       }
    } else {
       // Fairly ugly but no goto
@@ -532,7 +532,6 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
          for (size_t c=0; c<cells.size(); ++c) {
             SpatialCell* SC = mpiGrid[cells[c]];
             const vmesh::VelocityMesh* vmesh = SC->get_velocity_mesh(popID);
-
             // disregard boundary cells, in preparation for acceleration
             if (  (SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) ||
                   // Include inflow-Maxwellian
@@ -576,8 +575,8 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
             // Accelerate population over one subcycle step
             calculateAcceleration(popID,(uint)globalMaxSubcycles,step,mpiGrid,acceleratedCells,dt);
             if(step==0 && (uint)globalMaxSubcycles > 1){
-	      adjustVelocityBlocks(mpiGrid, cells, false, popID, true);
-	         }
+	          adjustVelocityBlocks(mpiGrid, cells, false, popID, true);
+	        }
          } // for-loop over acceleration substeps
 
          // final adjust for all cells, also updating full remote block lists
@@ -591,7 +590,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
      for (uint popID=(getObjectWrapper().particleSpecies.size()-1); popID>0; --popID) {
        //Transfert the info from popID to popID-1
        if(getObjectWrapper().particleSpecies[popID].RefinementLevel>0){
-	 vamr_transfer_values(mpiGrid,cells,popID-1);
+	     vamr_transfer_values(mpiGrid,cells,popID-1);
        }
      }
      vAMR_transfer_accel.stop();
@@ -605,7 +604,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 
    // Recalculate "_V" velocity moments
    calculateMoments_V(mpiGrid,cells,true,(dt==0));
-	
+
    // Set CellParams::MAXVDT to be the minimum dt of all per-species values
    #pragma omp parallel for
    for (size_t c=0; c<cells.size(); ++c) {
@@ -698,7 +697,7 @@ void calculateInitialVelocityMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_G
 }
 
 void RefinedOrderX(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-   const std::vector<CellID>& cells){
+  const std::vector<CellID>& cells){
   if (P::vAMRorder==1){
     RefinedOrder1(mpiGrid,cells);
   }else if(P::vAMRorder==3){
@@ -711,6 +710,6 @@ void RefinedOrderX(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 }
 
 void FixedGhost(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-   const std::vector<CellID>& cells){
+  const std::vector<CellID>& cells){
   GhostFixation(mpiGrid,cells);
 }
