@@ -185,7 +185,6 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
    bbox[5] = vmesh::getMeshWrapper()->velocityMeshes->at(meshID).blockLength[2];
 
    attribs.clear();
-  
    attribs["mesh"] = popName;
    attribs["type"] = vlsv::mesh::STRING_UCD_AMR;
 
