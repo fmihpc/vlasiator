@@ -102,7 +102,7 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
                           const std::vector<CellID>& cellsToAdjust,
                           bool doPrepareToReceiveBlocks,
                           const uint popID,
-			  bool useGhost);
+			              bool useGhost);
 
 /*! Shrink to fit velocity space data to save memory.
  * \param mpiGrid Spatial grid
