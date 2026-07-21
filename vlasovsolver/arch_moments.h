@@ -167,14 +167,14 @@ void blockVelocityFirstMomentsVamr(
 
        ARCH_INNER_BODY(i, j, k, blockLID, lsum) {
          if (!check[cellIndex(i,j,k)]){
-         const Real VX = blockParamsZ[BlockParams::VXCRD] + (i+HALF)*blockParamsZ[BlockParams::DVX];
-         const Real VY = blockParamsZ[BlockParams::VYCRD] + (j+HALF)*blockParamsZ[BlockParams::DVY];
-         const Real VZ = blockParamsZ[BlockParams::VZCRD] + (k+HALF)*blockParamsZ[BlockParams::DVZ];
-         lsum[0] += avgs[cellIndex(i,j,k)] * DV3;
-         lsum[1] += avgs[cellIndex(i,j,k)]*VX * DV3;
-         lsum[2] += avgs[cellIndex(i,j,k)]*VY * DV3;
-         lsum[3] += avgs[cellIndex(i,j,k)]*VZ * DV3;
-	 };
+           const Real VX = blockParamsZ[BlockParams::VXCRD] + (i+HALF)*blockParamsZ[BlockParams::DVX];
+           const Real VY = blockParamsZ[BlockParams::VYCRD] + (j+HALF)*blockParamsZ[BlockParams::DVY];
+           const Real VZ = blockParamsZ[BlockParams::VZCRD] + (k+HALF)*blockParamsZ[BlockParams::DVZ];
+           lsum[0] += avgs[cellIndex(i,j,k)] * DV3;
+           lsum[1] += avgs[cellIndex(i,j,k)]*VX * DV3;
+           lsum[2] += avgs[cellIndex(i,j,k)]*VY * DV3;
+           lsum[3] += avgs[cellIndex(i,j,k)]*VZ * DV3;
+	     };
        };
      }, array);
 }
@@ -247,17 +247,17 @@ void blockVelocitySecondMomentsVamr(
        const Real HALF = 0.5;
 
        ARCH_INNER_BODY(i, j, k, blockLID, lsum) {
- 	 if (!check[cellIndex(i,j,k)]){
-         const Real VX = blockParams[BlockParams::VXCRD] + (i+HALF)*blockParams[BlockParams::DVX];
-         const Real VY = blockParams[BlockParams::VYCRD] + (j+HALF)*blockParams[BlockParams::DVY];
-         const Real VZ = blockParams[BlockParams::VZCRD] + (k+HALF)*blockParams[BlockParams::DVZ];
-         lsum[0] += avgs[cellIndex(i,j,k)] * (VX - averageVX) * (VX - averageVX) * DV3;
-         lsum[1] += avgs[cellIndex(i,j,k)] * (VY - averageVY) * (VY - averageVY) * DV3;
-         lsum[2] += avgs[cellIndex(i,j,k)] * (VZ - averageVZ) * (VZ - averageVZ) * DV3;
-         lsum[3] += avgs[cellIndex(i,j,k)] * (VY - averageVY) * (VZ - averageVZ) * DV3;
-         lsum[4] += avgs[cellIndex(i,j,k)] * (VX - averageVX) * (VZ - averageVZ) * DV3;
-         lsum[5] += avgs[cellIndex(i,j,k)] * (VX - averageVX) * (VY - averageVY) * DV3;
-	 };
+ 	     if (!check[cellIndex(i,j,k)]){
+           const Real VX = blockParams[BlockParams::VXCRD] + (i+HALF)*blockParams[BlockParams::DVX];
+           const Real VY = blockParams[BlockParams::VYCRD] + (j+HALF)*blockParams[BlockParams::DVY];
+           const Real VZ = blockParams[BlockParams::VZCRD] + (k+HALF)*blockParams[BlockParams::DVZ];
+           lsum[0] += avgs[cellIndex(i,j,k)] * (VX - averageVX) * (VX - averageVX) * DV3;
+           lsum[1] += avgs[cellIndex(i,j,k)] * (VY - averageVY) * (VY - averageVY) * DV3;
+           lsum[2] += avgs[cellIndex(i,j,k)] * (VZ - averageVZ) * (VZ - averageVZ) * DV3;
+           lsum[3] += avgs[cellIndex(i,j,k)] * (VY - averageVY) * (VZ - averageVZ) * DV3;
+           lsum[4] += avgs[cellIndex(i,j,k)] * (VX - averageVX) * (VZ - averageVZ) * DV3;
+           lsum[5] += avgs[cellIndex(i,j,k)] * (VX - averageVX) * (VY - averageVY) * DV3;
+	     };
        };
      }, array);
 }
