@@ -390,7 +390,7 @@ namespace spatial_cell {
     private:
       //SpatialCell& operator=(const SpatialCell&);
 
-     bool compute_block_has_content(const vmesh::GlobalID& block,const uint popID,const bool useGhost) const;
+      bool compute_block_has_content(const vmesh::GlobalID& block,const uint popID,const bool useGhost) const;
 
       static int activePopID;
       bool initialized;
