@@ -286,11 +286,11 @@ void initializeGrids(
       }
 
       if (P::activateVamr){
-	FixedGhost(mpiGrid,cells);
+	     FixedGhost(mpiGrid,cells);
       } 
 
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-	adjustVelocityBlocks(mpiGrid,cells,true,popID,true);
+	     adjustVelocityBlocks(mpiGrid,cells,true,popID,true);
          // set initial LB metric based on number of blocks
          #pragma omp parallel for schedule(static)
          for (size_t i=0; i<cells.size(); ++i) {
@@ -838,7 +838,7 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
                           const vector<CellID>& cellsToAdjust,
                           bool doPrepareToReceiveBlocks,
                           const uint popID,
-			  bool useGhost) {
+			              bool useGhost) {
    phiprof::Timer readjustBlocksTimer {"re-adjust blocks", {"Block adjustment"}};
    SpatialCell::setCommunicatedSpecies(popID);
 
