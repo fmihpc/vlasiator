@@ -254,15 +254,15 @@ namespace vmesh {
       if (shrink) {
          cachedCapacity = 1;
          block_data = split::SplitVector<Realf>(WID3);
-	 refined = split::SplitVector<uint8_t>(WID3);
-	 ghost = split::SplitVector<uint8_t>();
+	     refined = split::SplitVector<uint8_t>(WID3);
+	     ghost = split::SplitVector<uint8_t>();
          parameters = split::SplitVector<Real>(BlockParams::N_VELOCITY_BLOCK_PARAMS);
       }
 #else
       if (shrink) {
          block_data = std::vector<Realf,aligned_allocator<Realf,WID3>>(WID3);
-	 refined = std::vector<uint8_t>(WID3);
-	 ghost = std::vector<uint8_t>();
+	     refined = std::vector<uint8_t>(WID3);
+	     ghost = std::vector<uint8_t>();
          parameters = std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS>>(BlockParams::N_VELOCITY_BLOCK_PARAMS);
       }
 #endif
@@ -292,17 +292,17 @@ namespace vmesh {
       #ifdef DEBUG_VBC
          bool ok = true;
          const vmesh::LocalID currentCapacity = block_data.capacity()/WID3;
-	 const vmesh::LocalID currentCapacityR = refined.capacity()/WID3;
-	 const vmesh::LocalID currentCapacityG = ghost.capacity();
+	     const vmesh::LocalID currentCapacityR = refined.capacity()/WID3;
+	     const vmesh::LocalID currentCapacityG = ghost.capacity();
          const vmesh::LocalID currentCapacityP = parameters.capacity()/BlockParams::N_VELOCITY_BLOCK_PARAMS;
-	 const vmesh::LocalID numberOfBlocksR = refined.size()/WID3;
-	 const vmesh::LocalID numberOfBlocksG = ghost.size();
+	     const vmesh::LocalID numberOfBlocksR = refined.size()/WID3;
+	     const vmesh::LocalID numberOfBlocksG = ghost.size();
          const vmesh::LocalID numberOfBlocksP = parameters.size()/BlockParams::N_VELOCITY_BLOCK_PARAMS;
          if (source >= numberOfBlocks) ok = false;
          if (source >= currentCapacity) ok = false;
-	 if (source >= numberOfBlocksR) ok = false;
+	     if (source >= numberOfBlocksR) ok = false;
          if (source >= currentCapacityR) ok = false;
-	 if (source >= numberOfBlocksG) ok = false;
+	     if (source >= numberOfBlocksG) ok = false;
          if (source >= currentCapacityG) ok = false;
          if (source >= numberOfBlocksP) ok = false;
          if (source >= currentCapacityP) ok = false;
@@ -315,9 +315,9 @@ namespace vmesh {
          #ifdef USE_GPU
          if (cachedCapacity != currentCapacity) ok = false;
          #endif
-	 if (currentCapacityR != currentCapacity) ok = false;
+	     if (currentCapacityR != currentCapacity) ok = false;
          if (numberOfBlocksR != numberOfBlocks) ok = false;
-	 if (currentCapacityG != currentCapacity) ok = false;
+	     if (currentCapacityG != currentCapacity) ok = false;
          if (numberOfBlocksG != numberOfBlocks) ok = false;
          if (currentCapacityP != currentCapacity) ok = false;
          if (numberOfBlocksP != numberOfBlocks) ok = false;
@@ -351,9 +351,9 @@ namespace vmesh {
       block_data.erase(block_data.begin() + WID3*(numberOfBlocks-1),
                         block_data.begin() + WID3*(numberOfBlocks));
       refined.erase(refined.begin() + WID3*(numberOfBlocks-1),
-                        refined.begin() + WID3*(numberOfBlocks));
+                     refined.begin() + WID3*(numberOfBlocks));
       ghost.erase(ghost.begin() + (numberOfBlocks-1),
-                        ghost.begin() + (numberOfBlocks));
+                   ghost.begin() + (numberOfBlocks));
       parameters.erase(parameters.begin() + BlockParams::N_VELOCITY_BLOCK_PARAMS*(numberOfBlocks-1),
                         parameters.begin() + BlockParams::N_VELOCITY_BLOCK_PARAMS*(numberOfBlocks));
 #ifdef USE_GPU
@@ -426,7 +426,7 @@ namespace vmesh {
       return block_data.data() + blockLID*WID3;
    }
 
-     inline ARCH_HOSTDEV uint8_t* VelocityBlockContainer::getRefined() {
+   inline ARCH_HOSTDEV uint8_t* VelocityBlockContainer::getRefined() {
       return refined.data();
    }
 
@@ -474,7 +474,7 @@ namespace vmesh {
     return ghost.data();
   }
 
-   inline ARCH_HOSTDEV uint8_t* VelocityBlockContainer::getGhost(const vmesh::LocalID blockLID) {
+  inline ARCH_HOSTDEV uint8_t* VelocityBlockContainer::getGhost(const vmesh::LocalID blockLID) {
       #ifdef DEBUG_VBC
          const vmesh::LocalID numberOfBlocks = ghost.size();
          #if defined(USE_GPU) && (defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__))
@@ -488,9 +488,9 @@ namespace vmesh {
          #endif
       #endif
       return ghost.data() + blockLID;
-   }
+  }
 
-   inline ARCH_HOSTDEV const uint8_t* VelocityBlockContainer::getGhost(const vmesh::LocalID blockLID) const {
+  inline ARCH_HOSTDEV const uint8_t* VelocityBlockContainer::getGhost(const vmesh::LocalID blockLID) const {
       #ifdef DEBUG_VBC
          const vmesh::LocalID numberOfBlocks = ghost.size();
          #if defined(USE_GPU) && (defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__))
@@ -504,7 +504,7 @@ namespace vmesh {
          #endif
       #endif
       return ghost.data() + blockLID;
-   }
+  }
 
    inline ARCH_HOSTDEV Real* VelocityBlockContainer::getParameters() {
       return parameters.data();
@@ -569,9 +569,9 @@ namespace vmesh {
       block_data.erase(block_data.begin() + WID3*(numberOfBlocks-1),
                         block_data.begin() + WID3*(numberOfBlocks));
       refined.erase(refined.begin() + WID3*(numberOfBlocks-1),
-                        refined.begin() + WID3*(numberOfBlocks));
+                     refined.begin() + WID3*(numberOfBlocks));
       ghost.erase(ghost.begin() + (numberOfBlocks-1),
-                        ghost.begin() + (numberOfBlocks));
+                   ghost.begin() + (numberOfBlocks));
       parameters.erase(parameters.begin() + BlockParams::N_VELOCITY_BLOCK_PARAMS*(numberOfBlocks-1),
                         parameters.begin() + BlockParams::N_VELOCITY_BLOCK_PARAMS*(numberOfBlocks));
 #ifdef USE_GPU
@@ -916,7 +916,7 @@ namespace vmesh {
          refined_new[i] = refined[i];
       }
       for (size_t i=0; i<numberOfBlocks; ++i) {
-	ghost_new[i] = ghost[i];
+	     ghost_new[i] = ghost[i];
       }
       for (size_t i=0; i<numberOfBlocks*BlockParams::N_VELOCITY_BLOCK_PARAMS; ++i) {
          parameters_new[i] = parameters[i];
