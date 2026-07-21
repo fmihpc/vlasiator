@@ -107,27 +107,27 @@ bool ObjectWrapper::getPopulationParameters() {
        RP::get(pop + "_vspace.vamr_refinement_level",  species.MaxRefinementLevel);
        species.velocityMesh=j+k;
        if ( species.MaxRefinementLevel > 0) {
-	 species.RefinementLevel=0;
-	 for (int l=0; l< species.MaxRefinementLevel; ++l) {
-	   species::Species newSpecies;
-	   vmesh::MeshParameters newVMesh;
+	     species.RefinementLevel=0;
+	     for (int l=0; l< species.MaxRefinementLevel; ++l) {
+	       species::Species newSpecies;
+	       vmesh::MeshParameters newVMesh;
      	 
-	   newSpecies.name = newVMesh.name = pop; // + std::to_string(j+1); Will only be done for the output files
-	   newSpecies.velocityMesh = j+k+1;
-	   getObjectWrapper().particleSpecies.insert(getObjectWrapper().particleSpecies.begin()+j+k+1, newSpecies);
-	   vmesh::getMeshWrapper()->velocityMeshesCreation->insert(vmesh::getMeshWrapper()->velocityMeshesCreation->begin() +j+k+1,newVMesh);
+	   	   newSpecies.name = newVMesh.name = pop; // + std::to_string(j+1); Will only be done for the output files
+	   	   newSpecies.velocityMesh = j+k+1;
+	   	   getObjectWrapper().particleSpecies.insert(getObjectWrapper().particleSpecies.begin()+j+k+1, newSpecies);
+	   	   vmesh::getMeshWrapper()->velocityMeshesCreation->insert(vmesh::getMeshWrapper()->velocityMeshesCreation->begin() +j+k+1,newVMesh);
 
-	   species::Species& species2=getObjectWrapper().particleSpecies[j+k+1];
-	   vmesh::MeshParameters& vMesh2=vmesh::getMeshWrapper()->velocityMeshesCreation->at(j+k+1);
+	   	   species::Species& species2=getObjectWrapper().particleSpecies[j+k+1];
+	   	   vmesh::MeshParameters& vMesh2=vmesh::getMeshWrapper()->velocityMeshesCreation->at(j+k+1);
 	 
-	   species2.RefinementLevel=l+1;
-	   species2.MaxRefinementLevel= species.MaxRefinementLevel;
+	   	   species2.RefinementLevel=l+1;
+	   	   species2.MaxRefinementLevel= species.MaxRefinementLevel;
 	   
-	   k+=1;
-	 }
+	   	   k+=1;
+	     }
        }else {
-	 species.MaxRefinementLevel=0;
-	 species.RefinementLevel=0;
+	     species.MaxRefinementLevel=0;
+	     species.RefinementLevel=0;
        }
      }
    }
@@ -185,15 +185,15 @@ bool ObjectWrapper::getPopulationParameters() {
       RP::get(pop + "_vspace.vz_length",vMesh.gridLength[2]);
 
       // Vamr parameters that are saved in species
-       RP::get(pop + "_vspace.vamr_criteria_method",  species.CriteriaMethod);
-       RP::get(pop + "_vspace.vamr_criteria_value",  species.CriteriaValue);
+      RP::get(pop + "_vspace.vamr_criteria_method",  species.CriteriaMethod);
+      RP::get(pop + "_vspace.vamr_criteria_value",  species.CriteriaValue);
 
       if(P::activateVamr && species.RefinementLevel>0) {
-	vMesh.gridLength[0] *= (1u << species.RefinementLevel);
-	vMesh.gridLength[1] *= (1u << species.RefinementLevel);
-	vMesh.gridLength[2] *= (1u << species.RefinementLevel);
-	//species.sparseMinValue *= std::pow(species.minValueRefinementShift, species.RefinementLevel);
-     species.sparseBlockAddWidthV=0;
+	    vMesh.gridLength[0] *= (1u << species.RefinementLevel);
+	    vMesh.gridLength[1] *= (1u << species.RefinementLevel);
+	    vMesh.gridLength[2] *= (1u << species.RefinementLevel);
+	    //species.sparseMinValue *= std::pow(species.minValueRefinementShift, species.RefinementLevel);
+        species.sparseBlockAddWidthV=0;
       }
       
       if(vMesh.gridLength[0] > MAX_BLOCKS_PER_DIM  ||
