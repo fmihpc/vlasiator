@@ -308,8 +308,8 @@ bool P::addParameters() {
            true);
    RP::add("dynamic_timestep", "If true,  timestep is set based on  CFL limits (default on)", true);
    RP::add("activate_vamr","Activate the velocity mesh refinement. If 1 it is activated. ", false);
- 	RP::add("vamr_refineStep","Number of steps between each velocity refinement check.", 5);
-	RP::add("vamr_order","Select the numerical order for the creation of cells in the vamr. Existing orders :1, 3 and 5 , either 1 will be taken.", 1);
+   RP::add("vamr_refineStep","Number of steps between each velocity refinement check.", 5);
+   RP::add("vamr_order","Select the numerical order for the creation of cells in the vamr. Existing orders :1, 3 and 5 , either 1 will be taken.", 1);
    RP::add("hallMinimumRho",
            "Minimum rho value used for the Hall and electron pressure gradient terms in the Lorentz force and in the "
            "field solver. Default is very low and has no effect in practice.",
