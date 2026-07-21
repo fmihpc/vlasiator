@@ -821,7 +821,7 @@ namespace vmesh {
          refined[newIndex*WID3+i] = false;
       }
       for (size_t i=0; i<N_blocks; ++i) {
-	ghost[newIndex+i] = 0;
+	     ghost[newIndex+i] = 0;
       }
       for (size_t i=0; i<BlockParams::N_VELOCITY_BLOCK_PARAMS*N_blocks; ++i) {
          parameters[newIndex*BlockParams::N_VELOCITY_BLOCK_PARAMS+i] = 0.0;
