@@ -511,7 +511,7 @@ bool readBlockData(
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
       string popName = getObjectWrapper().particleSpecies[popID].name;
       if (P::activateVamr) {
-	popName += std::to_string(getObjectWrapper().particleSpecies[popID].RefinementLevel);
+	     popName += std::to_string(getObjectWrapper().particleSpecies[popID].RefinementLevel);
       }
 
       // Create a cellID remapping lambda that can renumber our velocity space, should it's size have changed.
