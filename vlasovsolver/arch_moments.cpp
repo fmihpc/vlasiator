@@ -899,7 +899,8 @@ void RefinedVamr(spatial_cell::SpatialCell* cell){
 		    
 	      Realf D = abs( data[localID*WID3+cellIndex(1+i,1+j,1+k)] - Datagros ); // The idea is to always have the central cell
 
-	      vmesh::GlobalID globalID = vmesh->getGlobalID(localID); 
+	      vmesh::GlobalID globalID = vmesh->getGlobalID(localID);
+		  vmesh::LocalID Indices[3];
 	      vmesh->getIndices(globalID, Indices[0], Indices[1], Indices[2]);
 
 	      vmesh::LocalID Indicesraf[3];
@@ -921,23 +922,23 @@ void RefinedVamr(spatial_cell::SpatialCell* cell){
 	      if (D > cell->getVelocityBlockMinValue(0)){
 	      // We should create a new cell for R+1
 	        if(!exist){
-		    cell->add_velocity_block(globalIDraf,popID+1);
-		    vmesh::LocalID  localIDrafcreated=vmeshraf->getLocalID(globalIDraf);
-		    for (int i2=0; i2<2; ++i2) {
-		      for (int j2=0; j2<2; ++j2) {
-		        for (int k2=0; k2<2; ++k2) {
-		          dataraf[localIDrafcreated*WID3+cellIndex(2*i2,2*j2,2*k2)]=data[localID*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)];
-		          dataraf[localIDrafcreated*WID3+cellIndex(2*i2+1,2*j2,2*k2)]=data[localID*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)];
-		          dataraf[localIDrafcreated*WID3+cellIndex(2*i2,2*j2+1,2*k2)]=data[localID*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)];
-		          dataraf[localIDrafcreated*WID3+cellIndex(2*i2,2*j2,2*k2+1)]=data[localID*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)];
-		          dataraf[localIDrafcreated*WID3+cellIndex(2*i2+1,2*j2+1,2*k2)]=data[localID*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)];
-		          dataraf[localIDrafcreated*WID3+cellIndex(2*i2+1,2*j2,2*k2+1)]=data[localID*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)];
-		          dataraf[localIDrafcreated*WID3+cellIndex(2*i2,2*j2+1,2*k2+1)]=data[localID*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)];
-		          dataraf[localIDrafcreated*WID3+cellIndex(2*i2+1,2*j2+1,2*k2+1)]=data[localID*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)];
+		      cell->add_velocity_block(globalIDraf,popID+1);
+		      vmesh::LocalID  localIDrafcreated=vmeshraf->getLocalID(globalIDraf);
+		      for (int i2=0; i2<2; ++i2) {
+		        for (int j2=0; j2<2; ++j2) {
+		          for (int k2=0; k2<2; ++k2) {
+		            dataraf[localIDrafcreated*WID3+cellIndex(2*i2,2*j2,2*k2)]=data[localID*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)];
+		            dataraf[localIDrafcreated*WID3+cellIndex(2*i2+1,2*j2,2*k2)]=data[localID*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)];
+		            dataraf[localIDrafcreated*WID3+cellIndex(2*i2,2*j2+1,2*k2)]=data[localID*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)];
+		            dataraf[localIDrafcreated*WID3+cellIndex(2*i2,2*j2,2*k2+1)]=data[localID*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)];
+		            dataraf[localIDrafcreated*WID3+cellIndex(2*i2+1,2*j2+1,2*k2)]=data[localID*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)];
+		            dataraf[localIDrafcreated*WID3+cellIndex(2*i2+1,2*j2,2*k2+1)]=data[localID*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)];
+		            dataraf[localIDrafcreated*WID3+cellIndex(2*i2,2*j2+1,2*k2+1)]=data[localID*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)];
+		            dataraf[localIDrafcreated*WID3+cellIndex(2*i2+1,2*j2+1,2*k2+1)]=data[localID*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)];
+		          }
 		        }
 		      }
-		    }
-		
+			}		
 	      }else{ //We could also add something that remove the current level
 	        if(exist){ //don't know if all the things with refinedraf and refined are mandatory
 		      cell->remove_velocity_block(globalIDraf,popID+1); 	
