@@ -37,9 +37,9 @@ using namespace spatial_cell;
 namespace projects {
    Harris::Harris(): TriAxisSearch() { }
    Harris::~Harris() { }
-
+   
    bool Harris::initialize(void) {return Project::initialize();}
-
+   
    void Harris::addParameters(){
       typedef Readparameters RP;
       RP::add("Harris.Scale_size", "Harris sheet scale size (m)", 150000.0);
@@ -55,7 +55,7 @@ namespace projects {
          RP::add(pop + "_Harris.rho", "Number density at infinity (m^-3)", 1.0e7);
       }
    }
-
+   
    void Harris::getParameters(){
       Project::getParameters();
       typedef Readparameters RP;
@@ -177,29 +177,29 @@ namespace projects {
       return V0;
    }
 
-   void Harris::setProjectBField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
-   ) {
-      setBackgroundFieldToZero(BgBGrid);
+   void Harris::setProjectBField(fsgrids::perbspan perb,
+                                 fsgrids::bgbspan bgb,
+                                 fsgrids::technicalspan technical, FieldSolverGrid &fsgrid) {
+      setBackgroundFieldToZero(fsgrid, technical, bgb);
 
       if(!P::isRestart) {
-         auto localSize = perBGrid.getLocalSize().data();
+         // local copies for lambda capture
+         const auto BX0_l = this->BX0;
+         const auto BY0_l = this->BY0;
+         const auto BZ0_l = this->BZ0;
+         const auto SCA_LAMBDA_l = this->SCA_LAMBDA;
 
-         #pragma omp parallel for collapse(3)
-         for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
-            for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
-               for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
-                  const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
-                  std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
+         fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                             phiprof::initializeTimer("setProjectBField-loop"), technical,
+                             [=](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+            const std::array<Real, 3> xyz = coordinates.getPhysicalCoords(stencil.i, stencil.j, stencil.k);
+            const std::array<Real, 3> gridSpacing = coordinates.physicalGridSpacing;
+            auto& cell = perb[stencil.ooo()];
 
-                  cell->at(fsgrids::bfield::PERBX) = this->BX0 * tanh((xyz[1] + 0.5 * perBGrid.DY) / this->SCA_LAMBDA);
-                  cell->at(fsgrids::bfield::PERBY) = this->BY0 * tanh((xyz[2] + 0.5 * perBGrid.DZ) / this->SCA_LAMBDA);
-                  cell->at(fsgrids::bfield::PERBZ) = this->BZ0 * tanh((xyz[0] + 0.5 * perBGrid.DX) / this->SCA_LAMBDA);
-               }
-            }
-         }
+            cell[fsgrids::bfield::PERBX] = BX0_l * tanh((xyz[1] + 0.5 * gridSpacing[1]) / SCA_LAMBDA_l);
+            cell[fsgrids::bfield::PERBY] = BY0_l * tanh((xyz[2] + 0.5 * gridSpacing[2]) / SCA_LAMBDA_l);
+            cell[fsgrids::bfield::PERBZ] = BZ0_l * tanh((xyz[0] + 0.5 * gridSpacing[0]) / SCA_LAMBDA_l);
+         });
       }
    }
 

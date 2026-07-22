@@ -53,7 +53,7 @@ function cleanup {
    popd
 }
 
-make -s clean 
+make -s clean
 srun --constraint="carrington" --job-name tp_compile --interactive --nodes=1 -n 1 -c 16 --mem=40G -p test -o testpackage_build_$HEAD.log -t 0:10:0 make -s -j 16 testpackage tools
 
 WARNINGS=`grep -c warning: testpackage_build_$HEAD.log`
@@ -105,7 +105,7 @@ while read line; do
             echo -e ":large_orange_diamond: $CURRENT_TEST: Nonzero diffs: \`$MAXVAR\` has absolute error $MAXERR, relative error $MAXREL."  >> /tmp/githubcomment_$HEAD.txt
          else
             echo -e "\e[32m>>> Zero diffs in test $CURRENT_TEST\e[0m"
-            echo -e ":heavy_check_mark: $CURRENT_TEST: Zero diffs." >> /tmp/githubcomment_$HEAD.txt 
+            echo -e ":heavy_check_mark: $CURRENT_TEST: Zero diffs." >> /tmp/githubcomment_$HEAD.txt
          fi
 
       fi

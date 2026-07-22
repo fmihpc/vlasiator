@@ -197,6 +197,22 @@ else
 fi
 
 
+for i in "x" "y" "z"
+do
+   if [[ $( cat $cfg | grep "periodic_"$i | grep "no" | wc -l ) -eq 1 ]]
+   then
+      if [[ $( cat $cfg | grep $i"+" | wc -l ) -eq 0 ]]
+      then
+         echo "Boundary check: you have periodic_"$i" = no yet seem not to define a boundary behaviour for wall "$i"+. Please check."
+      fi
+      if [[ $( cat $cfg | grep $i"-" | wc -l ) -eq 0 ]]
+      then
+         echo "Boundary check: you have periodic_"$i" = no yet seem not to define a boundary behaviour for wall "$i"-. Please check."
+      fi
+   fi
+done
+
+
 rm -f .cfg_variables .cfg_variable_names .vlasiator_variables .vlasiator_variable_names .allowed_prefixes .unused_variables  .vlasiator_variable_names_default_val .cfg_output_variable_names .cfg_diagnostic_variable_names .vlasiator_diagnostic_variable_names .vlasiator_output_variable_names
 
 exit $retval

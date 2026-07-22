@@ -26,6 +26,7 @@
 #include <limits>
 #include <string>
 #include <vector>
+#include <span>
 #include "definitions.h"
 
 // Include architecture specific definitions
@@ -263,20 +264,6 @@ namespace vderivatives {
    };
 }
 
-// FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-// FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBDt2Grid,
-// FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
-// FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EDt2Grid,
-// FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
-// FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
-// FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
-// FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsDt2Grid,
-// FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-// FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
-// FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-// FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
-// FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-
 /*! Namespace containing enums and structs for the various field solver grid instances
  *
  * Note that in some of these, the order of members differs from the cell
@@ -443,6 +430,27 @@ namespace fsgrids {
       uint SOLVE;           /*!< Bit mask to determine whether a given cell should solve E or B components. */
       int refLevel;         /*!<AMR Refinement Level*/
    };
+
+   typedef std::span<std::array<Real, fsgrids::bfield::N_BFIELD>> perbspan;
+   typedef std::span<const std::array<Real, fsgrids::bfield::N_BFIELD>> constperbspan;
+   typedef std::span<std::array<Real, fsgrids::efield::N_EFIELD>> efieldspan;
+   typedef std::span<const std::array<Real, fsgrids::efield::N_EFIELD>> constefieldspan;
+   typedef std::span<std::array<Real, fsgrids::ehall::N_EHALL>> ehallspan;
+   typedef std::span<const std::array<Real, fsgrids::ehall::N_EHALL>> constehallspan;
+   typedef std::span<std::array<Real, fsgrids::egradpe::N_EGRADPE>> egradpespan;
+   typedef std::span<const std::array<Real, fsgrids::egradpe::N_EGRADPE>> constegradpespan;
+   typedef std::span<std::array<Real, fsgrids::dperb::N_DPERB>> dperbspan;
+   typedef std::span<const std::array<Real, fsgrids::dperb::N_DPERB>> constdperbspan;
+   typedef std::span<std::array<Real, bgbfield::N_BGB>> bgbspan;
+   typedef std::span<const std::array<Real, bgbfield::N_BGB>> constbgbspan;
+   typedef std::span<std::array<Real, fsgrids::moments::N_MOMENTS>> momentsspan;
+   typedef std::span<const std::array<Real, fsgrids::moments::N_MOMENTS>> constmomentsspan;
+   typedef std::span<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmomentsspan;
+   typedef std::span<const std::array<Real, fsgrids::dmoments::N_DMOMENTS>> constdmomentsspan;
+   typedef std::span<std::array<Real, fsgrids::volfields::N_VOL>> volspan;
+   typedef std::span<const std::array<Real, fsgrids::volfields::N_VOL>> constvolspan;
+   typedef std::span<technical> technicalspan;
+   typedef std::span<const technical> consttechnicalspan;
 
 }
 

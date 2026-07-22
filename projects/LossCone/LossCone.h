@@ -46,14 +46,14 @@ namespace projects {
    public:
       LossCone();
       virtual ~LossCone();
-      
+
       virtual bool initialize(void) override;
       static void addParameters(void);
       virtual void getParameters(void) override;
       virtual void setProjectBField(
-         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
-         FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
-         FsGrid< fsgrids::technical, 2>& technicalGrid
+         fsgrids::perbspan perb,
+         fsgrids::bgbspan bgb,
+         fsgrids::technicalspan technical, FieldSolverGrid& fsgrid
       ) override;
       virtual std::vector<std::array<Real, 3> > getV0(
          creal x,
@@ -69,7 +69,7 @@ namespace projects {
                                     const uint popID,
                                     Real vx_in, Real vy_in, Real vz_in) const override;
       virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) override;
-      
+
       Real BX0;
       Real BY0;
       Real BZ0;

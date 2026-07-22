@@ -1,6 +1,6 @@
 /*
  * This file is part of Vlasiator.
- * Copyright 2024-2025 University of Helsinki 
+ * Copyright 2024-2025 University of Helsinki
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
  * at http://www.physics.helsinki.fi/vlasiator/
