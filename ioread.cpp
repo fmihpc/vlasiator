@@ -385,9 +385,12 @@ bool _readBlockDataCompressionNone(vlsv::ParallelReader & file,
    uint64_t avgVectorSize;
    vlsv::datatype::type dataType;
    uint64_t byteSize;
-   list<pair<string, string>> avgAttribs;
-   bool success = true;
-   const string popName = getObjectWrapper().particleSpecies[popID].name;
+   list<pair<string,string> > avgAttribs;
+   bool success=true;
+   string popName = getObjectWrapper().particleSpecies[popID].name;
+   if (P::activateVamr) {
+     popName += std::to_string(getObjectWrapper().particleSpecies[popID].RefinementLevel);
+   }
    const string tagName = "BLOCKIDS";
 
    avgAttribs.push_back(make_pair("mesh", spatMeshName));
@@ -1027,8 +1030,11 @@ bool readBlockData(vlsv::ParallelReader& file, const string& meshName, const vec
    uint64_t byteSize;
    uint64_t* offsetArray = new uint64_t[N_processes];
 
-   for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID) {
-      const string& popName = getObjectWrapper().particleSpecies[popID].name;
+   for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+      string popName = getObjectWrapper().particleSpecies[popID].name;
+      if (P::activateVamr) {
+	     popName += std::to_string(getObjectWrapper().particleSpecies[popID].RefinementLevel);
+      }
 
       // Create a cellID remapping lambda that can renumber our velocity space, should its size have changed.
       // By default, this is a no-op that keeps the blockIDs untouched.

@@ -164,8 +164,11 @@ bool writeVelocityDistributionData(const uint popID, Writer& vlsvWriter,
    // Write velocity blocks and related data.
    // In restart we just write velocity grids for all cells.
    // First write global Ids of those cells which write velocity blocks (here: all cells):
-   map<string, string> attribs;
-   const string popName = getObjectWrapper().particleSpecies[popID].name;
+   map<string,string> attribs;
+   string popName      = getObjectWrapper().particleSpecies[popID].name;
+   if (P::activateVamr) {
+     popName += std::to_string(getObjectWrapper().particleSpecies[popID].RefinementLevel);
+   }
    const string spatMeshName = "SpatialGrid";
    attribs["name"] = popName;
    bool success = true;
@@ -177,7 +180,6 @@ bool writeVelocityDistributionData(const uint popID, Writer& vlsvWriter,
       totalBlocks += mpiGrid[cells[i]]->get_number_of_velocity_blocks(popID);
       blocksPerCell.push_back(mpiGrid[cells[i]]->get_number_of_velocity_blocks(popID));
    }
-
    // The name of the mesh is "SpatialGrid"
    attribs["mesh"] = spatMeshName;
 
@@ -203,7 +205,7 @@ bool writeVelocityDistributionData(const uint popID, Writer& vlsvWriter,
    bbox[5] = vmesh::getMeshWrapper()->velocityMeshes->at(meshID).blockLength[2];
 
    attribs.clear();
-   attribs["mesh"] = getObjectWrapper().particleSpecies[popID].name;
+   attribs["mesh"] = popName;
    attribs["type"] = vlsv::mesh::STRING_UCD_AMR;
 
    // stringstream is necessary here to correctly convert refLevelMaxAllowed (hardcoded to zero now) into a string

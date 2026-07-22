@@ -277,7 +277,7 @@ namespace spatial_cell {
 
       //neighbor_ptrs is empty, so we adjust only based on local velocity space.
       std::vector<SpatialCell*> neighbor_ptrs;
-      update_velocity_block_content_lists(popID);
+      update_velocity_block_content_lists(popID,false);
       adjust_velocity_blocks(neighbor_ptrs,popID,doDeleteEmpty);
    }
 
@@ -287,7 +287,7 @@ namespace spatial_cell {
     sense in given block.
     Also returns false if given block doesn't exist or is an error block.
     */
-   bool SpatialCell::compute_block_has_content(const vmesh::LocalID& blockLID,const uint popID) const {
+   bool SpatialCell::compute_block_has_content(const vmesh::LocalID& blockLID,const uint popID,bool useGhost) const {
       debug_population_check(popID);
       #ifdef DEBUG_SPATIAL_CELL
       const vmesh::GlobalID blockGID = populations[popID].vmesh->getGlobalID(blockLID);
@@ -303,14 +303,35 @@ namespace spatial_cell {
       }
 
       bool has_content = false;
-      const Real velocity_block_min_value = getVelocityBlockMinValue(popID);
-      const Realf* block_data = populations[popID].blockContainer->getData(blockLID);
-      for (unsigned int i=0; i<WID3; ++i) {
-         if (block_data[i] >= velocity_block_min_value) {
+     
+      if (!P::activateVamr || getObjectWrapper().particleSpecies[popID].RefinementLevel==0 || !useGhost ){ 
+	    const Real velocity_block_min_value = getVelocityBlockMinValue(popID);
+	    const Realf* block_data = populations[popID].blockContainer->getData(blockLID);
+	    for (unsigned int i=0; i<WID3; ++i) {
+	      if (block_data[i] >= velocity_block_min_value) {
             has_content = true;
             break;
-         }
-      }
+	      }
+	    }
+      }else{
+	    uint8_t *ghost =  populations[popID].blockContainer->getGhost(blockLID);
+	    bool has_content1 = false;
+	    if (ghost[0]==1){// ghost=2 maybe later for border
+	      has_content1 = true;
+	    }
+	    bool has_content2 = false;
+	    const Real velocity_block_min_value = getVelocityBlockMinValue(popID);
+	    const Realf* block_data = populations[popID].blockContainer->getData(blockLID);
+	    for (unsigned int i=0; i<WID3; ++i) {
+	      if (block_data[i] >= velocity_block_min_value) {
+            has_content2 = true;
+	        break;
+	      }
+	    }
+	    if (has_content1 && has_content2){
+	      has_content = true;
+	    }
+      }   
 
       return has_content;
    }
@@ -410,6 +431,11 @@ namespace spatial_cell {
          if ((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_DATA) !=0) {
             displacements.push_back((uint8_t*) get_data(activePopID) - (uint8_t*) this);
             block_lengths.push_back(sizeof(Realf) * WID3 * populations[activePopID].blockContainer->size());
+         }
+
+         if ((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_REFINED) !=0) {
+            displacements.push_back((uint8_t*) get_refined(activePopID) - (uint8_t*) this);
+            block_lengths.push_back(sizeof(uint8_t) * WID3 * populations[activePopID].blockContainer->size());
          }
 
          if ((SpatialCell::mpi_transfer_type & Transfer::NEIGHBOR_VEL_BLOCK_DATA) != 0) {
@@ -672,14 +698,14 @@ namespace spatial_cell {
 
    /** Update the two lists containing blocks with content, and blocks without content.
     * @see adjustVelocityBlocks */
-   void SpatialCell::update_velocity_block_content_lists(const uint popID) {
+   void SpatialCell::update_velocity_block_content_lists(const uint popID,bool useGhost) {
       debug_population_check(popID);
       velocity_block_with_content_list->clear();
       velocity_block_with_no_content_list->clear();
 
       for (vmesh::LocalID block_index=0; block_index<populations[popID].vmesh->size(); ++block_index) {
          const vmesh::GlobalID globalID = populations[popID].vmesh->getGlobalID(block_index);
-         if (compute_block_has_content(block_index,popID)){
+         if (compute_block_has_content(block_index,popID,useGhost)){
             velocity_block_with_content_list->push_back(globalID);
          } else {
             velocity_block_with_no_content_list->push_back(globalID);
