@@ -262,7 +262,7 @@ void calculateMoments_R(
       for (size_t c=0; c<cells.size(); ++c) {
          SpatialCell* cell = mpiGrid[cells[c]];
 
-	     if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
+         if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
             continue;
          }
          if (cell->sysBoundaryFlag == sysboundarytype::OUTFLOW && cell->sysBoundaryLayer != 1 && !initialCompute) { // these should have been handled by the boundary code
@@ -302,7 +302,7 @@ void calculateMoments_R(
             }
             continue;
          }
-	     const Real mass = getObjectWrapper().particleSpecies[popID].mass;
+         const Real mass = getObjectWrapper().particleSpecies[popID].mass;
          const Real charge = getObjectWrapper().particleSpecies[popID].charge;
 
          // Temporary array where the moments for this species are accumulated
@@ -328,9 +328,9 @@ void calculateMoments_R(
 	     }
 	
          // Store species' contribution to bulk velocity moments
-	     pop.RHO_R = array[0];
-	     pop.V_R[0] = divideIfNonZero(array[1], array[0]);
-	     pop.V_R[1] = divideIfNonZero(array[2], array[0]);
+         pop.RHO_R = array[0];
+         pop.V_R[0] = divideIfNonZero(array[1], array[0]);
+         pop.V_R[1] = divideIfNonZero(array[2], array[0]);
          pop.V_R[2] = divideIfNonZero(array[3], array[0]);
 
 	     if(P::activateVamr && Ref==MaxRef && MaxRef>0 ){
@@ -533,7 +533,7 @@ void calculateMoments_V(
             continue;
          }
 
-	     const Real mass = getObjectWrapper().particleSpecies[popID].mass;
+         const Real mass = getObjectWrapper().particleSpecies[popID].mass;
          const Real charge = getObjectWrapper().particleSpecies[popID].charge;
 
          // Temporary array where the moments for this species are accumulated
@@ -559,10 +559,10 @@ void calculateMoments_V(
 	     }
 	 
          // Store species' contribution to bulk velocity moments
-	     pop.RHO_V = array[0];
-	     pop.V_V[0] = divideIfNonZero(array[1], array[0]);
-	     pop.V_V[1] = divideIfNonZero(array[2], array[0]);
-	     pop.V_V[2] = divideIfNonZero(array[3], array[0]);
+         pop.RHO_V = array[0];
+         pop.V_V[0] = divideIfNonZero(array[1], array[0]);
+         pop.V_V[1] = divideIfNonZero(array[2], array[0]);
+         pop.V_V[2] = divideIfNonZero(array[3], array[0]);
       
 	     if(P::activateVamr && Ref==MaxRef && MaxRef>0 ){
 	       for (uint popID2=(popID-MaxRef); popID2<popID; ++popID2) {
@@ -633,7 +633,7 @@ void calculateMoments_V(
             continue;
          }
 
-	     const Real mass = getObjectWrapper().particleSpecies[popID].mass;
+         const Real mass = getObjectWrapper().particleSpecies[popID].mass;
 
 	     // Temporary array for storing moments
 	     Real array[nMom2] = {0};
@@ -666,12 +666,12 @@ void calculateMoments_V(
           pop.P_V[i] = mass * array[i];
         }
 
-        cell->parameters[CellParams::P_11_V] += pop.P_V[0];
-        cell->parameters[CellParams::P_22_V] += pop.P_V[1];
-        cell->parameters[CellParams::P_33_V] += pop.P_V[2];
-        cell->parameters[CellParams::P_23_V] += pop.P_V[3];
-        cell->parameters[CellParams::P_13_V] += pop.P_V[4];
-        cell->parameters[CellParams::P_12_V] += pop.P_V[5];
+         cell->parameters[CellParams::P_11_V] += pop.P_V[0];
+         cell->parameters[CellParams::P_22_V] += pop.P_V[1];
+         cell->parameters[CellParams::P_33_V] += pop.P_V[2];
+         cell->parameters[CellParams::P_23_V] += pop.P_V[3];
+         cell->parameters[CellParams::P_13_V] += pop.P_V[4];
+         cell->parameters[CellParams::P_12_V] += pop.P_V[5];
 	 
 	    if(P::activateVamr && Ref==MaxRef && MaxRef>0 ){
 	      for (uint popID2=(popID-MaxRef); popID2<popID; ++popID2) {
