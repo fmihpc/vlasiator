@@ -83,7 +83,7 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
             pop.P[i]=0;
          }
          continue;
-      } 
+      }
 
       vmesh::MeshParameters& vMeshprint=vmesh::getMeshWrapper()->velocityMeshesCreation->at(popID);
       species::Species& species=getObjectWrapper().particleSpecies[popID];  
@@ -400,8 +400,7 @@ void calculateMoments_R(
          if (nBlocks == 0) {
             continue;
          }
-
-	 const Real mass = getObjectWrapper().particleSpecies[popID].mass;
+         const Real mass = getObjectWrapper().particleSpecies[popID].mass;
 
 	 // Temporary array for storing moments
 	 Real array[nMom2] = {0};
