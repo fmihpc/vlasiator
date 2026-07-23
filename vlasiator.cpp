@@ -1336,7 +1336,6 @@ int simulate(int argn,char* args[]) {
 		}else{
 	  	  calculateAcceleration(mpiGrid,P::dt, false);
 		}
-		//std::cout<< " check 4  " <<std::endl;
 		addTimedBarrier("barrier-after-ad just-blocks");
       }else{
       	//zero step to set up moments _v
