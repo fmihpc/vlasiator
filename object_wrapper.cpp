@@ -100,7 +100,7 @@ bool ObjectWrapper::getPopulationParameters() {
      const int nbpop = getObjectWrapper().particleSpecies.size();
      int k =0;
    
-     for(unsigned int j =0; j < nbpop; j++) {
+     for(int j =0; j < nbpop; j++) {
        species::Species& species=getObjectWrapper().particleSpecies[j+k];
        vmesh::MeshParameters& vMesh=vmesh::getMeshWrapper()->velocityMeshesCreation->at(j+k);      
        const std::string& pop = species.name;
