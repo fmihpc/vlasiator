@@ -1066,7 +1066,7 @@ std::unordered_set<vmesh::GlobalID> ListBlockExist[getObjectWrapper().particleSp
   }
 
   //create the cells if needed
-  for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+  for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
 
     if(getObjectWrapper().particleSpecies[popID].MaxRefinementLevel>0 ){
 
@@ -1323,7 +1323,7 @@ for (size_t c=0; c<cells.size(); ++c) {
   }
 
   //create the cells if needed
-  for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+  for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
     if(getObjectWrapper().particleSpecies[popID].MaxRefinementLevel>0){
 
       vmesh::VelocityMesh* vmeshinit  = cell->get_velocity_mesh(popID);
@@ -1623,7 +1623,7 @@ void RefinedOrder5(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
   }
 
   //create the cells if needed
-  for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+  for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
     if(getObjectWrapper().particleSpecies[popID].MaxRefinementLevel>0){
 
       vmesh::VelocityMesh* vmeshinit  = cell->get_velocity_mesh(popID);
@@ -1763,7 +1763,7 @@ void SmallRefinedOrder1(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 for (size_t c=0; c<cells.size(); ++c) {
 SpatialCell* cell = mpiGrid[cells[c]];
 
- for (int popID=1; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+ for (uint popID=1; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
    if(getObjectWrapper().particleSpecies[popID].MaxRefinementLevel>0){
      vmesh::VelocityMesh* vmesh    = cell->get_velocity_mesh(popID);
      Realf *data = cell->get_velocity_blocks(popID)->getData();
@@ -1817,7 +1817,7 @@ void GhostFixation(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 #pragma omp parallel for schedule(dynamic,1)
 for (size_t c=0; c<cells.size(); ++c) {
   SpatialCell* cell = mpiGrid[cells[c]];
-  for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+  for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
       vmesh::VelocityMesh* vmesh    = cell->get_velocity_mesh(popID);
       uint8_t *ghost = cell->get_velocity_blocks(popID)->getGhost();     
       for (vmesh::LocalID localID=0; localID<vmesh->size(); ++localID) {
