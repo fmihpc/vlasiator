@@ -758,10 +758,62 @@ namespace DRO {
       return true;
    }
 
-  /********
-	   Next level of helper functions - these include threading and calculate zeroth or first velocity moments or the
-	   diagonal / off-diagonal pressure tensor components for
-	   thermal or non-thermal populations  ********/
+   VariableEntropy::VariableEntropy(cuint _popID): DataReductionOperator(),popID(_popID) {
+      popName = getObjectWrapper().particleSpecies[popID].name;
+   }
+   VariableEntropy::~VariableEntropy() { }
+
+   std::string VariableEntropy::getName() const {return popName + "/vg_entropy";}
+
+   bool VariableEntropy::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "float";
+      dataSize =  sizeof(Real);
+      vectorSize = 1;
+      return true;
+   }
+
+   bool VariableEntropy::reduceData(const SpatialCell* cell,char* buffer) {
+      #ifdef USE_GPU
+      const vmesh::VelocityBlockContainer* VBC = cell->dev_get_velocity_blocks(popID);
+      #else
+      const vmesh::VelocityBlockContainer* VBC = cell->get_velocity_blocks(popID);
+      #endif
+      // ARCH interface includes OpenMP looping including critical regions for thread summation
+      {
+         Real sum = 0.0;
+
+         if (cell->get_number_of_velocity_blocks(popID) != 0)
+         arch::parallel_reduce<arch::sum>({WID, WID, WID, (uint)cell->get_number_of_velocity_blocks(popID)},
+                                          ARCH_LOOP_LAMBDA(const uint i, const uint j, const uint k, const uint n, Real *lsum ) {
+
+                                             const Realf *block_data = VBC->getData(n);
+                                             const Real *block_parameters = VBC->getParameters(n);
+                                             const Real DV3 = block_parameters[BlockParams::DVX]
+                                                * block_parameters[BlockParams::DVY] * block_parameters[BlockParams::DVZ];
+
+                                             Real inc = 0.0;
+                                             if (block_data[cellIndex(i,j,k)] > 0.) {
+                                                inc = block_data[cellIndex(i,j,k)] * log(block_data[cellIndex(i,j,k)]) * DV3;
+                                             }
+                                             lsum[0] += inc;
+                                          }, sum);
+
+         Entropy = sum;
+      }
+      const char* ptr = reinterpret_cast<const char*>(&Entropy);
+      for (uint i = 0; i < sizeof(Real); ++i) buffer[i] = ptr[i];
+      return true;
+   }
+
+   bool VariableEntropy::setSpatialCell(const SpatialCell* cell) {
+      Entropy = 0.0;
+      return true;
+   }
+
+   /********
+     Next level of helper functions - these include threading and calculate zeroth or first velocity moments or the
+     diagonal / off-diagonal pressure tensor components for
+     thermal or non-thermal populations  ********/
 
    //Calculates rho thermal or rho non-thermal
    static void rhoNonthermalCalculation( const SpatialCell * cell, const bool calculateNonthermal, cuint popID, Real & rho ) {
@@ -1023,9 +1075,9 @@ namespace DRO {
       return;
    }
 
-  /*********
-	     End velocity moment / thermal/non-thermal helper functions
-  *********/
+   /*********
+     End velocity moment / thermal/non-thermal helper functions
+   *********/
 
    // Rho nonthermal:
    VariableRhoNonthermal::VariableRhoNonthermal(cuint _popID): DataReductionOperator(),popID(_popID) {

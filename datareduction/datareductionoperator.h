@@ -369,6 +369,22 @@ namespace DRO {
       std::string popName;
    };
 
+   class VariableEntropy: public DataReductionOperator {
+   public:
+      VariableEntropy(cuint popID);
+      virtual ~VariableEntropy();
+
+      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual std::string getName() const;
+      virtual bool reduceData(const SpatialCell* cell,char* buffer);
+      virtual bool setSpatialCell(const SpatialCell* cell);
+
+   protected:
+      Real Entropy;
+      uint popID;
+      std::string popName;
+   };
+
    class DiagnosticFluxB: public DataReductionOperator {
    public:
       DiagnosticFluxB();
