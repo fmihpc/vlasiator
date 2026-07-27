@@ -18,8 +18,11 @@ LIB_MPI = -lgomp
 LIB_CUDA = -L/usr/local/cuda/lib64
 INC_CUDA = -isystem /usr/local/cuda/include
 
+# module libraries
+LIB_PAPI = -lpapi
+LIB_BOOST = -lboost_program_options
 
-#======== Libraries ===========
+# compiled libraries
 LIBRARY_PREFIX =  $(CURDIR)/libraries-roihu_gpu/
 
 INC_ZOLTAN = -I$(LIBRARY_PREFIX)/include

@@ -94,6 +94,13 @@ namespace projects {
       Real dipoleXFull;
       Real dipoleXZero;
       Real dipoleInflowB[3];
+      
+      //GG 28.5.26: Adding first-pass of dipole offset code. Assuming SI units + guessing what the params will be named in cfg
+      //No reason the offsets can't be a vector I don't think, but leaving separate for now as it already exists like this.
+      Real dipoleXOffset;
+      Real dipoleYOffset;
+      Real dipoleZOffset;
+
       Real zeroOutComponents[3]; //0->x,1->y,2->z
 
       std::vector<MagnetosphereSpeciesParameters> speciesParams;
