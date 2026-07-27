@@ -849,6 +849,18 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             continue;
          }
       }
+      if(P::systemWriteAllDROs || lowercase == "populations_nonmaxwellianess" || lowercase == "populations_vg_nonmaxwellianess") {
+         // Per-population relative entropy per particle ~ f/n log (f/f_M) d3v, where f_M is a Maxwellian with same density n, flow speed U and three component temperature T
+         for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
+            species::Species& species=getObjectWrapper().particleSpecies[i];
+            const std::string& pop = species.name;
+            outputReducer->addOperator(new DRO::VariableNonMaxwellianess(i));
+            outputReducer->addMetadata(outputReducer->size()-1,"","","$\\sigma_\\mathrm{"+pop+",rel} \\,/\\, n_{"+pop+"}$","1.0");
+         }
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
+      }
       if(P::systemWriteAllDROs || lowercase == "bvolderivs" || lowercase == "b_vol_derivs" || lowercase == "b_vol_derivatives" || lowercase == "vg_b_vol_derivatives" || lowercase == "derivs") {
          // Volume-averaged derivatives
          outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("vg_derivatives/vg_dperbxvoldx",bvolderivatives::dPERBXVOLdx,1));
