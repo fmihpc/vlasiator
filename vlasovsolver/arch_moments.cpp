@@ -1518,23 +1518,26 @@ void RefinedOrder5(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 	      }
 
 	      bool Verif=true;
+		  //We will need 2 ghost cells of level R-1 in every direction, meaning that we need a 6x6x6 grid of level R-1 cells for our block of level R
 	      Realf Datagros[6][6][6];
 	  
-	      for (int neighbour_vx=0; neighbour_vx<6; ++neighbour_vx) {
-	        int n_vx=neighbour_vx/2 -1;
+	      for (int neighbour_vx=0; neighbour_vx<6 && Verif; ++neighbour_vx) {
+	        int n_vx=neighbour_vx/2 -1; //gives the shift in block
 	        int i=abs(neighbour_vx%2);
-	        for (int neighbour_vy=0; neighbour_vy<6; ++neighbour_vy) {
+	        for (int neighbour_vy=0; neighbour_vy<6 && Verif; ++neighbour_vy) {
 	          int n_vy=neighbour_vy/2 -1;
 	          int j=abs(neighbour_vy%2);
-	          for (int neighbour_vz=0; neighbour_vz<6; ++neighbour_vz) {
+	          for (int neighbour_vz=0; neighbour_vz<6 && Verif; ++neighbour_vz) {
 	            int n_vz=neighbour_vz/2 -1;
 	            int k=abs(neighbour_vz%2);
 	      
 	            vmesh::LocalID localIDneigh = vmesh->invalidLocalID();
 	      
 	            if(n_vx==0 && n_vy==0 && n_vz==0){
+				//The cell of level R-1 will be defined on the actual block of level R
 		          localIDneigh = localID;
 	            }else{
+				//The cell of level R-1 will be defined on a neighbouring block of level R
 		          const vmesh::GlobalID globalIDneigh = vmesh->getGlobalID(Indices[0]+n_vx,Indices[1]+n_vy,Indices[2]+n_vz);
 		          if (globalIDneigh !=  vmesh->invalidGlobalID()) {
 		            localIDneigh=vmesh->getLocalID(globalIDneigh);
@@ -1542,6 +1545,7 @@ void RefinedOrder5(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 	            }
 
 	            if (localIDneigh !=  vmesh->invalidLocalID()) {
+				//The block exists, meaning that we can compute the cell value for level R-1
 		          Realf Datagrossum=0;
 		          for (int i2=0; i2<2; ++i2) {
 		            for (int j2=0; j2<2; ++j2) {
@@ -1550,8 +1554,10 @@ void RefinedOrder5(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 		              }
 		            }
 		          }
+				  //Computation of the grid R-1
 		          Datagros[neighbour_vx][neighbour_vy][neighbour_vz] = Datagrossum/8;
 	            }else{
+		        //If one of the neighbouring blocks does not exist, it will directly impact all future R-1 blocks
 		          Verif=false;
 	            }
 	      
