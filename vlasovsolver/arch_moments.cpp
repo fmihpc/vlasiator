@@ -1466,7 +1466,7 @@ void RefinedOrder5(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
   
   
   Realf M[5][5][5];
-  Realf A[5] = {3.0/128.0, 11.0/64.0, 1.0, -11.0/64.0, -3.0/128.0};
+  Realf A[5] = {-3.0/128.0, 11.0/64.0, 1.0, -11.0/64.0, 3.0/128.0};
   
   for (int i0 = 0; i0 < 5; i0++) {
     for (int j0 = 0; j0 < 5; j0++) {
