@@ -1198,10 +1198,11 @@ for (size_t c=0; c<cells.size(); ++c) {
 		for (int fill=0; fill<8; ++fill){
 		  Verif[fill]=true;
 		}
+	  	//We will need 1 ghost cell of level R-1 in every direction, meaning that we need a 4x4x4 grid of level R-1 cells for our block of level R
 		Realf Datagros[4][4][4];
 	  
 		for (int neighbour_vx=0; neighbour_vx<4; ++neighbour_vx) {
-		  int n_vx=(neighbour_vx+1)/2 -1;
+		  int n_vx=(neighbour_vx+1)/2 -1; //gives the shift in block
 		  int i=abs((neighbour_vx+1)%2);
 		  for (int neighbour_vy=0; neighbour_vy<4; ++neighbour_vy) {
 		    int n_vy=(neighbour_vy+1)/2 -1;
@@ -1213,15 +1214,18 @@ for (size_t c=0; c<cells.size(); ++c) {
 		      vmesh::LocalID localIDneigh = vmesh->invalidLocalID();
 	      
 		      if(n_vx==0 && n_vy==0 && n_vz==0){
+			  //The cell of level R-1 will be defined on the actual block of level R
 			    localIDneigh = localID;
 		      }else{
-			    const vmesh::GlobalID globalIDneigh = vmesh->getGlobalID(Indices[0]+n_vx,Indices[1]+n_vy,Indices[2]+n_vz);
+			  //The cell of level R-1 will be defined on a neighbouring block of level R
+				const vmesh::GlobalID globalIDneigh = vmesh->getGlobalID(Indices[0]+n_vx,Indices[1]+n_vy,Indices[2]+n_vz);
 			    if (globalIDneigh !=  vmesh->invalidGlobalID()) {
 			      localIDneigh=vmesh->getLocalID(globalIDneigh);
 			    }
 		      }
 
 		      if (localIDneigh !=  vmesh->invalidLocalID()) {
+			  //The block exists, meaning that we can compute the cell value for level R-1
 			    Realf Datagrossum=0;
 			    for (int i2=0; i2<2; ++i2) {
 			      for (int j2=0; j2<2; ++j2) {
@@ -1230,11 +1234,14 @@ for (size_t c=0; c<cells.size(); ++c) {
 			        }
 			      }
 			    }
+			    //Computation of the grid R-1
 			    Datagros[neighbour_vx][neighbour_vy][neighbour_vz] = Datagrossum/8;
 		      }else{
 			    for(int iloop = 0; iloop< (2-abs(n_vx)); ++iloop){
 			      for(int jloop = 0; jloop< (2-abs(n_vy)); ++jloop){
 			        for(int kloop = 0; kloop< (2-abs(n_vz)); ++kloop){
+					//Loop over all the future refined blocks that will be impacted by the non-existing block
+				    //It is technically impossible for the block in which we have the local ID to return invalidLocalID(), but this has been taken into account
 			          Verif[(std::max(n_vx,0)+iloop)+2*(std::max(n_vy,0)+jloop)+4*(std::max(n_vz,0)+kloop)]=false;
 			        }
 			      }
