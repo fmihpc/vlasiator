@@ -752,6 +752,7 @@ void vamr_transfer_values(
 		        for (int i2=0; i2<2; ++i2) {
 		          for (int j2=0; j2<2; ++j2) {
 		            for (int k2=0; k2<2; ++k2) {
+					//Loop over the 8 coarsed cells located on the WID3 refined cells (the refined block)
 	        	      Realf summ=0;
 					  //  if( data[localID*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)]>cell->getVelocityBlockMinValue(popID+1)){
 			          Realf datasave= data[localID*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)];
@@ -759,6 +760,7 @@ void vamr_transfer_values(
 			          for (int i3=0; i3<2; ++i3) {
 			            for (int j3=0; j3<2; ++j3) {
 			              for (int k3=0; k3<2; ++k3) {
+						  //Loop over the 8 refined cells contained in the 1 coarsed cell
 							 if(dataraf[localIDraf*WID3+cellIndex(2*i2+i3,2*j2+j3,2*k2+k3)]>minValue){
 							 // if(ghost[localIDraf]==1 && dataraf[localIDraf*WID3+cellIndex(2*i2+i3,2*j2+j3,2*k2+k3)]>minValue){
 				              data[localID*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)]+= dataraf[localIDraf*WID3+cellIndex(2*i2+i3,2*j2+j3,2*k2+k3)]/8.0;
@@ -880,24 +882,25 @@ void RefinedVamr(spatial_cell::SpatialCell* cell){
 
     for (vmesh::LocalID localID=0; localID<vmesh->size(); ++localID) { 
 
-      //loop over the future refinement block
       for (int i=0; i<2; ++i) {
 	    for (int j=0; j<2; ++j) {
 	      for (int k=0; k<2; ++k) {
-	    
+	      //Loop over the future refined blocks R+1
 	    
 	      Realf Datagros = 0;
 
 	      for (int i2=0; i2<2; ++i2) {
 	        for (int j2=0; j2<2; ++j2) {
 		      for (int k2=0; k2<2; ++k2) {
+				//Sum over the 8 cells of level R in order to reproduce the coarse cell R-1
 		        Datagros += data[localID*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)];
 		      }
 	        }
 	      }
 	      Datagros/=8.0;
 		    
-	      Realf D = abs( data[localID*WID3+cellIndex(1+i,1+j,1+k)] - Datagros ); // The idea is to always have the central cell
+	      Realf D = abs( data[localID*WID3+cellIndex(1+i,1+j,1+k)] - Datagros );
+		  // The idea is to always compare the central cell of level R with the reproduce R-1 cell	   
 
 	      vmesh::GlobalID globalID = vmesh->getGlobalID(localID);
 		  vmesh::LocalID Indices[3];
@@ -927,6 +930,7 @@ void RefinedVamr(spatial_cell::SpatialCell* cell){
 		      for (int i2=0; i2<2; ++i2) {
 		        for (int j2=0; j2<2; ++j2) {
 		          for (int k2=0; k2<2; ++k2) {
+					//Loop over the 8 coarsed cells located on the WID3 refined cells (the refined block)
 		            dataraf[localIDrafcreated*WID3+cellIndex(2*i2,2*j2,2*k2)]=data[localID*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)];
 		            dataraf[localIDrafcreated*WID3+cellIndex(2*i2+1,2*j2,2*k2)]=data[localID*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)];
 		            dataraf[localIDrafcreated*WID3+cellIndex(2*i2,2*j2+1,2*k2)]=data[localID*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)];
@@ -981,22 +985,24 @@ std::unordered_set<vmesh::GlobalID> ListBlockExist[getObjectWrapper().particleSp
 	  		ListBlockExist[popID].insert(globalID);
 		}
       
-		//loop over the future refinement block
 		for (int i=0; i<2; ++i) {
 	  	  for (int j=0; j<2; ++j) {
 	    	for (int k=0; k<2; ++k) {
+			//Loop over the future refined blocks R+1
 	      	  Realf Datagros = 0; 
 	   
 	          for (int i2=0; i2<2; ++i2) {
 				for (int j2=0; j2<2; ++j2) {
 		       	  for (int k2=0; k2<2; ++k2) {
+				  //Sum over the 8 cells of level R in order to reproduce the coarse cell R-1
 		    	    Datagros += data[localID*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)];
 		  		  }
 				}
 	      	  }
 	      	  Datagros/=8.0;
 	    	      	     		    
-	      	  Realf D = abs( data[localID*WID3+cellIndex(1+i,1+j,1+k)] - Datagros ); // The idea is to always have the central cell	   
+	      	  Realf D = abs( data[localID*WID3+cellIndex(1+i,1+j,1+k)] - Datagros ); 
+			  // The idea is to always compare the central cell of level R with the reproduce R-1 cell  
 
 	      	  vmesh::LocalID Indicesraf[3];
 	      	  Indicesraf[0] = 2*Indices[0]+i;
@@ -1115,6 +1121,7 @@ std::unordered_set<vmesh::GlobalID> ListBlockExist[getObjectWrapper().particleSp
 	    	for (int i2=0; i2<2; ++i2) {
 	      	  for (int j2=0; j2<2; ++j2) {
 				for (int k2=0; k2<2; ++k2) {
+				  //Loop over the 8 coarsed cells located on the WID3 refined cells (the refined block)
 		  		  data[localIDcreated*WID3+cellIndex(2*i2,2*j2,2*k2)]=datagros[localIDgros*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)];
 		  		  data[localIDcreated*WID3+cellIndex(2*i2+1,2*j2,2*k2)]=datagros[localIDgros*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)];
 		  		  data[localIDcreated*WID3+cellIndex(2*i2,2*j2+1,2*k2)]=datagros[localIDgros*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)];
@@ -1239,7 +1246,7 @@ for (size_t c=0; c<cells.size(); ++c) {
 		}
 	
 		
-	    //loop over the future refinement block
+	    //Loop over the future refined blocks R+1
 		for (int i=0; i<2; ++i) {
 	  	  for (int j=0; j<2; ++j) {
 		    for (int k=0; k<2; ++k) {
@@ -1249,12 +1256,14 @@ for (size_t c=0; c<cells.size(); ++c) {
 		        for (int i2=-1; i2<2; ++i2) {
 			      for (int j2=-1; j2<2; ++j2) {
 			        for (int k2=-1; k2<2; ++k2) {
+					  //Sum over the 8 cells of level R in order to reproduce the coarse cell R-1
 			          Datagrossum += M[1-i2*(1-2*i)][1-j2*(1-2*j)][1-k2*(1-2*k)]*Datagros[1+i+i2][1+j+j2][1+k+k2];
 			        }
 			      }
 		        }
 	    	      	     		    
-		        Realf D = abs( data[localID*WID3+cellIndex(1+i,1+j,1+k)] - Datagrossum ); // The idea is to always have the central cell	      
+		        Realf D = abs( data[localID*WID3+cellIndex(1+i,1+j,1+k)] - Datagrossum );
+				// The idea is to always compare the central cell of level R with the reproduce R-1 cell	      
 
 	      	    vmesh::LocalID Indicesraf[3];
 	      	    Indicesraf[0] = 2*Indices[0]+i ;
@@ -1539,22 +1548,25 @@ void RefinedOrder5(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 	        }
 	      }
 	  
-	      //loop over the future refinement block
+	      
 	      if (Verif){
 	        for (int i=0; i<2; ++i) {
 	          for (int j=0; j<2; ++j) {
 	            for (int k=0; k<2; ++k) {
+				//Loop over the future refined blocks R+1
 	              Realf Datagrossum = 0;
 	
 		          for (int i2=-2; i2<3; ++i2) {
 		            for (int j2=-2; j2<3; ++j2) {
 		              for (int k2=-2; k2<3; ++k2) {
+					  //Sum over the 8 cells of level R in order to reproduce the coarse cell R-1
 		                Datagrossum += M[2-i2*(1-2*i)][2-j2*(1-2*j)][2-k2*(1-2*k)]*Datagros[2+i+i2][2+j+j2][2+k+k2];
 		              }
 		            }
 		          }
 
-		          Realf D = abs( data[localID*WID3+cellIndex(1+i,1+j,1+k)] - Datagrossum ); 
+		          Realf D = abs( data[localID*WID3+cellIndex(1+i,1+j,1+k)] - Datagrossum );
+				  // The idea is to always compare the central cell of level R with the reproduce R-1 cell
 	      	      vmesh::LocalID Indicesraf[3];
 	      	      Indicesraf[0] = 2*Indices[0]+i ;
 	      	      Indicesraf[1] = 2*Indices[1]+j ;
