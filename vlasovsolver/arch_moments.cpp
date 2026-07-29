@@ -1103,6 +1103,7 @@ std::unordered_set<vmesh::GlobalID> ListBlockExist[getObjectWrapper().particleSp
 			  
 	        vmesh::LocalID Indices[3];
 	        vmesh->getIndices(globalID, Indices[0], Indices[1], Indices[2]);
+			// i, j and k indicate the separation of the coarse block into eight refined blocks
 	        int i = Indices[0]%2;
 	        int j = Indices[1]%2;
 	        int k = Indices[2]%2;
@@ -1366,6 +1367,7 @@ for (size_t c=0; c<cells.size(); ++c) {
 	    
 	    	vmesh::LocalID Indices[3];
 	    	vmesh->getIndices(globalID, Indices[0], Indices[1], Indices[2]);
+			// i, j and k indicate the separation of the coarse block into eight refined blocks
 	    	int i = Indices[0]%2;
 	    	int j = Indices[1]%2;
 	    	int k = Indices[2]%2;
@@ -1378,11 +1380,13 @@ for (size_t c=0; c<cells.size(); ++c) {
 	    	for (int i2=0; i2<2; ++i2) {
 	      	  for (int j2=0; j2<2; ++j2) {
 				for (int k2=0; k2<2; ++k2) {
-
+                //Loop over the 8 coarsed cells located on the WID3 refined cells (the refined block)
 		  		  for (int i4=-1; i4<2; ++i4){
 		    		for (int j4=-1; j4<2; ++j4){
 		      		  for (int k4=-1; k4<2; ++k4){
-			      
+					  // Loop over the coarse neighbour cell and the actual cell
+				      // i5, j5 and k5 are the indices of the coarse cell that will be used for interpolation
+				      //It can be negative or >WID-1 if we need to go to another block			      
 						int i5=2*i+i2+i4;
 						int j5=2*j+j2+j4;
 						int k5=2*k+k2+k4;
@@ -1391,7 +1395,7 @@ for (size_t c=0; c<cells.size(); ++c) {
 						Indicesgros[0] = Indicesgrosinit[0];
 						Indicesgros[1] = Indicesgrosinit[1];
 						Indicesgros[2] = Indicesgrosinit[2];
-			 
+					 	//We check whether we need to move to a different block.
 						if(i5<0){
 			  			  Indicesgros[0]-= 1;
 						}else if(i5> WID-1){
@@ -1668,6 +1672,7 @@ void RefinedOrder5(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 	    
 	        vmesh::LocalID Indices[3];
 	        vmesh->getIndices(globalID, Indices[0], Indices[1], Indices[2]);
+			// i, j and k indicate the separation of the coarse block into eight refined blocks
 	        int i = Indices[0]%2;
 	        int j = Indices[1]%2;
 	        int k = Indices[2]%2;
@@ -1680,11 +1685,13 @@ void RefinedOrder5(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 	        for (int i2=0; i2<2; ++i2) {
 	          for (int j2=0; j2<2; ++j2) {
 			    for (int k2=0; k2<2; ++k2) {
-
+                //Loop over the 8 coarsed cells located on the WID3 refined cells (the refined block)
 		  		  for (int i4=-2; i4<3; ++i4){
 		    	    for (int j4=-2; j4<3; ++j4){
 		      		  for (int k4=-2; k4<3; ++k4){
-			      
+			          // Loop over the coarse neighbour cell and the actual cell
+				      // i5, j5 and k5 are the indices of the coarse cell that will be used for interpolation
+				      //It can be negative or >WID-1 if we need to go to another block
 					    int i5=2*i+i2+i4;
 					    int j5=2*j+j2+j4;
 					    int k5=2*k+k2+k4;
@@ -1693,7 +1700,7 @@ void RefinedOrder5(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 					    Indicesgros[0] = Indicesgrosinit[0];
 					    Indicesgros[1] = Indicesgrosinit[1];
 					    Indicesgros[2] = Indicesgrosinit[2];
-			 
+			      		//We check whether we need to move to a different block
 					    if(i5<0){
 			  			  Indicesgros[0]-= 1;
 					    }else if(i5> WID-1){
