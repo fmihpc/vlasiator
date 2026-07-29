@@ -1423,7 +1423,7 @@ for (size_t c=0; c<cells.size(); ++c) {
 						if (localIDgros==  vmeshgros->invalidLocalID()) {
 			  			  //std::cout<< " localIDgros bug not normal"<< "Indices[0] " << Indices[0] << "Indicesgros[0] "<< Indicesgros[0] << " GlobalIDgros " << globalIDgros << " i5, j5, k5 " << i5 << " " << j5 << " " << k5 << " "  <<std::endl;
 						}
-
+						// We change the cell coordinates if we move to a different block
 						i5 = (i5 + WID)%WID;
 						j5 = (j5 + WID)%WID;
 						k5 = (k5 + WID)%WID;
@@ -1728,7 +1728,7 @@ void RefinedOrder5(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 					    if (localIDgros==  vmeshgros->invalidLocalID()) {
 			  			  std::cout<< " localIDgros bug not normal"<< "Indices[0] " << Indices[0] << "Indicesgros[0] "<< Indicesgros[0] << " GlobalIDgros " << globalIDgros << " i5, j5, k5 " << i5 << " " << j5 << " " << k5 << " "  <<std::endl;
 					    }
-
+						// We change the cell coordinates if we move to a different block
 					    i5 = (i5 + WID)%WID;
 					    j5 = (j5 + WID)%WID;
 		 			    k5 = (k5 + WID)%WID;
