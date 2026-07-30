@@ -100,9 +100,10 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
 	    Ref=getObjectWrapper().particleSpecies[popID].RefinementLevel;
 	    MaxRef=getObjectWrapper().particleSpecies[popID].MaxRefinementLevel;
 	    if(Ref < MaxRef){
+		  // Update the Refined parameter to know the cells that need to be integrated
 	      changeRefined(cell,popID);
 		}
-	    // Calculate species' contribution to first velocity moments with Vamr
+	    // Calculate species' contribution to first velocity moments with vAMR
 	    blockVelocityFirstMomentsVamr(blockContainer,
 				      array,
 				      nBlocks);
@@ -119,8 +120,8 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
       pop.V[1] = divideIfNonZero(array[2], array[0]);
       pop.V[2] = divideIfNonZero(array[3], array[0]);
 
-      //      std::cout<< " popID  "<< popID << " a pour RHO  "<< pop.RHO <<std::endl;
       if(P::activateVamr && Ref==MaxRef && MaxRef>0 ){
+	  //Sum of all the partial integrals and sharing of the final result between the different vAMR grids of the same species
 	    for (uint popID2=(popID-MaxRef); popID2<popID; ++popID2) {
 	      Population &pop2 = cell->get_population(popID2);
 	      pop.RHO += pop2.RHO;
@@ -183,7 +184,7 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
       if(P::activateVamr) {
 	    int Ref=getObjectWrapper().particleSpecies[popID].RefinementLevel;
 	    int MaxRef=getObjectWrapper().particleSpecies[popID].MaxRefinementLevel;
-	    // Calculate species' contribution to second velocity moments with Vam
+	    // Calculate species' contribution to second velocity moments with vAMR
 	    blockVelocitySecondMomentsVamr(blockContainer,
 				       cell->parameters[CellParams::VX],
 				       cell->parameters[CellParams::VY],
@@ -215,6 +216,7 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
       }
 
       if(P::activateVamr && Ref==MaxRef && MaxRef>0 ){
+	  //Sum of all the partial integrals and sharing of the final result between the different vAMR grids of the same species
         for (uint popID2=(popID-MaxRef); popID2<popID; ++popID2) {
 	      Population &pop2 = cell->get_population(popID2);
 	      for (size_t i=0; i<nMom2; ++i) {
@@ -314,9 +316,10 @@ void calculateMoments_R(
 	       Ref=getObjectWrapper().particleSpecies[popID].RefinementLevel;
 	       MaxRef=getObjectWrapper().particleSpecies[popID].MaxRefinementLevel;
 	       if(Ref < MaxRef){
+   			 // Update the Refined parameter to know the cells that need to be integrated
 	         changeRefined(cell,popID);
 		   }
-	       // Calculate species' contribution to first velocity moments with Vamr
+	       // Calculate species' contribution to first velocity moments with vAMR
 	       blockVelocityFirstMomentsVamr(blockContainer,
 					 array,
 					 nBlocks);
@@ -334,6 +337,7 @@ void calculateMoments_R(
          pop.V_R[2] = divideIfNonZero(array[3], array[0]);
 
 	     if(P::activateVamr && Ref==MaxRef && MaxRef>0 ){
+		 //Sum of all the partial integrals and sharing of the final result between the different vAMR grids of the same species
 	       for (uint popID2=(popID-MaxRef); popID2<popID; ++popID2) {
 	         Population &pop2 = cell->get_population(popID2);
 	         pop.RHO_R += pop2.RHO_R;
@@ -441,6 +445,7 @@ void calculateMoments_R(
      cell->parameters[CellParams::P_12_R] += pop.P_R[5];
 
 	 if(P::activateVamr && Ref==MaxRef && MaxRef>0 ){
+	 //Sum of all the partial integrals and sharing of the final result between the different vAMR grids of the same species
 	   for (uint popID2=(popID-MaxRef); popID2<popID; ++popID2) {
 	     Population &pop2 = cell->get_population(popID2);
 	     for (size_t i=0; i<nMom2; ++i) {
@@ -544,9 +549,10 @@ void calculateMoments_V(
 	       Ref=getObjectWrapper().particleSpecies[popID].RefinementLevel;
 	       MaxRef=getObjectWrapper().particleSpecies[popID].MaxRefinementLevel;
 	       if(Ref < MaxRef){
+			 // Update the Refined parameter to know the cells that need to be integrated
 	         changeRefined(cell,popID);
 		   }
-	       // Calculate species' contribution to first velocity moments with Vamr
+	       // Calculate species' contribution to first velocity moments with vAMR
 	       blockVelocityFirstMomentsVamr(blockContainer,
 					 array,
 					 nBlocks);
@@ -564,6 +570,7 @@ void calculateMoments_V(
          pop.V_V[2] = divideIfNonZero(array[3], array[0]);
       
 	     if(P::activateVamr && Ref==MaxRef && MaxRef>0 ){
+		 //Sum of all the partial integrals and sharing of the final result between the different vAMR grids of the same species
 	       for (uint popID2=(popID-MaxRef); popID2<popID; ++popID2) {
 	         Population &pop2 = cell->get_population(popID2);
 	         pop.RHO_V += pop2.RHO_V;
@@ -642,7 +649,7 @@ void calculateMoments_V(
 	     if(P::activateVamr) {
 	       int Ref=getObjectWrapper().particleSpecies[popID].RefinementLevel;
 	       int MaxRef=getObjectWrapper().particleSpecies[popID].MaxRefinementLevel;
-	       // Calculate species' contribution to second velocity moments with Vamr
+	       // Calculate species' contribution to second velocity moments with vAMR
 	       blockVelocitySecondMomentsVamr(blockContainer,
 					  cell->parameters[CellParams::VX],
 					  cell->parameters[CellParams::VY],
@@ -673,6 +680,7 @@ void calculateMoments_V(
          cell->parameters[CellParams::P_12_V] += pop.P_V[5];
 	 
 	    if(P::activateVamr && Ref==MaxRef && MaxRef>0 ){
+		//Sum of all the partial integrals and sharing of the final result between the different vAMR grids of the same species
 	      for (uint popID2=(popID-MaxRef); popID2<popID; ++popID2) {
 	        Population &pop2 = cell->get_population(popID2);
 	        for (size_t i=0; i<nMom2; ++i) {
@@ -691,7 +699,7 @@ void calculateMoments_V(
    } // for-loop over particle species
 }
 
-
+// Update communication from level R+1 to level R
 void vamr_transfer_values(
 			  dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 			  const std::vector<CellID>& cells,
@@ -741,7 +749,7 @@ void vamr_transfer_values(
 	        Indicesraf[2] = 2*Indices[2]+k ;
 
 	        const vmesh::GlobalID globalIDraf=vmeshraf->getGlobalID(Indicesraf);
-
+			//Check if the refined cell exists
 	        if (globalIDraf ==  vmeshraf->invalidGlobalID()) {
 		      continue;
 	        }else{  
@@ -754,7 +762,7 @@ void vamr_transfer_values(
 		            for (int k2=0; k2<2; ++k2) {
 					//Loop over the 8 coarsed cells located on the WID3 refined cells (the refined block)
 	        	      Realf summ=0;
-					  //  if( data[localID*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)]>cell->getVelocityBlockMinValue(popID+1)){
+					  //  if( data[localID*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)]>cell->getVelocityBlockMinValue(popID+1)){ //old criteria used to improve communication
 			          Realf datasave= data[localID*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)];
 			          data[localID*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)]=0;
 			          for (int i3=0; i3<2; ++i3) {
@@ -762,7 +770,7 @@ void vamr_transfer_values(
 			              for (int k3=0; k3<2; ++k3) {
 						  //Loop over the 8 refined cells contained in the 1 coarsed cell
 							 if(dataraf[localIDraf*WID3+cellIndex(2*i2+i3,2*j2+j3,2*k2+k3)]>minValue){
-							 // if(ghost[localIDraf]==1 && dataraf[localIDraf*WID3+cellIndex(2*i2+i3,2*j2+j3,2*k2+k3)]>minValue){
+							 // if(ghost[localIDraf]==1 && dataraf[localIDraf*WID3+cellIndex(2*i2+i3,2*j2+j3,2*k2+k3)]>minValue){ //Another criteria
 				              data[localID*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)]+= dataraf[localIDraf*WID3+cellIndex(2*i2+i3,2*j2+j3,2*k2+k3)]/8.0;
 				              summ+=1.0;
 			                }else{
@@ -782,7 +790,7 @@ void vamr_transfer_values(
 				      	  }
 				    	}
 				  	  }
-					  }*/
+					  }*/ //Removed because the boundaries were looking too coarse 
 						
 		            };
 		          };
