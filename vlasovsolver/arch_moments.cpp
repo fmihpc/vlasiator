@@ -871,6 +871,7 @@ void vamr_transfer_values(
    };
   }
 
+//Every vamr_refinedStep we check all the velocity cells with the vAMR criterion with the 1st order
 void RefinedOrder1(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const std::vector<CellID>& cells){
 
@@ -1069,6 +1070,7 @@ std::unordered_set<vmesh::GlobalID> ListBlockExist[getObjectWrapper().particleSp
 }     
 }
 
+//Every vamr_refinedStep we check all the velocity cells with the vAMR criterion with the 3rd order
 void RefinedOrder3(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const std::vector<CellID>& cells){
 
@@ -1391,7 +1393,7 @@ for (size_t c=0; c<cells.size(); ++c) {
 }     
 }
 
-
+//Every vamr_refinedStep we check all the velocity cells with the vAMR criterion with the 5th order
 void RefinedOrder5(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const std::vector<CellID>& cells){
   
