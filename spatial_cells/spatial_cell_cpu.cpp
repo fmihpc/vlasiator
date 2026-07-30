@@ -434,6 +434,7 @@ namespace spatial_cell {
          }
 
          if ((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_REFINED) !=0) {
+			//Not used but can be to share the Refined parameter
             displacements.push_back((uint8_t*) get_refined(activePopID) - (uint8_t*) this);
             block_lengths.push_back(sizeof(uint8_t) * WID3 * populations[activePopID].blockContainer->size());
          }
