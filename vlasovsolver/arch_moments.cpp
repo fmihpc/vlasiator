@@ -1699,6 +1699,7 @@ void RefinedOrder5(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 }     
 }
 
+//Update the ghost parameter and remove the newly created cells that don't respect the criterion
 void SmallRefinedOrder1(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const std::vector<CellID>& cells){
 
@@ -1714,18 +1715,16 @@ SpatialCell* cell = mpiGrid[cells[c]];
 
      vmesh::LocalID Localsize= vmesh->size();
      for (vmesh::LocalID localID=0; localID<Localsize; ++localID) {
-       if(ghost[localID]==0){ //either we keeped it
-	     // Here the idea will be to check if we keep the cell or not
-	     // Two possibility, sum all the block and compare with the central sum to know if this block should be refined
-	     // Or compare using the level bellow
-
-	     Realf Datagrosgros = 0;
-	     Realf Datagros = 0; 
+       if(ghost[localID]==0){ 
+	     // Here the idea will be to check if we keep the newly created blocks of level R+1, i.e. with ghost=0
+	     Realf Datagrosgros = 0; //R-1 cell of the same size of the block of level R+1
+	     Realf Datagros = 0; //R cell in the middle of the block of level R , this cell is not consistent with a real cell of level R but here it's only used for estimation
 	   
 	     for (int i=0; i<WID3; ++i) {
 	       Datagrosgros += data[localID*WID3+i];
 	     }		    	  	  
 	     Datagrosgros/=WID3;
+		 // i2, j2, k2 are not the same as always because we here estimate a non-existing central cell with level R+1
 	     for (int i2=0; i2<2; ++i2) {
 	       for (int j2=0; j2<2; ++j2) {
 	         for (int k2=0; k2<2; ++k2) {
@@ -1734,9 +1733,10 @@ SpatialCell* cell = mpiGrid[cells[c]];
 	       }
 	     }   	  
 	     Datagros/=8.0;	      	     		    
-	     Realf D = abs( Datagrosgros - Datagros ); // The idea is to always have the central cell	   
+	     Realf D = abs( Datagrosgros - Datagros );
+		 // The idea is to always compare the central cell of level R with the reproduce R-1 cell	  
 	     if (D > cell->getVelocityBlockMinValue(0)){
-	       // We keep the cell
+	       // We keep the block
 	       ghost[localID]=1;
 	     }else{
 	       //If the blocks don't need to exist anymore, they are removed
@@ -1754,6 +1754,7 @@ SpatialCell* cell = mpiGrid[cells[c]];
 }
 }
 
+//Fixed ghost to 1 for all the initial velocity cells to avoid destruction
 void GhostFixation(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const std::vector<CellID>& cells){
 
