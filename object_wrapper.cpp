@@ -96,6 +96,7 @@ bool ObjectWrapper::addPopulationParameters() {
 bool ObjectWrapper::getPopulationParameters() {
    typedef Readparameters RP;
 
+   //Creation of the new species for each vAMR level
    if(P::activateVamr) {
      const int nbpop = getObjectWrapper().particleSpecies.size();
      int k =0;
@@ -114,6 +115,7 @@ bool ObjectWrapper::getPopulationParameters() {
      	 
 	   	   newSpecies.name = newVMesh.name = pop; // + std::to_string(j+1); Will only be done for the output files
 	   	   newSpecies.velocityMesh = j+k+1;
+		   //Insertion of the new level in order to have continuity for the same population in the future popID loop
 	   	   getObjectWrapper().particleSpecies.insert(getObjectWrapper().particleSpecies.begin()+j+k+1, newSpecies);
 	   	   vmesh::getMeshWrapper()->velocityMeshesCreation->insert(vmesh::getMeshWrapper()->velocityMeshesCreation->begin() +j+k+1,newVMesh);
 
@@ -189,6 +191,7 @@ bool ObjectWrapper::getPopulationParameters() {
       RP::get(pop + "_vspace.vamr_criteria_value",  species.CriteriaValue);
 
       if(P::activateVamr && species.RefinementLevel>0) {
+		//Nv(R)=Nv(R=0)*2^R
 	    vMesh.gridLength[0] *= (1u << species.RefinementLevel);
 	    vMesh.gridLength[1] *= (1u << species.RefinementLevel);
 	    vMesh.gridLength[2] *= (1u << species.RefinementLevel);
