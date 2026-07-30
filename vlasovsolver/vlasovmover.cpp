@@ -345,8 +345,8 @@ void calculateSpatialTranslation(
    if (P::activateVamr){
 	 phiprof::Timer vAMR_transfer {"vAMR transfer between grids in spatial"};
      for (uint popID=(getObjectWrapper().particleSpecies.size()-1); popID>0; --popID) {
-       //Transfert the info from popID to popID-1
        if(getObjectWrapper().particleSpecies[popID].RefinementLevel>0){
+		 // Update communication from level R+1 to level R
          vamr_transfer_values(mpiGrid,local_propagated_cells,popID-1);
        }
      }
@@ -495,6 +495,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
 
    if (P::activateVamr){
+	 //Update the ghost parameter and remove the newly created cells that don't respect the criterion
      SmallRefinedOrder1(mpiGrid, cells);
    }
 
@@ -588,14 +589,15 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
      phiprof::Timer vAMR_accel_modif {"vAMR in acceleration"};
      phiprof::Timer vAMR_transfer_accel {"vAMR transfer between grids in accel"};
      for (uint popID=(getObjectWrapper().particleSpecies.size()-1); popID>0; --popID) {
-       //Transfert the info from popID to popID-1
        if(getObjectWrapper().particleSpecies[popID].RefinementLevel>0){
+		 // Update communication from level R+1 to level R
 	     vamr_transfer_values(mpiGrid,cells,popID-1);
        }
      }
      vAMR_transfer_accel.stop();
      if (ShouldRefined){
        phiprof::Timer vAMR_refined {"vAMR refined grid"};
+	   //Every vamr_refinedStep we check all the velocity cells with the vAMR criterion depending on the order
        RefinedOrderX(mpiGrid,cells);
        vAMR_refined.stop();	
      }
