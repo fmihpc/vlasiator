@@ -98,34 +98,34 @@ bool ObjectWrapper::getPopulationParameters() {
 
    //Creation of the new species for each vAMR level
    if(P::activateVamr) {
-     const int nbpop = getObjectWrapper().particleSpecies.size();
-     int k =0;
+     const int nbpopinit = getObjectWrapper().particleSpecies.size();
+     int shift=0;
    
-     for(int j =0; j < nbpop; j++) {
-       species::Species& species=getObjectWrapper().particleSpecies[j+k];
-       vmesh::MeshParameters& vMesh=vmesh::getMeshWrapper()->velocityMeshesCreation->at(j+k);      
+     for(int popID=0; popID < nbpopinit; popID++) {
+       species::Species& species=getObjectWrapper().particleSpecies[popID+shift];
+       vmesh::MeshParameters& vMesh=vmesh::getMeshWrapper()->velocityMeshesCreation->at(popID+shift);      
        const std::string& pop = species.name;
        RP::get(pop + "_vspace.vamr_refinement_level",  species.MaxRefinementLevel);
-       species.velocityMesh=j+k;
+       species.velocityMesh=popID+shift;
        if ( species.MaxRefinementLevel > 0) {
 	     species.RefinementLevel=0;
-	     for (int l=0; l< species.MaxRefinementLevel; ++l) {
+	     for (int R=0; R< species.MaxRefinementLevel; ++R) {
 	       species::Species newSpecies;
 	       vmesh::MeshParameters newVMesh;
      	 
-	   	   newSpecies.name = newVMesh.name = pop; // + std::to_string(j+1); Will only be done for the output files
-	   	   newSpecies.velocityMesh = j+k+1;
+	   	   newSpecies.name = newVMesh.name = pop; // + std::to_string(R+1); Will only be done for the output files
+	   	   newSpecies.velocityMesh = popID+shift+1;
 		   //Insertion of the new level in order to have continuity for the same population in the future popID loop
-	   	   getObjectWrapper().particleSpecies.insert(getObjectWrapper().particleSpecies.begin()+j+k+1, newSpecies);
-	   	   vmesh::getMeshWrapper()->velocityMeshesCreation->insert(vmesh::getMeshWrapper()->velocityMeshesCreation->begin() +j+k+1,newVMesh);
+	   	   getObjectWrapper().particleSpecies.insert(getObjectWrapper().particleSpecies.begin()+popID+shift+1, newSpecies);
+	   	   vmesh::getMeshWrapper()->velocityMeshesCreation->insert(vmesh::getMeshWrapper()->velocityMeshesCreation->begin() +popID+shift+1,newVMesh);
 
-	   	   species::Species& species2=getObjectWrapper().particleSpecies[j+k+1];
-	   	   vmesh::MeshParameters& vMesh2=vmesh::getMeshWrapper()->velocityMeshesCreation->at(j+k+1);
+	   	   species::Species& species2=getObjectWrapper().particleSpecies[popID+shift+1];
+	   	   vmesh::MeshParameters& vMesh2=vmesh::getMeshWrapper()->velocityMeshesCreation->at(popID+shift+1);
 	 
-	   	   species2.RefinementLevel=l+1;
+	   	   species2.RefinementLevel=R+1;
 	   	   species2.MaxRefinementLevel= species.MaxRefinementLevel;
 	   
-	   	   k+=1;
+	   	   shift+=1;
 	     }
        }else {
 	     species.MaxRefinementLevel=0;
