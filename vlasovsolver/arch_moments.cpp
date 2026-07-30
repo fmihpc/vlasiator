@@ -913,7 +913,7 @@ std::unordered_set<vmesh::GlobalID> ListBlockExist[getObjectWrapper().particleSp
 	      	  Datagros/=8.0;
 	    	      	     		    
 	      	  Realf D = abs( data[localID*WID3+cellIndex(1+i,1+j,1+k)] - Datagros ); 
-			  // The idea is to always compare the central cell of level R with the reproduce R-1 cell  
+			  // The idea is to always compare the 8 central cells of level R with the reproduce R-1 cells  
 
 	      	  vmesh::LocalID Indicesraf[3];
 	      	  Indicesraf[0] = 2*Indices[0]+i;
@@ -921,7 +921,7 @@ std::unordered_set<vmesh::GlobalID> ListBlockExist[getObjectWrapper().particleSp
 	      	  Indicesraf[2] = 2*Indices[2]+k;
 
 	     	  if (D > cell->getVelocityBlockMinValue(0)){
-				// We should create a new cell for R+1
+				// We should create a new block for R+1
 				int addWidthV = 1; //getObjectWrapper().particleSpecies[popID+1].sparseBlockAddWidthV; 
 				for (int offset_vx=-addWidthV;offset_vx<=addWidthV;offset_vx++) {
 		  		  for (int offset_vy=-addWidthV;offset_vy<=addWidthV;offset_vy++) {
@@ -1182,7 +1182,7 @@ for (size_t c=0; c<cells.size(); ++c) {
 		        }
 	    	      	     		    
 		        Realf D = abs( data[localID*WID3+cellIndex(1+i,1+j,1+k)] - Datagrossum );
-				// The idea is to always compare the central cell of level R with the reproduce R-1 cell	      
+				// The idea is to always compare the 8 central cells of level R with the reproduce R-1 cells	      
 
 	      	    vmesh::LocalID Indicesraf[3];
 	      	    Indicesraf[0] = 2*Indices[0]+i ;
@@ -1190,7 +1190,7 @@ for (size_t c=0; c<cells.size(); ++c) {
 	      	    Indicesraf[2] = 2*Indices[2]+k ;
 
 		        if (D > cell->getVelocityBlockMinValue(0)){
-				  // We should create a new cell for R+1
+				  // We should create a new block for R+1
 			      int addWidthV = 1;//getObjectWrapper().particleSpecies[popID+1].sparseBlockAddWidthV; 
 				  for (int offset_vx=-addWidthV;offset_vx<=addWidthV;offset_vx++) {
 		  		    for (int offset_vy=-addWidthV;offset_vy<=addWidthV;offset_vy++) {
@@ -1494,14 +1494,14 @@ void RefinedOrder5(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 		          }
 
 		          Realf D = abs( data[localID*WID3+cellIndex(1+i,1+j,1+k)] - Datagrossum );
-				  // The idea is to always compare the central cell of level R with the reproduce R-1 cell
+				  // The idea is to always compare the 8 central cells of level R with the reproduce R-1 cells
 	      	      vmesh::LocalID Indicesraf[3];
 	      	      Indicesraf[0] = 2*Indices[0]+i ;
 	      	      Indicesraf[1] = 2*Indices[1]+j ;
 	      	      Indicesraf[2] = 2*Indices[2]+k ;
 
 	         	  if (D > cell->getVelocityBlockMinValue(0)){
-				  // We should create a new cell for R+1
+				  // We should create a new block for R+1
 				  int addWidthV = getObjectWrapper().particleSpecies[popID+1].sparseBlockAddWidthV; 
 				  for (int offset_vx=-addWidthV;offset_vx<=addWidthV;offset_vx++) {
 		  		    for (int offset_vy=-addWidthV;offset_vy<=addWidthV;offset_vy++) {
@@ -1739,7 +1739,7 @@ SpatialCell* cell = mpiGrid[cells[c]];
 	       // We keep the block
 	       ghost[localID]=1;
 	     }else{
-	       //If the blocks don't need to exist anymore, they are removed
+	       //If the block don't need to exist anymore, it is removed
 	       vmesh::VelocityMesh* vmesh  = cell->get_velocity_mesh(popID); 
 	       vmesh::GlobalID globalID = vmesh->getGlobalID(localID);
 	       cell->remove_velocity_block(globalID,popID);
