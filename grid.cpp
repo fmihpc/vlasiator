@@ -286,6 +286,7 @@ void initializeGrids(
       }
 
       if (P::activateVamr){
+		 //Fixed ghost to 1 for all the initial velocity cells to avoid destruction
 	     FixedGhost(mpiGrid,cells);
       } 
 
