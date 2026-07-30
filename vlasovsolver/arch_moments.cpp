@@ -804,17 +804,14 @@ void vamr_transfer_values(
   }
 }
 
-
+// Update the Refined parameter to know the cells that need to be integrated
  void changeRefined(spatial_cell::SpatialCell* cell,
  const uint popID){
 
      vmesh::VelocityMesh* vmesh    = cell->get_velocity_mesh(popID);
      vmesh::VelocityMesh* vmeshraf = cell->get_velocity_mesh(popID+1);
-     //
+     
      uint8_t *refined =cell->get_velocity_blocks(popID)->getRefined();
-
-     int dedans=0;
-     int dehors=0;
      
 #pragma omp parallel for schedule(dynamic,1)       
      for (vmesh::LocalID localID=0; localID<vmesh->size(); ++localID) {
@@ -834,7 +831,7 @@ void vamr_transfer_values(
 	       Indicesraf[2] = 2*Indices[2]+k ;
 
 	       const vmesh::GlobalID globalIDraf=vmeshraf->getGlobalID(Indicesraf);
-
+		   //We will check if the refined block exists
 	       if (globalIDraf ==  vmeshraf->invalidGlobalID()) {
 	         //each refined block represent (WID/2)^3 coarse cells (8 in our case) 
 	         refined[localID*WID3+cellIndex(2*i,2*j,2*k)]=false;
@@ -857,6 +854,7 @@ void vamr_transfer_values(
 		       refined[localID*WID3+cellIndex(2*i+1,2*j,2*k+1)]=false;
 		       refined[localID*WID3+cellIndex(2*i+1,2*j+1,2*k+1)]=false; 
 	         }else{
+			   //The refine block cell
 		       refined[localID*WID3+cellIndex(2*i,2*j,2*k)]=true;
 		       refined[localID*WID3+cellIndex(2*i+1,2*j,2*k)]=true;
 		       refined[localID*WID3+cellIndex(2*i,2*j+1,2*k)]=true;
@@ -872,101 +870,6 @@ void vamr_transfer_values(
      };
    };
   }
-
-void RefinedVamr(spatial_cell::SpatialCell* cell){
-  
-  for (int popID=(getObjectWrapper().particleSpecies.size()-2); popID>-1; --popID) {
-
-    if(getObjectWrapper().particleSpecies[popID].MaxRefinementLevel>0 && getObjectWrapper().particleSpecies[popID].RefinementLevel<getObjectWrapper().particleSpecies[popID].MaxRefinementLevel){
-    
-    vmesh::VelocityMesh* vmesh    = cell->get_velocity_mesh(popID);
-    vmesh::VelocityMesh* vmeshraf    = cell->get_velocity_mesh(popID+1);
-
-    uint8_t *refined =cell->get_velocity_blocks(popID)->getRefined();
-    uint8_t *refinedraf =cell->get_velocity_blocks(popID+1)->getRefined();
-    
-    Realf *data = cell->get_velocity_blocks(popID)->getData();
-    Realf *dataraf = cell->get_velocity_blocks(popID+1)->getData();
-
-    for (vmesh::LocalID localID=0; localID<vmesh->size(); ++localID) { 
-
-      for (int i=0; i<2; ++i) {
-	    for (int j=0; j<2; ++j) {
-	      for (int k=0; k<2; ++k) {
-	      //Loop over the future refined blocks R+1
-	    
-	      Realf Datagros = 0;
-
-	      for (int i2=0; i2<2; ++i2) {
-	        for (int j2=0; j2<2; ++j2) {
-		      for (int k2=0; k2<2; ++k2) {
-				//Sum over the 8 cells of level R in order to reproduce the coarse cell R-1
-		        Datagros += data[localID*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)];
-		      }
-	        }
-	      }
-	      Datagros/=8.0;
-		    
-	      Realf D = abs( data[localID*WID3+cellIndex(1+i,1+j,1+k)] - Datagros );
-		  // The idea is to always compare the central cell of level R with the reproduce R-1 cell	   
-
-	      vmesh::GlobalID globalID = vmesh->getGlobalID(localID);
-		  vmesh::LocalID Indices[3];
-	      vmesh->getIndices(globalID, Indices[0], Indices[1], Indices[2]);
-
-	      vmesh::LocalID Indicesraf[3];
-	      Indicesraf[0] = 2*Indices[0]+i ;
-	      Indicesraf[1] = 2*Indices[1]+j ;
-	      Indicesraf[2] = 2*Indices[2]+k ;
-
-	      vmesh::GlobalID globalIDraf=vmeshraf->getGlobalID(Indicesraf);
-	      if (globalIDraf==  vmeshraf->invalidGlobalID()) {
-	        //  std::cout<< " GlobalID bug not normal"  <<std::endl;
-	      } 
-	      vmesh::LocalID  localIDraf=vmeshraf->getLocalID(globalIDraf);
-
-	      bool exist=true;
-	      if (localIDraf == vmeshraf->invalidLocalID()) {
-	        exist=false;
-	      }
-	    
-	      if (D > cell->getVelocityBlockMinValue(0)){
-	      // We should create a new cell for R+1
-	        if(!exist){
-		      cell->add_velocity_block(globalIDraf,popID+1);
-		      vmesh::LocalID  localIDrafcreated=vmeshraf->getLocalID(globalIDraf);
-		      for (int i2=0; i2<2; ++i2) {
-		        for (int j2=0; j2<2; ++j2) {
-		          for (int k2=0; k2<2; ++k2) {
-					//Loop over the 8 coarsed cells located on the WID3 refined cells (the refined block)
-		            dataraf[localIDrafcreated*WID3+cellIndex(2*i2,2*j2,2*k2)]=data[localID*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)];
-		            dataraf[localIDrafcreated*WID3+cellIndex(2*i2+1,2*j2,2*k2)]=data[localID*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)];
-		            dataraf[localIDrafcreated*WID3+cellIndex(2*i2,2*j2+1,2*k2)]=data[localID*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)];
-		            dataraf[localIDrafcreated*WID3+cellIndex(2*i2,2*j2,2*k2+1)]=data[localID*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)];
-		            dataraf[localIDrafcreated*WID3+cellIndex(2*i2+1,2*j2+1,2*k2)]=data[localID*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)];
-		            dataraf[localIDrafcreated*WID3+cellIndex(2*i2+1,2*j2,2*k2+1)]=data[localID*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)];
-		            dataraf[localIDrafcreated*WID3+cellIndex(2*i2,2*j2+1,2*k2+1)]=data[localID*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)];
-		            dataraf[localIDrafcreated*WID3+cellIndex(2*i2+1,2*j2+1,2*k2+1)]=data[localID*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)];
-		          }
-		        }
-		      }
-			}		
-	      }else{ //We could also add something that remove the current level
-	        if(exist){ //don't know if all the things with refinedraf and refined are mandatory
-		      cell->remove_velocity_block(globalIDraf,popID+1); 	
-	        }
-	      }
-	     
-	    }
-	  }
-    }
-
-  }
-   
- }
-}
-}
-
 
 void RefinedOrder1(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const std::vector<CellID>& cells){
