@@ -87,8 +87,6 @@ void vamr_transfer_values(
 void changeRefined(spatial_cell::SpatialCell* cell,
 	const uint popID);
 
-void RefinedVamr(spatial_cell::SpatialCell* cell);
-
 void RefinedOrder1(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const std::vector<CellID>& cells);
 
