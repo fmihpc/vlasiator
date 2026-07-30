@@ -314,9 +314,10 @@ namespace spatial_cell {
 	      }
 	    }
       }else{
+		//Newly created cells that don't respect the vAMR criterion should be destroyed
 	    uint8_t *ghost =  populations[popID].blockContainer->getGhost(blockLID);
 	    bool has_content1 = false;
-	    if (ghost[0]==1){// ghost=2 maybe later for border
+	    if (ghost[0]==1){// ghost=2 may be used later for border
 	      has_content1 = true;
 	    }
 	    bool has_content2 = false;
