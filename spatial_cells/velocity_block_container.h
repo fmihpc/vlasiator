@@ -112,10 +112,12 @@ namespace vmesh {
 
 #ifdef DEBUG_VBC
       const Realf& getData(const vmesh::LocalID blockLID,const unsigned int cell) const;
-     //const Realf& getRefined(const vmesh::LocalID blockLID,const unsigned int cell) const;
+      const uint8_t& getRefined(const vmesh::LocalID blockLID,const unsigned int cell) const;
+      const uint8_t& getGhost(const vmesh::LocalID blockLID,const unsigned int cell) const;
       const Real& getParameters(const vmesh::LocalID blockLID,const unsigned int i) const;
       void setData(const vmesh::LocalID blockLID,const unsigned int cell,const Realf value);
-     //void setRefined(const vmesh::LocalID blockLID,const unsigned int cell,const Realf value);
+      void setRefined(const vmesh::LocalID blockLID,const unsigned int cell,const uint8_t value);
+      void setGhost(const vmesh::LocalID blockLID,const unsigned int cell,const uint8_t value);
 #endif
 
    private:
