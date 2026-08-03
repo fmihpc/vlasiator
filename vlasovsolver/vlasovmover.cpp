@@ -599,6 +599,9 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
        phiprof::Timer vAMR_refined {"vAMR refined grid"};
 	   //Every vamr_refinedStep we check all the velocity cells with the vAMR criterion depending on the order
        RefinedOrderX(mpiGrid,cells);
+	   for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+         adjustVelocityBlocks(mpiGrid, cells, true, popID, true);
+       }
        vAMR_refined.stop();	
      }
      vAMR_accel_modif.stop();   
