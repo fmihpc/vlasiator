@@ -258,5 +258,4 @@ void blockVelocitySecondMomentsVamr(
      }, array);
 }
 
-
 #endif
