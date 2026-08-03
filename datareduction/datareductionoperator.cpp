@@ -572,10 +572,10 @@ namespace DRO {
 
    // Blocks
    Blocks::Blocks(cuint _popID): DataReductionOperator(),popID(_popID) {
-     popName = getObjectWrapper().particleSpecies[popID].name;
-     if (P::activateVamr) {
-       popName += std::to_string(getObjectWrapper().particleSpecies[popID].RefinementLevel);
-     }
+      popName=getObjectWrapper().particleSpecies[popID].name;
+      if (P::activateVamr) {
+        popName += std::to_string(getObjectWrapper().particleSpecies[popID].RefinementLevel);
+      }
    }
    Blocks::~Blocks() { }
 
@@ -702,10 +702,10 @@ namespace DRO {
    }
 
    VariablePTensorOffDiagonal::VariablePTensorOffDiagonal(cuint _popID): DataReductionOperator(),popID(_popID) {
-     popName = getObjectWrapper().particleSpecies[popID].name;
-     if (P::activateVamr) {
-       popName += std::to_string(getObjectWrapper().particleSpecies[popID].RefinementLevel);
-     }
+      popName = getObjectWrapper().particleSpecies[popID].name;
+      if (P::activateVamr) {
+        popName += std::to_string(getObjectWrapper().particleSpecies[popID].RefinementLevel);
+      }
    }
    VariablePTensorOffDiagonal::~VariablePTensorOffDiagonal() { }
 
@@ -1102,11 +1102,11 @@ namespace DRO {
 
    // v nonthermal:
    VariableVNonthermal::VariableVNonthermal(cuint _popID): DataReductionOperator(),popID(_popID) {
-     popName = getObjectWrapper().particleSpecies[popID].name;
-     if (P::activateVamr) {
-       popName += std::to_string(getObjectWrapper().particleSpecies[popID].RefinementLevel);
-     }
-     doSkip = (getObjectWrapper().particleSpecies[popID].thermalRadius == 0.0) ? true : false;
+      popName = getObjectWrapper().particleSpecies[popID].name;
+	  if (P::activateVamr) {
+        popName += std::to_string(getObjectWrapper().particleSpecies[popID].RefinementLevel);
+      }
+      doSkip = (getObjectWrapper().particleSpecies[popID].thermalRadius == 0.0) ? true : false;
    }
    VariableVNonthermal::~VariableVNonthermal() { }
 
@@ -1277,11 +1277,11 @@ namespace DRO {
    }
 
    VariablePTensorNonthermalOffDiagonal::VariablePTensorNonthermalOffDiagonal(cuint _popID): DataReductionOperator(),popID(_popID) {
-     popName = getObjectWrapper().particleSpecies[popID].name;
-     if (P::activateVamr) {
-       popName += std::to_string(getObjectWrapper().particleSpecies[popID].RefinementLevel);
-     }
-     doSkip = (getObjectWrapper().particleSpecies[popID].thermalRadius == 0.0) ? true : false;
+      popName = getObjectWrapper().particleSpecies[popID].name;
+	  if (P::activateVamr) {
+        popName += std::to_string(getObjectWrapper().particleSpecies[popID].RefinementLevel);
+      }
+      doSkip = (getObjectWrapper().particleSpecies[popID].thermalRadius == 0.0) ? true : false;
    }
    VariablePTensorNonthermalOffDiagonal::~VariablePTensorNonthermalOffDiagonal() { }
 
