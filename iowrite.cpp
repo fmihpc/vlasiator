@@ -164,7 +164,7 @@ bool writeVelocityDistributionData(const uint popID, Writer& vlsvWriter,
    // Write velocity blocks and related data.
    // In restart we just write velocity grids for all cells.
    // First write global Ids of those cells which write velocity blocks (here: all cells):
-   map<string,string> attribs;
+   map<string, string> attribs;
    string popName      = getObjectWrapper().particleSpecies[popID].name;
    if (P::activateVamr) {
      popName += std::to_string(getObjectWrapper().particleSpecies[popID].RefinementLevel);
