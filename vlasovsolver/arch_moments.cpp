@@ -136,8 +136,7 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
 	      pop2.V[1] = pop.V[1];
 	      pop2.V[2] = pop.V[2];
 	    };
-      };
-	     
+      }; 
 
       if (!computePopulationMomentsOnly) {
          // Store species' contribution to bulk velocity moments
@@ -178,7 +177,7 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
 
       // Temporary array for storing moments
       Real array[nMom2] = {0};
-      
+
       int Ref=0;
       int MaxRef=0;
       if(P::activateVamr) {
@@ -309,8 +308,8 @@ void calculateMoments_R(
 
          // Temporary array where the moments for this species are accumulated
          Real array[nMom1] = {0};
-	 
-	     int Ref=0;
+
+         int Ref=0;
 	     int MaxRef=0;
 	     if(P::activateVamr) {
 	       Ref=getObjectWrapper().particleSpecies[popID].RefinementLevel;
@@ -408,8 +407,8 @@ void calculateMoments_R(
 
          // Temporary array where species' contribution to 2nd moments is accumulated
          Real array[nMom2] = {0};
-      
-		 int Ref=0;
+
+         int Ref=0;
 	 	 int MaxRef=0;
 	 	 if(P::activateVamr) {
 	   	    int Ref=getObjectWrapper().particleSpecies[popID].RefinementLevel;
@@ -460,7 +459,7 @@ void calculateMoments_R(
 	   		};
 	 	 };
 	 
-    } // for-loop over spatial cells
+      } // for-loop over spatial cells
    } // for-loop over particle species
 }
 
@@ -542,8 +541,8 @@ void calculateMoments_V(
 
          // Temporary array where the moments for this species are accumulated
          Real array[nMom1] = {0};
-	 
-	     int Ref=0;
+
+         int Ref=0;
 	     int MaxRef=0;
 	     if(P::activateVamr) {
 	       Ref=getObjectWrapper().particleSpecies[popID].RefinementLevel;
@@ -640,11 +639,12 @@ void calculateMoments_V(
          }
 
          const Real mass = getObjectWrapper().particleSpecies[popID].mass;
+         const Real charge = getObjectWrapper().particleSpecies[popID].charge;
 
-	     // Temporary array for storing moments
-	     Real array[nMom2] = {0};
-      
-	     int Ref=0;
+         // Temporary array where moments are stored
+         Real array[nMom2] = {0};
+
+         int Ref=0;
 	     int MaxRef=0;
 	     if(P::activateVamr) {
 	       int Ref=getObjectWrapper().particleSpecies[popID].RefinementLevel;
@@ -666,11 +666,11 @@ void calculateMoments_V(
 				      nBlocks);
 	    }
       
-        // Store species' contribution to 2nd bulk velocity moments
-        Population &pop = cell->get_population(popID);
-        for (size_t i = 0; i < nMom2; ++i) {
-          pop.P_V[i] = mass * array[i];
-        }
+         // Store species' contribution to 2nd bulk velocity moments
+         Population &pop = cell->get_population(popID);
+         for (size_t i = 0; i < nMom2; ++i) {
+            pop.P_V[i] = mass * array[i];
+         }
 
          cell->parameters[CellParams::P_11_V] += pop.P_V[0];
          cell->parameters[CellParams::P_22_V] += pop.P_V[1];
