@@ -476,7 +476,7 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
       performs a full neighbour block list update, and is called for all accelerated cells.
    **/
    if (step > 0 && step < (globalMaxSubcycles - 1)) {
-     adjustVelocityBlocks(mpiGrid, acceleratedCells, false, popID, true);
+      adjustVelocityBlocks(mpiGrid, acceleratedCells, false, popID, true);
    }
 }
 
@@ -505,7 +505,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
       // because the boundary conditions may have altered the velocity space,
       // and to update changes in no-content blocks during translation.
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-	    adjustVelocityBlocks(mpiGrid, cells, true, popID, true);
+         adjustVelocityBlocks(mpiGrid, cells, true, popID, true);
       }
    } else {
       // Fairly ugly but no goto
