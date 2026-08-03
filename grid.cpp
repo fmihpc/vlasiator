@@ -290,7 +290,7 @@ void initializeGrids(
 	     FixedGhost(mpiGrid,cells);
       } 
 
-      for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+      for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID) {
 	     adjustVelocityBlocks(mpiGrid,cells,true,popID,true);
          // set initial LB metric based on number of blocks
          #pragma omp parallel for schedule(static)
