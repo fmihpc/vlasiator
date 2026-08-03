@@ -305,33 +305,33 @@ namespace spatial_cell {
       bool has_content = false;
      
       if (!P::activateVamr || getObjectWrapper().particleSpecies[popID].RefinementLevel==0 || !useGhost ){ 
-	    const Real velocity_block_min_value = getVelocityBlockMinValue(popID);
-	    const Realf* block_data = populations[popID].blockContainer->getData(blockLID);
-	    for (unsigned int i=0; i<WID3; ++i) {
-	      if (block_data[i] >= velocity_block_min_value) {
-            has_content = true;
-            break;
-	      }
-	    }
+	     const Real velocity_block_min_value = getVelocityBlockMinValue(popID);
+	     const Realf* block_data = populations[popID].blockContainer->getData(blockLID);
+	     for (unsigned int i=0; i<WID3; ++i) {
+	        if (block_data[i] >= velocity_block_min_value) {
+               has_content = true;
+               break;
+	        }
+	     }
       }else{
-		//Newly created cells that don't respect the vAMR criterion should be destroyed
-	    uint8_t *ghost =  populations[popID].blockContainer->getGhost(blockLID);
-	    bool has_content1 = false;
-	    if (ghost[0]==1){// ghost=2 may be used later for border
-	      has_content1 = true;
-	    }
-	    bool has_content2 = false;
-	    const Real velocity_block_min_value = getVelocityBlockMinValue(popID);
-	    const Realf* block_data = populations[popID].blockContainer->getData(blockLID);
-	    for (unsigned int i=0; i<WID3; ++i) {
-	      if (block_data[i] >= velocity_block_min_value) {
-            has_content2 = true;
-	        break;
-	      }
-	    }
-	    if (has_content1 && has_content2){
-	      has_content = true;
-	    }
+		 //Newly created cells that don't respect the vAMR criterion should be destroyed
+	     uint8_t *ghost =  populations[popID].blockContainer->getGhost(blockLID);
+	     bool has_content1 = false;
+	     if (ghost[0]==1){// ghost=2 may be used later for border
+	        has_content1 = true;
+	     }
+	     bool has_content2 = false;
+	     const Real velocity_block_min_value = getVelocityBlockMinValue(popID);
+	     const Realf* block_data = populations[popID].blockContainer->getData(blockLID);
+	     for (unsigned int i=0; i<WID3; ++i) {
+	        if (block_data[i] >= velocity_block_min_value) {
+               has_content2 = true;
+	           break;
+	        }
+	     }
+	     if (has_content1 && has_content2){
+	        has_content = true;
+	     }
       }   
 
       return has_content;
