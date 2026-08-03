@@ -1331,19 +1331,19 @@ int simulate(int argn,char* args[]) {
 
       phiprof::Timer vspaceTimer {"Velocity-space"};
       if ( P::propagateVlasovAcceleration ) {
-		if(P::activateVamr && (P::tstep % P::vAMRrefineStep) == 0){
-	  	  calculateAcceleration(mpiGrid,P::dt, true);
-		}else{
-	  	  calculateAcceleration(mpiGrid,P::dt, false);
-		}
-		addTimedBarrier("barrier-after-ad just-blocks");
+		 if(P::activateVamr && (P::tstep % P::vAMRrefineStep) == 0){
+	  	    calculateAcceleration(mpiGrid,P::dt, true);
+		 }else{
+	  	    calculateAcceleration(mpiGrid,P::dt, false);
+		 }
+         addTimedBarrier("barrier-after-ad just-blocks");
       } else {
          //zero step to set up moments _v
-		if(P::activateVamr && (P::tstep % P::vAMRrefineStep) == 0){
-	  	  calculateAcceleration(mpiGrid, 0.0,true);
-		}else{
-	  	  calculateAcceleration(mpiGrid, 0.0,false);
-		}
+		 if(P::activateVamr && (P::tstep % P::vAMRrefineStep) == 0){
+	  	    calculateAcceleration(mpiGrid, 0.0,true);
+		 }else{
+	  	    calculateAcceleration(mpiGrid, 0.0,false);
+		 }
       }
       vspaceTimer.stop(computedCells, "Cells");
       addTimedBarrier("barrier-after-acceleration");
