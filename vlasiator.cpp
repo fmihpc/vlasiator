@@ -1337,8 +1337,8 @@ int simulate(int argn,char* args[]) {
 	  	  calculateAcceleration(mpiGrid,P::dt, false);
 		}
 		addTimedBarrier("barrier-after-ad just-blocks");
-      }else{
-      	//zero step to set up moments _v
+      } else {
+         //zero step to set up moments _v
 		if(P::activateVamr && (P::tstep % P::vAMRrefineStep) == 0){
 	  	  calculateAcceleration(mpiGrid, 0.0,true);
 		}else{
