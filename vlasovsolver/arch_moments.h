@@ -120,7 +120,6 @@ void blockVelocityFirstMoments(
    REAL (&array)[SIZE],
    uint nBlocks) {
 
-  
    arch::parallel_reduce<arch::sum>({WID, WID, WID, nBlocks},
      ARCH_LOOP_LAMBDA (const uint i, const uint j, const uint k, const uint blockLID, Real *lsum ) {
 
@@ -150,7 +149,6 @@ void blockVelocityFirstMomentsVamr(
    REAL (&array)[SIZE],
    uint nBlocks) {
 
-  
    arch::parallel_reduce<arch::sum>({WID, WID, WID, nBlocks},
      ARCH_LOOP_LAMBDA (const uint i, const uint j, const uint k, const uint blockLID, Real *lsum ) {
 
