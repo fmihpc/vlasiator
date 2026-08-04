@@ -266,10 +266,6 @@ single_cell[${index}]=1
 
 # 26 write path test 
 test_name[${index}]="write_path_test"
-# comparison_vlsv[${index}]="bulk.0000001.vlsv"
-# comparison_phiprof[${index}]="phiprof_0.txt"
-# variable_names[${index}]="proton/vg_rho proton/vg_ptensor_diagonal proton/vg_ptensor_diagonal proton/vg_ptensor_diagonal proton/vg_ptensor_offdiagonal proton/vg_ptensor_offdiagonal proton/vg_ptensor_offdiagonal proton"
-# variable_components[${index}]="0 0 1 2 0 1 2"
 single_cell[${index}]=1
 ((index+=1))
 

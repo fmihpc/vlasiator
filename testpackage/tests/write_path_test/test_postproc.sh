@@ -10,4 +10,4 @@ if [[ ! -f $filepath_test ]]; then
    exit 1
 fi
 mv ./testing/foo/bar/* ./
-echo "Done"
+echo "Write path test successful!"
