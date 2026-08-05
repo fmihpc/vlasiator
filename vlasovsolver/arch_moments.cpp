@@ -812,7 +812,7 @@ void vamr_transfer_values(
      vmesh::VelocityMesh* vmeshraf = cell->get_velocity_mesh(popID+1);
      
      uint8_t *refined =cell->get_velocity_blocks(popID)->getRefined();
-     
+//Parallelisation is just in case; this function may already be part of a parallelised region     
 #pragma omp parallel for schedule(dynamic,1)       
      for (vmesh::LocalID localID=0; localID<vmesh->size(); ++localID) {
        const vmesh::GlobalID globalID = vmesh->getGlobalID(localID);	   
