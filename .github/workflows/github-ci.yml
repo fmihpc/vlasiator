@@ -43,13 +43,18 @@ jobs:
       fail-fast: false
       matrix: 
         include:
-            #one could maybe add name: entry for clarity?
           - name: prod
-            runner: hile
-            arch: hile_gpu
-            compile_tp: false
-            run_tp: false
-            debug: false
+            runner: hile       #Tag of the github runner to run on
+
+            arch: hile_gpu     #Architecture flag 
+
+            compile_tp: false  #Whether to compile with testpackage flag, can also add specific compile flags, see compile_flags_tp in slurm_run.sh
+                               #otherwise will use prod flags
+            
+            run_tp: false      #Whether to run the testpackage, note that the github ci
+                               #testpackage has to be implemented for that platform
+
+            debug: false       #compile with debug flags, see compile_flags_prod and compile_flags_tp in slurm_run.sh
 
           - name: testpackage run
             runner: hile

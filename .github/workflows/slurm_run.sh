@@ -35,6 +35,8 @@ constraint_small["hile_cpu"]="-C c"
 
 #Memory flags for compiling, note that with --exclusive it is better to use --mem since --mem-per-cpu counts the whole node apparently
 declare -A mem_flags
+
+#Could be unified with core_flags but it's nice to have them here separately and maybe this separation has a future use
 mem_flags["carrington_gcc_openmpi"]="--mem=40G"
 mem_flags["ukko_dgx"]="--mem=64G"
 mem_flags["pioneer"]=""
@@ -45,6 +47,7 @@ mem_flags["hile_cpu"]="--mem=32G"
 declare -A compile_flags_prod
 declare -A compile_flags_tp
 
+#This is for `debug: true` entry in workflow
 if [[ $2 == "true" ]]; then
   #testpackage/debug compile flags
   compile_flags_prod["ukko_dgx"]='COMPFLAGS="-DDEBUG_VLASIATOR -DDEBUG_SOLVERS -DDEBUG_IONOSPHERE -DHASHINATOR_DEBUG -DDEBUG_SPATIAL_CELL -DDEBUG_VMESH -DDEBUG_VBC -DDEBUG_ACC "'
@@ -75,7 +78,7 @@ fi
 #|         BUILD LIBS           |
 #0++++++++++++++++++++++++++++++0
 if [[ $1 == "BUILD_LIBS" ]]; then
-  srun ${constraint_small[$VLASIATOR_ARCH]} ${platform_flags[$VLASIATOR_ARCH]} --mem=8G -J build_libraries_CI bash -lc "$modules ; ./fetch_and_build_libraries.sh $VLASIATOR_ARCH"
+  srun ${constraint_small[$VLASIATOR_ARCH]} -n 1 -c 1 --mem=8G -J build_libraries_CI bash -lc "$modules ; ./fetch_and_build_libraries.sh $VLASIATOR_ARCH"
   exit $?
 fi
 
@@ -83,6 +86,7 @@ fi
 #|         BUILD TOOLS          |
 #0++++++++++++++++++++++++++++++0
 if [[ $1 == "BUILD_TOOLS" ]]; then
+  #not constraint small since some platforms used gpu partition here but not build libs previously
   srun ${constraint[$VLASIATOR_ARCH]} --job-name CI_TOOLS_COMPILE --interactive --nodes=1 -n 1 -c 1 --mem=4G -t 0:10:0 bash -c "$modules ; make vlsvextract vlsvdiff fluxfunction ; sleep 10s"
   exit $?
 fi
