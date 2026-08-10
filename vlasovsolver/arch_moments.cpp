@@ -1255,7 +1255,7 @@ for (size_t c=0; c<cells.size(); ++c) {
 	    	for (int offset_vz=-addWidthV;offset_vz<=addWidthV;offset_vz++) {
 	      	  const vmesh::GlobalID globalID = vmesh->getGlobalID(Indices[0]+offset_vx,Indices[1]+offset_vy,Indices[2]+offset_vz);
 	      	  if (globalID==  vmesh->invalidGlobalID()) {
-				//std::cout<< " GlobalID bug not normal" << "Indices[0]+offset_vx" << Indices[0]+offset_vx << "Indices[1]+offset_vy " << Indices[1]+offset_vy << "Indices[1]+offset_vy" << Indices[2]+offset_vz <<std::endl;
+				std::cout<< " GlobalID bug not normal" << "Indices[0]+offset_vx" << Indices[0]+offset_vx << "Indices[1]+offset_vy " << Indices[1]+offset_vy << "Indices[1]+offset_vy" << Indices[2]+offset_vz <<std::endl;
 	      	  }
 	      	  ListBlockExist[popID].insert(globalID);
 	    	}
@@ -1315,6 +1315,15 @@ for (size_t c=0; c<cells.size(); ++c) {
 	      	  for (int j2=0; j2<2; ++j2) {
 				for (int k2=0; k2<2; ++k2) {
                 //Loop over the 8 coarsed cells located on the WID3 refined cells (the refined block)
+				// We ensure that the cells are well initialised to 0
+				  data[localIDcreated*WID3+cellIndex(2*i2,2*j2,2*k2)]=0.0;
+				  data[localIDcreated*WID3+cellIndex(2*i2+1,2*j2,2*k2)]=0.0;
+				  data[localIDcreated*WID3+cellIndex(2*i2,2*j2+1,2*k2)]=0.0;
+				  data[localIDcreated*WID3+cellIndex(2*i2,2*j2,2*k2+1)]=0.0;
+				  data[localIDcreated*WID3+cellIndex(2*i2+1,2*j2+1,2*k2)]=0.0;
+				  data[localIDcreated*WID3+cellIndex(2*i2+1,2*j2,2*k2+1)]=0.0;
+				  data[localIDcreated*WID3+cellIndex(2*i2,2*j2+1,2*k2+1)]=0.0;
+				  data[localIDcreated*WID3+cellIndex(2*i2+1,2*j2+1,2*k2+1)]=0.0;
 		  		  for (int i4=-1; i4<2; ++i4){
 		    		for (int j4=-1; j4<2; ++j4){
 		      		  for (int k4=-1; k4<2; ++k4){
@@ -1633,6 +1642,15 @@ void RefinedOrder5(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 	          for (int j2=0; j2<2; ++j2) {
 			    for (int k2=0; k2<2; ++k2) {
                 //Loop over the 8 coarsed cells located on the WID3 refined cells (the refined block)
+				// We ensure that the cells are well initialised to 0
+				  data[localIDcreated*WID3+cellIndex(2*i2,2*j2,2*k2)]=0.0;
+				  data[localIDcreated*WID3+cellIndex(2*i2+1,2*j2,2*k2)]=0.0;
+				  data[localIDcreated*WID3+cellIndex(2*i2,2*j2+1,2*k2)]=0.0;
+				  data[localIDcreated*WID3+cellIndex(2*i2,2*j2,2*k2+1)]=0.0;
+				  data[localIDcreated*WID3+cellIndex(2*i2+1,2*j2+1,2*k2)]=0.0;
+				  data[localIDcreated*WID3+cellIndex(2*i2+1,2*j2,2*k2+1)]=0.0;
+				  data[localIDcreated*WID3+cellIndex(2*i2,2*j2+1,2*k2+1)]=0.0;
+				  data[localIDcreated*WID3+cellIndex(2*i2+1,2*j2+1,2*k2+1)]=0.0;
 		  		  for (int i4=-2; i4<3; ++i4){
 		    	    for (int j4=-2; j4<3; ++j4){
 		      		  for (int k4=-2; k4<3; ++k4){
