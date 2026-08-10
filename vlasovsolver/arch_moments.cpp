@@ -921,7 +921,14 @@ std::unordered_set<vmesh::GlobalID> ListBlockExist[getObjectWrapper().particleSp
 	      	  Indicesraf[1] = 2*Indices[1]+j;
 	      	  Indicesraf[2] = 2*Indices[2]+k;
 
-	     	  if (D > cell->getVelocityBlockMinValue(0)){
+              Realf Dcomp = cell->getVelocityBlockMinValue(popID);
+
+              if(getObjectWrapper().particleSpecies[popID].CriteriaMethod==1){ //epsilon
+                Dcomp= getObjectWrapper().particleSpecies[popID].CriteriaValue;
+              }else if(getObjectWrapper().particleSpecies[popID].CriteriaMethod==2){ //epsilon*2^-R
+ 	            Dcomp= getObjectWrapper().particleSpecies[popID].CriteriaValue/(1u << getObjectWrapper().particleSpecies[popID].RefinementLevel);
+              }
+              if (D > Dcomp){
 				// We should create a new block for R+1
 				int addWidthV = 1; //getObjectWrapper().particleSpecies[popID+1].sparseBlockAddWidthV; 
 				for (int offset_vx=-addWidthV;offset_vx<=addWidthV;offset_vx++) {
@@ -1148,7 +1155,7 @@ for (size_t c=0; c<cells.size(); ++c) {
 			      }
 			    }
 			    //Computation of the grid R-1
-			    Datagros[neighbour_vx][neighbour_vy][neighbour_vz] = Datagrossum/8;
+			    Datagros[neighbour_vx][neighbour_vy][neighbour_vz] = Datagrossum/8.0;
 		      }else{
 			    for(int iloop = 0; iloop< (2-abs(n_vx)); ++iloop){
 			      for(int jloop = 0; jloop< (2-abs(n_vy)); ++jloop){
@@ -1191,7 +1198,14 @@ for (size_t c=0; c<cells.size(); ++c) {
 	      	    Indicesraf[1] = 2*Indices[1]+j ;
 	      	    Indicesraf[2] = 2*Indices[2]+k ;
 
-		        if (D > cell->getVelocityBlockMinValue(0)){
+                  Realf Dcomp = cell->getVelocityBlockMinValue(popID);
+
+                  if(getObjectWrapper().particleSpecies[popID].CriteriaMethod==1){ //epsilon
+                    Dcomp= getObjectWrapper().particleSpecies[popID].CriteriaValue;
+                  }else if(getObjectWrapper().particleSpecies[popID].CriteriaMethod==2){ //epsilon*2^-R
+ 	                Dcomp= getObjectWrapper().particleSpecies[popID].CriteriaValue/(1u << getObjectWrapper().particleSpecies[popID].RefinementLevel);
+                  }
+                  if (D > Dcomp){
 				  // We should create a new block for R+1
 			      int addWidthV = 1;//getObjectWrapper().particleSpecies[popID+1].sparseBlockAddWidthV; 
 				  for (int offset_vx=-addWidthV;offset_vx<=addWidthV;offset_vx++) {
@@ -1468,7 +1482,7 @@ void RefinedOrder5(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 		            }
 		          }
 				  //Computation of the grid R-1
-		          Datagros[neighbour_vx][neighbour_vy][neighbour_vz] = Datagrossum/8;
+		          Datagros[neighbour_vx][neighbour_vy][neighbour_vz] = Datagrossum/8.0;
 	            }else{
 		        //If one of the neighbouring blocks does not exist, it will directly impact all future R-1 blocks
 		          Verif=false;
@@ -1502,9 +1516,16 @@ void RefinedOrder5(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 	      	      Indicesraf[1] = 2*Indices[1]+j ;
 	      	      Indicesraf[2] = 2*Indices[2]+k ;
 
-	         	  if (D > cell->getVelocityBlockMinValue(0)){
+                  Realf Dcomp = cell->getVelocityBlockMinValue(popID);
+
+                  if(getObjectWrapper().particleSpecies[popID].CriteriaMethod==1){ //epsilon
+                    Dcomp= getObjectWrapper().particleSpecies[popID].CriteriaValue;
+                  }else if(getObjectWrapper().particleSpecies[popID].CriteriaMethod==2){ //epsilon*2^-R
+ 	                Dcomp= getObjectWrapper().particleSpecies[popID].CriteriaValue/(1u << getObjectWrapper().particleSpecies[popID].RefinementLevel);
+                  }
+                  if (D > Dcomp){
 				  // We should create a new block for R+1
-				  int addWidthV = getObjectWrapper().particleSpecies[popID+1].sparseBlockAddWidthV; 
+				  int addWidthV = 1;//getObjectWrapper().particleSpecies[popID+1].sparseBlockAddWidthV; 
 				  for (int offset_vx=-addWidthV;offset_vx<=addWidthV;offset_vx++) {
 		  		    for (int offset_vy=-addWidthV;offset_vy<=addWidthV;offset_vy++) {
 		    		  for (int offset_vz=-addWidthV;offset_vz<=addWidthV;offset_vz++) {
@@ -1737,9 +1758,16 @@ SpatialCell* cell = mpiGrid[cells[c]];
 	     Datagros/=8.0;	      	     		    
 	     Realf D = abs( Datagrosgros - Datagros );
 		 // The idea is to always compare the central cell of level R with the reproduce R-1 cell	  
-	     if (D > cell->getVelocityBlockMinValue(0)){
+         Realf Dcomp = cell->getVelocityBlockMinValue(popID-1);
+
+         if(getObjectWrapper().particleSpecies[popID-1].CriteriaMethod==1){ //epsilon
+     	   Dcomp= getObjectWrapper().particleSpecies[popID-1].CriteriaValue;
+         }else if(getObjectWrapper().particleSpecies[popID-1].CriteriaMethod==2){ //epsilon*2^-R
+           Dcomp= getObjectWrapper().particleSpecies[popID-1].CriteriaValue/(1u << getObjectWrapper().particleSpecies[popID-1].RefinementLevel);
+         }
+         if (D > Dcomp){
 	       // We keep the block
-	       ghost[localID]=1;
+	       ghost[localID]=1; // This could be changed to 2 to distinguish the newly created cells from those that already exist
 	     }else{
 	       //If the block don't need to exist anymore, it is removed
 	       vmesh::VelocityMesh* vmesh  = cell->get_velocity_mesh(popID); 
