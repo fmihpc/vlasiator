@@ -1077,12 +1077,6 @@ void Parameters::getParameters() {
     }
 
 
-   // if ((P::dx_ini != P::dy_ini) || (P::dy_ini!=P::dz_ini)) {
-   //  cerr << "ERROR: Spatial cells are non cubic! " << endl;
-   //  MPI_Abort(MPI_COMM_WORLD, 1);
-   // }
-
-
    if (P::dynamicTimestep)
       P::dt = 0.0; // if dynamic timestep then first dt is always 0
 
