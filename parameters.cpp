@@ -1056,7 +1056,7 @@ void Parameters::getParameters() {
    }
 
    if (P::xmax < P::xmin || (P::ymax < P::ymin || P::zmax < P::zmin)) {
-      cerr << "Box domain error!" << endl;
+      cerr << "ERROR: Box domains are wrong!" << endl;
       MPI_Abort(MPI_COMM_WORLD, 1);
    }
 
@@ -1064,10 +1064,23 @@ void Parameters::getParameters() {
    P::dx_ini = (P::xmax - P::xmin) / P::xcells_ini;
    P::dy_ini = (P::ymax - P::ymin) / P::ycells_ini;
    P::dz_ini = (P::zmax - P::zmin) / P::zcells_ini;
-   if ((P::dx_ini != P::dy_ini) || (P::dy_ini!=P::dz_ini)) {
-    cerr << "ERROR: Spatial cells are non cubic! " << endl;
-    MPI_Abort(MPI_COMM_WORLD, 1);
-   }
+
+   constexpr Real uniformTolerance = 1e-3;
+   const std::array gridSpacing{P::dx_ini / pow(2, P::amrMaxSpatialRefLevel),
+                                P::dy_ini / pow(2, P::amrMaxSpatialRefLevel),
+                                P::dz_ini / pow(2, P::amrMaxSpatialRefLevel)};
+  if ((abs((gridSpacing[0] - gridSpacing[1]) / gridSpacing[0]) > uniformTolerance) ||
+      (abs((gridSpacing[0] - gridSpacing[2]) / gridSpacing[0]) > uniformTolerance) ||
+      (abs((gridSpacing[1] - gridSpacing[2]) / gridSpacing[1]) > uniformTolerance)) {
+      std::cerr << "ERROR: Your spatial cells seem not to be cubic. The simulation will now abort!" << std::endl;
+      MPI_Abort(MPI_COMM_WORLD, -1);
+    }
+
+
+   // if ((P::dx_ini != P::dy_ini) || (P::dy_ini!=P::dz_ini)) {
+   //  cerr << "ERROR: Spatial cells are non cubic! " << endl;
+   //  MPI_Abort(MPI_COMM_WORLD, 1);
+   // }
 
 
    if (P::dynamicTimestep)
@@ -1083,7 +1096,7 @@ void Parameters::getParameters() {
    // manual FsGrid decomposition should be complete with three values. If at least one is set but all are not set, abort
    if ((RP::isSet("fieldsolver.manualFsGridDecompositionX")||RP::isSet("fieldsolver.manualFsGridDecompositionY")||RP::isSet("fieldsolver.manualFsGridDecompositionZ")) &&
         !(RP::isSet("fieldsolver.manualFsGridDecompositionX")&&RP::isSet("fieldsolver.manualFsGridDecompositionY")&&RP::isSet("fieldsolver.manualFsGridDecompositionZ")) ) {
-      cerr << "ERROR all of fieldsolver.manualFsGridDecompositionX,Y,Z should be defined." << endl;
+      cerr << "ERROR: all of fieldsolver.manualFsGridDecompositionX,Y,Z should be defined." << endl;
       MPI_Abort(MPI_COMM_WORLD, 1);
    }
 

@@ -465,17 +465,6 @@ int simulate(int argn,char* args[]) {
    const std::array physicalGlobalStart{P::xmin, P::ymin, P::zmin};
    const auto decomposition = P::manualFsGridDecomposition;
 
-   // Checking that spatial cells are cubic, otherwise field solver is incorrect (cf. derivatives in E, Hall term)
-   constexpr Real uniformTolerance = 1e-3;
-   if ((abs((gridSpacing[0] - gridSpacing[1]) / gridSpacing[0]) > uniformTolerance) ||
-       (abs((gridSpacing[0] - gridSpacing[2]) / gridSpacing[0]) > uniformTolerance) ||
-       (abs((gridSpacing[1] - gridSpacing[2]) / gridSpacing[1]) > uniformTolerance)) {
-      if (myRank == MASTER_RANK) {
-         std::cerr << "WARNING: Your spatial cells seem not to be cubic. The simulation will now abort!" << std::endl;
-      }
-      // just abort sending SIGTERM to all tasks
-      MPI_Abort(MPI_COMM_WORLD, -1);
-   }
 
    MPI_Comm parentComm = MPI_COMM_WORLD;
    const auto numFsProcs = [&]() {
