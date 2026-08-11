@@ -1749,7 +1749,7 @@ for (size_t c=0; c<cells.size(); ++c) {
 SpatialCell* cell = mpiGrid[cells[c]];
 
  for (uint popID=1; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-   if(getObjectWrapper().particleSpecies[popID].MaxRefinementLevel>0){
+   if(getObjectWrapper().particleSpecies[popID].MaxRefinementLevel>0  &&  getObjectWrapper().particleSpecies[popID].RefinementLevel!=0){
      vmesh::VelocityMesh* vmesh    = cell->get_velocity_mesh(popID);
      Realf *data = cell->get_velocity_blocks(popID)->getData();
      uint8_t *ghost = cell->get_velocity_blocks(popID)->getGhost();
