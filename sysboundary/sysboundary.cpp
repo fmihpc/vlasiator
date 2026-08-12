@@ -156,6 +156,7 @@ void SysBoundary::getParameters() {
    for (auto& b : sysBoundaries)  {
      b->getParameters();
    }
+   bool boundaries_valid[6]={false,false,false,false,false,false};
    if (sysBoundaryCondList.size() == 0) {
       if (!periodic[0] && !Readparameters::helpRequested) {
          abort_mpi("Non-periodic in x but no boundary condtion loaded!");
@@ -173,7 +174,9 @@ void SysBoundary::getParameters() {
          anyDynamic = anyDynamic | this->getSysBoundary(sysboundarytype::OUTFLOW)->isDynamic();
          bool faces[6];
          this->getSysBoundary(sysboundarytype::OUTFLOW)->getFaces(&faces[0]);
-
+         for (auto i=0;i<6;++i) {
+              boundaries_valid[i]=((faces[i] || periodic[int(i)/2]) || boundaries_valid[i]);
+         }
          if ((faces[0] || faces[1]) && periodic[0]) {
             abort_mpi("Conflict: x boundaries set to periodic but found Outflow conditions!");
          }
@@ -204,6 +207,9 @@ void SysBoundary::getParameters() {
          anyDynamic = anyDynamic | this->getSysBoundary(sysboundarytype::MAXWELLIAN)->isDynamic();
          bool faces[6];
          this->getSysBoundary(sysboundarytype::MAXWELLIAN)->getFaces(&faces[0]);
+         for (auto i=0;i<6;++i) {
+              boundaries_valid[i]=((faces[i] || periodic[int(i)/2]) || boundaries_valid[i]);
+         }
          if ((faces[0] || faces[1]) && periodic[0]) {
             abort_mpi("Conflict: x boundaries set to periodic but found Maxwellian also!");
          }
@@ -227,6 +233,15 @@ void SysBoundary::getParameters() {
          msg << "Unknown type of boundary read: " << *it;
          abort_mpi(msg.str());
       }
+  }
+  if (!boundaries_valid[0] || !boundaries_valid[1]) {
+    abort_mpi("Boundary settings for x direction invalid");
+  }
+  if (!boundaries_valid[2] || !boundaries_valid[3]) {
+    abort_mpi("Boundary settings for y direction invalid");
+  }
+  if (!boundaries_valid[4] || !boundaries_valid[5]) {
+    abort_mpi("Boundary settings for z direction invalid");
   }
 }
 
