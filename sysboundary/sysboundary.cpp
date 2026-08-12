@@ -156,7 +156,7 @@ void SysBoundary::getParameters() {
    for (auto& b : sysBoundaries)  {
      b->getParameters();
    }
-   bool boundaries_valid[6]={false,false,false,false,false,false};
+   bool boundaries_valid[6]={periodic[0],periodic[0],periodic[1],periodic[1],periodic[2],periodic[2]};
    if (sysBoundaryCondList.size() == 0) {
       if (!periodic[0] && !Readparameters::helpRequested) {
          abort_mpi("Non-periodic in x but no boundary condtion loaded!");
@@ -175,7 +175,7 @@ void SysBoundary::getParameters() {
          bool faces[6];
          this->getSysBoundary(sysboundarytype::OUTFLOW)->getFaces(&faces[0]);
          for (auto i=0;i<6;++i) {
-              boundaries_valid[i]=((faces[i] || periodic[int(i)/2]) || boundaries_valid[i]);
+              boundaries_valid[i]=(faces[i] || boundaries_valid[i]);
          }
          if ((faces[0] || faces[1]) && periodic[0]) {
             abort_mpi("Conflict: x boundaries set to periodic but found Outflow conditions!");
@@ -208,7 +208,7 @@ void SysBoundary::getParameters() {
          bool faces[6];
          this->getSysBoundary(sysboundarytype::MAXWELLIAN)->getFaces(&faces[0]);
          for (auto i=0;i<6;++i) {
-              boundaries_valid[i]=((faces[i] || periodic[int(i)/2]) || boundaries_valid[i]);
+              boundaries_valid[i]=(faces[i]  || boundaries_valid[i]);
          }
          if ((faces[0] || faces[1]) && periodic[0]) {
             abort_mpi("Conflict: x boundaries set to periodic but found Maxwellian also!");
