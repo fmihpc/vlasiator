@@ -1110,9 +1110,14 @@ for (size_t c=0; c<cells.size(); ++c) {
 		vmesh::LocalID Indices[3];
 		vmesh->getIndices(globalID, Indices[0], Indices[1], Indices[2]);
 
-		if (getObjectWrapper().particleSpecies[popID].RefinementLevel==0) {
-	  	  ListBlockExist[popID].insert(globalID);
-		}
+	    if (getObjectWrapper().particleSpecies[popID].RefinementLevel==0) {
+          for (unsigned int iloop=0; iloop<WID3; ++iloop) {
+            if (data[localID*WID3+iloop] >=cell->getVelocityBlockMinValue(popID)){
+              ListBlockExist[popID].insert(globalID);
+              break;
+            }
+          }
+        }
 
        	bool Verif[8];
 		for (int fill=0; fill<8; ++fill){
@@ -1450,8 +1455,13 @@ void RefinedOrder5(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 	      vmesh->getIndices(globalID, Indices[0], Indices[1], Indices[2]);
 
 	      if (getObjectWrapper().particleSpecies[popID].RefinementLevel==0) {
-	        ListBlockExist[popID].insert(globalID);
-	      }
+            for (unsigned int iloop=0; iloop<WID3; ++iloop) {
+              if (data[localID*WID3+iloop] >=cell->getVelocityBlockMinValue(popID)){
+                ListBlockExist[popID].insert(globalID);
+                break;
+              }
+            }
+          }
 
 	      bool Verif=true;
 		  //We will need 2 ghost cells of level R-1 in every direction, meaning that we need a 6x6x6 grid of level R-1 cells for our block of level R
@@ -1494,7 +1504,8 @@ void RefinedOrder5(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 		          Datagros[neighbour_vx][neighbour_vy][neighbour_vz] = Datagrossum/8.0;
 	            }else{
 		        //If one of the neighbouring blocks does not exist, it will directly impact all future R-1 blocks
-		          Verif=false;
+		        // Verif=false;
+					Datagros[neighbour_vx][neighbour_vy][neighbour_vz] = 0.0;
 	            }
 	      
 	          }
@@ -1800,6 +1811,466 @@ SpatialCell* cell = mpiGrid[cells[c]];
    }
   }
 }
+}
+
+void SmallRefinedOrder3(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   const std::vector<CellID>& cells){
+  
+  
+  Realf M[3][3][3];
+  Realf A[3] = {1.0/8.0, 1.0, -1.0/8.0};
+
+  for (int i0 = 0; i0 < 3; i0++) {
+    for (int j0 = 0; j0 < 3; j0++) {
+      for (int k0 = 0; k0 < 3; k0++) {
+		M[i0][j0][k0] = A[i0] * A[j0] * A[k0];
+      }
+    }
+  }
+
+  #pragma omp parallel for schedule(dynamic,1)
+  for (size_t c=0; c<cells.size(); ++c) {
+    SpatialCell* cell = mpiGrid[cells[c]];
+
+    //We will just look at the refined level newly created
+    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+      if(getObjectWrapper().particleSpecies[popID].MaxRefinementLevel>0 &&  getObjectWrapper().particleSpecies[popID].RefinementLevel>0){
+	    vmesh::VelocityMesh* vmesh    = cell->get_velocity_mesh(popID);
+		uint8_t *ghost = cell->get_velocity_blocks(popID)->getGhost();
+		vmesh::LocalID Localsize= vmesh->size();
+
+		for (vmesh::LocalID localID=0; localID<Localsize; ++localID) {
+	  	  if(ghost[localID]==0){
+	      //We should check if this block should be delete or no   
+	      bool del=false;
+	    	    
+	      vmesh::GlobalID globalID = vmesh->getGlobalID(localID);
+	      vmesh::LocalID Indices[3];
+	      vmesh->getIndices(globalID, Indices[0], Indices[1], Indices[2]);
+
+	      vmesh::VelocityMesh* vmeshcoarse    = cell->get_velocity_mesh(popID-1);
+	      uint8_t *ghostcoarse = cell->get_velocity_blocks(popID-1)->getGhost();
+	      vmesh::LocalID Indicescoarse[3];
+	      Indicescoarse[0] = Indices[0]/2; //pas sur que pour ordre3 ça marche
+	      Indicescoarse[1] = Indices[1]/2;
+	      Indicescoarse[2] = Indices[2]/2;
+
+	      // We check if the coarse level and it's neighbourgh exist with ghost=1, If yes, that mean that they can interpolate our block 
+	      int addWidthV = 0;
+	      for (int offset_vx=-addWidthV;offset_vx<=addWidthV && !del;offset_vx++) {
+	        for (int offset_vy=-addWidthV;offset_vy<=addWidthV && !del;offset_vy++) {
+		      for (int offset_vz=-addWidthV;offset_vz<=addWidthV && !del;offset_vz++) {
+		   		const vmesh::GlobalID globalIDcoarse = vmeshcoarse->getGlobalID(Indicescoarse[0]+offset_vx,Indicescoarse[1]+offset_vy,Indicescoarse[2]+offset_vz);
+		  		if (globalIDcoarse == vmeshcoarse->invalidGlobalID()) {
+		    	//This block doesn't exist on the grid R-1
+		    	  del=true;
+		    	}else{
+		     	  const vmesh::LocalID localIDcoarse = vmeshcoarse->getLocalID(globalIDcoarse);
+		    	  if(localIDcoarse == vmeshcoarse->invalidLocalID()){// || ghostcoarse[localIDcoarse]==0){
+		          //This block doesn't exist on the grid R-1 or it is not yet fixed
+		       		del=true;
+		     	  }
+		  		}
+			  }
+	      	}
+	      }
+
+	      if(del){
+	        //This level should be deleted
+	        vmesh::VelocityMesh* vmesh  = cell->get_velocity_mesh(popID); 
+	        vmesh::GlobalID globalID = vmesh->getGlobalID(localID);
+	        cell->remove_velocity_block(globalID,popID);
+	        Localsize-=1;
+	        localID-=1;
+	      }else{	      
+	      //We are now sure that this block can be interpolated by the level R-1 and we will check if it should exist
+	        bool refined=false;
+  	        if(getObjectWrapper().particleSpecies[popID].RefinementLevel<getObjectWrapper().particleSpecies[popID].MaxRefinementLevel){
+		    //First, we will check if the refined level R+1 exist if yes we keep the level R
+		      vmesh::VelocityMesh* vmeshraf    = cell->get_velocity_mesh(popID+1);
+		      vmesh::LocalID Indicesraf[3];
+	        
+			  Indicesraf[0]=2*Indices[0];
+			  Indicesraf[1]=2*Indices[1];
+			  Indicesraf[2]=2*Indices[2];
+
+			  for (int offset_vx=0;offset_vx<=1 && !refined;offset_vx++) {
+		  		for (int offset_vy=0;offset_vy<=1 && !refined;offset_vy++) {
+		    	  for (int offset_vz=0;offset_vz<=1 && !refined;offset_vz++) {
+		      		const vmesh::GlobalID globalIDraf = vmeshraf->getGlobalID(Indicesraf[0]+offset_vx,Indicesraf[1]+offset_vy,Indicesraf[2]+offset_vz);
+		      		if (globalIDraf != vmeshraf->invalidGlobalID()) {
+					  const vmesh::LocalID localIDraf = vmeshraf->getLocalID(globalIDraf);
+					  if (localIDraf != vmeshraf->invalidLocalID()){
+			  		  //The level exist on R+1 so it should exist
+			  			refined=true;
+			  			ghost[localID]=1;
+					  }
+		      		}
+		    	  }
+		  		}
+			  }
+	        } 
+
+	      	if(!refined){
+	       	// This block can be interpolated by the grid R-1 and don't exist yet on the grid R+1, so we should check if it should exists
+			  bool del2=true;
+			  bool Verif[8];
+			  for (int fill=0; fill<8; ++fill){
+		  		Verif[fill]=true;
+			  }
+	  		  //We will need 1 ghost cell of level R-1 in every direction, meaning that we need a 4x4x4 grid of level R-1 cells for our block of level R
+			  Realf Datagros[4][4][4];
+			  Realf *datacoarse = cell->get_velocity_blocks(popID-1)->getData();
+			  const vmesh::GlobalID globalIDcoarse = vmeshcoarse->getGlobalID(Indicescoarse[0],Indicescoarse[1],Indicescoarse[2]);
+			  const vmesh::LocalID localIDcoarse = vmeshcoarse->getLocalID(globalIDcoarse);
+	  
+			  for (int neighbour_vx=0; neighbour_vx<4; ++neighbour_vx) {
+		  		int n_vx=(neighbour_vx+1)/2 -1; //gives the shift in block
+		  		int i=abs((neighbour_vx+1)%2);
+		  		for (int neighbour_vy=0; neighbour_vy<4; ++neighbour_vy) {
+		    	  int n_vy=(neighbour_vy+1)/2 -1;
+		    	  int j=abs((neighbour_vy+1)%2);
+		    	  for (int neighbour_vz=0; neighbour_vz<4; ++neighbour_vz) {
+		      		int n_vz=(neighbour_vz+1)/2 -1;
+		      		int k=abs((neighbour_vz+1)%2);
+	      
+		      		vmesh::LocalID localIDneighcoarse = vmeshcoarse->invalidLocalID();
+	      
+		      		if(n_vx==0 && n_vy==0 && n_vz==0){
+			  		//The cell of level R-1 will be defined on the actual block of level R
+			    	  localIDneighcoarse = localIDcoarse;
+		      		}else{
+			  		//The cell of level R-1 will be defined on a neighbouring block of level R
+					  const vmesh::GlobalID globalIDneighcoarse = vmeshcoarse->getGlobalID(Indicescoarse[0]+n_vx,Indicescoarse[1]+n_vy,Indicescoarse[2]+n_vz);
+			    	  if (globalIDneighcoarse !=  vmeshcoarse->invalidGlobalID()) {
+			      		localIDneighcoarse=vmeshcoarse->getLocalID(globalIDneighcoarse);
+			    	  }
+		      		}
+
+		      		if (localIDneighcoarse !=  vmeshcoarse->invalidLocalID()) {
+			  		//The block exists, meaning that we can compute the cell value for level R-1
+			    	  Realf Datagrossum=0;
+			    	  for (int i2=0; i2<2; ++i2) {
+			      		for (int j2=0; j2<2; ++j2) {
+			        	  for (int k2=0; k2<2; ++k2) {
+			          		Datagrossum += datacoarse[localIDneighcoarse*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)];
+			        	  }
+			      		}
+			    	  }
+			    	  //Computation of the grid R-1
+			    	  Datagros[neighbour_vx][neighbour_vy][neighbour_vz] = Datagrossum/8.0;
+		      		}else{
+			    	  for(int iloop = 0; iloop< (2-abs(n_vx)); ++iloop){
+			      		for(int jloop = 0; jloop< (2-abs(n_vy)); ++jloop){
+			        	  for(int kloop = 0; kloop< (2-abs(n_vz)); ++kloop){
+						  //Loop over all the future refined blocks that will be impacted by the non-existing block
+				    	  //It is technically impossible for the block in which we have the local ID to return invalidLocalID(), but this has been taken into account
+			          	    Verif[(std::max(n_vx,0)+iloop)+2*(std::max(n_vy,0)+jloop)+4*(std::max(n_vz,0)+kloop)]=false;
+			        	  }
+			      	  	}
+			    	  }
+		  	      	}
+	      	      }
+		  		}
+			  }	      
+		
+		   	  for (int i=0; i<2 && del2; ++i) {
+		     	for (int j=0; j<2 && del2; ++j) {
+		       	  for (int k=0; k<2 && del2; ++k) {
+			  		if (Verif[i+2*j+4*k]){
+			 		//Loop over the future refined blocks R+1
+			 		  Realf Datagrossum = 0;
+	
+			 		  for (int i2=-1; i2<2; ++i2) {
+			   			for (int j2=-1; j2<2; ++j2) {
+			     		  for (int k2=-1; k2<2; ++k2) {
+			       		  //Sum over the 8 cells of level R in order to reproduce the coarse cell R-1
+			       			Datagrossum += M[1-i2*(1-2*i)][1-j2*(1-2*j)][1-k2*(1-2*k)]*Datagros[1+i+i2][1+j+j2][1+k+k2];
+			     		  }
+			   			}
+			 		  }
+
+			 		  Realf D = abs( datacoarse[localIDcoarse*WID3+cellIndex(1+i,1+j,1+k)] - Datagrossum );
+					  Realf Dcomp = cell->getVelocityBlockMinValue(popID-1);
+
+			 		  if(getObjectWrapper().particleSpecies[popID-1].CriteriaMethod==1){ //epsilon
+			   			Dcomp= getObjectWrapper().particleSpecies[popID-1].CriteriaValue;
+			 		  }else if(getObjectWrapper().particleSpecies[popID-1].CriteriaMethod==2){ //epsilon*2^-R
+			   			Dcomp= getObjectWrapper().particleSpecies[popID-1].CriteriaValue/(1u << getObjectWrapper().particleSpecies[popID-1].RefinementLevel);
+			 		  }	 
+
+			 		  if (D > Dcomp){
+			   			del2 = false;
+			 		  }
+			 	    }
+		     	  }
+		   		}
+		 	  }
+
+		 	  if(del2){
+		   	  //If the block don't need to exist anymore, it is removed
+		   		vmesh::VelocityMesh* vmesh  = cell->get_velocity_mesh(popID); 
+		   		vmesh::GlobalID globalID = vmesh->getGlobalID(localID);
+		   		cell->remove_velocity_block(globalID,popID);
+		   		Localsize-=1;
+		   		localID-=1;
+		  	  }else{
+		   	  // We keep the block
+		   		ghost[localID]=1; // This could be changed to 2 to distinguish the newly created cells from those that already exist	 
+		 	  }
+		    } //!refined
+		  }//del
+		}//ghost==0
+	  }//loop localID
+		       
+    }else if (getObjectWrapper().particleSpecies[popID].RefinementLevel==0){
+	//set ghost to 1 for all the R=0 levels
+	  vmesh::VelocityMesh* vmesh    = cell->get_velocity_mesh(popID);
+	  uint8_t *ghost = cell->get_velocity_blocks(popID)->getGhost();
+	  vmesh::LocalID Localsize= vmesh->size();
+	  for (vmesh::LocalID localID=0; localID<Localsize; ++localID) {
+	  	if(ghost[localID]==0){ 
+	      ghost[localID]=1;
+	  	}
+	  }
+    } 
+  } //loop over popID
+}//loop over cells    
+}
+
+void SmallRefinedOrder5(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   const std::vector<CellID>& cells){
+  
+  
+  Realf M[5][5][5];
+  Realf A[5] = {-3.0/128.0, 11.0/64.0, 1.0, -11.0/64.0, 3.0/128.0};
+  
+  for (int i0 = 0; i0 < 5; i0++) {
+    for (int j0 = 0; j0 < 5; j0++) {
+      for (int k0 = 0; k0 < 5; k0++) {
+	    M[i0][j0][k0] = A[i0] * A[j0] * A[k0];
+      }
+    }
+  }
+
+  #pragma omp parallel for schedule(dynamic,1)
+  for (size_t c=0; c<cells.size(); ++c) {
+    SpatialCell* cell = mpiGrid[cells[c]];
+
+    //We will just look at the refined level newly created
+    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+      if(getObjectWrapper().particleSpecies[popID].MaxRefinementLevel>0 &&  getObjectWrapper().particleSpecies[popID].RefinementLevel>0){
+		vmesh::VelocityMesh* vmesh    = cell->get_velocity_mesh(popID);
+		uint8_t *ghost = cell->get_velocity_blocks(popID)->getGhost();
+		vmesh::LocalID Localsize= vmesh->size();
+
+		for (vmesh::LocalID localID=0; localID<Localsize; ++localID) {
+	  	  if(ghost[localID]==0){
+	      //We should check if this block should be delete or no   
+	      bool del=false;
+	    	    
+	      vmesh::GlobalID globalID = vmesh->getGlobalID(localID);
+	      vmesh::LocalID Indices[3];
+	      vmesh->getIndices(globalID, Indices[0], Indices[1], Indices[2]);
+	      vmesh::VelocityMesh* vmeshcoarse    = cell->get_velocity_mesh(popID-1);
+	      uint8_t *ghostcoarse = cell->get_velocity_blocks(popID-1)->getGhost();
+	      vmesh::LocalID Indicescoarse[3];
+	      Indicescoarse[0] = Indices[0]/2; //pas sur que pour ordre3 ça marche
+	      Indicescoarse[1] = Indices[1]/2;
+	      Indicescoarse[2] = Indices[2]/2;
+
+	      // We check if the coarse level and it's neighbourgh exist with ghost=1, If yes, that mean that they can interpolate our block 
+	      int addWidthV = 0;
+	      for (int offset_vx=-addWidthV;offset_vx<=addWidthV && !del;offset_vx++) {
+	      	for (int offset_vy=-addWidthV;offset_vy<=addWidthV && !del;offset_vy++) {
+			  for (int offset_vz=-addWidthV;offset_vz<=addWidthV && !del;offset_vz++) {
+		  		const vmesh::GlobalID globalIDcoarse = vmeshcoarse->getGlobalID(Indicescoarse[0]+offset_vx,Indicescoarse[1]+offset_vy,Indicescoarse[2]+offset_vz);
+		  		if (globalIDcoarse == vmeshcoarse->invalidGlobalID()) {
+		    	//This block doesn't exist on the grid R-1
+		    	  del=true;
+		    	}else{
+		    	  const vmesh::LocalID localIDcoarse = vmeshcoarse->getLocalID(globalIDcoarse);
+		    	  if(localIDcoarse == vmeshcoarse->invalidLocalID()){// || ghostcoarse[localIDcoarse]==0){
+		       	  //This block doesn't exist on the grid R-1 or it is not yet fixed
+		       		del=true;
+		     	  }
+		  		}
+			  }
+	      }
+	    }
+
+	    if(del){
+	      //This level should be deleted
+	      vmesh::VelocityMesh* vmesh  = cell->get_velocity_mesh(popID); 
+	      vmesh::GlobalID globalID = vmesh->getGlobalID(localID);
+	      cell->remove_velocity_block(globalID,popID);
+	      Localsize-=1;
+	      localID-=1;
+	    }else{	      
+	      //We are now sure that this block can be interpolated by the level R-1 and we will check if it should exist
+	      
+	      bool refined=false;
+
+	      if(getObjectWrapper().particleSpecies[popID].RefinementLevel<getObjectWrapper().particleSpecies[popID].MaxRefinementLevel){
+		//First, we will check if the refined level R+1 exist if yes we keep the level R
+		vmesh::VelocityMesh* vmeshraf    = cell->get_velocity_mesh(popID+1);
+		vmesh::LocalID Indicesraf[3];
+	       
+	       
+		Indicesraf[0]=2*Indices[0];
+		Indicesraf[1]=2*Indices[1];
+		Indicesraf[2]=2*Indices[2];
+
+		for (int offset_vx=0;offset_vx<=1 && !refined;offset_vx++) {
+		  for (int offset_vy=0;offset_vy<=1 && !refined;offset_vy++) {
+		    for (int offset_vz=0;offset_vz<=1 && !refined;offset_vz++) {
+		      const vmesh::GlobalID globalIDraf = vmeshraf->getGlobalID(Indicesraf[0]+offset_vx,Indicesraf[1]+offset_vy,Indicesraf[2]+offset_vz);
+		      if (globalIDraf != vmeshraf->invalidGlobalID()) {
+			const vmesh::LocalID localIDraf = vmeshraf->getLocalID(globalIDraf);
+			if (localIDraf != vmeshraf->invalidLocalID()){
+			  //The level exist on R+1 so it should exist
+			  refined=true;
+			  ghost[localID]=1;
+			}
+		      }
+		     
+		    }
+		  }
+		}
+	       
+	      } 
+
+	      if(!refined){
+	       // This block can be interpolated by the grid R-1 and don't exist yet on the grid R+1, so we should check if it should exists
+
+		 bool del2=true;
+		 bool Verif=true;
+		 Realf Datagros[6][6][6];
+		 Realf *datacoarse = cell->get_velocity_blocks(popID-1)->getData();
+
+		  const vmesh::GlobalID globalIDcoarse = vmeshcoarse->getGlobalID(Indicescoarse[0],Indicescoarse[1],Indicescoarse[2]);
+		  const vmesh::LocalID localIDcoarse = vmeshcoarse->getLocalID(globalIDcoarse);
+
+		  for (int neighbour_vx=0; neighbour_vx<6 && Verif; ++neighbour_vx) {
+		    //Verif should stay true either the previous del check is wrong
+		    int n_vx=neighbour_vx/2 -1; //gives the shift in block
+		    int i=abs(neighbour_vx%2);
+		    for (int neighbour_vy=0; neighbour_vy<6 && Verif; ++neighbour_vy) {
+		      int n_vy=neighbour_vy/2 -1;
+		      int j=abs(neighbour_vy%2);
+		      for (int neighbour_vz=0; neighbour_vz<6 && Verif; ++neighbour_vz) {
+			int n_vz=neighbour_vz/2 -1;
+			int k=abs(neighbour_vz%2);
+		       
+			vmesh::LocalID localIDneighcoarse = vmeshcoarse->invalidLocalID();
+		       
+			if(n_vx==0 && n_vy==0 && n_vz==0){
+			  //The cell of level R-1 will be defined on the actual block of level R
+			  localIDneighcoarse = localIDcoarse;
+			}else{
+			  //The cell of level R-1 will be defined on a neighbouring block of level R
+			  const vmesh::GlobalID globalIDneighcoarse = vmeshcoarse->getGlobalID(Indicescoarse[0]+n_vx,Indicescoarse[1]+n_vy,Indicescoarse[2]+n_vz);
+			  if (globalIDneighcoarse !=  vmeshcoarse->invalidGlobalID()) {
+			    localIDneighcoarse=vmeshcoarse->getLocalID(globalIDneighcoarse);
+			  }
+			}
+
+			if (localIDneighcoarse !=  vmeshcoarse->invalidLocalID()) {
+			  //The block exists, meaning that we can compute the cell value for level R-1
+			  Realf Datagrossum=0;
+			  for (int i2=0; i2<2; ++i2) {
+			    for (int j2=0; j2<2; ++j2) {
+			      for (int k2=0; k2<2; ++k2) {
+				Datagrossum += datacoarse[localIDneighcoarse*WID3+cellIndex(2*i+i2,2*j+j2,2*k+k2)];
+			      }
+			    }
+			  }
+			  //Computation of the grid R-1
+			  Datagros[neighbour_vx][neighbour_vy][neighbour_vz] = Datagrossum/8.0;
+			
+			}else{
+			  //If one of the neighbouring blocks does not exist, it will directly impact all future R-1 blocksThis one should not exist
+			  //  Verif=false;
+			  Datagros[neighbour_vx][neighbour_vy][neighbour_vz] = 0.0;
+			  //	  std::cout<< " Verif set to false in SmallRefinedOrder5 bug" <<std::endl;
+			}
+	      
+		      }
+		    }
+		  }
+	  
+	      
+		 if (Verif){
+		   for (int i=0; i<2 && del2; ++i) {
+		     for (int j=0; j<2 && del2; ++j) {
+		       for (int k=0; k<2 && del2; ++k) {
+			 //Loop over the future refined blocks R+1
+			 Realf Datagrossum = 0;
+	
+			 for (int i2=-2; i2<3; ++i2) {
+			   for (int j2=-2; j2<3; ++j2) {
+			     for (int k2=-2; k2<3; ++k2) {
+			       //Sum over the 8 cells of level R in order to reproduce the coarse cell R-1
+			       Datagrossum += M[2-i2*(1-2*i)][2-j2*(1-2*j)][2-k2*(1-2*k)]*Datagros[2+i+i2][2+j+j2][2+k+k2];
+			     }
+			   }
+			 }
+
+			 Realf D = abs( datacoarse[localIDcoarse*WID3+cellIndex(1+i,1+j,1+k)] - Datagrossum );
+
+			 Realf Dcomp = cell->getVelocityBlockMinValue(popID-1);
+
+			 if(getObjectWrapper().particleSpecies[popID-1].CriteriaMethod==1){ //epsilon
+			   Dcomp= getObjectWrapper().particleSpecies[popID-1].CriteriaValue;
+			 }else if(getObjectWrapper().particleSpecies[popID-1].CriteriaMethod==2){ //epsilon*2^-R
+			   Dcomp= getObjectWrapper().particleSpecies[popID-1].CriteriaValue/(1u << getObjectWrapper().particleSpecies[popID-1].RefinementLevel);
+			 }	 
+
+			 if (D > Dcomp){
+			   del2 = false;
+			 }
+			 
+		       }
+		     }
+		   }
+		 }
+
+		 if(del2){
+		   //If the block don't need to exist anymore, it is removed
+		   vmesh::VelocityMesh* vmesh  = cell->get_velocity_mesh(popID); 
+		   vmesh::GlobalID globalID = vmesh->getGlobalID(localID);
+		   cell->remove_velocity_block(globalID,popID);
+		   Localsize-=1;
+		   localID-=1;
+		  }else{
+		   // We keep the block
+		   ghost[localID]=1; // This could be changed to 2 to distinguish the newly created cells from those that already exist	 
+		 }
+		 
+	      } //!refined
+		 
+	    }//del
+	    
+	  }//ghost==0
+	}//loop localID
+
+		       
+      }else if (getObjectWrapper().particleSpecies[popID].RefinementLevel==0){
+	//set ghost to 1 for all the R=0 levels
+	vmesh::VelocityMesh* vmesh    = cell->get_velocity_mesh(popID);
+	uint8_t *ghost = cell->get_velocity_blocks(popID)->getGhost();
+	vmesh::LocalID Localsize= vmesh->size();
+	for (vmesh::LocalID localID=0; localID<Localsize; ++localID) {
+	  if(ghost[localID]==0){ 
+	    ghost[localID]=1;
+	  }
+	}
+	
+      }
+      
+    } //loop over popID
+  }//loop over cells
+    
 }
 
 //Fixed ghost to 1 for all the initial velocity cells to avoid destruction
