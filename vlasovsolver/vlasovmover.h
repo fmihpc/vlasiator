@@ -87,6 +87,9 @@ void calculateInitialVelocityMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_G
 void RefinedOrderX(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 		   const std::vector<CellID>& cells);
 
+void SmallRefinedOrderX(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+		   const std::vector<CellID>& cells);
+
 void FixedGhost(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 		   const std::vector<CellID>& cells);
 
