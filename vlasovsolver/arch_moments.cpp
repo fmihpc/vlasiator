@@ -1111,12 +1111,12 @@ for (size_t c=0; c<cells.size(); ++c) {
 		vmesh->getIndices(globalID, Indices[0], Indices[1], Indices[2]);
 
 	    if (getObjectWrapper().particleSpecies[popID].RefinementLevel==0) {
-          for (unsigned int iloop=0; iloop<WID3; ++iloop) {
-            if (data[localID*WID3+iloop] >=cell->getVelocityBlockMinValue(popID)){
+          //for (unsigned int iloop=0; iloop<WID3; ++iloop) {
+          //  if (data[localID*WID3+iloop] >=cell->getVelocityBlockMinValue(popID)){
               ListBlockExist[popID].insert(globalID);
-              break;
-            }
-          }
+          //    break;
+          //  }
+          // }
         }
 
        	bool Verif[8];
@@ -1160,7 +1160,7 @@ for (size_t c=0; c<cells.size(); ++c) {
 			      }
 			    }
 			    //Computation of the grid R-1
-			    Datagros[neighbour_vx][neighbour_vy][neighbour_vz] = Datagrossum/8.0;
+			    Datagros[neighbour_vx][neighbour_vy][neighbour_vz] = Datagrossum/8.0;	
 		      }else{
 			    for(int iloop = 0; iloop< (2-abs(n_vx)); ++iloop){
 			      for(int jloop = 0; jloop< (2-abs(n_vy)); ++jloop){
@@ -1168,6 +1168,7 @@ for (size_t c=0; c<cells.size(); ++c) {
 					//Loop over all the future refined blocks that will be impacted by the non-existing block
 				    //It is technically impossible for the block in which we have the local ID to return invalidLocalID(), but this has been taken into account
 			          Verif[(std::max(n_vx,0)+iloop)+2*(std::max(n_vy,0)+jloop)+4*(std::max(n_vz,0)+kloop)]=false;
+				     // Datagros[neighbour_vx][neighbour_vy][neighbour_vz] = 0.0;
 			        }
 			      }
 			    }
@@ -1254,7 +1255,7 @@ for (size_t c=0; c<cells.size(); ++c) {
 		Indices[1] = Indicesraf[1]/2;
 		Indices[2] = Indicesraf[2]/2;
 	
-		int addWidthV = 1;//getObjectWrapper().particleSpecies[popID].sparseBlockAddWidthV;
+		int addWidthV = 1;
 		for (int offset_vx=-addWidthV;offset_vx<=addWidthV;offset_vx++) {
 	 	  for (int offset_vy=-addWidthV;offset_vy<=addWidthV;offset_vy++) {
 	    	for (int offset_vz=-addWidthV;offset_vz<=addWidthV;offset_vz++) {
@@ -1300,6 +1301,8 @@ for (size_t c=0; c<cells.size(); ++c) {
 	    	Realf *data = cell->get_velocity_blocks(popID)->getData(); 
 
 	    	vmesh::LocalID  localIDcreated=vmesh->getLocalID(globalID);
+		    uint8_t *ghost = cell->get_velocity_blocks(popID)->getGhost(localIDcreated);
+			ghost[0]=1;
 	    	if (localIDcreated==  vmesh->invalidLocalID()) {
 	      	  //std::cout<< " localIDcreated bug not normal"  <<std::endl;
 	    	}
@@ -1504,8 +1507,8 @@ void RefinedOrder5(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 		          Datagros[neighbour_vx][neighbour_vy][neighbour_vz] = Datagrossum/8.0;
 	            }else{
 		        //If one of the neighbouring blocks does not exist, it will directly impact all future R-1 blocks
-		        // Verif=false;
-					Datagros[neighbour_vx][neighbour_vy][neighbour_vz] = 0.0;
+		         Verif=false;
+				//	Datagros[neighbour_vx][neighbour_vy][neighbour_vz] = 0.0;
 	            }
 	      
 	          }
@@ -1633,6 +1636,8 @@ void RefinedOrder5(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 	        Realf *data = cell->get_velocity_blocks(popID)->getData(); 
 
 	        vmesh::LocalID  localIDcreated=vmesh->getLocalID(globalID);
+			uint8_t *ghost = cell->get_velocity_blocks(popID)->getGhost(localIDcreated);
+			ghost[0]=1;
 	        if (localIDcreated==  vmesh->invalidLocalID()) {
 	    	  std::cout<< " localIDcreated bug not normal"  <<std::endl;
 	        }
@@ -1833,7 +1838,7 @@ void SmallRefinedOrder3(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
     SpatialCell* cell = mpiGrid[cells[c]];
 
     //We will just look at the refined level newly created
-    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+    for (uint popID=1; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
       if(getObjectWrapper().particleSpecies[popID].MaxRefinementLevel>0 &&  getObjectWrapper().particleSpecies[popID].RefinementLevel>0){
 	    vmesh::VelocityMesh* vmesh    = cell->get_velocity_mesh(popID);
 		uint8_t *ghost = cell->get_velocity_blocks(popID)->getGhost();
@@ -1855,8 +1860,8 @@ void SmallRefinedOrder3(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 	      Indicescoarse[1] = Indices[1]/2;
 	      Indicescoarse[2] = Indices[2]/2;
 
-	      // We check if the coarse level and it's neighbourgh exist with ghost=1, If yes, that mean that they can interpolate our block 
-	      int addWidthV = 0;
+	      // We check if the coarse level and it's neighbourgh exist, If yes, that mean that they can interpolate our block 
+	      int addWidthV = 1;
 	      for (int offset_vx=-addWidthV;offset_vx<=addWidthV && !del;offset_vx++) {
 	        for (int offset_vy=-addWidthV;offset_vy<=addWidthV && !del;offset_vy++) {
 		      for (int offset_vz=-addWidthV;offset_vz<=addWidthV && !del;offset_vz++) {
@@ -2023,7 +2028,7 @@ void SmallRefinedOrder3(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 		}//ghost==0
 	  }//loop localID
 		       
-    }else if (getObjectWrapper().particleSpecies[popID].RefinementLevel==0){
+    }/*else if (getObjectWrapper().particleSpecies[popID].RefinementLevel==0){
 	//set ghost to 1 for all the R=0 levels
 	  vmesh::VelocityMesh* vmesh    = cell->get_velocity_mesh(popID);
 	  uint8_t *ghost = cell->get_velocity_blocks(popID)->getGhost();
@@ -2033,7 +2038,7 @@ void SmallRefinedOrder3(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 	      ghost[localID]=1;
 	  	}
 	  }
-    } 
+    }*/ 
   } //loop over popID
 }//loop over cells    
 }
@@ -2058,7 +2063,7 @@ void SmallRefinedOrder5(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
     SpatialCell* cell = mpiGrid[cells[c]];
 
     //We will just look at the refined level newly created
-    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+    for (uint popID=1; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
       if(getObjectWrapper().particleSpecies[popID].MaxRefinementLevel>0 &&  getObjectWrapper().particleSpecies[popID].RefinementLevel>0){
 		vmesh::VelocityMesh* vmesh    = cell->get_velocity_mesh(popID);
 		uint8_t *ghost = cell->get_velocity_blocks(popID)->getGhost();
@@ -2080,7 +2085,7 @@ void SmallRefinedOrder5(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 	      Indicescoarse[2] = Indices[2]/2;
 
 	      // We check if the coarse level and it's neighbourgh exist with ghost=1, If yes, that mean that they can interpolate our block 
-	      int addWidthV = 0;
+	      int addWidthV = 1;
 	      for (int offset_vx=-addWidthV;offset_vx<=addWidthV && !del;offset_vx++) {
 	      	for (int offset_vy=-addWidthV;offset_vy<=addWidthV && !del;offset_vy++) {
 			  for (int offset_vz=-addWidthV;offset_vz<=addWidthV && !del;offset_vz++) {
@@ -2239,7 +2244,7 @@ void SmallRefinedOrder5(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 		  }//del
 	  	}//ghost==0
 	  }//loop localID		       
-    }else if (getObjectWrapper().particleSpecies[popID].RefinementLevel==0){
+    }/*else if (getObjectWrapper().particleSpecies[popID].RefinementLevel==0){
 	//set ghost to 1 for all the R=0 levels
 	  vmesh::VelocityMesh* vmesh    = cell->get_velocity_mesh(popID);
 	  uint8_t *ghost = cell->get_velocity_blocks(popID)->getGhost();
@@ -2249,7 +2254,7 @@ void SmallRefinedOrder5(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 	      ghost[localID]=1;
 	    }
 	  }
-    } 
+    } */
   } //loop over popID
 }//loop over cells    
 }
