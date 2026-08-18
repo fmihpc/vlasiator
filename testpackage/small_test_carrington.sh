@@ -1,27 +1,26 @@
 #!/bin/bash
-#SBATCH -t 01:30:00        # Run time (hh:mm:ss)
+#SBATCH -t 05:10:00        # Run time (hh:mm:ss)
 #SBATCH --job-name=ctestpackage
-##SBATCH -A spacephysics 
-#SBATCH --constraint="carrington"
+#SBATCH --constraint=amd
 # test short medium 20min1d 3d
 #SBATCH -p short
-#SBATCH --exclusive
+##SBATCH --exclusive
 #SBATCH --nodes=1
 #SBATCH -c 4                 # CPU cores per task
 #SBATCH -n 16                  # number of tasks
-#SBATCH --mem-per-cpu=5G
+#SBATCH --mem=320G
 #SBATCH --hint=multithread
 
 # If 1, the reference vlsv files are generated
 # if 0 then we check the v1 against reference files
 create_verification_files=0
 
-# folder for all reference data 
+# folder for all reference data
 reference_dir="/turso/group/spacephysics/vlasiator/testpackage/"
 cd $SLURM_SUBMIT_DIR
 
-bin="/proj/USERNAME/BINARYNAME"
-diffbin="/turso/group/spacephysics/vlasiator/testpackage/vlsvdiff_DP_carrington"
+bin="/turso/home/mjalho/timeclasses/vlasiator-tc/vlasiator"
+diffbin="/turso/home/mjalho/timeclasses/vlsvdiff_DP"
 
 #compare agains which revision
 #reference_revision="CI_reference"
@@ -33,8 +32,9 @@ module load OpenMPI/4.1.6-GCC-13.2.0
 module load PMIx/4.2.6-GCCcore-13.2.0
 module load PAPI/7.1.0-GCCcore-13.2.0
 module load Boost/1.83.0-GCC-13.2.0
-#module load xthi
-export UCX_NET_DEVICES=eth5 # This is important for multi-node performance!
+
+export UCX_TLS=dc_mlx5
+export UCX_NET_DEVICES=eth4,mlx5_0:1 # This is important for multi-node performance!
 
 #Carrington has 2 x 16 cores per node, plus hyperthreading
 ht=2
@@ -60,5 +60,4 @@ source test_definitions_small.sh
 wait
 # Run tests
 source run_tests.sh
-wait 
-
+wait

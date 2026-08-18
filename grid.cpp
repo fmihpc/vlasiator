@@ -306,7 +306,7 @@ void initializeGrids(
       }
 
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-         // std::cerr << __FILE__<<":"<<__LINE__<< " calling adjustVelocityBlocks at t = " 
+         // std::cerr << __FILE__<<":"<<__LINE__<< " calling adjustVelocityBlocks at t = "
          // << P::t << ", preparing to receive; len cells = " << cells.size() <<
          // "\n";
          for (int timeclass = 0; timeclass <= P::currentMaxTimeclass; timeclass++){
@@ -369,7 +369,7 @@ void initializeGrids(
    setBTimer.stop();
    if (P::isRestart) {
       // There are projects that have non-uniform and non-zero perturbed B, e.g. Magnetosphere with dipole type 4.
-      // If restarting with reapplyUponRestart active, we need to set PerB again 
+      // If restarting with reapplyUponRestart active, we need to set PerB again
       // in boundary cells after setProjectBField has populated the BGBXVDCORR etc. terms
       sysBoundaries.applyInitialState(mpiGrid, technicalGrid, perBGrid, BgBGrid, project);
    }
@@ -873,7 +873,7 @@ void prepareAMRLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
    if (P::currentMaxTimeclass > 0 || P::vlasovSolverGhostTranslate) {
       const vector<CellID>& localCells = getLocalCells();
       // std::cerr << __FILE__<<":" << __LINE__ <<"\n";
-      const vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(Neighborhoods::VLASOV_SOLVER_GHOST_REQNEIGH);
+      const vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(Neighborhoods::FULL);
       mpiGrid.force_update_cell_neighborhoods(remote_cells);
 
       for(int i = 0; i <= P::currentMaxTimeclass; ++i){
@@ -906,7 +906,7 @@ void getGhostNeighborsforTC(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                               const std::vector<CellID>& cellsToCheckNeighbors, std::set<CellID>& active_cells, int timeclass) {
    /*
    1st version
-   every timestep, go through every cell c, and get its ghost neighbours. 
+   every timestep, go through every cell c, and get its ghost neighbours.
    Then, for every ghost neighbour, send c's timeclass to its requested_timeclass_ghosts
    */
    /*
@@ -1094,7 +1094,7 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
          updateRemoteVelocityBlockLists(mpiGrid,popID,Neighborhoods::DIST_FUNC,-1);
       }
    }
-   // std::cerr << __FILE__<<":"<<__LINE__<< "(" << myRank << ") done calling adjustVelocityBlocks at t = " 
+   // std::cerr << __FILE__<<":"<<__LINE__<< "(" << myRank << ") done calling adjustVelocityBlocks at t = "
    //       << P::t << "; len cells = " << cellsToAdjust.size() << " timeclass: " << timeclass << "; prepare: " << doPrepareToReceiveBlocks <<
    //       "\n";
 
@@ -1558,7 +1558,7 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
          abort();
       }
 
-      
+
       neighborhood.clear();
       for (int d = -VLASOV_STENCIL_WIDTH-1; d <= VLASOV_STENCIL_WIDTH+1; d++) {
          if (d != 0) {
@@ -1685,21 +1685,28 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       timeclassInner.stop();
       phiprof::Timer timeclassOuter {"Stencils init, timeclass, outer"};
       std::set<neigh_t> neighborhood_outer;
+      int timeclassFullHaloExtent = max(VLASOV_STENCIL_WIDTH,P::timeclassExactHaloExtent) + P::timeclassOuterHaloExtent;
+         
+      neighborhood.clear();
+      // stencils for timeghost haloes
+      // first one using timeclassexacthaloextent = vlasovSolverGhostTranslateExtent
 
-      for(auto n : neighborhood){
+      // std::set<neigh_t> neighborhood_outer;
 
-         for (int dy = -(int)P::timeclassOuterHaloExtent; dy <= (int)P::timeclassOuterHaloExtent; dy++){
-            for (int dx = -(int)P::timeclassOuterHaloExtent; dx <= (int)P::timeclassOuterHaloExtent; dx++){
-               for (int dz = -(int)P::timeclassOuterHaloExtent; dz <= (int)P::timeclassOuterHaloExtent; dz++){
-                  neigh_t offsets = {{n[0]+dx, n[1]+dy, n[2]+dz}};
-                  if ((dz+n[2]==0) && (dy+n[1]==0) && (dx+n[0]==0)) {
+      // for(auto n : neighborhood){
+
+         for (int dy = -timeclassFullHaloExtent; dy <= timeclassFullHaloExtent; dy++){
+            for (int dx = -timeclassFullHaloExtent; dx <= timeclassFullHaloExtent; dx++){
+               for (int dz = -timeclassFullHaloExtent; dz <= timeclassFullHaloExtent; dz++){
+                  neigh_t offsets = {{dx, dy, dz}};
+                  if ((dz==0) && (dy==0) && (dx==0)) {
                      continue;
                   }
-                   neighborhood_outer.insert({{dx+n[0], dy+n[1], dz+n[2]}});
+                   neighborhood_outer.insert({{dx, dy, dz}});
                }
             }
          }
-      }
+      // }
       for (auto it : neighborhood_outer){
          all_neighborhoods.emplace(it);
       }
