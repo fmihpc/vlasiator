@@ -584,7 +584,7 @@ void calculateGlobalTcVariables(Real fsdt, Real globalMaxDt) {
    //fsdt = fsdt / pow(2, P::timeclassBuffer);
 
    // This is the full range of timeclasses that could be used based on the physical environment
-   int timeclassRange = int(log2(globalMaxDt/fsdt));
+   int timeclassRange = max(int(log2(globalMaxDt/fsdt)),0);
 
    if (timeclassRange < P::initialMaxTimeclass) {
       // TODO figure this out if needed
