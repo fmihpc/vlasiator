@@ -35,6 +35,7 @@ using namespace std;
 
 namespace spatial_cell {
    int SpatialCell::activePopID = 0;
+   int SpatialCell::activeTimeclass = -1;
    uint64_t SpatialCell::mpi_transfer_type = 0;
    bool SpatialCell::mpiTransferAtSysBoundaries = false;
 
@@ -69,9 +70,14 @@ namespace spatial_cell {
       // Set velocity meshes
       for (uint popID=0; popID<populations.size(); ++popID) {
          const species::Species& spec = getObjectWrapper().particleSpecies[popID];
-         populations[popID].vmesh->initialize(spec.velocityMesh);
+         get_velocity_mesh(popID)->initialize(spec.velocityMesh);
          populations[popID].velocityBlockMinValue = spec.sparseMinValue;
          populations[popID].N_blocks = 0;
+
+         for (int tc = 0; tc <= P::initialMaxTimeclass; tc++){
+            // ghostPopulations[{popID,tc}] = std::copy<Population>(Population{populations[popID]});
+            ghostPopulations.try_emplace({popID,tc}, populations[popID]);
+         }
       }
 
       // new pointers for vectors
@@ -177,8 +183,8 @@ namespace spatial_cell {
     * modify local cell.
     **/
    void SpatialCell::adjust_velocity_blocks(const std::vector<SpatialCell*>& spatial_neighbors,
-                                            const uint popID,bool doDeleteEmptyBlocks) {
-      debug_population_check(popID);
+                                            const uint popID,bool doDeleteEmptyBlocks, const int timeclass) {
+      debug_ghostpopulation_check(popID, timeclass);
 
       //  This set contains all those cellids which have neighbors in any
       //  of the 6-dimensions Actually, we would only need to add
@@ -194,7 +200,7 @@ namespace spatial_cell {
       for (vmesh::LocalID block_index=0; block_index<local_content_list_size; ++block_index) {
          vmesh::GlobalID block = velocity_block_with_content_list->at(block_index);
 
-         const velocity_block_indices_t indices = SpatialCell::get_velocity_block_indices(popID,block);
+         const velocity_block_indices_t indices = SpatialCell::get_velocity_block_indices(popID,block,timeclass);
          neighbors_have_content.insert(block); //also add the cell itself
 
          int addWidthV = getObjectWrapper().particleSpecies[popID].sparseBlockAddWidthV;
@@ -202,7 +208,7 @@ namespace spatial_cell {
             for (int offset_vy=-addWidthV;offset_vy<=addWidthV;offset_vy++) {
                for (int offset_vz=-addWidthV;offset_vz<=addWidthV;offset_vz++) {
                   const vmesh::GlobalID neighbor_block
-                     = get_velocity_block(popID,{{indices[0]+offset_vx,indices[1]+offset_vy,indices[2]+offset_vz}});
+                     = get_velocity_block(popID,{{indices[0]+offset_vx,indices[1]+offset_vy,indices[2]+offset_vz}},timeclass);
                   neighbors_have_content.insert(neighbor_block); //add all potential ngbrs of this block with content
                }
             }
@@ -221,6 +227,36 @@ namespace spatial_cell {
          }
       }
 
+
+      /*  this is handled at top level now! Also makes this loop obsolete
+      to make this work with timeclasses, we must add the following loops:
+
+      1. adding velocity blocks to places where matter might flow to from neighbours,
+      taking into consideration the neighbours' every timeclass mesh
+
+      2. Make this such that we don't unnecessarily do cross-timeclass neighbours
+
+      */
+      
+      // timeclass addition loop:
+      /*
+      for (std::vector<SpatialCell*>::const_iterator neighbor=spatial_neighbors.begin();
+           neighbor != spatial_neighbors.end(); ++neighbor) { // go through neighbors
+         for (int tc : (*neighbor)->requested_timeclass_ghosts) { // go through neighbors' vmesh tc:s
+
+            auto* ghostPopVmesh = (*neighbor)->get_velocity_mesh_ghost(popID, tc); // get the ghost population
+            for (vmesh::LocalID block_index = 0; block_index<ghostPopVmesh->size(); ++block_index) { //go through the vmesh of the ghost population
+               const vmesh::GlobalID globalID = ghostPopVmesh->getGlobalID(block_index);
+               std::cout << __FILE__<<":"<<__LINE__<< "globalID " << globalID <<"\n"; 
+
+               if (compute_block_has_content(globalID, popID, tc)) {
+                  neighbors_have_content.insert(globalID);
+               }
+            }
+         }
+      }*/
+
+
       // REMOVE all blocks in this cell without content + without neighbors with content
       // better to do it in the reverse order, as then blocks at the
       // end are removed first, and we may avoid copying extra data.
@@ -233,7 +269,7 @@ namespace spatial_cell {
                exit(1);
             }
             #endif
-            const vmesh::LocalID blockLID = get_velocity_block_local_id(blockGID,popID);
+            const vmesh::LocalID blockLID = get_velocity_block_local_id(blockGID,popID,timeclass);
             #ifdef DEBUG_SPATIAL_CELL
             if (blockLID == invalid_local_id()) {
                cerr << "Could not find block in " << __FILE__ << ' ' << __LINE__ << endl;
@@ -250,18 +286,18 @@ namespace spatial_cell {
             if (removeBlock == true) {
                //No content, and also no neighbor have content -> remove
                //and increment rho loss counters
-               const Real* block_parameters = get_block_parameters(popID)+blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS;
+               const Real* block_parameters = get_block_parameters(popID,timeclass)+blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS;
                const Real DV3 = block_parameters[BlockParams::DVX]
                  * block_parameters[BlockParams::DVY]
                  * block_parameters[BlockParams::DVZ];
                Real sum=0;
                for (unsigned int i=0; i<WID3; ++i) {
-                  sum += get_data(popID)[blockLID*SIZE_VELBLOCK+i];
+                  sum += get_data(popID,timeclass)[blockLID*SIZE_VELBLOCK+i];
                }
                this->populations[popID].RHOLOSSADJUST += DV3*sum;
 
                // and finally remove block
-               this->remove_velocity_block(blockGID,popID);
+               this->remove_velocity_block(blockGID,popID,timeclass);
             }
          }
       }
@@ -272,13 +308,13 @@ namespace spatial_cell {
       }
    }
 
-   void SpatialCell::adjustSingleCellVelocityBlocks(const uint popID, bool doDeleteEmpty) {
-      debug_population_check(popID);
+   void SpatialCell::adjustSingleCellVelocityBlocks(const uint popID, bool doDeleteEmpty, const int timeclass) {
+      debug_ghostpopulation_check(popID, timeclass);
 
       //neighbor_ptrs is empty, so we adjust only based on local velocity space.
       std::vector<SpatialCell*> neighbor_ptrs;
-      update_velocity_block_content_lists(popID);
-      adjust_velocity_blocks(neighbor_ptrs,popID,doDeleteEmpty);
+      update_velocity_block_content_lists(popID, timeclass);
+      adjust_velocity_blocks(neighbor_ptrs,popID,doDeleteEmpty,timeclass);
    }
 
    /*!
@@ -287,10 +323,10 @@ namespace spatial_cell {
     sense in given block.
     Also returns false if given block doesn't exist or is an error block.
     */
-   bool SpatialCell::compute_block_has_content(const vmesh::LocalID& blockLID,const uint popID) const {
-      debug_population_check(popID);
+   bool SpatialCell::compute_block_has_content(const vmesh::LocalID& blockLID,const uint popID, const int timeclass) const {
       #ifdef DEBUG_SPATIAL_CELL
-      const vmesh::GlobalID blockGID = populations[popID].vmesh->getGlobalID(blockLID);
+      debug_population_blockLID_check(popID, blockLID, timeclass);
+      const vmesh::GlobalID blockGID = get_population(popID, timeclass).vmesh->getGlobalID(blockLID);
       if (blockGID == invalid_global_id()) {
          std::cerr << "ERROR, popID " << popID << " found invalid GID " << blockGID << " for LID  "<< blockLID;
          std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
@@ -303,8 +339,9 @@ namespace spatial_cell {
       }
 
       bool has_content = false;
-      const Real velocity_block_min_value = getVelocityBlockMinValue(popID);
-      const Realf* block_data = populations[popID].blockContainer->getData(blockLID);
+      const Real velocity_block_min_value = getVelocityBlockMinValue(popID, timeclass);
+
+      const Realf* block_data = get_data(blockLID, popID, timeclass);
       for (unsigned int i=0; i<WID3; ++i) {
          if (block_data[i] >= velocity_block_min_value) {
             has_content = true;
@@ -331,6 +368,61 @@ namespace spatial_cell {
       return populations[popID].max_dt[species::MAXVDT];
    }
 
+   /** Get the current timeclass dt of this cell
+    * @return local dt
+   */
+   const Real& SpatialCell::get_tc_dt() const {
+      return P::timeclassDt[this->parameters[CellParams::TIMECLASS]];
+   }
+
+   int SpatialCell::get_tc() const {      
+      return (int)this->parameters[CellParams::TIMECLASS];
+   }
+
+   bool SpatialCell::get_timeclass_turn_v() const {
+      // If on max timeclass, we propagate on each loop.
+      int mod = 1 << (P::currentMaxTimeclass - (int)this->parameters[CellParams::TIMECLASS]);
+      bool ret = ((P::fractionalTimestep % mod) == 0);
+      return ret;
+   }
+
+   bool SpatialCell::get_timeclass_turn_v(int tc) const {
+      // If on max timeclass, we propagate on each loop.
+      int mod = 1 << (P::currentMaxTimeclass - (int)tc);
+      bool ret = ((P::fractionalTimestep % mod) == 0);
+      return ret;
+   }
+
+   bool SpatialCell::get_timeclass_turn_r() const {
+      return this->get_timeclass_turn_v();
+      /* // Obsolete tries for fancy and incorrect stepping
+      if (this->parameters[CellParams::TIMECLASS] == P::currentMaxTimeclass) {
+         return true;
+      }
+      else {
+         int mod = 1 << (P::currentMaxTimeclass - (int)this->parameters[CellParams::TIMECLASS]);
+         int mod2 = 1 << (P::currentMaxTimeclass - (int)this->parameters[CellParams::TIMECLASS] - 1);
+         mod2 = max(0,mod2);
+         bool ret = ((P::fractionalTimestep % mod) == mod2);
+         if (ret && (this->parameters[CellParams::CELLID] == 11 || this->parameters[CellParams::CELLID] == 12)){}
+            // std::cout << "R on tc  " << this->parameters[CellParams::TIMECLASS] << " ftstep " << P::fractionalTimestep <<", t " << P::tstep <<"\n";
+         return ret;
+      }
+      */
+   }
+
+   bool SpatialCell::has_timeclass(int timeclass) const{
+      if (timeclass < 0 || 
+         (int)this->parameters[CellParams::TIMECLASS] == timeclass ||
+               this->requested_timeclass_ghosts.count(timeclass) > 0
+         ){
+            return true;
+         } 
+         else{
+            return false;
+         }
+   }
+
    /** Get MPI datatype for sending the cell data.
     * @param cellID Spatial cell (dccrg) ID.
     * @param sender_rank Rank of the MPI process sending data from this cell.
@@ -345,10 +437,12 @@ namespace spatial_cell {
                                                                       const bool receiving,
                                                                       const int neighborhood
       ) {
+         std::stringstream transfer;
 
       std::vector<MPI_Aint> displacements;
       std::vector<int> block_lengths;
-
+      Population& pop = get_population(activePopID, activeTimeclass);
+// std::cerr << __FILE__ << ":" << __LINE__ << "\n";
       // create datatype for actual data if we are in the first two
       // layers around a boundary, or if we send for the whole system
       if (this->mpiTransferEnabled && (SpatialCell::mpiTransferAtSysBoundaries==false ||
@@ -357,27 +451,36 @@ namespace spatial_cell {
          //add data to send/recv to displacement and block length lists
          if ((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_LIST_STAGE1) != 0) {
             //first copy values in case this is the send operation
-            populations[activePopID].N_blocks = populations[activePopID].blockContainer->size();
+            pop.N_blocks = get_velocity_blocks(activePopID, activeTimeclass)->size();
 
             // send velocity block list size
-            displacements.push_back((uint8_t*) &(populations[activePopID].N_blocks) - (uint8_t*) this);
+            displacements.push_back((uint8_t*) &(pop.N_blocks) - (uint8_t*) this);
             block_lengths.push_back(sizeof(vmesh::LocalID));
+            transfer << "VEL_BLOCK_LIST_STAGE1 ";
+            if (!receiving){
+               transfer << pop.N_blocks;
+            }
          }
 
          if ((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_LIST_STAGE2) != 0) {
+            transfer << "VEL_BLOCK_LIST_STAGE2 ";
             // STAGE1 should have been done, otherwise we have problems...
             if (receiving) {
                //mpi_number_of_blocks transferred earlier
-               populations[activePopID].vmesh->setNewSize(populations[activePopID].N_blocks);
+               get_velocity_mesh(activePopID, activeTimeclass)->setNewSize(pop.N_blocks);
+               transfer << pop.N_blocks <<" set.";
+
             } else {
                 //resize to correct size (it will avoid reallocation if it is big enough, I assume)
-                populations[activePopID].N_blocks = populations[activePopID].blockContainer->size();
+                pop.N_blocks = get_velocity_blocks(activePopID,activeTimeclass)->size();
             }
 
             // send velocity block list
-            if(populations[activePopID].vmesh->size() > 0) {
-               displacements.push_back((uint8_t*) populations[activePopID].vmesh->getGrid()->data() - (uint8_t*) this);
-               block_lengths.push_back(sizeof(vmesh::GlobalID) * populations[activePopID].vmesh->size());
+            //if(populations[activePopID].vmesh->size() > 0) {
+            if(get_velocity_mesh(activePopID,activeTimeclass)->size() > 0) {
+
+               displacements.push_back((uint8_t*) get_velocity_mesh(activePopID,activeTimeclass)->getGrid()->data() - (uint8_t*) this);
+               block_lengths.push_back(sizeof(vmesh::GlobalID) * get_velocity_mesh(activePopID,activeTimeclass)->size());
             } else {
                displacements.push_back(0);
                block_lengths.push_back(0);
@@ -385,6 +488,11 @@ namespace spatial_cell {
          }
 
          if ((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_WITH_CONTENT_STAGE1) !=0) {
+               transfer << "VEL_BLOCK_WITH_CONTENT_STAGE1 ";
+            if(!receiving){
+               transfer << this->velocity_block_with_content_list_size;
+            }
+
             //Communicate size of list so that buffers can be allocated on receiving side
             if (!receiving) {
                this->velocity_block_with_content_list_size = this->velocity_block_with_content_list->size();
@@ -393,8 +501,11 @@ namespace spatial_cell {
             block_lengths.push_back(sizeof(vmesh::LocalID));
          }
          if ((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_WITH_CONTENT_STAGE2) !=0) {
+                  transfer << "VEL_BLOCK_WITH_CONTENT_STAGE2 ";
+
             if (receiving) {
                this->velocity_block_with_content_list->resize(this->velocity_block_with_content_list_size);
+               transfer << this->velocity_block_with_content_list_size <<" foo.";
             }
 
             //velocity_block_with_content_list_size should first be updated, before this can be done (STAGE1)
@@ -408,11 +519,14 @@ namespace spatial_cell {
          }
 
          if ((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_DATA) !=0) {
-            displacements.push_back((uint8_t*) get_data(activePopID) - (uint8_t*) this);
-            block_lengths.push_back(sizeof(Realf) * WID3 * populations[activePopID].blockContainer->size());
+                           transfer << "VEL_BLOCK_DATA ";
+
+            displacements.push_back((uint8_t*) get_data(activePopID, activeTimeclass) - (uint8_t*) this);
+            block_lengths.push_back(sizeof(Realf) * WID3 * get_velocity_blocks(activePopID, activeTimeclass)->size());
          }
 
          if ((SpatialCell::mpi_transfer_type & Transfer::NEIGHBOR_VEL_BLOCK_DATA) != 0) {
+            transfer << "NEIGHBOR_VEL_BLOCK_DATA ";
             /*We are actually transferring the data of a
             * neighbor. The values of neighbor_block_data
             * and neighbor_number_of_blocks should be set in
@@ -433,59 +547,79 @@ namespace spatial_cell {
 
          // send  spatial cell parameters
          if ((SpatialCell::mpi_transfer_type & Transfer::CELL_PARAMETERS)!=0){
+            transfer << "CELL_PARAMETERS ";
+
             displacements.push_back((uint8_t*) &(this->parameters[0]) - (uint8_t*) this);
             block_lengths.push_back(sizeof(Real) * CellParams::N_SPATIAL_CELL_PARAMS);
          }
 
          // send spatial cell dimensions and coordinates
          if ((SpatialCell::mpi_transfer_type & Transfer::CELL_DIMENSIONS)!=0){
+                        transfer << "CELL_DIMENSIONS ";
+
             displacements.push_back((uint8_t*) &(this->parameters[CellParams::XCRD]) - (uint8_t*) this);
             block_lengths.push_back(sizeof(Real) * 6);
          }
 
          // send  BGBXVOL BGBYVOL BGBZVOL PERBXVOL PERBYVOL PERBZVOL
          if ((SpatialCell::mpi_transfer_type & Transfer::CELL_BVOL)!=0){
+                        transfer << "CELL_BVOL ";
+
             displacements.push_back((uint8_t*) &(this->parameters[CellParams::BGBXVOL]) - (uint8_t*) this);
             block_lengths.push_back(sizeof(Real) * 6);
          }
 
          // send RHOM, VX, VY, VZ
          if ((SpatialCell::mpi_transfer_type & Transfer::CELL_RHOM_V)!=0){
+                        transfer << "CELL_RHOM_V ";
+
             displacements.push_back((uint8_t*) &(this->parameters[CellParams::RHOM]) - (uint8_t*) this);
             block_lengths.push_back(sizeof(Real) * 4);
          }
 
          // send RHOM_DT2, VX_DT2, VY_DT2, VZ_DT2
          if ((SpatialCell::mpi_transfer_type & Transfer::CELL_RHOMDT2_VDT2)!=0){
+                        transfer << "CELL_RHOMDT2_VDT2 ";
+
             displacements.push_back((uint8_t*) &(this->parameters[CellParams::RHOM_DT2]) - (uint8_t*) this);
             block_lengths.push_back(sizeof(Real) * 4);
          }
 
          // send RHOQ
          if ((SpatialCell::mpi_transfer_type & Transfer::CELL_RHOQ)!=0){
+                        transfer << "CELL_RHOQ ";
+
             displacements.push_back((uint8_t*) &(this->parameters[CellParams::RHOQ]) - (uint8_t*) this);
             block_lengths.push_back(sizeof(Real));
          }
 
          // send RHOQ_DT2
          if ((SpatialCell::mpi_transfer_type & Transfer::CELL_RHOQDT2)!=0){
+                        transfer << "CELL_RHOQDT2 ";
+
             displacements.push_back((uint8_t*) &(this->parameters[CellParams::RHOQ_DT2]) - (uint8_t*) this);
             block_lengths.push_back(sizeof(Real));
          }
 
          // send  spatial cell BVOL derivatives
          if ((SpatialCell::mpi_transfer_type & Transfer::CELL_BVOL_DERIVATIVES)!=0){
+                        transfer << "CELL_BVOL_DERIVATIVES ";
+
             displacements.push_back((uint8_t*) &(this->derivativesBVOL[0]) - (uint8_t*) this);
             block_lengths.push_back(sizeof(Real) * bvolderivatives::N_BVOL_DERIVATIVES);
          }
 
          if ((SpatialCell::mpi_transfer_type & Transfer::CELL_IOLOCALCELLID)!=0){
+                        transfer << "CELL_IOLOCALCELLID ";
+
             displacements.push_back((uint8_t*) &(this->ioLocalCellId) - (uint8_t*) this);
             block_lengths.push_back(sizeof(uint64_t));
          }
 
          // send electron pressure gradient term components
          if ((SpatialCell::mpi_transfer_type & Transfer::CELL_GRADPE_TERM)!=0){
+                        transfer << "CELL_GRADPE_TERM ";
+
             displacements.push_back((uint8_t*) &(this->parameters[CellParams::EXGRADPE]) - (uint8_t*) this);
             block_lengths.push_back(sizeof(Real) * 3);
          }
@@ -493,17 +627,23 @@ namespace spatial_cell {
 
          // send P tensor diagonal components
          if ((SpatialCell::mpi_transfer_type & Transfer::CELL_P)!=0){
+                        transfer << "CELL_P ";
+
             displacements.push_back((uint8_t*) &(this->parameters[CellParams::P_11]) - (uint8_t*) this);
             block_lengths.push_back(sizeof(Real) * 3);
          }
 
          if ((SpatialCell::mpi_transfer_type & Transfer::CELL_PDT2)!=0){
+                        transfer << "CELL_PDT2 ";
+
             displacements.push_back((uint8_t*) &(this->parameters[CellParams::P_11_DT2]) - (uint8_t*) this);
             block_lengths.push_back(sizeof(Real) * 3);
          }
 
          // send  sysBoundaryFlag
          if ((SpatialCell::mpi_transfer_type & Transfer::CELL_SYSBOUNDARYFLAG)!=0){
+                        transfer << "CELL_SYSBOUNDARYFLAG ";
+
             displacements.push_back((uint8_t*) &(this->sysBoundaryFlag) - (uint8_t*) this);
             block_lengths.push_back(sizeof(uint));
             displacements.push_back((uint8_t*) &(this->sysBoundaryLayer) - (uint8_t*) this);
@@ -511,22 +651,41 @@ namespace spatial_cell {
          }
 
          if ((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_PARAMETERS) !=0) {
-            displacements.push_back((uint8_t*) get_block_parameters(activePopID) - (uint8_t*) this);
-            block_lengths.push_back(sizeof(Real) * size(activePopID) * BlockParams::N_VELOCITY_BLOCK_PARAMS);
+                        transfer << "VEL_BLOCK_PARAMETERS ";
+
+            displacements.push_back((uint8_t*) get_block_parameters(activePopID, activeTimeclass) - (uint8_t*) this);
+            block_lengths.push_back(sizeof(Real) * size(activePopID, activeTimeclass) * BlockParams::N_VELOCITY_BLOCK_PARAMS);
          }
          // Copy particle species metadata
          if ((SpatialCell::mpi_transfer_type & Transfer::POP_METADATA) != 0) {
+                        transfer << "POP_METADATA ";
+
             for (uint popID=0; popID<populations.size(); ++popID) {
-               displacements.push_back((uint8_t*) &(populations[popID].RHO) - (uint8_t*)this);
-               block_lengths.push_back(offsetof(spatial_cell::Population, N_blocks));
+               for (int timeclass=0; timeclass <= P::currentMaxTimeclass; ++timeclass){
+                  displacements.push_back((uint8_t*) &(get_population(popID, timeclass).RHO) - (uint8_t*)this);
+                  block_lengths.push_back(offsetof(spatial_cell::Population, N_blocks));
+               }
             }
          }
 
          // Refinement parameters
-         if ((SpatialCell::mpi_transfer_type & Transfer::REFINEMENT_PARAMETERS)){
+         if ((SpatialCell::mpi_transfer_type & Transfer::REFINEMENT_PARAMETERS) != 0){
+                        transfer << "REFINEMENT_PARAMETERS ";
+
             displacements.push_back(reinterpret_cast<uint8_t*>(this->parameters.data() + CellParams::AMR_ALPHA1) - reinterpret_cast<uint8_t*>(this));
             block_lengths.push_back(sizeof(Real) * (CellParams::AMR_VORTICITY - CellParams::AMR_ALPHA1 + 1)); // This is just 4, but let's be explicit.
          }
+
+         int my_rank;
+         MPI_Comm_rank(MPI_COMM_WORLD,&my_rank);
+
+         std::stringstream ss;
+         ss << __FILE__ << ":" <<__LINE__ << " gathered datatype at " << my_rank << (receiving? ", receiving":", sending") <<". timeclass " << activeTimeclass << " cell " << cellID << " for Transfer of " << Transfer::REFINEMENT_PARAMETERS << " (" << transfer.str() <<  "):\n";
+         for (size_t i = 0; i < displacements.size();++i){
+            ss << "d " << displacements[i] << " bl " << block_lengths[i] << " ";
+         }
+         ss << "\n";
+         // std::cerr << ss.str();
 
       }
 
@@ -589,8 +748,8 @@ namespace spatial_cell {
     * of a velocity block for the block to be considered to have content.
     * @param popID ID of the particle species.
     * @return Sparse min value for this species.*/
-   Real SpatialCell::getVelocityBlockMinValue(const uint popID) const {
-      return populations[popID].velocityBlockMinValue;
+   Real SpatialCell::getVelocityBlockMinValue(const uint popID, const int timeclass) const {
+      return this->get_population(popID, timeclass).velocityBlockMinValue;
    }
 
    /** Prepares this spatial cell to receive the velocity grid over MPI.
@@ -598,16 +757,16 @@ namespace spatial_cell {
     * mpi_velocity_block_list, but the rest of the cell structures
     * have not been adapted to this new list. Here we re-initialize
     * the cell with empty blocks based on the new list.*/
-   void SpatialCell::prepare_to_receive_blocks(const uint popID) {
-      populations[popID].vmesh->setGrid();
-      populations[popID].blockContainer->setNewSize(populations[popID].vmesh->size());
+   void SpatialCell::prepare_to_receive_blocks(const uint popID, const int timeclass) {
+      get_velocity_mesh(popID, timeclass)->setGrid();
+      get_velocity_blocks(popID, timeclass)->setNewSize(get_velocity_mesh(popID, timeclass)->size());
 
-      Real* parameters = get_block_parameters(popID);
+      Real* parameters = get_block_parameters(popID, timeclass);
 
       // Set velocity block parameters:
-      for (vmesh::LocalID blockLID=0; blockLID<size(popID); ++blockLID) {
-         const vmesh::GlobalID blockGID = get_velocity_block_global_id(blockLID,popID);
-         populations[popID].vmesh->getBlockInfo(blockGID, parameters+BlockParams::VXCRD);
+      for (vmesh::LocalID blockLID=0; blockLID<size(popID, timeclass); ++blockLID) {
+         const vmesh::GlobalID blockGID = get_velocity_block_global_id(blockLID,popID, timeclass);
+         get_velocity_mesh(popID, timeclass)->getBlockInfo(blockGID, parameters+BlockParams::VXCRD);
          parameters += BlockParams::N_VELOCITY_BLOCK_PARAMS;
       }
    }
@@ -616,7 +775,7 @@ namespace spatial_cell {
     * use the velocity mesh.
     * @param popID Population ID.
     * @return If true, the new species is in use.*/
-   bool SpatialCell::setCommunicatedSpecies(const uint popID) {
+   bool SpatialCell::setCommunicatedSpecies(const uint popID, int timeclass) {
       #ifdef DEBUG_SPATIAL_CELL
       if (popID >= getObjectWrapper().particleSpecies.size()) {
          std::cerr << "ERROR, popID " << popID << " exceeds species.size() " << getObjectWrapper().particleSpecies.size() << " in ";
@@ -626,6 +785,7 @@ namespace spatial_cell {
       #endif
 
       activePopID = popID;
+      activeTimeclass = timeclass;
       return true;
    }
 
@@ -636,6 +796,10 @@ namespace spatial_cell {
    void SpatialCell::set_max_r_dt(const uint popID,const Real& value) {
       debug_population_check(popID);
       populations[popID].max_dt[species::MAXRDT] = value;
+      this->parameters[CellParams::MAXRDT] = min(parameters[CellParams::MAXRDT], value);
+      for (auto& ghostPop:ghostPopulations){
+         ghostPop.second.max_dt[species::MAXRDT] = value;
+      }
    }
 
    /** Set maximum acceleration timestep for a particle species.
@@ -645,6 +809,10 @@ namespace spatial_cell {
    void SpatialCell::set_max_v_dt(const uint popID,const Real& value) {
       debug_population_check(popID);
       populations[popID].max_dt[species::MAXVDT] = value;
+      this->parameters[CellParams::MAXVDT] = min(parameters[CellParams::MAXVDT], value);
+      for (auto& ghostPop:ghostPopulations){
+         ghostPop.second.max_dt[species::MAXVDT] = value;
+      }
    }
 
    /**  Purges extra capacity from block vectors. It sets size to
@@ -656,30 +824,46 @@ namespace spatial_cell {
 
       for (size_t p=0; p<populations.size(); ++p) {
          const vmesh::LocalID amount
-            = 2 + populations[p].blockContainer->size()
-            * populations[p].blockContainer->getBlockAllocationFactor();
+            = 2 + get_velocity_blocks(p)->size()
+            * get_velocity_blocks(p)->getBlockAllocationFactor();
 
          // Allow capacity to be a bit larger than needed by number of blocks, shrink otherwise
-         if (populations[p].blockContainer->capacity() > amount ) {
-            if (populations[p].blockContainer->setNewCapacityShrink(amount) == false) {
+         if (get_velocity_blocks(p)->capacity() > amount ) {
+            if (get_velocity_blocks(p)->setNewCapacityShrink(amount) == false) {
                success = false;
             }
          }
 
+      }
+
+      for (auto tc: get_all_ghosts()){
+         for (size_t p=0; p<populations.size(); ++p) {
+            const vmesh::LocalID amount
+               = 2 + get_velocity_blocks(p, tc)->size()
+               * get_velocity_blocks(p, tc)->getBlockAllocationFactor();
+
+            // Allow capacity to be a bit larger than needed by number of blocks, shrink otherwise
+            if (get_velocity_blocks(p, tc)->capacity() > amount ) {
+               if (get_velocity_blocks(p, tc)->setNewCapacityShrink(amount) == false) {
+                  success = false;
+               }
+            }
+
+         }
       }
       return success;
    }
 
    /** Update the two lists containing blocks with content, and blocks without content.
     * @see adjustVelocityBlocks */
-   void SpatialCell::update_velocity_block_content_lists(const uint popID) {
-      debug_population_check(popID);
+   void SpatialCell::update_velocity_block_content_lists(const uint popID, const int timeclass) {
+      debug_ghostpopulation_check(popID, timeclass);
       velocity_block_with_content_list->clear();
       velocity_block_with_no_content_list->clear();
 
-      for (vmesh::LocalID block_index=0; block_index<populations[popID].vmesh->size(); ++block_index) {
-         const vmesh::GlobalID globalID = populations[popID].vmesh->getGlobalID(block_index);
-         if (compute_block_has_content(block_index,popID)){
+      for (vmesh::LocalID block_index=0; block_index<get_velocity_mesh(popID,timeclass)->size(); ++block_index) {
+         const vmesh::GlobalID globalID = get_velocity_mesh(popID,timeclass)->getGlobalID(block_index);
+         if (compute_block_has_content(block_index,popID,timeclass)){
             velocity_block_with_content_list->push_back(globalID);
          } else {
             velocity_block_with_no_content_list->push_back(globalID);
@@ -688,15 +872,21 @@ namespace spatial_cell {
    }
 
    void SpatialCell::printMeshSizes() {
-      cerr << "SC::printMeshSizes:" << endl;
+      cerr << "SC::printMeshSizes: for cell " << get_cellid() << endl;
       for (size_t p=0; p<populations.size(); ++p) {
-         cerr << "\t pop " << p << " " << populations[p].vmesh->size() << ' ' << populations[p].blockContainer->size() << endl;
+         cerr << "\t pop " << p << " " << get_velocity_mesh(p)->size() << ' ' << get_velocity_blocks(p)->size() << endl;
+      }
+      for (auto tc: requested_timeclass_ghosts) {
+         cerr << "\t timeclass " << tc << endl;
+         for (size_t p=0; p<populations.size(); ++p) {
+            cerr << "\t\t pop " << p << " " << get_velocity_mesh(p, tc)->size() << ' ' << get_velocity_blocks(p, tc)->size() << endl;
+         }
       }
    }
 
    /** Updates minValue based on algorithm value from parameters (see parameters.cpp).
     * @param popID ID of the particle species.*/
-   void SpatialCell::updateSparseMinValue(const uint popID) {
+   void SpatialCell::updateSparseMinValue(const uint popID, const int timeclass) {
 
       species::Species& population = getObjectWrapper().particleSpecies[popID];
 
@@ -706,21 +896,21 @@ namespace spatial_cell {
          const Real b = population.sparseDynamicMinValue1 - k * population.sparseDynamicBulkValue1;
          Real x;
          if ( population.sparseDynamicAlgorithm == 1 ) {
-            x = this->populations[popID].RHO;
+            x = this->get_population(popID,timeclass).RHO;
          } else {
-            x = this->get_number_of_velocity_blocks(popID);
+            x = this->get_number_of_velocity_blocks(popID, timeclass);
          }
          const Real newMinValue = k*x+b;
          if( newMinValue < population.sparseDynamicMinValue1 ) { // Compare against the min minValue
-            populations[popID].velocityBlockMinValue = population.sparseDynamicMinValue1;
+            get_population(popID,timeclass).velocityBlockMinValue = population.sparseDynamicMinValue1;
          } else if( newMinValue > population.sparseDynamicMinValue2 ) { // Compare against the max minValue
-            populations[popID].velocityBlockMinValue = population.sparseDynamicMinValue2;
+            get_population(popID,timeclass).velocityBlockMinValue = population.sparseDynamicMinValue2;
          } else {
-            populations[popID].velocityBlockMinValue = newMinValue;
+            get_population(popID,timeclass).velocityBlockMinValue = newMinValue;
          }
          return;
       } else {
-         populations[popID].velocityBlockMinValue = getObjectWrapper().particleSpecies[popID].sparseMinValue;
+         get_population(popID,timeclass).velocityBlockMinValue = getObjectWrapper().particleSpecies[popID].sparseMinValue;
          return;
       }
       return;

@@ -1,7 +1,7 @@
 CMP = mpic++
 LNK = mpic++
 
-# Markus' desktop computer
+# Markku's ~~Markus'~~ desktop computer
 
 #======== Vectorization ==========
 #Set vector backend type for vlasov solvers, sets precision and length. 
@@ -54,25 +54,25 @@ CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 
 #======== Libraries ===========
-LIBRARY_PREFIX = /home/markusb/git/vlasiator-lib
+LIBRARY_PREFIX = $(CURDIR)/libraries
 
 INC_BOOST = -isystem /usr/include/boost
 LIB_BOOST = -L/usr/include/boost -lboost_program_options
 
-INC_ZOLTAN = -isystem /usr/include/trilinos
-LIB_ZOLTAN = -I/usr/lib/x86_64-linux-gnu -ltrilinos_zoltan
+INC_ZOLTAN = -isystem $(LIBRARY_PREFIX)/include
+LIB_ZOLTAN = -I$(LIBRARY_PREFIX)/lib -lzoltan -Wl,-rpath=$(LIBRARY_PREFIX)/lib
 
-#INC_PAPI = -I$(LIBRARY_PREFIX)/papi/include
-#LIB_PAPI = -I$(LIBRARY_PREFIX)/papi/lib -Wl,-rpath=$(LIBRARY_PREFIX)/papi/lib
+#INC_PAPI = -I$(LIBRARY_PREFIX)/include
+#LIB_PAPI = -I$(LIBRARY_PREFIX)/lib -Wl,-rpath=$(LIBRARY_PREFIX)/lib
 
-INC_JEMALLOC = -isystem $(LIBRARY_PREFIX)/jemalloc-530/include
-LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/jemalloc-530/lib -ljemalloc -Wl,-rpath=$(LIBRARY_PREFIX)/jemalloc-530/lib
+INC_JEMALLOC = -isystem $(LIBRARY_PREFIX)/include
+LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/lib -ljemalloc -Wl,-rpath=$(LIBRARY_PREFIX)/lib
 
-INC_VLSV = -I$(LIBRARY_PREFIX)/vlsv
-LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv -lvlsv -Wl,-rpath=$(LIBRARY_PREFIX)/vlsv/lib
+INC_VLSV = -I$(LIBRARY_PREFIX)/include
+LIB_VLSV = -L$(LIBRARY_PREFIX)/lib -lvlsv -Wl,-rpath=$(LIBRARY_PREFIX)/lib
 
-LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/lib -lphiprof -Wl,-rpath=$(LIBRARY_PREFIX)/phiprof/lib
-INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/include
+LIB_PROFILE = -L$(LIBRARY_PREFIX)/lib -lphiprof -Wl,-rpath=$(LIBRARY_PREFIX)/lib
+INC_PROFILE = -I$(LIBRARY_PREFIX)/include
 
 #enable nvtx on cpu mode as well
 #LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof_nvcc/lib -lphiprof -Wl,-rpath=$(LIBRARY_PREFIX)/phiprof_nvcc/lib

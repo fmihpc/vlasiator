@@ -26,3 +26,4 @@ libraries*/
 library-build/
 run_*/
 !run_tests.sh
+slurm*out

@@ -25,17 +25,21 @@
 
 #include "../common.h"
 #include "../spatial_cells/spatial_cell_wrapper.hpp"
+#include <dccrg.hpp>
+#include <dccrg_cartesian_geometry.hpp>
 
 using namespace spatial_cell;
 
 void cpu_accelerate_cells(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-   const std::vector<CellID>& acceleratedCells,
+   const std::vector<AccelerationPayload>& acceleratedCells,
    const uint popID,
    const uint map_order);
 
 void cpu_accelerate_cell(SpatialCell* spatial_cell,
                          const uint popID,
-                         const uint map_order);
+                         const uint map_order,
+                         const Real& dt,
+                         int tc);
 
 #endif

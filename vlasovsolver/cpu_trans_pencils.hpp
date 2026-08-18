@@ -43,11 +43,14 @@ struct setOfPencils {
    std::vector< Real > x,y; // x,y - position
    std::vector< bool > periodic;
    std::vector< std::vector<uint> > path; // Path taken through refinement levels
+   std::vector< int > timeclasses; // Timeclass of each pencil 
 
    std::vector<uint> binOfPencil; //!< Bin of each pencil
    std::map<uint, std::vector<uint>> pencilsInBin; //!< Vector of pencils in each bin
    std::map<uint, std::set<CellID>> targetCellsInBin; //!< Set of source and target cells in each bin which are a target cell of any pencil
    std::vector<uint> activeBins; //!< set of keys in the above two maps
+   std::map<uint, std::set<int>> activeBinTimeclasses;
+   std::vector<uint> binTimeclasses;
 
    //GPUTODO: move gpu buffers and their upload to separate gpu_trans_pencils .hpp and .cpp files
 #ifdef USE_GPU
@@ -70,6 +73,8 @@ struct setOfPencils {
    }
 
    void removeAllPencils() {
+      // std::cerr << __FILE__ <<":"<<__LINE__<<" removeAllPencils called \n";
+
       N = 0;
       sumOfLengths = 0;
       lengthOfPencils.clear();
@@ -81,14 +86,18 @@ struct setOfPencils {
       y.clear();
       periodic.clear();
       path.clear();
+      timeclasses.clear();
       binOfPencil.clear();
       targetCellsInBin.clear();
       pencilsInBin.clear();
       activeBins.clear();
+      activeBinTimeclasses.clear();
+      binTimeclasses.clear();
    }
 
-   void addPencil(std::vector<CellID> idsIn, Real xIn, Real yIn, bool periodicIn, std::vector<uint> pathIn) {
+   void addPencil(std::vector<CellID> idsIn, Real xIn, Real yIn, bool periodicIn, std::vector<uint> pathIn, int timeclass) {
       N++;
+
       // If necessary, add the zero cells to the beginning and end
       if (idsIn.front() != 0) {
          idsIn.insert(idsIn.begin(),VLASOV_STENCIL_WIDTH,0);
@@ -109,11 +118,12 @@ struct setOfPencils {
       y.push_back(yIn);
       periodic.push_back(periodicIn);
       path.push_back(pathIn);
+      timeclasses.push_back(timeclass);
    }
 
    void binPencils() {
       binOfPencil.resize(N);
-
+      binTimeclasses.resize(N);
       // Consider only cells which _any_ pencil writes into for binning,
       // since read-only cells aren't affected by race conditions
       std::unordered_set<CellID> allTargetCells = {};
@@ -132,6 +142,7 @@ struct setOfPencils {
       for (uint i = 0; i < N; ++i) {
          binOfPencil[i] = i;
          targetCellsInBin[i] = {};
+         binTimeclasses[i] = timeclasses[i];
 
          for (auto id = ids.begin() + idsStart[i]; id < ids.begin() + idsStart[i] + lengthOfPencils[i]; ++id) {
             // We don't need to consider source and target cells of the pencil separately
@@ -154,6 +165,9 @@ struct setOfPencils {
 
             for (auto& [binIndex2, cellsInBin2] : targetCellsInBin) {
                if (binIndex1 == binIndex2 || binsToDelete.contains(binIndex2)) {
+                  continue;
+               }
+               if(binTimeclasses[binIndex1] != binTimeclasses[binIndex2]){
                   continue;
                }
 
@@ -185,6 +199,10 @@ struct setOfPencils {
 
       for (auto [bin, pencils] : pencilsInBin) {
          activeBins.push_back(bin);
+         activeBinTimeclasses[bin] = std::set<int>();
+         for (auto pencil : pencils){
+            activeBinTimeclasses[bin].insert(timeclasses[pencil]);
+         }
       }
 
       #ifdef USE_GPU
@@ -242,6 +260,7 @@ struct setOfPencils {
       targetRatios.erase(targetRatios.begin() + ibeg, targetRatios.begin() + ibeg + lengthOfPencils[pencilId] + 2*VLASOV_STENCIL_WIDTH);
       sourceDZ.erase(sourceDZ.begin() + ibeg, sourceDZ.begin() + ibeg + lengthOfPencils[pencilId] + 2*VLASOV_STENCIL_WIDTH);
       idsStart.erase(idsStart.begin() + pencilId);
+      timeclasses.erase(timeclasses.begin() + pencilId);
 
       N--;
       sumOfLengths -= lengthOfPencils[pencilId];
@@ -272,6 +291,9 @@ struct setOfPencils {
 #pragma omp parallel for
       for (uint theirPencilId = 0; theirPencilId < this->N; ++theirPencilId) {
          if(theirPencilId == myPencilId) {
+            continue;
+         }
+         if(this->timeclasses[myPencilId] != this->timeclasses[theirPencilId]){
             continue;
          }
          auto theirIds = this->getIds(theirPencilId);
@@ -335,14 +357,14 @@ struct setOfPencils {
          } else {
             auto myPath = copy_of_path;
             myPath.push_back(step);
-            addPencil(myIds, myX, myY, periodic.at(myPencilId), myPath);
+            addPencil(myIds, myX, myY, periodic.at(myPencilId), myPath, this->timeclasses[myPencilId]);
          }
       }
    }
 };
 // Note: Splitting does not handle target or source cells, as those are computed after all pencil splitting has concluded.
 
-bool do_translate_cell(const spatial_cell::SpatialCell* const SC);
+bool do_translate_cell(const spatial_cell::SpatialCell* const SC, const int tc = -1);
 
 // grid.cpp calls this function to both find seed cells and build pencils for all dimensions
 void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
@@ -350,12 +372,19 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
 void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                               const uint dimension);
 
+
+int getNeigborhoodStencilLength();
+
 // pencils used for AMR translation
 extern std::array<setOfPencils,3> DimensionPencils;
 
 // Ghost translation cell lists (no interim comms)
 void prepareGhostTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                      const std::vector<CellID>& localPropagatedCells);
+                                      const std::vector<CellID>& localPropagatedCells, 
+                                       std::map<uint,std::unordered_set<CellID>>& ghostTranslate_source,
+                                      std::map<uint,std::unordered_set<CellID>>& ghostTranslate_active,
+                                      const int tc = -1
+                                      );
 
 // defined in cpu_trans_map_amr.cpp
 extern std::unordered_set<CellID> ghostTranslate_sources_x;
@@ -364,5 +393,11 @@ extern std::unordered_set<CellID> ghostTranslate_sources_z;
 extern std::unordered_set<CellID> ghostTranslate_active_x;
 extern std::unordered_set<CellID> ghostTranslate_active_y;
 extern std::unordered_set<CellID> ghostTranslate_active_z;
+
+typedef std::map<uint,std::unordered_set<CellID>> ghostmaptype;
+extern std::map<uint, std::map<uint,std::unordered_set<CellID>>> timeghost_source, timeghost_active;
+
+extern ghostmaptype ghostTranslate_source;
+extern ghostmaptype ghostTranslate_active;
 
 #endif
