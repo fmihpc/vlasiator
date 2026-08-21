@@ -303,7 +303,7 @@ namespace spatial_cell {
       }
 
       bool has_content = false;
- 
+     
       if (!P::activateVamr || (getObjectWrapper().particleSpecies[popID].RefinementLevel==0 && (P::vAMRorder!=3 && P::vAMRorder!=5)) || !useGhost ){ 
 	     const Real velocity_block_min_value = getVelocityBlockMinValue(popID);
 	     const Realf* block_data = populations[popID].blockContainer->getData(blockLID);
