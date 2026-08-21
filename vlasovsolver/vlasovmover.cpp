@@ -496,7 +496,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 
    if (P::activateVamr){
 	 //Update the ghost parameter and remove the newly created cells that don't respect the criterion
-     SmallRefinedOrder1(mpiGrid, cells);
+     SmallRefinedOrderX(mpiGrid, cells);
    }
 
    if (dt == 0.0 && P::tstep > 0) {
@@ -711,6 +711,19 @@ void RefinedOrderX(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
     RefinedOrder5(mpiGrid,cells);
   }else {
     RefinedOrder1(mpiGrid,cells);
+  }
+}
+
+void SmallRefinedOrderX(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+  const std::vector<CellID>& cells){
+  if (P::vAMRorder==1){
+    SmallRefinedOrder1(mpiGrid,cells);
+  }else if(P::vAMRorder==3){
+    SmallRefinedOrder3(mpiGrid,cells);
+  }else if(P::vAMRorder==5){
+    SmallRefinedOrder5(mpiGrid,cells);
+  }else {
+    SmallRefinedOrder1(mpiGrid,cells);
   }
 }
 
