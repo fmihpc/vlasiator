@@ -46,6 +46,7 @@ namespace spatial_cell {
    void update_velocity_block_content_lists(
       dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const vector<CellID>& cells,
+      bool useGhost,
       const uint popID=0);
 
    void adjust_velocity_blocks_in_cells(

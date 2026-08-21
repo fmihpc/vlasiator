@@ -35,7 +35,8 @@ using namespace spatial_cell;
 
 void calculateAcceleration(
                            dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                           const Real dt
+                           const Real dt,
+                           const bool ShouldRefined=false
 );
 
 void calculateSpatialTranslation(
@@ -83,7 +84,14 @@ void calculateInterpolatedVelocityMoments(
 */
 void calculateInitialVelocityMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
 
+void RefinedOrderX(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+		   const std::vector<CellID>& cells);
 
+void SmallRefinedOrderX(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+		   const std::vector<CellID>& cells);
+
+void FixedGhost(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+		   const std::vector<CellID>& cells);
 
 #endif
 
