@@ -7,5 +7,5 @@ export http_proxy=http://www-cache.cs.helsinki.fi:3128
 
 module load papi
 module load cray-pmi
-module load libfabric/1.22.0
+module load libfabric
 
