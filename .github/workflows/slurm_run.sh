@@ -21,7 +21,7 @@ declare -A constraint
 constraint["carrington_gcc_openmpi"]="--constraint=ukko|carrington -p short"
 # constraint["ukko_dgx"]="--constraint="v100" -gres="gpu:V100" -p gpu"
 constraint["ukko_dgx"]="--constraint=ukko -p gpu"
-constraint["pioneer"]="--constraint=pioneer -p pioneer" #not sure if pty needed for pioneer
+constraint["pioneer"]="-p pioneer -t 01:00:00" #not sure if pty needed for pioneer
 constraint["hile_gpu"]="-C g"
 constraint["hile_cpu"]="-C c"
 
@@ -29,7 +29,7 @@ constraint["hile_cpu"]="-C c"
 declare -A constraint_small
 constraint_small["carrington_gcc_openmpi"]="--constraint=ukko|carrington"
 constraint_small["ukko_dgx"]="--constraint=ukko"
-constraint_small["pioneer"]="--constraint=pioneer"
+constraint_small["pioneer"]="-p pioneer -t 01:00:00"
 constraint_small["hile_gpu"]="-C g"
 constraint_small["hile_cpu"]="-C c"
 
