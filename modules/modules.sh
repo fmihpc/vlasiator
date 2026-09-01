@@ -9,7 +9,7 @@ then
       echo -e "Module list now:\n"
       module list
    else
-      echo -e "\nERROR, modules/"${VLASIATOR_ARCH}".sh not found!!\n"
+      echo -e "\nERROR, modules/"${VLASIATOR_ARCH}".sh not found!!\nMake sure you are in the root folder and that the module file for $VLASIATOR_ARCH exists!"
    fi
 else
    if [[ z$1 != "z" ]]
@@ -21,7 +21,7 @@ else
          echo -e "Module list now:\n"
          module list
       else
-         echo -e "\nERROR, modules/"${1}".sh not found!!\n"
+         echo -e "\nERROR, modules/"${VLASIATOR_ARCH}".sh not found!!\nMake sure you are in the root folder and that the module file for $VLASIATOR_ARCH exists!"
       fi
    else
       echo -e "\nDefine VLASIATOR_ARCH or pass as argument the target architecture for which to load modules!\n"

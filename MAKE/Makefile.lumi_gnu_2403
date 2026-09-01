@@ -62,7 +62,7 @@ LIBRARY_PREFIX = /projappl/project_465001123/sunijona/libraries/LUMI24.03_cpeGNU
 LIBRARY_PREFIX_HEADERS = /projappl/project_465001123/sunijona/libraries/LUMI24.03_cpeGNU
 
 #compiled libraries
-LIB_BOOST = -lboost_program_options
+
 
 INC_ZOLTAN = -isystem$(LIBRARY_PREFIX)/zoltan/include
 LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/zoltan/lib -lzoltan -Wl,-rpath=$(LIBRARY_PREFIX)/zoltan/lib

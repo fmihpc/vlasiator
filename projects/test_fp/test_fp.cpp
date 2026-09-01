@@ -57,30 +57,23 @@ namespace projects {
 
    void test_fp::addParameters(void){
       typedef Readparameters RP;
-      RP::add("test_fp.V0", "Velocity magnitude (m/s)", 1.0e6);
-      RP::add("test_fp.B0", "Magnetic field value in the non-zero patch (T)", 1.0e-9);
-      RP::add("test_fp.rho", "Number density (m^-3)", 1.0e7);
-      RP::add("test_fp.Temperature", "Temperature (K)", 1.0e-6);
-      RP::add("test_fp.angle", "Orientation of the propagation expressed in pi/4", 0.0);
-      RP::add("test_fp.Bdirection", "Direction of the magnetic field (0:x, 1:y, 2:z, 3:all)", 0);
-      RP::add("test_fp.shear", "Add a shear (if false, V=0.5 everywhere).", true);
+      RP::add<Real>("test_fp.V0", "Velocity magnitude (m/s)",this->V0,1.0e6);
+      RP::add<Real>("test_fp.B0", "Magnetic field value in the non-zero patch (T)",this->B0,1.0e-9);
+      RP::add<Real>("test_fp.rho", "Number density (m^-3)",this->DENSITY,1.0e7);
+      RP::add<Real>("test_fp.Temperature", "Temperature (K)",this->TEMPERATURE,1.0e-6);
+      RP::add<Real>("test_fp.angle", "Orientation of the propagation expressed in pi/4",this->ALPHA,0.0);
+      RP::add<int>("test_fp.Bdirection", "Direction of the magnetic field (0:x, 1:y, 2:z, 3:all)",this->CASE,0);
+      RP::add<bool>("test_fp.shear", "Add a shear (if false, V=0.5 everywhere).",this->shear,true);
    }
 
    void test_fp::getParameters(void){
-      Project::getParameters();
+      // Project::getParameters();
       typedef Readparameters RP;
 
       if(getObjectWrapper().particleSpecies.size() > 1) {
          std::cerr << "The selected project does not support multiple particle populations! Aborting in " << __FILE__ << " line " << __LINE__ << std::endl;
          abort();
       }
-      RP::get("test_fp.B0", this->B0);
-      RP::get("test_fp.V0", this->V0);
-      RP::get("test_fp.rho", this->DENSITY);
-      RP::get("test_fp.Temperature", this->TEMPERATURE);
-      RP::get("test_fp.angle", this->ALPHA);
-      RP::get("test_fp.Bdirection", this->CASE);
-      RP::get("test_fp.shear", this->shear);
    }
 
    Real test_fp::sign(creal value) const {
