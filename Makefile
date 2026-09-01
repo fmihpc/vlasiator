@@ -191,8 +191,7 @@ INSTALL = $(CURDIR)
 EXE = vlasiator
 
 # Collect libraries into single variable:
-LIBS = ${LIB_BOOST}
-LIBS += ${LIB_ZOLTAN}
+LIBS = ${LIB_ZOLTAN}
 LIBS += ${LIB_MPI}
 LIBS += ${LIB_PROFILE}
 LIBS += ${LIB_VLSV}
@@ -276,7 +275,7 @@ COMMIT_PROFILE=$(shell cd ${subst -isystem,,${subst -I,,${INC_PROFILE}}} && git 
 # Build version description file
 version.cpp: FORCE
 	@echo "[GENERATE] version.cpp"
-	$(SILENT)./generate_version.sh "${CMP}" "${CXXFLAGS}" "${FLAGS}" "${INC_MPI}" "${INC_ZOLTAN}" "${INC_BOOST}" "${INC_DCCRG}" "${COMMIT_DCCRG}" "${INC_FSGRID}" "${COMMIT_FSGRID}"  "${INC_VLSV}" "${COMMIT_VLSV}" "${INC_HASHINATOR}" "${COMMIT_HASHINATOR}" "${INC_PROFILE}" "${COMMIT_PROFILE}"
+	$(SILENT)./generate_version.sh "${CMP}" "${CXXFLAGS}" "${FLAGS}" "${INC_MPI}" "${INC_ZOLTAN}" "${INC_DCCRG}" "${COMMIT_DCCRG}" "${INC_FSGRID}" "${COMMIT_FSGRID}"  "${INC_VLSV}" "${COMMIT_VLSV}" "${INC_HASHINATOR}" "${COMMIT_HASHINATOR}" "${INC_PROFILE}" "${COMMIT_PROFILE}"
 
 # Do not autobuild sub-versions of spatial_cell
 %.o: spatial_cells/%.cpp
@@ -287,10 +286,10 @@ ifeq ($(USE_GPU),1)
 # Turn on compilation for of GPU-version of spatial_cell and block_adjust
 spatial_cell.o: spatial_cells/spatial_cell_gpu.cpp spatial_cells/spatial_cell_gpu.hpp spatial_cells/spatial_cell_gpu_kernels.hpp
 	@echo [CC] $<
-	$(SILENT)$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -c spatial_cells/spatial_cell_gpu.cpp -o spatial_cell.o $(INC_BOOST) ${INC_DCCRG} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_VECTORCLASS} ${INC_FSGRID}
+	$(SILENT)$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -c spatial_cells/spatial_cell_gpu.cpp -o spatial_cell.o ${INC_DCCRG} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_VECTORCLASS} ${INC_FSGRID}
 block_adjust.o: spatial_cells/block_adjust_gpu.cpp spatial_cells/block_adjust_gpu.hpp spatial_cells/block_adjust_gpu_kernels.hpp
 	@echo [CC] $<
-	$(SILENT)$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -c spatial_cells/block_adjust_gpu.cpp -o block_adjust.o $(INC_BOOST) ${INC_DCCRG} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_VECTORCLASS} ${INC_FSGRID}
+	$(SILENT)$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -c spatial_cells/block_adjust_gpu.cpp -o block_adjust.o ${INC_DCCRG} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_VECTORCLASS} ${INC_FSGRID}
 else
 # CPU-only compulation: Turn off compilation of gpu-specific files
 %.o: vlasovsolver/gpu_%.cpp
@@ -300,22 +299,22 @@ arch/gpu_base.o:
 # Turn on compilation for of old cpu-version of spatial_cell
 spatial_cell.o: spatial_cells/spatial_cell_cpu.cpp spatial_cells/spatial_cell_cpu.hpp
 	@echo [CC] $<
-	$(SILENT)$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -c spatial_cells/spatial_cell_cpu.cpp -o spatial_cell.o $(INC_BOOST) ${INC_DCCRG} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_VECTORCLASS} ${INC_FSGRID}
+	$(SILENT)$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -c spatial_cells/spatial_cell_cpu.cpp -o spatial_cell.o ${INC_DCCRG} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_VECTORCLASS} ${INC_FSGRID}
 block_adjust.o: spatial_cells/block_adjust_cpu.cpp spatial_cells/block_adjust_cpu.hpp
 	@echo [CC] $<
-	$(SILENT)$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -c spatial_cells/block_adjust_cpu.cpp -o block_adjust.o $(INC_BOOST) ${INC_DCCRG} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_VECTORCLASS} ${INC_FSGRID}
+	$(SILENT)$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -c spatial_cells/block_adjust_cpu.cpp -o block_adjust.o ${INC_DCCRG} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_VECTORCLASS} ${INC_FSGRID}
 endif
 
 # Generic rules:
 # for all files in the main source dir
 %.o: %.cpp
 	@echo [CC] $<
-	$(SILENT)$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -c $< $(INC_BOOST) ${INC_DCCRG} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_VECTORCLASS} ${INC_FSGRID} ${INC_PROFILE} ${INC_VLSV} ${INC_PAPI} ${INC_MPI} ${INC_ZFP} ${INC_OCTREE_COMPRESSOR} ${INC_NN_COMPRESSOR}
+	$(SILENT)$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -c $< ${INC_DCCRG} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_VECTORCLASS} ${INC_FSGRID} ${INC_PROFILE} ${INC_VLSV} ${INC_PAPI} ${INC_MPI} ${INC_ZFP} ${INC_OCTREE_COMPRESSOR} ${INC_NN_COMPRESSOR}
 
 # for all files in the arch/ dir
 %.o: arch/%.cpp
 	@echo [CC] $<
-	$(SILENT)${CMP} ${CXXFLAGS} ${MATHFLAGS} ${FLAGS} -c $< -I$(CURDIR) ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG} ${INC_FSGRID} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VECTORCLASS} ${INC_EIGEN} ${INC_VLSV} ${INC_MPI}
+	$(SILENT)${CMP} ${CXXFLAGS} ${MATHFLAGS} ${FLAGS} -c $< -I$(CURDIR) ${INC_EIGEN} ${INC_DCCRG} ${INC_FSGRID} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VECTORCLASS} ${INC_EIGEN} ${INC_VLSV} ${INC_MPI}
 
 # for all files in the backgroundfield/ dir
 %.o: backgroundfield/%.cpp  backgroundfield/constantfield.hpp backgroundfield/fieldfunction.hpp backgroundfield/functions.hpp backgroundfield/backgroundfield.h
@@ -325,43 +324,43 @@ endif
 # for all files in the datareduction/ dir
 %.o: datareduction/%.cpp ${DEPS_COMMON} datareduction/datareductionoperator.h fieldtracing/fieldtracing.h sysboundary/ionosphere.h datareduction/dro_populations.h
 	@echo [CC] $<
-	$(SILENT)${CMP} ${CXXFLAGS} ${MATHFLAGS} ${FLAGS} -c $< ${INC_DCCRG} ${INC_ZOLTAN} ${INC_MPI} ${INC_BOOST} ${INC_EIGEN} ${INC_VLSV} ${INC_FSGRID}
+	$(SILENT)${CMP} ${CXXFLAGS} ${MATHFLAGS} ${FLAGS} -c $< ${INC_DCCRG} ${INC_ZOLTAN} ${INC_MPI} ${INC_EIGEN} ${INC_VLSV} ${INC_FSGRID}
 
 # for all files in the sysboundary/ dir
 %.o: sysboundary/%.cpp ${DEPS_COMMON} sysboundary/%.h backgroundfield/backgroundfield.h projects/project.h fieldsolver/fs_limiters.h
 	@echo [CC] $<
-	$(SILENT)${CMP} ${CXXFLAGS} ${MATHFLAGS} ${FLAGS} -c $< ${INC_DCCRG} ${INC_FSGRID} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
+	$(SILENT)${CMP} ${CXXFLAGS} ${MATHFLAGS} ${FLAGS} -c $< ${INC_DCCRG} ${INC_FSGRID} ${INC_ZOLTAN} ${INC_EIGEN}
 
 # for all files in the fieldtracing/ dir
 %.o: fieldtracing/%.cpp
 	@echo [CC] $<
-	$(SILENT)${CMP} ${CXXFLAGS} ${MATHFLAGS} ${FLAGS} -c $< ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_ZOLTAN} ${INC_EIGEN}
+	$(SILENT)${CMP} ${CXXFLAGS} ${MATHFLAGS} ${FLAGS} -c $< ${INC_DCCRG} ${INC_FSGRID} ${INC_ZOLTAN} ${INC_EIGEN}
 
 # for all files in the projects/ dir
 %.o: projects/%.cpp projects/%.h
 	@echo [CC] $<
-	$(SILENT)${CMP} ${CXXFLAGS} ${MATHFLAGS} ${FLAGS} -c $< ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN} ${INC_FSGRID} ${INC_VECTORCLASS}
+	$(SILENT)${CMP} ${CXXFLAGS} ${MATHFLAGS} ${FLAGS} -c $< ${INC_DCCRG} ${INC_ZOLTAN} ${INC_EIGEN} ${INC_FSGRID} ${INC_VECTORCLASS}
 
 # (Second, more complex rules for the subdirectories of projects/)
 .SECONDEXPANSION:
 %.o: projects/$$*/$$*.cpp projects/$$*/$$*.h projects/projectTriAxisSearch.h
 	@echo [CC] $<
-	$(SILENT)${CMP} ${CXXFLAGS} ${MATHFLAGS} ${FLAGS} -c $< ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN} ${INC_FSGRID}
+	$(SILENT)${CMP} ${CXXFLAGS} ${MATHFLAGS} ${FLAGS} -c $< ${INC_DCCRG} ${INC_ZOLTAN} ${INC_EIGEN} ${INC_FSGRID}
 
 # for all files in the vlasovsolver/ dir
 %.o: vlasovsolver/%.cpp vlasovsolver/vec.h
 	@echo [CC] $<
-	$(SILENT)${CMP} ${CXXFLAGS} ${MATHFLAGS} ${FLAGS} -c $< -I$(CURDIR) ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG} ${INC_FSGRID} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VECTORCLASS} ${INC_EIGEN} ${INC_VLSV} ${INC_MPI}
+	$(SILENT)${CMP} ${CXXFLAGS} ${MATHFLAGS} ${FLAGS} -c $< -I$(CURDIR) ${INC_EIGEN} ${INC_DCCRG} ${INC_FSGRID} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VECTORCLASS} ${INC_EIGEN} ${INC_VLSV} ${INC_MPI}
 
 # for all files in the fieldsolver/ dir
 %.o: fieldsolver/%.cpp ${DEPS_FSOLVER}
 	@echo [CC] $<
-	$(SILENT)${CMP} ${CXXFLAGS} ${FLAGS} -c $< -I$(CURDIR)  ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG} ${INC_FSGRID} ${INC_PROFILE} ${INC_ZOLTAN}
+	$(SILENT)${CMP} ${CXXFLAGS} ${FLAGS} -c $< -I$(CURDIR)  ${INC_EIGEN} ${INC_DCCRG} ${INC_FSGRID} ${INC_PROFILE} ${INC_ZOLTAN}
 	
 # for all files in the vdf_compression/ dir
 %.o: vdf_compression/%.cpp
 	@echo [CC] $<
-	$(SILENT)${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c $< ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_NN_COMPRESSOR} ${INC_ZOLTAN} ${INC_EIGEN} ${INC_ZFP} ${INC_OCTREE_COMPRESSOR}
+	$(SILENT)${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c $< ${INC_DCCRG} ${INC_FSGRID} ${INC_NN_COMPRESSOR} ${INC_ZOLTAN} ${INC_EIGEN} ${INC_ZFP} ${INC_OCTREE_COMPRESSOR}
 
 # Make executable
 vlasiator: $(OBJS) $(OBJS_FSOLVER)
@@ -382,8 +381,8 @@ OBJS_PARTICLES = particles/physconst.o particles/particles.o particles/readfield
 
 # todo: verify compilation and working of tools other than vlsvdiff
 vlsvextract: ${DEPS_VLSVREADER} ${DEPS_VLSVREADERINTERFACE} tools/vlsvextract.h tools/vlsvextract.cpp ${OBJS_VLSVREADER} ${OBJS_VLSVREADERINTERFACE}
-	${CMP} ${CXXFLAGS} ${FLAGS} -c tools/vlsvextract.cpp ${INC_BOOST} ${INC_DCCRG} ${INC_EIGEN} ${INC_VLSV} -I$(CURDIR)
-	${LNK} -o vlsvextract_${FP_PRECISION} vlsvextract.o  ${OBJS_VLSVREADERINTERFACE} ${LIB_BOOST} ${LIB_DCCRG}  ${LIB_VLSV} ${LDFLAGS}
+	${CMP} ${CXXFLAGS} ${FLAGS} -c tools/vlsvextract.cpp ${INC_DCCRG} ${INC_EIGEN} ${INC_VLSV} -I$(CURDIR)
+	${LNK} -o vlsvextract_${FP_PRECISION} vlsvextract.o  ${OBJS_VLSVREADERINTERFACE} ${LIB_DCCRG}  ${LIB_VLSV} ${LDFLAGS}
 
 vlsv2silo:  ${DEPS_VLSVREADERINTERFACE} tools/vlsv2silo.cpp  ${OBJS_VLSVREADERINTERFACE}
 	${CMP} ${CXXFLAGS} ${FLAGS} -c tools/vlsv2silo.cpp ${INC_SILO} ${INC_VLSV} -I$(CURDIR)
@@ -401,7 +400,7 @@ vlsv_util.o: tools/vlsv_util.h tools/vlsv_util.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c tools/vlsv_util.cpp
 
 particles/particleparameters.o: ${DEPS_PARTICLES}  ${OBJS_VLSVREADERINTERFACE} particles/particleparameters.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c particles/particleparameters.cpp ${INC_VLSV} ${INC_EIGEN} ${INC_BOOST} -I$(CURDIR) -Itools -o $@
+	${CMP} ${CXXFLAGS} ${FLAGS} -c particles/particleparameters.cpp ${INC_VLSV} ${INC_EIGEN} -I$(CURDIR) -Itools -o $@
 
 particles/readfields.o: ${DEPS_PARTICLES}  ${OBJS_VLSVREADERINTERFACE} particles/readfields.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c particles/readfields.cpp ${INC_VLSV} ${INC_EIGEN} ${INC_FSGRID} -I$(CURDIR) -Itools -o $@
@@ -429,7 +428,7 @@ fluxfunction.o:  tools/fluxfunction.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c tools/fluxfunction.cpp ${INC_VLSV} ${INC_EIGEN} ${INC_FSGRID} -I$(CURDIR)  -Itools -o $@
 
 fluxfunction: fluxfunction.o ${OBJS_VLSVREADERINTERFACE} particles/readfields.o particles/particleparameters.o readparameters.o version.o particles/physconst.o particles/distribution.o
-	${LNK} -o $@ fluxfunction.o particles/readfields.o particles/particleparameters.o readparameters.o version.o particles/physconst.o particles/distribution.o ${OBJS_VLSVREADERINTERFACE} ${LIB_VLSV} ${LIB_BOOST} ${LDFLAGS}
+	${LNK} -o $@ fluxfunction.o particles/readfields.o particles/particleparameters.o readparameters.o version.o particles/physconst.o particles/distribution.o ${OBJS_VLSVREADERINTERFACE} ${LIB_VLSV} ${LDFLAGS}
 
 # Doesn't seem to work correctly
 INCLUDES =

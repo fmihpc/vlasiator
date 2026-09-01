@@ -59,8 +59,8 @@ PAPI_FLAG =
 
 LIBRARY_PREFIX = /home/horakons/vlasiator_libs/
 
-INC_BOOST = -I/usr/include/boost/
-LIB_BOOST = -L/usr/lib/x86_64-linux-gnu/ -lboost_program_options
+
+
 
 INC_ZOLTAN = -I$(LIBRARY_PREFIX)/zoltan_install/include
 LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/zoltan_install/lib -lzoltan

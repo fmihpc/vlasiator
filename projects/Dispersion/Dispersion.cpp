@@ -47,52 +47,34 @@ namespace projects {
 
    void Dispersion::addParameters() {
       typedef Readparameters RP;
-      RP::add("Dispersion.B0", "Guide magnetic field strength (T)", 1.0e-9);
-      RP::add("Dispersion.magXPertAbsAmp", "Absolute amplitude of the magnetic perturbation along x (T)", 1.0e-9);
-      RP::add("Dispersion.magYPertAbsAmp", "Absolute amplitude of the magnetic perturbation along y (T)", 1.0e-9);
-      RP::add("Dispersion.magZPertAbsAmp", "Absolute amplitude of the magnetic perturbation along z (T)", 1.0e-9);
-      RP::add("Dispersion.maxwCutoff", "Cutoff for the maxwellian distribution", 1e-12);
-      RP::add("Dispersion.angleXY", "Orientation of the guide magnetic field with respect to the x-axis in x-y plane (rad)", 0.001);
-      RP::add("Dispersion.angleXZ", "Orientation of the guide magnetic field with respect to the x-axis in x-z plane (rad)", 0.001);
+      RP::add<Real>("Dispersion.B0", "Guide magnetic field strength (T)", this->B0,1.0e-9);
+      RP::add<Real>("Dispersion.magXPertAbsAmp", "Absolute amplitude of the magnetic perturbation along x (T)", this->magXPertAbsAmp,1.0e-9);
+      RP::add<Real>("Dispersion.magYPertAbsAmp", "Absolute amplitude of the magnetic perturbation along y (T)", this->magYPertAbsAmp,1.0e-9);
+      RP::add<Real>("Dispersion.magZPertAbsAmp", "Absolute amplitude of the magnetic perturbation along z (T)", this->magZPertAbsAmp,1.0e-9);
+      RP::add<Real>("Dispersion.maxwCutoff", "Cutoff for the maxwellian distribution", this->maxwCutoff,1e-12);
+      RP::add<Real>("Dispersion.angleXY", "Orientation of the guide magnetic field with respect to the x-axis in x-y plane (rad)", this->angleXY,0.001);
+      RP::add<Real>("Dispersion.angleXZ", "Orientation of the guide magnetic field with respect to the x-axis in x-z plane (rad)", this->angleXZ,0.001);
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
-         RP::add(pop + "_Dispersion.VX0", "Bulk velocity (m/s)", 0.0);
-         RP::add(pop + "_Dispersion.VY0", "Bulk velocity (m/s)", 0.0);
-         RP::add(pop + "_Dispersion.VZ0", "Bulk velocity (m/s)", 0.0);
-         RP::add(pop + "_Dispersion.rho", "Number density (m^-3)", 1.0e7);
-         RP::add(pop + "_Dispersion.Temperature", "Temperature (K)", 2.0e6);
-         RP::add(pop + "_Dispersion.densityPertRelAmp", "Relative amplitude of the density perturbation", 0.1);
-         RP::add(pop + "_Dispersion.velocityPertAbsAmp", "Absolute amplitude of the velocity perturbation", 1.0e6);
+
+        DispersionSpeciesParameters* sP=new DispersionSpeciesParameters();
+        
+        speciesParamsRead.push_back(sP);
+        const std::string& pop = getObjectWrapper().particleSpecies[i].name;
+        RP::add<Real>(pop + "_Dispersion.VX0", "Bulk velocity (m/s)", sP->VX0,0.0);
+        RP::add<Real>(pop + "_Dispersion.VY0", "Bulk velocity (m/s)",sP->VY0,0.0);
+        RP::add<Real>(pop + "_Dispersion.VZ0", "Bulk velocity (m/s)",sP->VZ0,0.0);
+        RP::add<Real>(pop + "_Dispersion.rho", "Number density (m^-3)", sP->DENSITY,1.0e7);
+        RP::add<Real>(pop + "_Dispersion.Temperature", "Temperature (K)", sP->TEMPERATURE,2.0e6);
+        RP::add<Real>(pop + "_Dispersion.densityPertRelAmp", "Relative amplitude of the density perturbation", sP->densityPertRelAmp,0.1);
+        RP::add<Real>(pop + "_Dispersion.velocityPertAbsAmp", "Absolute amplitude of the velocity perturbation", sP->velocityPertAbsAmp,1.0e6);
       }
    }
 
    void Dispersion::getParameters() {
-      Project::getParameters();
-      typedef Readparameters RP;
-      Project::getParameters();
-      RP::get("Dispersion.B0", this->B0);
-      RP::get("Dispersion.magXPertAbsAmp", this->magXPertAbsAmp);
-      RP::get("Dispersion.magYPertAbsAmp", this->magYPertAbsAmp);
-      RP::get("Dispersion.magZPertAbsAmp", this->magZPertAbsAmp);
-      RP::get("Dispersion.maxwCutoff", this->maxwCutoff);
-      RP::get("Dispersion.angleXY", this->angleXY);
-      RP::get("Dispersion.angleXZ", this->angleXZ);
-
-      // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-        const std::string& pop = getObjectWrapper().particleSpecies[i].name;
-        DispersionSpeciesParameters sP;
-        RP::get(pop + "_Dispersion.VX0", sP.VX0);
-        RP::get(pop + "_Dispersion.VY0", sP.VY0);
-        RP::get(pop + "_Dispersion.VZ0", sP.VZ0);
-        RP::get(pop + "_Dispersion.rho", sP.DENSITY);
-        RP::get(pop + "_Dispersion.Temperature", sP.TEMPERATURE);
-        RP::get(pop + "_Dispersion.densityPertRelAmp", sP.densityPertRelAmp);
-        RP::get(pop + "_Dispersion.velocityPertAbsAmp", sP.velocityPertAbsAmp);
-
-         speciesParams.push_back(sP);
+        this->speciesParams.push_back(*this->speciesParamsRead.at(i));
       }
    }
 

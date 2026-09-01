@@ -72,37 +72,13 @@ namespace projects {
 
    Project::~Project() { }
 
-   void Project::addParameters() {
-      typedef Readparameters RP;
-      // TODO add all projects' static addParameters() functions here.
-      projects::Alfven::addParameters();
-      projects::Diffusion::addParameters();
-      projects::Dispersion::addParameters();
-      projects::Distributions::addParameters();
-      projects::Firehose::addParameters();
-      projects::Flowthrough::addParameters();
-      projects::Fluctuations::addParameters();
-      projects::Harris::addParameters();
-      projects::KHB::addParameters();
-      projects::Larmor::addParameters();
-      projects::Magnetosphere::addParameters();
-      projects::MultiPeak::addParameters();
-      projects::Riemann1::addParameters();
-      projects::Shock::addParameters();
-      projects::IPShock::addParameters();
-      projects::Template::addParameters();
-      projects::test_fp::addParameters();
-      projects::TestHall::addParameters();
-      projects::verificationLarmor::addParameters();
-      projects::Shocktest::addParameters();
-      projects::LossCone::addParameters();
-      RP::add("Project_common.seed", "Seed for the RNG", 42);
+   void Project::addCommonParameters() {
 
+      Readparameters::add<uint>("Project_common.seed", "Seed for the RNG", this->seed,42);
    }
 
    void Project::getParameters() {
-      typedef Readparameters RP;
-      RP::get("Project_common.seed", this->seed);
+      //Unused currently
    }
 
    /** Initialize the Project. Velocity mesh and particle population
@@ -226,7 +202,7 @@ namespace projects {
          logFile << "\t charge           : '" << spec.charge << "'" << endl;
          logFile << "\t mass             : '" << spec.mass << "'" << endl;
          logFile << "\t sparse threshold : '" << spec.sparseMinValue << "'" << endl;
-         logFile << "\t velocity mesh    : '" << vmesh::getMeshWrapper()->velocityMeshesCreation->at(spec.velocityMesh).name << "'" << endl;
+         logFile << "\t velocity mesh    : '" << vmesh::getMeshWrapper()->velocityMeshesCreation->at(spec.velocityMesh)->name << "'" << endl;
          logFile << endl;
       }
       logFile << write;
@@ -647,83 +623,138 @@ namespace projects {
    }
 
 Project* createProject() {
-   Project* rvalue = NULL;
-   if(Parameters::projectName == "") {
-      cerr << "No project specified! Please set 'project' parameter!" << endl;
+   int rank;
+
+   MPI_Comm_rank(MPI_COMM_WORLD,&rank);
+   Project* project=nullptr;
+
+    if (Readparameters::helpRequested && P::projectName=="") {
+        projects::MultiPeak* _Multipeak=new projects::MultiPeak();
+        projects::Alfven* _Alfven = new projects::Alfven();
+        projects::Flowthrough* _Flowthrough=new projects::Flowthrough();
+        projects::Magnetosphere* _Magnetosphere=new projects::Magnetosphere();
+        projects::LossCone* _Losscone=new projects::LossCone();
+        projects::test_fp* _test_fp=new projects::test_fp();
+        projects::Firehose* _Firehose = new projects::Firehose();
+        projects::Diffusion* _Diffusion = new projects::Diffusion();
+        projects::Harris* _Harris = new projects::Harris();
+        projects::Riemann1* _Riemann1 = new projects::Riemann1();
+        projects::TestHall* _TestHall = new projects::TestHall();
+        projects::Larmor* _Larmor = new projects::Larmor();
+        projects::IPShock* _IPShock = new projects::IPShock();
+        projects::Fluctuations* _Fluctuations = new projects::Fluctuations();
+        projects::verificationLarmor* _verificationLarmor = new projects::verificationLarmor();
+        projects::KHB* _KHB = new projects::KHB();
+        projects::Dispersion* _Dispersion = new projects::Dispersion();
+        projects::Shock* _Shock = new projects::Shock();
+        projects::Shocktest* _Shocktest = new projects::Shocktest();
+        projects::Distributions* _Distributions=new projects::Distributions();
+      
+        _Multipeak->addCommonParameters();
+        _Multipeak->addParameters();
+        _Losscone->addParameters();
+        _Magnetosphere->addParameters();
+        _Flowthrough->addParameters();
+        _test_fp->addParameters();
+        _Firehose->addParameters();
+        _Distributions->addParameters();
+        _Diffusion->addParameters();
+        _Harris->addParameters();
+        _Riemann1->addParameters();
+        _TestHall->addParameters();
+        _Larmor->addParameters();
+        _IPShock->addParameters();
+        _Fluctuations->addParameters();
+        _verificationLarmor->addParameters();
+        _KHB->addParameters();
+        _Dispersion->addParameters();
+        _Shock->addParameters();
+        _Shocktest->addParameters();
+
+        return nullptr;
+
+    } else if(Parameters::projectName == "") {
+        cerr << "No project specified! Please set 'project' parameter!" << Parameters::projectName << endl;
+        return nullptr;
+    }
+    if (Parameters::projectName=="MultiPeak") {
+       project=new projects::MultiPeak();
+
+    } else if (Parameters::projectName=="Flowthrough") {
+        project=new projects::Flowthrough();
+
+    } else if (Parameters::projectName=="Magnetosphere") {
+        project=new projects::Magnetosphere();
+
+    } else if (Parameters::projectName=="LossCone") {
+        project=new projects::LossCone();
+
+    } else if (Parameters::projectName=="Alfven") {
+        project=new projects::Alfven();
+
+    } else if (Parameters::projectName=="test_fp") {
+        project=new projects::test_fp();
+
+    } else if (Parameters::projectName=="Firehose") {
+        project=new projects::Firehose();
+
+    } else if (Parameters::projectName=="Diffusion") {
+        project=new projects::Diffusion();
+
+    } else if (Parameters::projectName=="Harris") {
+        project=new projects::Harris();
+
+    } else if (Parameters::projectName=="Riemann1") {
+        project=new projects::Riemann1();
+
+    } else if (Parameters::projectName=="testHall") {
+        project=new projects::TestHall();
+
+    } else if (Parameters::projectName=="Larmor") {
+        project=new projects::Larmor();
+
+    } else if (Parameters::projectName=="IPShock") {
+        project=new projects::IPShock();
+
+    } else if (Parameters::projectName=="Fluctuations") {
+        project=new projects::Fluctuations();
+
+    } else if (Parameters::projectName=="verificationLarmor") {
+        project=new projects::verificationLarmor();
+
+    } else if (Parameters::projectName=="KHB") {
+        project=new projects::KHB();
+
+    } else if (Parameters::projectName=="Shock") {
+        project=new projects::Shock();
+
+    } else if (Parameters::projectName=="Shocktest") {
+        project=new projects::Shocktest();
+
+    } else if (Parameters::projectName=="Distributions") {
+        project=new projects::Distributions();
+
+    } else if (Parameters::projectName=="Dispersion") {
+        project=new projects::Dispersion();
+
+    } else if (Parameters::projectName=="Template") {
+        project=new projects::Template();
+
+    } else {
+        cerr << "Unknown project name! = "<<Parameters::projectName << endl;
+        abort();
+    }
+
+   if (!project) {
+      cerr << "Something went wrong with setting a project! Project value null" << endl;
       abort();
-   }
-   if(Parameters::projectName == "Alfven") {
-      rvalue = new projects::Alfven;
-   }
-   if(Parameters::projectName == "Diffusion") {
-      rvalue = new projects::Diffusion;
-   }
-   if(Parameters::projectName == "Dispersion") {
-      rvalue = new projects::Dispersion;
-   }
-   if(Parameters::projectName == "Distributions") {
-      rvalue = new projects::Distributions;
-   }
-   if(Parameters::projectName == "Firehose") {
-      rvalue = new projects::Firehose;
-   }
-   if(Parameters::projectName == "Flowthrough") {
-      rvalue = new projects::Flowthrough;
-   }
-   if(Parameters::projectName == "Fluctuations") {
-      rvalue = new projects::Fluctuations;
-   }
-   if(Parameters::projectName == "Harris") {
-      rvalue = new projects::Harris;
-   }
-   if(Parameters::projectName == "KHB") {
-      rvalue = new projects::KHB;
-   }
-   if(Parameters::projectName == "Larmor") {
-      rvalue = new projects::Larmor;
-   }
-   if(Parameters::projectName == "Magnetosphere") {
-      rvalue = new projects::Magnetosphere;
-   }
-   if(Parameters::projectName == "MultiPeak") {
-      rvalue = new projects::MultiPeak;
-   }
-   if(Parameters::projectName == "Riemann1") {
-      rvalue = new projects::Riemann1;
-   }
-   if(Parameters::projectName == "Shock") {
-      rvalue = new projects::Shock;
-   }
-   if(Parameters::projectName == "IPShock") {
-      rvalue = new projects::IPShock;
-   }
-   if(Parameters::projectName == "Template") {
-      rvalue = new projects::Template;
-   }
-   if(Parameters::projectName == "test_fp") {
-      rvalue = new projects::test_fp;
-   }
-   if(Parameters::projectName == "testHall") {
-      rvalue = new projects::TestHall;
-   }
-   if(Parameters::projectName == "verificationLarmor") {
-      rvalue = new projects::verificationLarmor;
-   }
-   if(Parameters::projectName == "Shocktest") {
-      rvalue = new projects::Shocktest;
-   }
-   if(Parameters::projectName == "LossCone") {
-      rvalue = new projects::LossCone;
-   }
-
-
-   if (rvalue == NULL) {
-      cerr << "Unknown project name!" << endl;
-      abort();
-   }
-
-   getObjectWrapper().project = rvalue;
-   return rvalue;
-}
+    } 
+   
+   project->addParameters();
+   project->addCommonParameters();
+   getObjectWrapper().project = project;
+    
+   return project;
+  }
 
 } // namespace projects

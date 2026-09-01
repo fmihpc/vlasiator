@@ -18,6 +18,16 @@ rm -rf libraries${PLATFORM}
 mkdir -p libraries${PLATFORM}/include
 mkdir -p libraries${PLATFORM}/lib
 
+CLI11HEADER="https://github.com/CLIUtils/CLI11/releases/download/v2.6.2/CLI11.hpp"
+wget $CLI11HEADER
+CLI11SHA256="227a16fe5f9f8ada80c3c409492475536f597e7bd83a6c26eacc3c8c149a9295"
+CHECKSUM=$(sha256sum CLI11.hpp | grep -Po '^\w+')
+if [[ "$CLI11SHA256" != "$CHECKSUM" ]]; then 
+  echo "Warning! the file Downloaded from $CLI11HEADER does not match the known sha256sum of the file. Make sure the file has not been tampered with!"
+  exit 1
+fi
+mv CLI11.hpp libraries${PLATFORM}/include
+
 # Assumes required files are available in this directory
 cd library-build
 
@@ -149,23 +159,6 @@ fi
 make clean
 make -j $PARALLEL && make install
 cd ..
-
-# Build boost (only if system module is not available)
-if [[ $PLATFORM == "-leonardo_booster" || $PLATFORM == "-leonardo_dcgp" || $PLATFORM == "-karolina_cuda" || $PLATFORM == "-karolina_gcc" || $PLATFORM == "-ukko_dgx" ||  $PLATFORM == "-mahti_gcc_build" || $PLATFORM == "-frankenstein_hopper2_cuda" ]]; then
-    # echo "### Downloading boost. ###"
-    # wget -q https://archives.boost.io/release/1.86.0/source/boost_1_86_0.tar.gz
-    # echo "### Extracting boost. ###"
-    # tar -xzf boost_1_86_0.tar.gz
-    echo "### Building boost. ###"
-    cd boost_1_86_0
-    ./bootstrap.sh --with-libraries=program_options --prefix=$WORKSPACE/libraries${PLATFORM} stage
-    echo "using mpi ;" >> ./tools/build/src/user-config.jam
-    ./b2
-
-    echo "### Installing boost. ###"
-    ./b2 --prefix=$WORKSPACE/libraries${PLATFORM} install > /dev/null
-    cd ..
-fi
 
 # Generate cmake for eigen so that zfp and Octree can be built
 echo "### Creating eigen CMakeFiles ###"
