@@ -72,7 +72,7 @@ LIBRARY_PREFIX = /projappl/project_462000358/libraries/24.03
 # Compiled libraries
 #INC_BOOST = -isystem $(LIBRARY_PREFIX)/boost/include
 #LIB_BOOST = -L$(LIBRARY_PREFIX)/boost/lib -lboost_program_options -Wl,-rpath=$(LIBRARY_PREFIX)/boost/lib
-LIB_BOOST = -lboost_program_options
+
 
 INC_ZOLTAN = -isystem $(LIBRARY_PREFIX)/Zoltan/include
 LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/Zoltan/lib -lzoltan -Wl,-rpath=$(LIBRARY_PREFIX)/Zoltan/lib

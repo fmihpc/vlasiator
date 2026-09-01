@@ -40,8 +40,8 @@ LIB_MPI =
 
 LIBRARY_PREFIX = libraries-pioneer
 
-INC_BOOST = -I/apps/riscv/boost/1.77.0/include
-LIB_BOOST = -L/apps/riscv/boost/1.77.0/lib -lboost_program_options
+
+
 
 INC_ZOLTAN = -I${LIBRARY_PREFIX}/include
 LIB_ZOLTAN = -L${LIBRARY_PREFIX}/lib -lzoltan

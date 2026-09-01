@@ -14,7 +14,7 @@ concurrency:
    cancel-in-progress: true
 
 jobs:
-  
+
   get_git_diff:
     runs-on: ubuntu-latest
     outputs:
@@ -41,16 +41,16 @@ jobs:
   testpackage:
     strategy: &strategy
       fail-fast: false
-      matrix: 
+      matrix:
         include:
           - name: prod
             runner: hile       #Tag of the github runner to run on
 
-            arch: hile_gpu     #Architecture flag 
+            arch: hile_gpu     #Architecture flag
 
             compile_tp: false  #Whether to compile with testpackage flag, can also add specific compile flags, see compile_flags_tp in slurm_run.sh
                                #otherwise will use prod flags
-            
+
             run_tp: false      #Whether to run the testpackage, note that the github ci
                                #testpackage has to be implemented for that platform
 
@@ -78,7 +78,7 @@ jobs:
             run_tp: false
             debug: true
 
-          - name: testpackage_debug 
+          - name: testpackage_debug
             runner: ukko
             arch: ukko_dgx
             compile_tp: true
@@ -92,14 +92,14 @@ jobs:
             run_tp: true
             debug: false
 
-          - name: prod 
+          - name: prod
             runner: risc-v
             arch: pioneer
             compile_tp: false
             run_tp: false
             debug: false
 
-    runs-on: ${{ matrix.runner }} 
+    runs-on: ${{ matrix.runner }}
     needs: get_git_diff
     if: github.repository_owner == 'fmihpc'
     env:
@@ -110,7 +110,7 @@ jobs:
       name: Checkout source
       uses: actions/checkout@v4
       with:
-        submodules: true 
+        submodules: true
     - &cleanWorkspace
       name: Clean workspace
       run: |
@@ -122,7 +122,7 @@ jobs:
     - uses: ursg/gcc-problem-matcher@master
     - &buildLibs
       name: Run library build script ${{ matrix.arch }}
-      run: | 
+      run: |
         ./.github/workflows/slurm_run.sh "BUILD_LIBS"
     - &packageLibraries
       name: Packaging libraries
@@ -141,12 +141,12 @@ jobs:
       run: |
         ./.github/workflows/slurm_run.sh "COMPILE_PROD" ${{ matrix.debug }}
     - &compileTools
-      name: Compile tools 
+      name: Compile tools
       background: true
       run: |
         ./.github/workflows/slurm_run.sh "BUILD_TOOLS"
     - name: Wait for tools and tp to compile
-      wait-all: true 
+      wait-all: true
     - &checkVlasiatorBinaryVisibility
       name: Make sure the output binary is visible in lustre
       uses: nick-fields/retry@v3
@@ -221,7 +221,7 @@ jobs:
         name: Install build dependencies
         run: |
           apt-get update
-          apt-get install -y g++ build-essential cmake make libopenmpi-dev openmpi-bin libboost-program-options-dev zstd
+          apt-get install -y g++ build-essential cmake make libopenmpi-dev openmpi-bin zstd
       - name: Run library build script
         run: ./fetch_and_build_libraries.sh
       - name: Build libraries tar
@@ -242,7 +242,7 @@ jobs:
       - name: Install build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y g++ build-essential cmake make libopenmpi-dev openmpi-bin libboost-program-options-dev zstd
+          sudo apt-get install -y g++ build-essential cmake make libopenmpi-dev openmpi-bin zstd
       - name: Run library build script
         run: |
           . ./fetch_and_build_libraries.sh arm64
@@ -400,7 +400,7 @@ jobs:
     - name: Check cfg files in projects/
       env:
           CFGFOLDER: projects
-      run: &checkCfg | 
+      run: &checkCfg |
         retval=0
         set +e
         for cfg in `find $CFGFOLDER -name \*.cfg`; do
@@ -427,4 +427,3 @@ jobs:
       env:
           CFGFOLDER: testpackage
       run: *checkCfg
-
