@@ -1100,6 +1100,20 @@ void Parameters::getParameters() {
 
    if (P::vlasovSolverGhostTranslate==true) {
       if (myRank == MASTER_RANK) {
+         if (P::xcells_ini < 2*VLASOV_STENCIL_WIDTH+1) {
+            cerr << "ERROR The domain has x_length = " << P::xcells_ini << " < 2*VLASOV_STENCIL_WIDTH+1 = " << 2*VLASOV_STENCIL_WIDTH+1 << endl;
+            MPI_Abort(MPI_COMM_WORLD, 1);
+         }
+         if (P::ycells_ini < 2*VLASOV_STENCIL_WIDTH+1) {
+            cerr << "ERROR The domain has y_length = " << P::ycells_ini << " < 2*VLASOV_STENCIL_WIDTH+1 = " << 2*VLASOV_STENCIL_WIDTH+1 << endl;
+            MPI_Abort(MPI_COMM_WORLD, 1);
+         }
+         if (P::zcells_ini < 2*VLASOV_STENCIL_WIDTH+1) {
+            cerr << "ERROR The domain has z_length = " << P::zcells_ini << " < 2*VLASOV_STENCIL_WIDTH+1 = " << 2*VLASOV_STENCIL_WIDTH+1 << endl;
+            MPI_Abort(MPI_COMM_WORLD, 1);
+         }
+      }
+      if (myRank == MASTER_RANK) {
          logFile<<"Performing spatial translation using ghost cell information with coalesced MPI updates."<<endl;
       }
       if (P::vlasovSolverGhostTranslateExtent == 0) {
