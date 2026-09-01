@@ -56,8 +56,8 @@ namespace SBC {
    public:
       Copysphere();
       virtual ~Copysphere();
-
-      static void addParameters();
+      
+      void addParameters();
       virtual void getParameters() override;
 
       virtual void initSysBoundary(creal& t, Project& project) override;
@@ -113,7 +113,8 @@ namespace SBC {
       Real radius; /*!< Radius of the copy sphere. */
       uint geometry; /*!< Geometry of the copy sphere, 0: inf-norm (diamond), 1: 1-norm (square), 2: 2-norm (circle, DEFAULT), 3: polar-plane cylinder with line dipole. */
 
-      std::vector<CopysphereSpeciesParameters> speciesParams;
+      static std::vector<CopysphereSpeciesParameters> speciesParams;
+      static std::vector<CopysphereSpeciesParameters*> speciesParamsRead;
       bool zeroPerB;
 
       spatial_cell::SpatialCell templateCell;

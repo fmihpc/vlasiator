@@ -75,8 +75,8 @@ LIB_JEMALLOC = -ljemalloc
 LIB_PAPI = -lpapi
 
 # compiled libraries
-INC_BOOST = -I$(LIBRARY_PREFIX)/include/boost
-LIB_BOOST = -L$(LIBRARY_PREFIX)/lib -lboost_program_options
+
+
 
 INC_ZOLTAN = -I$(LIBRARY_PREFIX)/include
 LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/lib -lzoltan

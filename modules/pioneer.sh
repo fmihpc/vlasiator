@@ -1,4 +1,4 @@
 #!/bin/bash
 
-module load cmake boost papi llvm openmpi
+module load cmake papi llvm openmpi
 

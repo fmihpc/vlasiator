@@ -18,13 +18,23 @@ rm -rf libraries${PLATFORM}
 mkdir -p libraries${PLATFORM}/include
 mkdir -p libraries${PLATFORM}/lib
 
+CLI11HEADER="https://github.com/CLIUtils/CLI11/releases/download/v2.6.2/CLI11.hpp"
+wget $CLI11HEADER
+CLI11SHA256="227a16fe5f9f8ada80c3c409492475536f597e7bd83a6c26eacc3c8c149a9295"
+CHECKSUM=$(sha256sum CLI11.hpp | grep -Po '^\w+')
+if [[ "$CLI11SHA256" != "$CHECKSUM" ]]; then 
+  echo "Warning! the file Downloaded from $CLI11HEADER does not match the known sha256sum of the file. Make sure the file has not been tampered with!"
+  exit 1
+fi
+mv CLI11.hpp libraries${PLATFORM}/include
+
 # Assumes required files are available in this directory
 cd library-build
 
 # Some platforms allow for nice parallel builds.
 if [[ $PLATFORM == "-pioneer" ]]; then
    PARALLEL=64
-elif [[ $PLATFORM == "-hile_cpu" || $PLATFORM == "-hile_gpu" || $PLATFORM == "-lumi_2403" || $PLATFORM == "-carrington" || $PLATFORM == "-frankenstein_hopper2_cuda" || $PLATFORM != "-roihu_gpu" ]]; then
+elif [[ $PLATFORM == "-hile_cpu" || $PLATFORM == "-hile_gpu" || $PLATFORM == "-lumi_2403" || $PLATFORM == "-carrington_gcc_openmpi" || $PLATFORM == "-frankenstein_hopper2_cuda" || $PLATFORM != "-roihu_gpu" ]]; then
    PARALLEL=128
 else
    # Otherwise we are friendly to other users and limit our parallelism
@@ -88,6 +98,8 @@ if [[ $PLATFORM != "-pioneer" && $PLATFORM != "-appleM1" && $PLATFORM != "-ukko_
         sed -i 's/DBG?=-g -Wall -Werror -Wextra -Wno-unused-parameter/DBG?=-g -Wall -Wextra/g' libpfm4/config.mk
         ./configure --prefix=$WORKSPACE/libraries${PLATFORM} CC="mpiicc -cc=icx" CXX="mpiicpc -cxx=icpx" MPICC="mpiicc -cc=icx"
     else
+        # Libpfm4 fails to build due to -Werror, probably because gcc 15 got pickier. So skip -Werror here.
+        sed -i 's/DBG?=-g -Wall -Werror -Wextra -Wno-unused-parameter/DBG?=-g -Wall -Wextra/g' libpfm4/config.mk
         ./configure --prefix=$WORKSPACE/libraries${PLATFORM} CC=mpicc CXX=mpic++
     fi
     make clean
@@ -97,9 +109,9 @@ fi
 
 # Build jemalloc (not for GPU versions or Mahti)
 if [[ $PLATFORM != "-leonardo_booster" && $PLATFORM != "-karolina_cuda" && $PLATFORM != "-ukko_dgx" && $PLATFORM != "-hile_gpu" && $PLATFORM != "-lumi_hipcc" && $PLATFORM != "-mahti_cuda" && $PLATFORM != "-mahti_gcc_build" &&  $PLATFORM != "-frankenstein_hopper2_cuda" &&  $PLATFORM != "-roihu_gpu" ]]; then
-    # curl -O -L https://github.com/jemalloc/jemalloc/releases/download/5.3.0/jemalloc-5.3.0.tar.bz2
-    # tar xjf jemalloc-5.3.0.tar.bz2
-    cd jemalloc-5.3.0
+    # curl -O -L https://github.com/jemalloc/jemalloc/releases/download/5.3.1/jemalloc-5.3.1.tar.bz2
+    # tar xjf jemalloc-5.3.1.tar.bz2
+    cd jemalloc-5.3.1
     if [[ $PLATFORM == "-pioneer" ]]; then
         ./configure --prefix=$WORKSPACE/libraries${PLATFORM} --with-jemalloc-prefix=je_
     elif [[ $PLATFORM == "-leonardo_dcgp_intel" ]]; then
@@ -147,23 +159,6 @@ fi
 make clean
 make -j $PARALLEL && make install
 cd ..
-
-# Build boost (only if system module is not available)
-if [[ $PLATFORM == "-leonardo_booster" || $PLATFORM == "-leonardo_dcgp" || $PLATFORM == "-karolina_cuda" || $PLATFORM == "-karolina_gcc" || $PLATFORM == "-ukko_dgx" ||  $PLATFORM == "-mahti_gcc_build" || $PLATFORM == "-frankenstein_hopper2_cuda" ]]; then
-    # echo "### Downloading boost. ###"
-    # wget -q https://archives.boost.io/release/1.86.0/source/boost_1_86_0.tar.gz
-    # echo "### Extracting boost. ###"
-    # tar -xzf boost_1_86_0.tar.gz
-    echo "### Building boost. ###"
-    cd boost_1_86_0
-    ./bootstrap.sh --with-libraries=program_options --prefix=$WORKSPACE/libraries${PLATFORM} stage
-    echo "using mpi ;" >> ./tools/build/src/user-config.jam
-    ./b2
-
-    echo "### Installing boost. ###"
-    ./b2 --prefix=$WORKSPACE/libraries${PLATFORM} install > /dev/null
-    cd ..
-fi
 
 # Generate cmake for eigen so that zfp and Octree can be built
 echo "### Creating eigen CMakeFiles ###"

@@ -69,8 +69,8 @@ testpackage: CXXFLAGS += -DPAPI_MEM
 #NOTE: jemalloc not supported with GPUs
 
 #======== Compiled Libraries ===========
-INC_BOOST = -isystem $(LIBRARY_PREFIX)/include
-LIB_BOOST = -L$(LIBRARY_PREFIX)/lib -lboost_program_options
+
+
 
 INC_PAPI = -isystem $(LIBRARY_PREFIX)/include
 LIB_PAPI = -L$(LIBRARY_PREFIX)/lib -lpapi

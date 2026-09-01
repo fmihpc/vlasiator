@@ -27,8 +27,8 @@
 # Boost is assumend to be installed by the system package manager (e.g. apt)
 # Usually following is correct but this can be modified:
 
-INC_BOOST = -I/usr/include/boost/
-LIB_BOOST = -L/usr/lib/x86_64-linux-gnu/ -lboost_program_options
+
+
 
 
 # In case of there is need for optional Jmalloc

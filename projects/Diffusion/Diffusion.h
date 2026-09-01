@@ -41,7 +41,7 @@ namespace projects {
       virtual ~Diffusion();
 
       virtual bool initialize(void) override;
-      static void addParameters(void);
+      virtual void addParameters(void) override;
       virtual void getParameters(void) override;
       /*! set background field, should set it for all cells */
       virtual void setProjectBField(
@@ -58,6 +58,7 @@ namespace projects {
 
       Real B0;
       std::vector<DiffusionSpeciesParameters> speciesParams;
+      std::vector<DiffusionSpeciesParameters*> speciesParamsRead;
    } ; // class Diffusion
 } // namespace projects
 

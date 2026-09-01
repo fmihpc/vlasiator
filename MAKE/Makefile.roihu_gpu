@@ -20,7 +20,7 @@ INC_CUDA = -isystem /usr/local/cuda/include
 
 # module libraries
 LIB_PAPI = -lpapi
-LIB_BOOST = -lboost_program_options
+
 
 # compiled libraries
 LIBRARY_PREFIX =  $(CURDIR)/libraries-roihu_gpu/
