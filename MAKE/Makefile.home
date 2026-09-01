@@ -1,10 +1,20 @@
 CMP = mpic++
 LNK = mpic++
 
+ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
+#Single-precision
+	VECTORCLASS = VEC8F_AGNER
+else
+#Double-precision
+	VECTORCLASS = VEC4D_AGNER
+endif
+
+
 FLAGS =
 # note: std was c++11
 # note: testpackage settings missing
-CXXFLAGS = -I$(HOME)/include -I/usr/include -L$(HOME)/lib -L/usr/lib -O3 -funroll-loops -std=c++20 -W -Wall -pedantic -Wno-unused -Wno-unused-parameter -Wno-missing-braces  -fopenmp
+CXXFLAGS = -I$(HOME)/include -I/usr/include -L$(HOME)/lib -L/usr/lib -O3 -funroll-loops -std=c++20 -W -Wno-unused-parameter -Wno-missing-braces  -fopenmp
+CXXFLAGS += -Wall -Wextra -Wno-unused -Wno-overloaded-virtual
 #CXXFLAGS = -I$(HOME)/include -L$(HOME)/lib -O0 -funroll-loops -std=c++20 -W -Wall -pedantic -Wno-unused -Wno-unused-parameter -Wno-missing-braces -g -fopenmp
 MATHFLAGS = -ffast-math -fno-finite-math-only
 testpackage: MATHFLAGS = -fno-unsafe-math-optimizations
@@ -12,23 +22,22 @@ LDFLAGS = -L $(HOME)/lib
 LIB_MPI = -lgomp
 # LIB_MPI = 
 
-LIBRARY_PREFIX = $(HOME)
-LIBRARY_PREFIX_B = $(HOME)
+LIBRARY_PREFIX = ${CURDIR}/libraries-home
 
-INC_BOOST = -I${HOME}/include
-LIB_BOOST = -L${HOME}/lib -lboost_program_options
+INC_BOOST = -I${LIBRARY_PREFIX}/include
+LIB_BOOST = -L${LIBRARY_PREFIX}/lib -lboost_program_options
 
-INC_ZOLTAN =
-LIB_ZOLTAN = -L${HOME}/lib -lzoltan
+INC_ZOLTAN = -I$(LIBRARY_PREFIX)/include
+LIB_ZOLTAN = -L${LIBRARY_PREFIX}/lib -lzoltan
 
-INC_VLSV = 
-LIB_VLSV = -lvlsv
+LIB_VLSV = -L$(LIBRARY_PREFIX)/lib -lvlsv
+INC_VLSV = -I$(LIBRARY_PREFIX)/include
 
-INC_SILO = -I${HOME}/include
-LIB_SILO = -L${HOME}/lib -lsilo
+INC_SILO = -I${LIBRARY_PREFIX}/include
+LIB_SILO = -L${LIBRARY_PREFIX}/lib -lsilo
 
-LIB_PROFILE = -L${HOME}/phiprof/lib -lphiprof
-INC_PROFILE = -I${HOME}/phiprof/include
+LIB_PROFILE = -L$(LIBRARY_PREFIX)/lib -lphiprof -lgfortran -Wl,-rpath=$(LIBRARY_PREFIX)/lib
+INC_PROFILE = -I${LIBRARY_PREFIX}/include
 INC_TOPO =
 
 INC_VECTORCLASS = -isystem ./submodules/vectorclass/ -isystem ./submodules/vectorclass-addon/vector3d/

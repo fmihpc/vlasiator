@@ -40,7 +40,7 @@ void Particle::push(Vec3d& B, Vec3d& E, double dt) {
    x += dt * v;
 }
 
-void writeParticles(ParticleContainer& p,const char* filename) {
+void writeParticles(const ParticleContainer& p,const char* filename) {
 
    vlsv::Writer vlsvWriter;
    vlsvWriter.open(filename,MPI_COMM_WORLD,0);

@@ -3,7 +3,7 @@
 
 Vlasiator - ten letters you can count on
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.6782211.svg)](https://doi.org/10.5281/zenodo.6782211) 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.10600112.svg)](https://doi.org/10.5281/zenodo.10600112)
 
 ## Code description
 Space weather is a term used to describe the variable environmental effects within near-Earth space, caused by the Sun emitting solar wind, a stream of charged particles carrying the solar electromagnetic field. Space weather can be caused by solar high-energy particles or by dynamic variations of the solar wind that can cause extended periods of major disturbances on ground and space, affecting technological systems (e.g., telecommunication and weather spacecraft at geostationary orbit, and ground-based power grids).
@@ -13,10 +13,12 @@ In Vlasiator, ions are represented as velocity distribution functions, while ele
 Due to the multi-dimensional approach at ion scales, Vlasiator's computational challenges are immense. We use advanced high performance computing techniques to allow massively parallel computations on tens of thousands of cores.
 
 ## git submodules
-We are transferring to use `git submodules` for the dependent libraries. Some of the header libraries have already been moved to this framework. Thus, we recommend to use the `--recurse-submodules` option when cloning, pulling, or checking out branches.
+We are transferring to use `git submodules` for the dependent libraries. Some of the header libraries have already been moved to this framework. Thus, we recommend to use the `--recurse-submodules` option when pulling or checking out branches.
+
+For first-time cloning, the following is required in order to initialize submodules correctly:
 ```
 git clone --recurse-submodules https://github.com/fmihpc/vlasiator
-git checkout <branch> --recurse-submodules
+git checkout <branch>
 git submodule update --init --recursive
 ```
 

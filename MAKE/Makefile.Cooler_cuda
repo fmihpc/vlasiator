@@ -1,4 +1,4 @@
-# Markus' desktop computer, CUDA
+# Mikael's computer, CUDA
 # Can be used as a sample on how to generate local CUDA makefiles
 #
 # Note: CUDA versions before 11.6 will complain when compiling backgroundfields

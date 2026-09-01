@@ -51,18 +51,16 @@ struct setOfPencils {
 
    //GPUTODO: move gpu buffers and their upload to separate gpu_trans_pencils .hpp and .cpp files
 #ifdef USE_GPU
-   uint gpu_allocated_N = 0;
-   uint gpu_allocated_sumOfLengths = 0;
    // Pointers to GPU copies of vectors
-   uint *gpu_lengthOfPencils;
-   uint *gpu_idsStart;
-   Realf *gpu_sourceDZ;
-   Realf *gpu_targetRatios;
-   std::string dev_pencilsInBin = "null";
-   std::string host_binStart = "null";
-   std::string host_binSize = "null";
-   std::string dev_binStart = "null";
-   std::string dev_binSize = "null";
+   size_t gpu_lengthOfPencils = 0;
+   size_t gpu_idsStart = 0;
+   size_t gpu_sourceDZ = 0;
+   size_t gpu_targetRatios = 0;
+   size_t dev_pencilsInBin = 0;
+   size_t host_binStart = 0;
+   size_t host_binSize = 0;
+   size_t dev_binStart = 0;
+   size_t dev_binSize = 0;
 
 #endif
 
@@ -138,7 +136,7 @@ struct setOfPencils {
          for (auto id = ids.begin() + idsStart[i]; id < ids.begin() + idsStart[i] + lengthOfPencils[i]; ++id) {
             // We don't need to consider source and target cells of the pencil separately
             // as all pencils with source/target cell C must be in the same bin as all pencils with target C
-            if (*id && allTargetCells.contains(*id)) {
+            if (*id && allTargetCells.count(*id)>0) {
                targetCellsInBin[i].insert(*id);
             }
          }
@@ -150,18 +148,18 @@ struct setOfPencils {
       do {
          binsToDelete.clear();
          for (auto& [binIndex1, cellsInBin1] : targetCellsInBin) {
-            if (binsToDelete.contains(binIndex1)) {
+            if (binsToDelete.count(binIndex1)>0) {
                continue;
             }
 
             for (auto& [binIndex2, cellsInBin2] : targetCellsInBin) {
-               if (binIndex1 == binIndex2 || binsToDelete.contains(binIndex2)) {
+               if (binIndex1 == binIndex2 || binsToDelete.count(binIndex2)>0) {
                   continue;
                }
 
                // Check for overlapping cells
                for (auto cell : cellsInBin2) {
-                  if (cellsInBin1.contains(cell)) {
+                  if (cellsInBin1.count(cell)>0) {
                      binsToDelete.insert(binIndex2);
 
                      // Insert all cells from bin2 to bin1
@@ -196,12 +194,12 @@ struct setOfPencils {
 
    #ifdef USE_GPU
    void gpuBins(){
-      gpuMemoryManager.createPointer("dev_pencilsInBin", dev_pencilsInBin);
-      gpuMemoryManager.createPointer("host_binStart", host_binStart);
-      gpuMemoryManager.createPointer("host_binSize", host_binSize);
-      gpuMemoryManager.createPointer("dev_binStart", dev_binStart);
-      gpuMemoryManager.createPointer("dev_binSize", dev_binSize);
-      
+      gpuMemoryManager.createPointer(dev_pencilsInBin);
+      gpuMemoryManager.createPointer(host_binStart);
+      gpuMemoryManager.createPointer(host_binSize);
+      gpuMemoryManager.createPointer(dev_binStart);
+      gpuMemoryManager.createPointer(dev_binSize);
+
       gpuMemoryManager.allocate(dev_pencilsInBin, sumOfLengths*sizeof(uint));
       gpuMemoryManager.hostAllocate(host_binStart, activeBins.size()*sizeof(uint));
       gpuMemoryManager.hostAllocate(host_binSize, activeBins.size()*sizeof(uint));
@@ -271,7 +269,7 @@ struct setOfPencils {
       // so that we don't add duplicates.
       std::vector<int> existingSteps;
 
-#pragma omp parallel for
+      #pragma omp parallel for
       for (uint theirPencilId = 0; theirPencilId < this->N; ++theirPencilId) {
          if(theirPencilId == myPencilId) {
             continue;
@@ -292,7 +290,7 @@ struct setOfPencils {
 
                      if(samePath) {
                         uint theirStep = theirPath.at(myPath.size());
-#pragma omp critical
+                        #pragma omp critical
                         {
                            existingSteps.push_back(theirStep);
                         }
@@ -344,7 +342,7 @@ struct setOfPencils {
 };
 // Note: Splitting does not handle target or source cells, as those are computed after all pencil splitting has concluded.
 
-bool do_translate_cell(spatial_cell::SpatialCell* SC);
+bool do_translate_cell(const spatial_cell::SpatialCell* const SC);
 
 // grid.cpp calls this function to both find seed cells and build pencils for all dimensions
 void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
@@ -356,7 +354,7 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
 extern std::array<setOfPencils,3> DimensionPencils;
 
 // Ghost translation cell lists (no interim comms)
-void prepareGhostTranslationCellLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+void prepareGhostTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                       const std::vector<CellID>& localPropagatedCells);
 
 // defined in cpu_trans_map_amr.cpp

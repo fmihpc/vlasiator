@@ -28,31 +28,12 @@
 
 #include "fs_common.h"
 
-void propagateMagneticField(
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBDt2Grid,
-   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
-   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EDt2Grid,
-   cint i,
-   cint j,
-   cint k,
-   creal& dt,
-   cint& RKCase,
-   const bool doX=true,
-   const bool doY=true,
-   const bool doZ=true
-);
-
-void propagateMagneticFieldSimple(
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBDt2Grid,
-   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & bgbGrid,
-   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
-   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EDt2Grid,
-   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-   SysBoundary& sysBoundaries,
-   creal& dt,
-   cint& RKCase
-);
+void propagateMagneticFieldSimple(fsgrids::perbspan perb,
+                                  fsgrids::perbspan perbdt2,
+                                  fsgrids::bgbspan bgb,
+                                  fsgrids::efieldspan e,
+                                  fsgrids::efieldspan edt2,
+                                  fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
+                                  SysBoundary& sysBoundaries, creal& dt, cint& RKCase);
 
 #endif

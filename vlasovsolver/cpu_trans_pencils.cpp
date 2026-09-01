@@ -23,7 +23,7 @@ std::unordered_set<CellID> ghostTranslate_active_z;
 std::array<setOfPencils,3> DimensionPencils;
 
 //Is cell translated? It is not translated if DO_NO_COMPUTE or if it is sysboundary cell and not in first sysboundarylayer
-bool do_translate_cell(SpatialCell* SC){
+bool do_translate_cell(const SpatialCell* const SC){
    if(SC->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
       (SC->sysBoundaryLayer != 1 && SC->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY)) {
       return false;
@@ -63,9 +63,9 @@ bool check_is_active(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
    }
 }
 
-bool check_is_written_to(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, CellID cid, int dimension) {
+bool check_is_written_to(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const CellID cid,const int dimension) {
    // Only called if doing ghost translation
-   SpatialCell *SC = mpiGrid[cid];
+   const SpatialCell *SC = mpiGrid[cid];
    if (!SC) {
       return false;
    }
@@ -153,14 +153,14 @@ int getNeighborhood(const uint dimension, const uint stencil) {
 */
 void findNeighborhoodCells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                            const CellID startingCellID,
-                           uint dimension,
-                           uint searchLength,
+                           const uint dimension,
+                           const uint searchLength,
                            std::vector<CellID>& foundCells) {
 
-   int neighborhood = getNeighborhood(dimension,searchLength);
+   const int neighborhood = getNeighborhood(dimension,searchLength);
    foundCells.clear();
 
-   SpatialCell *ccell = mpiGrid[startingCellID];
+   const SpatialCell *ccell = mpiGrid[startingCellID];
    if (!ccell) {
       return;
    }
@@ -180,7 +180,7 @@ void findNeighborhoodCells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
    }
 }
 
-void prepareGhostTranslationCellLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+void prepareGhostTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                       const vector<CellID>& localPropagatedCells) {
    // Clear existing lists
    ghostTranslate_sources_x.clear();
@@ -215,8 +215,8 @@ void prepareGhostTranslationCellLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_
 
    phiprof::Timer ghostYTimer {"prepare ghost translation Y lists"};
    int dimension = 1;
-   for (CellID c : localPropagatedCells) {
-      SpatialCell *ccell = mpiGrid[c];
+   for (const CellID c : localPropagatedCells) {
+      const SpatialCell *ccell = mpiGrid[c];
       if (!ccell) {
          continue;
       }
@@ -233,7 +233,7 @@ void prepareGhostTranslationCellLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_
 
       // Sources to be updated
       findNeighborhoodCells(mpiGrid, c, dimension, searchLength, foundCells);
-      for (CellID cid: foundCells) {
+      for (const CellID cid: foundCells) {
          // Update as sources only non-sysb cells
          if (mpiGrid[cid]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
             ghostTranslate_sources_y.insert(cid);
@@ -241,7 +241,7 @@ void prepareGhostTranslationCellLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_
       }
       // Cells to be translated so local end result is good (find neighborhood contains do_translate check)
       findNeighborhoodCells(mpiGrid, c, dimension, 1, foundCells);
-      for (CellID cid: foundCells) {
+      for (const CellID cid: foundCells) {
          ghostTranslate_active_y.insert(cid);
       }
    } // end loop over local propagated cells
@@ -253,8 +253,8 @@ void prepareGhostTranslationCellLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_
 
    phiprof::Timer ghostXTimer {"prepare ghost translation X lists"};
    dimension = 0;
-   for (CellID c : ghostTranslate_sources_y) {
-      SpatialCell *ccell = mpiGrid[c];
+   for (const CellID c : ghostTranslate_sources_y) {
+      const SpatialCell *ccell = mpiGrid[c];
       if (!ccell) {
          continue;
       }
@@ -277,7 +277,7 @@ void prepareGhostTranslationCellLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_
       }
       // Cells to be translated so local end result is good
       findNeighborhoodCells(mpiGrid, c, dimension, 1, foundCells);
-      for (CellID cid: foundCells) {
+      for (const CellID cid: foundCells) {
          ghostTranslate_active_x.insert(cid);
       }
    } // end loop over y-translation sources
@@ -289,8 +289,8 @@ void prepareGhostTranslationCellLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_
 
    phiprof::Timer ghostZTimer {"prepare ghost translation Z lists"};
    dimension = 2;
-   for (CellID c : ghostTranslate_sources_x) {
-      SpatialCell *ccell = mpiGrid[c];
+   for (const CellID c : ghostTranslate_sources_x) {
+      const SpatialCell *ccell = mpiGrid[c];
       if (!ccell) {
          continue;
       }
@@ -305,7 +305,7 @@ void prepareGhostTranslationCellLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_
       }
       // Sources to be updated
       findNeighborhoodCells(mpiGrid, c, dimension, searchLength, foundCells);
-      for (CellID cid: foundCells) {
+      for (const CellID cid: foundCells) {
          // Update as sources only non-sysb cells
          if (mpiGrid[cid]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
             ghostTranslate_sources_z.insert(cid);
@@ -313,7 +313,7 @@ void prepareGhostTranslationCellLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_
       }
       // Cells to be translated so local end result is good
       findNeighborhoodCells(mpiGrid, c, dimension, 1, foundCells);
-      for (CellID cid: foundCells) {
+      for (const CellID cid: foundCells) {
          ghostTranslate_active_z.insert(cid);
       }
    } // end loop over y-translation sources
@@ -626,7 +626,7 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
       }
 
       if (ids[i]) {
-         SpatialCell* tc = mpiGrid[ids[i]];
+         const SpatialCell* tc = mpiGrid[ids[i]];
          if (tc && tc->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
             // areaRatio is the ratio of the cross-section of the spatial cell to the cross-section of the pencil.
             const int diff = tc->SpatialCell::parameters[CellParams::REFINEMENT_LEVEL] - path.size();
@@ -661,7 +661,7 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
  * @return neighbor DCCRG cell id of the neighbor
  */
 CellID selectPositiveNeighbor(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> &grid,
-                      CellID id, int dimension = 0, uint path = 0) {
+                      const CellID id, const int dimension = 0, const uint path = 0) {
    // If face neighbours are at a higher refinement level, only returns the one which
    // which has a neighbor index matching the input path
 
@@ -931,13 +931,13 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
    // These neighborhoods no longer include the AMR addition beyond the regular vlasov stencil
    const int neighborhood = getNeighborhood(dimension,VLASOV_STENCIL_WIDTH);
 
-#pragma omp parallel for
+   #pragma omp parallel for
    for (uint i=0; i<propagatedCells.size(); i++) {
       const CellID celli = propagatedCells[i];
 
       bool addToSeedIds = P::amrTransShortPencils;
       if (addToSeedIds) {
-#pragma omp critical
+         #pragma omp critical
          seedIds.push_back(celli);
          continue;
       }
@@ -977,7 +977,7 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
          }
       } // finish check A
       if ( addToSeedIds ) {
-#pragma omp critical
+         #pragma omp critical
          seedIds.push_back(celli);
          continue;
       }
@@ -1027,8 +1027,8 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
          iSrc--;
       } // Finish B check
 
-      if ( addToSeedIds ) {
-#pragma omp critical
+      if (addToSeedIds) {
+         #pragma omp critical
          seedIds.push_back(celli);
          continue;
       }
@@ -1058,8 +1058,8 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
          iSrc--;
       } // Finish C check
 
-      if ( addToSeedIds ) {
-#pragma omp critical
+      if (addToSeedIds) {
+         #pragma omp critical
          seedIds.push_back(celli);
       }
    }
@@ -1082,7 +1082,7 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
  */
 void check_ghost_cells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                        setOfPencils& pencils,
-                       uint dimension) {
+                       const uint dimension) {
 
    const bool debug = false;
    int neighborhood = getNeighborhood(dimension,VLASOV_STENCIL_WIDTH);
@@ -1094,7 +1094,7 @@ void check_ghost_cells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>
 
    std::vector<CellID> pencilIdsToSplit;
 
-#pragma omp parallel for
+   #pragma omp parallel for
    for (uint pencili = 0; pencili < pencils.N; ++pencili) {
 
       // This check isn't in use at the moment, because no pencils are ever flagged periodic..
@@ -1184,7 +1184,7 @@ void check_ghost_cells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>
          }
          // Let's avoid modifying pencils while we are looping over it. Write down the indices of pencils
          // that need to be split and split them later.
-#pragma omp critical
+         #pragma omp critical
          {
             pencilIdsToSplit.push_back(pencili);
          }
@@ -1193,7 +1193,7 @@ void check_ghost_cells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>
 
    // No threading here! Splitting requires knowledge of all
    // already existing pencils.
-   for (auto pencili: pencilIdsToSplit) {
+   for (const auto pencili: pencilIdsToSplit) {
 
       Real dx = 0.0;
       Real dy = 0.0;
@@ -1213,7 +1213,7 @@ void check_ghost_cells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>
          break;
       }
 
-// WARNING threading inside this function
+      // WARNING threading inside this function
       pencils.split(pencili,dx,dy);
 
    }
@@ -1304,7 +1304,7 @@ void printPencilsFunc(const setOfPencils& pencils, const uint dimension, const i
       for (auto id : cells) {
          ss << id << " ";
          for (auto [bin2, cells2] : pencils.targetCellsInBin) {
-            if (bin != bin2 && cells2.contains(id)) {
+            if (bin != bin2 && cells2.count(id)>0) {
                collisions.insert(bin2);
             }
          }
@@ -1445,7 +1445,7 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
 
    phiprof::Timer buildPencilsTimer {"buildPencils"};
 
-#pragma omp parallel
+   #pragma omp parallel
    {
       // Empty vectors for internal use of buildPencilsWithNeighbors. Could be default values but
       // default vectors are complicated. Should overload buildPencilsWithNeighbors like suggested here
@@ -1457,7 +1457,7 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
       // iterators used in the accumulation
       std::vector<CellID>::iterator ibeg, iend;
 
-#pragma omp for schedule(guided,8)
+      #pragma omp for schedule(guided,8)
       for (uint i=0; i<seedIds.size(); i++) {
          cuint seedId = seedIds[i];
          // Construct pencils from the seedIds into a set of pencils.
@@ -1465,7 +1465,7 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
       }
 
       // accumulate thread results in global set of pencils
-#pragma omp critical
+      #pragma omp critical
       {
          for (uint i=0; i<thread_pencils.N; i++) {
             // Use vector range constructor
@@ -1487,7 +1487,7 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
    phiprof::Timer findSourceRatiosTimer {"Find_source_cells_ratios_dz"};
    // Compute also the stencil around the pencil (source cells), and
    // Store source cell widths and target cell contribution ratios.
-#pragma omp parallel for schedule(guided)
+   #pragma omp parallel for schedule(guided)
    for (uint i=0; i<DimensionPencils[dimension].N; ++i) {
       const uint L = DimensionPencils[dimension].lengthOfPencils[i];
       CellID *pencilIds = DimensionPencils[dimension].ids.data() + DimensionPencils[dimension].idsStart[i];
@@ -1519,32 +1519,25 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
    // Update GPU allocations
    const uint thisN = DimensionPencils[dimension].N;
    const uint thisSum  = DimensionPencils[dimension].sumOfLengths;
-   if (thisN > DimensionPencils[dimension].gpu_allocated_N) {
-      if (DimensionPencils[dimension].gpu_allocated_N > 0) {
-         CHK_ERR( gpuFree(DimensionPencils[dimension].gpu_lengthOfPencils) );
-         CHK_ERR( gpuFree(DimensionPencils[dimension].gpu_idsStart) );
-      }
-      CHK_ERR( gpuMalloc((void**)&(DimensionPencils[dimension].gpu_lengthOfPencils), thisN*sizeof(uint)) );
-      CHK_ERR( gpuMalloc((void**)&(DimensionPencils[dimension].gpu_idsStart), thisN*sizeof(uint)) );
-      DimensionPencils[dimension].gpu_allocated_N = thisN;
-   }
-   if (thisSum > DimensionPencils[dimension].gpu_allocated_sumOfLengths) {
-      if (DimensionPencils[dimension].gpu_allocated_sumOfLengths > 0) {
-         CHK_ERR( gpuFree(DimensionPencils[dimension].gpu_sourceDZ) );
-         CHK_ERR( gpuFree(DimensionPencils[dimension].gpu_targetRatios) );
-      }
-      CHK_ERR( gpuMalloc((void**)&(DimensionPencils[dimension].gpu_sourceDZ), thisSum*sizeof(Realf)) );
-      CHK_ERR( gpuMalloc((void**)&(DimensionPencils[dimension].gpu_targetRatios), thisSum*sizeof(Realf)) );
-      DimensionPencils[dimension].gpu_allocated_sumOfLengths = thisSum;
-   }
+
+   gpuMemoryManager.createPointer(DimensionPencils[dimension].gpu_lengthOfPencils);
+   gpuMemoryManager.createPointer(DimensionPencils[dimension].gpu_idsStart);
+   gpuMemoryManager.createPointer(DimensionPencils[dimension].gpu_sourceDZ);
+   gpuMemoryManager.createPointer(DimensionPencils[dimension].gpu_targetRatios);
+
+   gpuMemoryManager.allocate(DimensionPencils[dimension].gpu_lengthOfPencils, thisN*sizeof(uint));
+   gpuMemoryManager.allocate(DimensionPencils[dimension].gpu_idsStart, thisN*sizeof(uint));
+   gpuMemoryManager.allocate(DimensionPencils[dimension].gpu_sourceDZ, thisSum*sizeof(Realf));
+   gpuMemoryManager.allocate(DimensionPencils[dimension].gpu_targetRatios, thisSum*sizeof(Realf));
+
    // Copy data over
-   CHK_ERR( gpuMemcpy(DimensionPencils[dimension].gpu_lengthOfPencils,
+   CHK_ERR( gpuMemcpy(gpuMemoryManager.getPointer<uint>(DimensionPencils[dimension].gpu_lengthOfPencils),
                       DimensionPencils[dimension].lengthOfPencils.data(), thisN*sizeof(uint), gpuMemcpyHostToDevice) );
-   CHK_ERR( gpuMemcpy(DimensionPencils[dimension].gpu_idsStart,
+   CHK_ERR( gpuMemcpy(gpuMemoryManager.getPointer<uint>(DimensionPencils[dimension].gpu_idsStart),
                       DimensionPencils[dimension].idsStart.data(), thisN*sizeof(uint), gpuMemcpyHostToDevice) );
-   CHK_ERR( gpuMemcpy(DimensionPencils[dimension].gpu_sourceDZ,
+   CHK_ERR( gpuMemcpy(gpuMemoryManager.getPointer<Realf>(DimensionPencils[dimension].gpu_sourceDZ),
                       DimensionPencils[dimension].sourceDZ.data(), thisSum*sizeof(Realf), gpuMemcpyHostToDevice) );
-   CHK_ERR( gpuMemcpy(DimensionPencils[dimension].gpu_targetRatios,
+   CHK_ERR( gpuMemcpy(gpuMemoryManager.getPointer<Realf>(DimensionPencils[dimension].gpu_targetRatios),
                       DimensionPencils[dimension].targetRatios.data(), thisSum*sizeof(Realf), gpuMemcpyHostToDevice) );
    #endif
 

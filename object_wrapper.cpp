@@ -29,7 +29,7 @@ bool ObjectWrapper::addPopulationParameters() {
    }
 
   // Create appropriate subparameters for each population
-  for(auto& pop : popNames) {
+  for(const auto& pop : popNames) {
      species::Species newSpecies;
 
      // Originally, there was support for species and velocity meshes to be separate.

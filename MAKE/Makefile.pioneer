@@ -1,4 +1,4 @@
-# Makefile for the arriesgado RISCV cluster at BSC
+# Makefile for the MilkV Pioneer RISCV cluster at BSC
 #
 # Note:
 # o Load modules:
@@ -38,7 +38,7 @@ LDFLAGS = -fopenmp
 LIB_MPI =
 # LIB_MPI = 
 
-LIBRARY_PREFIX = libraries-arriesgado
+LIBRARY_PREFIX = libraries-pioneer
 
 INC_BOOST = -I/apps/riscv/boost/1.77.0/include
 LIB_BOOST = -L/apps/riscv/boost/1.77.0/lib -lboost_program_options

@@ -65,7 +65,7 @@ CC_BRAND_VERSION = 12.6-GCC-13.2.0
 MPT_BRAND = OpenMPI
 MPT_VERSION = 4.1.6
 
-VLASIATOR_LIBRARY_PREFIX = /proj/group/spacephysics/libraries
+VLASIATOR_LIBRARY_PREFIX = /wrk-vakka/group/spacephysics/proj/libraries/
 VLASIATOR_LIBRARY_PATH = $(VLASIATOR_LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/libraries-ukkogpu
 # Both ukko-dgx and ukko-a100 use the same modules and libraries
 

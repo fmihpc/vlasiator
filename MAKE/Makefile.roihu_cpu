@@ -1,0 +1,87 @@
+CMP = mpic++
+LNK = mpic++
+
+# Modules loaded
+# module load gcc/13 openmpi jemalloc papi
+# also load cuda/11.5.0 for nvtx support
+#======== Vectorization ==========
+#Set vector backend type for vlasov solvers, sets precision and length.
+#Options:
+# AVX:      VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
+# AVX512:   VEC8D_AGNER, VEC16F_AGNER
+# Fallback: VEC_FALLBACK_GENERIC
+
+ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
+#Single-precision
+        VECTORCLASS = VEC16F_AGNER
+else
+#Double-precision
+        VECTORCLASS = VEC8D_AGNER
+endif
+
+FLAGS =
+
+#WID=8
+#WID=4
+#VECL=4
+#VECL=8
+
+# Roihu has OpenMPI 5 so this needs to be activated
+COMPFLAGS += -DVLASIATOR_ALLOW_MCA_OMPIO
+
+#GNU flags:
+CXXFLAGS += -g -O3 -fopenmp -funroll-loops -std=c++20 -W -Wall -Wno-unused -fabi-version=0 -march=native -mfma -fpermissive
+testpackage: CXXFLAGS = -g -ggdb -O2 -fopenmp -funroll-loops -std=c++20 -fabi-version=0 -mfma -fpermissive -march=native
+
+MATHFLAGS = -ffast-math -fno-finite-math-only
+testpackage: MATHFLAGS = -fno-unsafe-math-optimizations
+
+LDFLAGS = -lrt
+# Add -lnvToolsExt for nvtx profiling
+LIB_MPI = -lgomp
+
+#======== PAPI ==========
+#Add PAPI_MEM define to use papi to report memory consumption?
+CXXFLAGS +=  -DPAPI_MEM
+testpackage: CXXFLAGS +=  -DPAPI_MEM
+
+#======== Allocator =========
+#Use jemalloc instead of system malloc to reduce memory fragmentation? https://github.com/jemalloc/jemalloc
+#Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
+CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+
+#======= Compiler and compilation flags =========
+# NOTES on compiler flags:
+# CXXFLAGS is for compiler flags, they are always used
+# MATHFLAGS are for special math etc. flags, these are only applied on solver functions
+# LDFLAGS flags for linker
+
+#-DNO_WRITE_AT_ALL:  Define to disable write at all to
+#                    avoid memleak (much slower IO)
+
+#======== Libraries ===========
+
+LIBRARY_PREFIX =  $(CURDIR)/libraries-roihu_cpu/
+
+# module libraries
+LIB_PAPI = -lpapi
+INC_PAPI =
+
+INC_BOOST =
+LIB_BOOST = -lboost_program_options
+
+# compiled libraries
+
+INC_PROFILE = -I$(LIBRARY_PREFIX)/include
+LIB_PROFILE = -L$(LIBRARY_PREFIX)/lib -lphiprof -Wl,-rpath=$(LIBRARY_PREFIX)/lib
+
+INC_VLSV = -I$(LIBRARY_PREFIX)/include
+LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv -lvlsv -Wl,-rpath=$(LIBRARY_PREFIX)lib
+
+INC_ZOLTAN = -I$(LIBRARY_PREFIX)/include
+LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/lib64 -lzoltan -Wl,-rpath=$(LIBRARY_PREFIX)/lib64
+
+INC_JEMALLOC = -I$(LIBRARY_PREFIX)/include
+LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/lib -ljemalloc -Wl,-rpath=$(LIBRARY_PREFIX)/lib
+

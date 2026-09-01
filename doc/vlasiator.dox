@@ -4,7 +4,8 @@
 /*!
 \mainpage Vlasiator -- 10 letters you can count on
 
-Vlasiator is a hybrid-Vlasov simulation software in development at FMI.
+Vlasiator is a hybrid-Vlasov simulation software in development at University of Helsinki.
 
+See https://fmihpc.github.io/vlasiator/ for the master branch (browse https://github.com/fmihpc/vlasiator for history, releases and other tags.).
 
 */

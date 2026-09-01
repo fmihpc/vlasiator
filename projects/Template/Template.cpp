@@ -136,12 +136,7 @@ namespace projects {
       return value;
    }
 
-   std::array<Real, 3> Template::probePhaseSpaceInv(
-      spatial_cell::SpatialCell *cell,
-      const uint popID,
-      Real value,
-      int peak
-   ) const {
+   std::array<Real, 3> Template::probePhaseSpaceInv( spatial_cell::SpatialCell *cell, const uint popID, Real value, int peak) const {
       const Real mass = getObjectWrapper().particleSpecies[popID].mass;
 
       creal initRho = 1.0;
@@ -151,14 +146,12 @@ namespace projects {
       return {V, V, V};
    }
 
-   void Template::setProjectBField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
-   ) {
+   void Template::setProjectBField(fsgrids::perbspan perb,
+                                   fsgrids::bgbspan bgb,
+                                   fsgrids::technicalspan technical, FieldSolverGrid &fsgrid) {
       Dipole bgField;
       bgField.initialize(8e15, 0.0, 0.0, 0.0, 0.0); //set dipole moment and location
-      setBackgroundField(bgField, BgBGrid);
+      setBackgroundField(bgField, bgb, technical, fsgrid);
    }
 
    vector<std::array<Real, 3>> Template::getV0(

@@ -16,34 +16,60 @@ cd library-build
 
 # Phiprof
 git clone https://github.com/fmihpc/phiprof/
+cd phiprof
+git checkout 605a7247c85d967fe22fe079c96c817b461c92b1
+cd ..
 
 # VLSV
 if [[ $PLATFORM != "-appleM1" ]]; then
    git clone https://github.com/fmihpc/vlsv.git
+   cd vlsv
+   git checkout 0d06db7078ee7066f69180b559c506c4cb0d7f1b
+   cd ..
 else
    git clone -b appleM1Build https://github.com/ursg/vlsv.git
+   cd vlsv
+   git checkout 0d06db7078ee7066f69180b559c506c4cb0d7f1b
+   cd ..
 fi
 
 # PAPI
-if [[ $PLATFORM != "-arriesgado" && $PLATFORM != "-appleM1" && $PLATFORM != "-ukkogpu" && $PLATFORM != "-hile_cpu" && $PLATFORM != "-hile_gpu" && $PLATFORM != "-lumi_hipcc"  && $PLATFORM != "-lumi_2403" ]]; then
+if [[ $PLATFORM != "-arriesgado" && $PLATFORM != "-appleM1" && $PLATFORM != "-ukko_dgx" && $PLATFORM != "-hile_cpu" && $PLATFORM != "-hile_gpu" && $PLATFORM != "-lumi_hipcc"  && $PLATFORM != "-lumi_2403" && $PLATFORM != "-mahti_cuda" && $PLATFORM != "-mahti_gcc_build" && $PLATFORM != "-frankenstein_hopper2_cuda" && $PLATFORM != "-roihu_cpu" && $PLATFORM != "-roihu_cpu_aocc" && $PLATFORM != "-roihu_gpu" ]]; then
     # This fails on RISCV and MacOS
-    # LUMI, UkkoGPU and HILE use system module
+    # Mahti, LUMI, UkkoGPU and HILE use system module
     git clone https://github.com/icl-utk-edu/papi
+    cd papi
+    git checkout 25a278ee5f4ccc9a2263e90ff8c15a1a58b2b7ed
+    cd ..
 fi
 
-# jemalloc (not for GPU versions)
-if [[ $PLATFORM != "-leonardo_booster" && $PLATFORM != "-karolina_cuda" && $PLATFORM != "-ukkogpu" && $PLATFORM != "-hile_gpu" && $PLATFORM != "-lumi_hipcc" ]]; then
+# jemalloc (not for GPU versions, on Mahti use system module)
+if [[ $PLATFORM != "-leonardo_booster" && $PLATFORM != "-karolina_cuda" && $PLATFORM != "-ukko_dgx" && $PLATFORM != "-hile_gpu" && $PLATFORM != "-lumi_hipcc" && $PLATFORM != "-mahti_cuda" && $PLATFORM != "-mahti_gcc_build" && $PLATFORM != "-frankenstein_hopper2_cuda" && $PLATFORM != "-roihu_gpu" ]]; then
     curl -O -L https://github.com/jemalloc/jemalloc/releases/download/5.3.0/jemalloc-5.3.0.tar.bz2
     tar xjf jemalloc-5.3.0.tar.bz2
 fi
 
 # Zoltan
-git clone https://github.com/sandialabs/Zoltan.git
+git clone https://github.com/ykempf/Trilinos.git
+cd Trilinos
+git checkout zoltanLBSafeAllreduce-issue15235
+cd ..
 
 # Boost (only if system module not available)
-if [[ $PLATFORM == "-leonardo_booster" || $PLATFORM == "-leonardo_dcgp" || $PLATFORM == "-karolina_cuda" || $PLATFORM == "-karolina_gcc" || $PLATFORM == "-ukkogpu" ]]; then
+if [[ $PLATFORM == "-leonardo_booster" || $PLATFORM == "-leonardo_dcgp" || $PLATFORM == "-karolina_cuda" || $PLATFORM == "-karolina_gcc" || $PLATFORM == "-ukko_dgx" || $PLATFORM == "-mahti_gcc_build" || $PLATFORM == "-frankenstein_hopper2_cuda" ]]; then
     echo "### Downloading boost. ###"
     wget -q https://archives.boost.io/release/1.86.0/source/boost_1_86_0.tar.gz
     echo "### Extracting boost. ###"
     tar -xzf boost_1_86_0.tar.gz
 fi
+
+#ZFP and OCTREE
+git clone https://github.com/LLNL/zfp.git
+cd zfp
+git checkout f2046180a8fea296646236d7d612d89b52841d46
+cd ..
+
+git clone https://github.com/cschpc/tucker-octree.git
+cd tucker-octree
+git checkout 3bc42470a5b486d947005bebf03d8846a4af9aa4
+cd ..

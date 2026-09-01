@@ -176,13 +176,13 @@ Realf interpolateNuFromArray(
       return (w11*nu011 + w12*nu012 + w21*nu021 + w22*nu022)/Parameters::PADfudge;
    }
 }
-
+//CellIdx appears to be unused
 void computePitchAngleDiffusionParameters(
    SpatialCell& cell,
-   const uint popID, size_t CellIdx, bool& currentSpatialLoopComplete,
+   const uint popID, const size_t CellIdx, bool& currentSpatialLoopComplete,
    Realf& sparsity, std::array<Real,3>& b, Real& nu0
    ){
-   
+
    sparsity   = 0.01 * cell.getVelocityBlockMinValue(popID);
 
    currentSpatialLoopComplete = false;

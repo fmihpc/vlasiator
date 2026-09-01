@@ -1,7 +1,7 @@
 #!/bin/bash -l
 #SBATCH --job-name=vlasi_g_tp
-##SBATCH --partition=dev-g
-#SBATCH --partition=small-g
+#SBATCH --partition=dev-g
+##SBATCH --partition=small-g
 
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
@@ -9,8 +9,8 @@
 ##SBATCH --ntasks-per-node=8
 ##SBATCH --gpus-per-node=8
 
-#SBATCH --time=24:00:00
-##SBATCH --time=3:00:00
+##SBATCH --time=24:00:00
+#SBATCH --time=1:00:00 # max 3 hours on dev-g
 #SBATCH --account=project_462000358
 #SBATCH --exclusive
 #SBATCH --mem=0
@@ -45,6 +45,7 @@ CPU_BIND="mask_cpu:7e000000000000,7e00000000000000"
 CPU_BIND="${CPU_BIND},7e0000,7e000000"
 CPU_BIND="${CPU_BIND},7e,7e00"
 CPU_BIND="${CPU_BIND},7e00000000,7e0000000000"
+export t=6 # thread count for TP script printouts
 
 module load LUMI/24.03
 module load partition/G

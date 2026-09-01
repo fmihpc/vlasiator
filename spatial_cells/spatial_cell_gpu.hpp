@@ -271,9 +271,13 @@ __global__ static void resize_and_empty_kernel (
                                       * in this spatial cell. Cells are identified by their unique
                                       * global IDs.*/
       vmesh::VelocityBlockContainer *blockContainer;  /**< Velocity block data.*/
+      std::vector<char> compressed_state_buffer;                     /**< Used by OCTREE and ZFP to store comprresed state representation of the VDF of this sc*/
+      float mlp_error = {std::numeric_limits<float>::max()};         /**< Stores the loss function error of the MLP that was used for compression*/
+      uint32_t mlp_epochs = {0};                                     /**< Store the number of epochs that the MLP was trained for*/
+
       /* pointers to device copies of vmesh and vbc */
-      vmesh::VelocityMesh *dev_vmesh;
-      vmesh::VelocityBlockContainer *dev_blockContainer;
+      size_t dev_vmesh = 0;
+      size_t dev_blockContainer = 0;
 
       /**< Temporary storage of acceleration transform intersections and sybcycling dt.*/
       Real intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk;
@@ -285,18 +289,18 @@ __global__ static void resize_and_empty_kernel (
       Population() {
          vmesh = new vmesh::VelocityMesh();
          blockContainer = new vmesh::VelocityBlockContainer();
-         dev_vmesh = 0;
-         dev_blockContainer = 0;
          // Host registers seem to break in multi-gpu per node runs
          // CHK_ERR(gpuHostRegister(&vmesh, sizeof(vmesh::VelocityMesh*),gpuHostRegisterPortable));
          // CHK_ERR(gpuHostRegister(&blockContainer, sizeof(vmesh::VelocityBlockContainer*),gpuHostRegisterPortable));
          // CHK_ERR(gpuHostRegister(vmesh, sizeof(vmesh::VelocityMesh),gpuHostRegisterPortable));
          // CHK_ERR(gpuHostRegister(blockContainer, sizeof(vmesh::VelocityBlockContainer),gpuHostRegisterPortable));
          gpuStream_t stream = gpu_getStream();
-         CHK_ERR(gpuMallocAsync((void**)&dev_vmesh, sizeof(vmesh::VelocityMesh),stream));
-         CHK_ERR(gpuMallocAsync((void**)&dev_blockContainer, sizeof(vmesh::VelocityBlockContainer),stream));
-         CHK_ERR(gpuMemcpyAsync(dev_vmesh, vmesh, sizeof(vmesh::VelocityMesh), gpuMemcpyHostToDevice,stream));
-         CHK_ERR(gpuMemcpyAsync(dev_blockContainer, blockContainer, sizeof(vmesh::VelocityBlockContainer), gpuMemcpyHostToDevice,stream));
+         gpuMemoryManager.createPointer(dev_vmesh);
+         gpuMemoryManager.createPointer(dev_blockContainer);
+         gpuMemoryManager.allocateAsync(dev_vmesh, sizeof(vmesh::VelocityMesh), stream);
+         gpuMemoryManager.allocateAsync(dev_blockContainer, sizeof(vmesh::VelocityBlockContainer), stream);
+         CHK_ERR(gpuMemcpyAsync(gpuMemoryManager.getPointer<vmesh::VelocityMesh>(dev_vmesh), vmesh, sizeof(vmesh::VelocityMesh), gpuMemcpyHostToDevice,stream));
+         CHK_ERR(gpuMemcpyAsync(gpuMemoryManager.getPointer<vmesh::VelocityBlockContainer>(dev_blockContainer), blockContainer, sizeof(vmesh::VelocityBlockContainer), gpuMemcpyHostToDevice,stream));
          // Set values to zero in case of zero-block populations
          RHO = RHO_R = RHO_V = RHOLOSSADJUST = velocityBlockMinValue = ACCSUBCYCLES = N_blocks = 0;
          for (uint i=0; i<2; ++i) {
@@ -310,13 +314,11 @@ __global__ static void resize_and_empty_kernel (
          }
       }
       ~Population() {
-         if (dev_vmesh) {
-            CHK_ERR(gpuFree(dev_vmesh));
-            dev_vmesh=0;
+         if (gpuMemoryManager.getPointer<vmesh::VelocityMesh>(dev_vmesh)) {
+            gpuMemoryManager.freePointer(dev_vmesh);
          }
-         if (dev_blockContainer) {
-            CHK_ERR(gpuFree(dev_blockContainer));
-            dev_blockContainer=0;
+         if (gpuMemoryManager.getPointer<vmesh::VelocityBlockContainer>(dev_blockContainer)) {
+            gpuMemoryManager.freePointer(dev_blockContainer);
          }
          delete vmesh;
          delete blockContainer;
@@ -324,18 +326,18 @@ __global__ static void resize_and_empty_kernel (
       Population(const Population& other) {
          vmesh = new vmesh::VelocityMesh(*(other.vmesh));
          blockContainer = new vmesh::VelocityBlockContainer(*(other.blockContainer));
-         dev_vmesh = 0;
-         dev_blockContainer = 0;
          // Host registers seem to break in multi-gpu per node runs
          // CHK_ERR(gpuHostRegister(&vmesh, sizeof(vmesh::VelocityMesh*),gpuHostRegisterPortable));
          // CHK_ERR(gpuHostRegister(&blockContainer, sizeof(vmesh::VelocityBlockContainer*),gpuHostRegisterPortable));
          // CHK_ERR(gpuHostRegister(vmesh, sizeof(vmesh::VelocityMesh),gpuHostRegisterPortable));
          // CHK_ERR(gpuHostRegister(blockContainer, sizeof(vmesh::VelocityBlockContainer),gpuHostRegisterPortable));
          gpuStream_t stream = gpu_getStream();
-         CHK_ERR(gpuMallocAsync((void**)&dev_vmesh, sizeof(vmesh::VelocityMesh),stream));
-         CHK_ERR(gpuMallocAsync((void**)&dev_blockContainer, sizeof(vmesh::VelocityBlockContainer),stream));
-         CHK_ERR(gpuMemcpyAsync(dev_vmesh, vmesh, sizeof(vmesh::VelocityMesh), gpuMemcpyHostToDevice,stream));
-         CHK_ERR(gpuMemcpyAsync(dev_blockContainer, blockContainer, sizeof(vmesh::VelocityBlockContainer), gpuMemcpyHostToDevice,stream));
+         gpuMemoryManager.createPointer(dev_vmesh);
+         gpuMemoryManager.createPointer(dev_blockContainer);
+         gpuMemoryManager.allocateAsync(dev_vmesh, sizeof(vmesh::VelocityMesh), stream);
+         gpuMemoryManager.allocateAsync(dev_blockContainer, sizeof(vmesh::VelocityBlockContainer), stream);
+         CHK_ERR(gpuMemcpyAsync(gpuMemoryManager.getPointer<vmesh::VelocityMesh>(dev_vmesh), vmesh, sizeof(vmesh::VelocityMesh), gpuMemcpyHostToDevice,stream));
+         CHK_ERR(gpuMemcpyAsync(gpuMemoryManager.getPointer<vmesh::VelocityBlockContainer>(dev_blockContainer), blockContainer, sizeof(vmesh::VelocityBlockContainer), gpuMemcpyHostToDevice,stream));
 
          RHO = other.RHO;
          RHO_R = other.RHO_R;
@@ -365,17 +367,16 @@ __global__ static void resize_and_empty_kernel (
       }
       const Population& operator=(const Population& other) {
          gpuStream_t stream = gpu_getStream();
-         const uint cpuThreadID = gpu_getThread();
          const vmesh::LocalID newSize = other.vmesh->size();
          ResizeClear(newSize); // Updates cached values too
 
          if (newSize > 0) {
             dim3 block(WID,WID,WID);
             population_replace_kernel<<<newSize, block, 0, stream>>> (
-               dev_vmesh,
-               dev_blockContainer,
-               other.dev_vmesh,
-               other.dev_blockContainer
+               gpuMemoryManager.getPointer<vmesh::VelocityMesh>(dev_vmesh),
+               gpuMemoryManager.getPointer<vmesh::VelocityBlockContainer>(dev_blockContainer),
+               gpuMemoryManager.getPointer<vmesh::VelocityMesh>(other.dev_vmesh),
+               gpuMemoryManager.getPointer<vmesh::VelocityBlockContainer>(other.dev_blockContainer)
                );
             CHK_ERR( gpuPeekAtLastError() );
          }
@@ -410,8 +411,8 @@ __global__ static void resize_and_empty_kernel (
 
       void Upload() {
          gpuStream_t stream = gpu_getStream();
-         CHK_ERR( gpuMemcpyAsync(dev_vmesh, vmesh, sizeof(vmesh::VelocityMesh), gpuMemcpyHostToDevice, stream) );
-         CHK_ERR( gpuMemcpyAsync(dev_blockContainer, blockContainer, sizeof(vmesh::VelocityBlockContainer), gpuMemcpyHostToDevice, stream) );
+         CHK_ERR( gpuMemcpyAsync(gpuMemoryManager.getPointer<vmesh::VelocityMesh>(dev_vmesh), vmesh, sizeof(vmesh::VelocityMesh), gpuMemcpyHostToDevice, stream) );
+         CHK_ERR( gpuMemcpyAsync(gpuMemoryManager.getPointer<vmesh::VelocityBlockContainer>(dev_blockContainer), blockContainer, sizeof(vmesh::VelocityBlockContainer), gpuMemcpyHostToDevice, stream) );
          //CHK_ERR( gpuStreamSynchronize(stream) );
       }
 
@@ -419,12 +420,11 @@ __global__ static void resize_and_empty_kernel (
          // Clears the vmesh globalToLocalMap. Ensures the vmesh localToGlobalMap is of the requested size
          // and that the VBC has the correct size, but does not alter contents of these.
          gpuStream_t stream = gpu_getStream();
-         const uint cpuThreadID = gpu_getThread();
 
          const bool reallocated1 = blockContainer->setNewCapacity(newSize);
          const bool reallocated2 = vmesh->setNewCapacity(newSize);
          // vmesh->print_sizes();
-         if (reallocated1 || reallocated2) { // Beware short-circuit evaluation!
+         if (reallocated1 || reallocated2) { // Beware short-circuit evaluation, don't place the recapacitations inside this check!
             Upload();
          }
 
@@ -432,8 +432,8 @@ __global__ static void resize_and_empty_kernel (
          // clears the vmesh GlobalToLocalMap, and resizes the velocity block container.
          // Contents of the localToGlobalMap or the VBC are not edited.
          resize_and_empty_kernel<<<1, Hashinator::defaults::MAX_BLOCKSIZE, 0, stream>>> (
-            dev_vmesh,
-            dev_blockContainer,
+            gpuMemoryManager.getPointer<vmesh::VelocityMesh>(dev_vmesh),
+            gpuMemoryManager.getPointer<vmesh::VelocityBlockContainer>(dev_blockContainer),
             newSize
             );
          CHK_ERR( gpuPeekAtLastError() );
@@ -458,8 +458,8 @@ __global__ static void resize_and_empty_kernel (
             dim3 block(WID,WID,WID);
             population_scale_kernel<<<nBlocks, block, 0, stream>>> (
                nBlocks,
-               dev_vmesh,
-               dev_blockContainer,
+               gpuMemoryManager.getPointer<vmesh::VelocityMesh>(dev_vmesh),
+               gpuMemoryManager.getPointer<vmesh::VelocityBlockContainer>(dev_blockContainer),
                factor
                );
             CHK_ERR( gpuPeekAtLastError() );
@@ -489,10 +489,10 @@ __global__ static void resize_and_empty_kernel (
             // Now serial
             population_increment_kernel<<<1, block, 0, stream>>> (
                nBlocks,
-               dev_vmesh,
-               dev_blockContainer,
-               other.dev_vmesh,
-               other.dev_blockContainer,
+               gpuMemoryManager.getPointer<vmesh::VelocityMesh>(dev_vmesh),
+               gpuMemoryManager.getPointer<vmesh::VelocityBlockContainer>(dev_blockContainer),
+               gpuMemoryManager.getPointer<vmesh::VelocityMesh>(other.dev_vmesh),
+               gpuMemoryManager.getPointer<vmesh::VelocityBlockContainer>(other.dev_blockContainer),
                factor
                );
             CHK_ERR( gpuPeekAtLastError() );
@@ -624,6 +624,7 @@ __global__ static void resize_and_empty_kernel (
 
       // Following functions adjust velocity blocks stored on the cell //
       void adjustSingleCellVelocityBlocks(const uint popID, bool doDeleteEmpty=false);
+      bool add_velocity_block(const vmesh::GlobalID& block,const uint popID);
       void adjust_velocity_blocks(const uint popID,
                                   bool doDeleteEmptyBlocks=true);
       vmesh::LocalID adjust_velocity_blocks_caller(const uint popID);
@@ -746,12 +747,12 @@ __global__ static void resize_and_empty_kernel (
 
    inline Realf* SpatialCell::dev_get_data(const uint popID) {
       debug_population_check(popID);
-      return populations[popID].dev_blockContainer->getData();
+      return gpuMemoryManager.getPointer<vmesh::VelocityBlockContainer>(populations[popID].dev_blockContainer)->getData();
    }
 
    inline const Realf* SpatialCell::dev_get_data(const uint popID) const {
       debug_population_check(popID);
-      return populations[popID].dev_blockContainer->getData();
+      return gpuMemoryManager.getPointer<vmesh::VelocityBlockContainer>(populations[popID].dev_blockContainer)->getData();
    }
 
    inline Realf* SpatialCell::get_data(const vmesh::LocalID& blockLID,const uint popID) {
@@ -786,12 +787,12 @@ __global__ static void resize_and_empty_kernel (
 
    inline Real* SpatialCell::dev_get_block_parameters(const uint popID) {
       debug_population_check(popID);
-      return populations[popID].dev_blockContainer->getParameters();
+      return gpuMemoryManager.getPointer<vmesh::VelocityBlockContainer>(populations[popID].dev_blockContainer)->getParameters();
    }
 
    inline const Real* SpatialCell::dev_get_block_parameters(const uint popID) const {
       debug_population_check(popID);
-      return populations[popID].dev_blockContainer->getParameters();
+      return gpuMemoryManager.getPointer<vmesh::VelocityBlockContainer>(populations[popID].dev_blockContainer)->getParameters();
    }
 
    inline Real* SpatialCell::get_block_parameters(const vmesh::LocalID& blockLID,const uint popID) {
@@ -1030,14 +1031,16 @@ __global__ static void resize_and_empty_kernel (
       const bool reupload = populations[popID].vmesh->setNewCapacity(nBlocks);
       populations[popID].vmesh->setNewCachedSize(nBlocks);
       if (reupload) {
-         CHK_ERR( gpuMemcpyAsync(populations[popID].dev_vmesh, populations[popID].vmesh, sizeof(vmesh::VelocityMesh), gpuMemcpyHostToDevice, stream) );
+         CHK_ERR( gpuMemcpyAsync(gpuMemoryManager.getPointer<vmesh::VelocityMesh>(populations[popID].dev_vmesh), populations[popID].vmesh, sizeof(vmesh::VelocityMesh), gpuMemcpyHostToDevice, stream) );
          //CHK_ERR( gpuStreamSynchronize(stream) );
       }
       spatial_cell::resize_vmesh_ondevice_kernel<<<1, 1, 0, stream>>> (
-         populations[popID].dev_vmesh,
+         gpuMemoryManager.getPointer<vmesh::VelocityMesh>(populations[popID].dev_vmesh),
          nBlocks
          );
       CHK_ERR( gpuPeekAtLastError() );
+      // leaving this sync out is a potential cause for issues during MPI communication, but a device-synchronize may do the trick.
+      // Hewever, inplementing some device synchronizes in grid.cpp balanceLoad() seems to do the trick.
       //CHK_ERR( gpuStreamSynchronize(stream) );
    }
 
@@ -1047,7 +1050,7 @@ __global__ static void resize_and_empty_kernel (
    }
    inline vmesh::VelocityMesh* SpatialCell::dev_get_velocity_mesh(const size_t& popID) {
       debug_population_check(popID);
-      return populations[popID].dev_vmesh;
+      return gpuMemoryManager.getPointer<vmesh::VelocityMesh>(populations[popID].dev_vmesh);
    }
 
    inline vmesh::VelocityBlockContainer* SpatialCell::get_velocity_blocks(const size_t& popID) {
@@ -1060,11 +1063,11 @@ __global__ static void resize_and_empty_kernel (
    }
    inline vmesh::VelocityBlockContainer* SpatialCell::dev_get_velocity_blocks(const size_t& popID) {
       debug_population_check(popID);
-      return populations[popID].dev_blockContainer;
+      return gpuMemoryManager.getPointer<vmesh::VelocityBlockContainer>(populations[popID].dev_blockContainer);
    }
    inline const vmesh::VelocityBlockContainer* SpatialCell::dev_get_velocity_blocks(const size_t& popID) const {
       debug_population_check(popID);
-      return populations[popID].dev_blockContainer;
+      return gpuMemoryManager.getPointer<vmesh::VelocityBlockContainer>(populations[popID].dev_blockContainer);
    }
 
    inline bool SpatialCell::checkMesh(const uint popID) {
@@ -1232,13 +1235,13 @@ __global__ static void resize_and_empty_kernel (
       populations[popID].Upload();
 
       // Copy data to GPU
-      fileReal* gpuInitBuffer;
-      vmesh::GlobalID* gpuInitBlocks;
-      // TODO: re-use per-thread buffers here, ensuring sufficient allocation.
-      CHK_ERR( gpuMallocAsync((void**)&gpuInitBuffer,WID3*nBlocks*sizeof(fileReal), stream) );
+      SUBPOINTER_ALLOCATE_ASYNC(gpuMemoryManager, gpuInitBuffer, gpu_getThread(), WID3*nBlocks*sizeof(fileReal), stream);
+      SUBPOINTER_ALLOCATE_ASYNC(gpuMemoryManager, gpuInitBlocks, gpu_getThread(), nBlocks*sizeof(vmesh::GlobalID), stream);
+      fileReal* gpuInitBuffer = GET_POINTER(gpuMemoryManager, fileReal, gpuInitBuffer);
+      vmesh::GlobalID* gpuInitBlocks = GET_POINTER(gpuMemoryManager, vmesh::GlobalID, gpuInitBlocks);
+      // TODO: re-use per-thread buffers here, ensuring sufficient allocation.;
       CHK_ERR( gpuMemcpyAsync(gpuInitBuffer, initBuffer,
                               WID3*nBlocks*sizeof(fileReal), gpuMemcpyHostToDevice, stream) );
-      CHK_ERR( gpuMallocAsync((void**)&gpuInitBlocks,nBlocks*sizeof(vmesh::GlobalID), stream) );
       CHK_ERR( gpuMemcpyAsync(gpuInitBlocks, blocks.data(),
                               nBlocks*sizeof(vmesh::GlobalID), gpuMemcpyHostToDevice, stream) );
 
@@ -1248,8 +1251,8 @@ __global__ static void resize_and_empty_kernel (
          // dynamically allocated per block for this call in addition to the statically allocated memory.
          CHK_ERR( gpuStreamSynchronize(stream) );
          spatial_cell::add_blocks_from_buffer_kernel<<<nBlocks, block, 0, stream>>> (
-            populations[popID].dev_vmesh,
-            populations[popID].dev_blockContainer,
+            gpuMemoryManager.getPointer<vmesh::VelocityMesh>(populations[popID].dev_vmesh),
+            gpuMemoryManager.getPointer<vmesh::VelocityBlockContainer>(populations[popID].dev_blockContainer),
             startLID,
             gpuInitBlocks,
             gpuInitBuffer,
@@ -1258,8 +1261,6 @@ __global__ static void resize_and_empty_kernel (
          CHK_ERR( gpuPeekAtLastError() );
       }
       CHK_ERR( gpuStreamSynchronize(stream) );
-      CHK_ERR( gpuFreeAsync(gpuInitBuffer,stream) );
-      CHK_ERR( gpuFreeAsync(gpuInitBlocks,stream) );
 
       #ifdef DEBUG_SPATIAL_CELL
       if (populations[popID].vmesh->size() != populations[popID].blockContainer->size()) {

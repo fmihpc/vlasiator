@@ -39,17 +39,20 @@ ax.matshow(A, cmap="RdBu", vmin=-5, vmax=5)
 for i in range(A.shape[1]):
     for j in range(A.shape[0]):
         c = A[j,i]
-        ax.text(i, j, "%1.1f"%(c), va='center', ha='center', size="2")
+        #ax.text(i, j, "%1.1f"%(c), va='center', ha='center', size="2")
 #pt.colorbar()
 
 # Plot inverse matrix
 ax = fig.add_subplot(122)
-Ainv =  numpy.linalg.inv(A)
-ax.matshow(Ainv, cmap="RdBu", vmin=-5, vmax=5)
-for i in range(A.shape[1]):
-    for j in range(A.shape[0]):
-        c = Ainv[j,i]
-        ax.text(i, j, "%1.1f"%(c), va='center', ha='center', size="2")
+try:
+    Ainv =  numpy.linalg.inv(A)
+    ax.matshow(Ainv, cmap="RdBu")
+    for i in range(A.shape[1]):
+        for j in range(A.shape[0]):
+            c = Ainv[j,i]
+            #ax.text(i, j, "%1.1f"%(c), va='center', ha='center', size="2")
+except:
+    print("Inversion failed! Matrix singular?")
 
 # Calc eigenvalues
 λ,ev=numpy.linalg.eig(0.5*(A + numpy.transpose(A)))

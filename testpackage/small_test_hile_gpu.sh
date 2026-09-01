@@ -16,7 +16,7 @@
 create_verification_files=0
 
 # folder for all reference data
-reference_dir="/wrk-kappa/group/spacephysics/vlasiator/testpackage"
+reference_dir="/turso/group/spacephysics/vlasiator/testpackage/"
 #cd $SLURM_SUBMIT_DIR
 #cd $reference_dir # don't run on /proj
 
@@ -43,11 +43,7 @@ export LD_PRELOAD=/wrk-kappa/users/markusb/vlasiator-mempool/libpreload-me.so
 # Would allow oversubscription of cores with hyperthreading, do not use.
 # export OMP_WAIT_POLICY=PASSIVE
 
-module load papi
-module load cray-pmi
-module load craype-accel-amd-gfx90a
-module load rocm/6.2.0
-module load libfabric/1.22.0
+source ../modules/hile_gpu.sh
 module list
 
 # threads per job (equal to -c )
@@ -84,5 +80,4 @@ source test_definitions_small.sh
 wait
 # Run tests
 source run_tests.sh
-wait 
-
+wait

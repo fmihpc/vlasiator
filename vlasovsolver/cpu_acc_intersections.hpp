@@ -37,7 +37,7 @@ void compute_intersections_1st(
         vmesh::GlobalID block,
         const Eigen::Transform<Real,3,Eigen::Affine>& bwd_transform,
         const Eigen::Transform<Real,3,Eigen::Affine>& fwd_transform,
-        uint dimension,
+        const uint dimension,
         Real& intersection,Real& intersection_di,
         Real& intersection_dj,Real& intersection_dk);
 
@@ -46,7 +46,7 @@ void compute_intersections_2nd(
         vmesh::GlobalID block,
         const Eigen::Transform<Real,3,Eigen::Affine>& bwd_transform,
         const Eigen::Transform<Real,3,Eigen::Affine>& fwd_transform,
-        uint dimension,
+        const uint dimension,
         Real& intersection,Real& intersection_di,
         Real& intersection_dj,Real& intersection_dk);
 
@@ -55,7 +55,7 @@ void compute_intersections_3rd(
         vmesh::GlobalID block,
         const Eigen::Transform<Real,3,Eigen::Affine>& bwd_transform,
         const Eigen::Transform<Real,3,Eigen::Affine>& fwd_transform,
-        uint dimension,
+        const uint dimension,
         Real& intersection,Real& intersection_di,
         Real& intersection_dj,Real& intersection_dk);
 

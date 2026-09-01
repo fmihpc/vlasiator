@@ -47,7 +47,7 @@
    Resizes the per-cell velocity blocks with content list vector as it'll be re-used for a LID list.
 
    @param vmeshes pointer to buffer of pointers to vmeshes of all cells on this process
-   @param dev_blockDataOrdered pointer to buffer of pointers, which point to allocated
+   @param dev_probeCubeData pointer to buffer of pointers, which point to allocated
     temporary arrays, which are recast and used as the probe cube.
    @param flatExtent the product of the non-accelerated dimensions of the probe cube, i.e. the
     extent of it when it's flattend, rounded up to provide memory alignment.
@@ -61,11 +61,12 @@
    @param cumulativeOffset the current cumulative offset at which to index the aforementioned buffers, using
     the grid index of this kernel on top of this provided offset.
 */
-__global__ void fill_probe_invalid(
+__global__ void prefill_probe_kernel(
    vmesh::VelocityMesh** __restrict__ vmeshes,
-   Realf **dev_blockDataOrdered, // recast to vmesh::LocalID *probeCube
+   vmesh::LocalID *dev_probeCubeData,
    const uint flatExtent,
-   const size_t nTot,
+   const size_t Dacc,
+   const size_t Dother,
    const vmesh::LocalID invalidLID,
    // Pass these for emptying
    split::SplitVector<vmesh::GlobalID>* *lists_with_replace_new,
@@ -74,17 +75,24 @@ __global__ void fill_probe_invalid(
    split::SplitVector<Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>>* *lists_with_replace_old,
    // This one is resized and re-used as a LIDlist
    split::SplitVector<vmesh::GlobalID> ** dev_vbwcl_vec,
-   const uint cumulativeOffset
+   const uint cumulativeOffset,
+   const size_t gpu_probeStride
    ) {
+   const size_t ind = blockIdx.x * blockDim.x + threadIdx.x;
    const uint parallelOffsetIndex = blockIdx.y;
    const uint cellOffset = parallelOffsetIndex + cumulativeOffset;
-   vmesh::LocalID* probeFlattened = reinterpret_cast<vmesh::LocalID*>(dev_blockDataOrdered[parallelOffsetIndex]);
-   vmesh::LocalID* probeCube = probeFlattened + flatExtent*GPU_PROBEFLAT_N;
+   const size_t nTot = Dacc*Dother;
+   vmesh::LocalID* probeFlattened = dev_probeCubeData + parallelOffsetIndex * gpu_probeStride;
+   //vmesh::LocalID* probeCube = probeFlattened + flatExtent*GPU_PROBEFLAT_N;
 
-   const size_t ind = blockIdx.x * blockDim.x + threadIdx.x;
-   for (size_t i = ind; i < nTot; i += gridDim.x * blockDim.x) {
-      probeCube[i] = invalidLID;
+   if (ind < flatExtent*GPU_PROBEFLAT_N) {
+      // Flattened probe region
+      probeFlattened[ind] = 0;
+   } else if (ind < flatExtent*GPU_PROBEFLAT_N + nTot) {
+      // Probe cube region
+      probeFlattened[ind] = invalidLID;
    }
+   // Device clears from single thread per cell
    if (ind==0) {
       lists_with_replace_new[cellOffset]->clear();
       lists_delete[cellOffset]->clear();
@@ -143,7 +151,7 @@ __global__ void fill_VBC_zero_kernel(
    optimized reads? Then stepping will be based on array edge sizes instead of D0/1/2.
 
    @param vmeshes pointer to buffer of pointers to vmeshes of all cells on this process
-   @param dev_blockDataOrdered pointer to buffer of pointers, which point to allocated
+   @param dev_probeCubeData pointer to buffer of pointers, which point to allocated
     temporary arrays, which are recast and used as the probe cube.
    @param flatExtent the product of the non-accelerated dimensions of the probe cube, i.e. the
     extent of it when it's flattend, rounded up to provide memory alignment.
@@ -154,10 +162,11 @@ __global__ void fill_VBC_zero_kernel(
  */
 __global__ void fill_probe_ordered(
    vmesh::VelocityMesh** __restrict__ vmeshes,
-   Realf **dev_blockDataOrdered, // recast to vmesh::LocalID *probeCube
+   vmesh::LocalID *dev_probeCubeData, // recast to vmesh::LocalID *probeCube
    const uint flatExtent,
    const uint* __restrict__ gpu_block_indices_to_probe,
-   const uint cumulativeOffset
+   const uint cumulativeOffset,
+   const size_t gpu_probeStride
    ) {
    const int ti = threadIdx.x; // [0,Hashinator::defaults::MAX_BLOCKSIZE)
    const vmesh::LocalID LID = blockDim.x * blockIdx.x + ti;
@@ -169,7 +178,7 @@ __global__ void fill_probe_ordered(
    if (LID >= nBlocks) {
       return;
    }
-   vmesh::LocalID* probeFlattened = reinterpret_cast<vmesh::LocalID*>(dev_blockDataOrdered[parallelOffsetIndex]);
+   vmesh::LocalID* probeFlattened = dev_probeCubeData + parallelOffsetIndex * gpu_probeStride;
    vmesh::LocalID* probeCube = probeFlattened + flatExtent*GPU_PROBEFLAT_N;
    // Store in probe cube with ordering so that reading will be fast
    const vmesh::GlobalID GID = vmesh->getGlobalID(LID);
@@ -198,7 +207,7 @@ __global__ void fill_probe_ordered(
    (1) How many acceleration columns were found for each potColumn
    (2) How many blocks were found for each potColumn
 
-   @param dev_blockDataOrdered pointer to buffer of pointers, which point to allocated
+   @param dev_probeCubeData pointer to buffer of pointers, which point to allocated
     temporary arrays, which are recast and used as the probe cube.
    @param Dacc Extent of probe cube in accelerated dimension
    @param Dother Sum of extents of probe cube in transverse dimensions
@@ -207,11 +216,12 @@ __global__ void fill_probe_ordered(
    @param invalidLID value to be used as the value for invalid vmesh::LocalID
 */
 __global__ void flatten_probe_cube(
-   Realf **dev_blockDataOrdered, // recast to vmesh::LocalID *probeCube, *probeFlattened
+   vmesh::LocalID *dev_probeCubeData, // recast to vmesh::LocalID *probeCube, *probeFlattened
    const vmesh::LocalID Dacc,
    const vmesh::LocalID Dother,
    const size_t flatExtent,
-   const vmesh::LocalID invalidLID
+   const vmesh::LocalID invalidLID,
+   const size_t gpu_probeStride
    ) {
    // Probe cube contents have been ordered based on acceleration dimesion
    // so this kernel always reads in the same way.
@@ -220,7 +230,7 @@ __global__ void flatten_probe_cube(
    const vmesh::LocalID ind = blockDim.x * blockIdx.x + ti;
    const uint parallelOffsetIndex = blockIdx.y;
 
-   vmesh::LocalID* probeFlattened = reinterpret_cast<vmesh::LocalID*>(dev_blockDataOrdered[parallelOffsetIndex]);
+   vmesh::LocalID* probeFlattened = dev_probeCubeData + parallelOffsetIndex * gpu_probeStride;
    vmesh::LocalID* probeCube = probeFlattened + flatExtent*GPU_PROBEFLAT_N;
 
    if (ind < Dother) {
@@ -276,7 +286,7 @@ __global__ void flatten_probe_cube(
    so there should not be all that many loops of the cycle to deal with.
 
    @param vmeshes pointer to buffer of pointers to vmeshes of all cells on this process
-   @param dev_blockDataOrdered pointer to buffer of pointers, which point to allocated
+   @param dev_probeCubeData pointer to buffer of pointers, which point to allocated
     temporary arrays, which are recast and used as the probe cube.
    @param Dacc Extent of probe cube in accelerated dimension
    @param Dother Sum of extents of probe cube in transverse dimensions
@@ -295,7 +305,7 @@ __global__ void flatten_probe_cube(
 
 __global__ void scan_probe(
    vmesh::VelocityMesh** __restrict__ vmeshes,
-   Realf **dev_blockDataOrdered, // recast to vmesh::LocalID *probeFlattened
+   vmesh::LocalID *dev_probeCubeData, // recast to vmesh::LocalID *probeFlattened
    const vmesh::LocalID Dacc,
    const vmesh::LocalID Dother,
    const size_t flatExtent,
@@ -303,11 +313,12 @@ __global__ void scan_probe(
    vmesh::LocalID *dev_numColSets,
    vmesh::LocalID *dev_resizeSuccess,
    ColumnOffsets* dev_columnOffsetData,
-   const uint cumulativeOffset
+   const uint cumulativeOffset,
+   const size_t gpu_probeStride
    ) {
    const uint parallelOffsetIndex = blockIdx.y;
    const uint cellOffset = parallelOffsetIndex + cumulativeOffset;
-   vmesh::LocalID* probeFlattened = reinterpret_cast<vmesh::LocalID*>(dev_blockDataOrdered[parallelOffsetIndex]);
+   vmesh::LocalID* probeFlattened = dev_probeCubeData + parallelOffsetIndex * gpu_probeStride;
    //vmesh::LocalID* probeCube = probeFlattened + flatExtent*GPU_PROBEFLAT_N;
 
    const vmesh::VelocityMesh* __restrict__ vmesh = vmeshes[cellOffset];
@@ -423,8 +434,8 @@ __global__ void scan_probe(
       const vmesh::LocalID numCols = offsetA;
       const vmesh::LocalID numColSets = offsetB;
       //printf("found columns %u and columnsets %u, %u blocks vs %d\n",numCols,numColSets,offsetC,nBlocks);
-      dev_numCols[cellOffset] = numCols; // Total number of columns
-      dev_numColSets[cellOffset] = numColSets; // Total number of column sets
+      dev_numCols[parallelOffsetIndex] = numCols; // Total number of columns
+      dev_numColSets[parallelOffsetIndex] = numColSets; // Total number of column sets
       // Resize device-side column offset container vectors. First verify capacity.
       // set dev_resizeSuccess to unity to indicate if re-capacitate on host is needed.
       if ( (columnData->dev_capacityCols() < numCols) ||
@@ -457,7 +468,7 @@ __global__ void scan_probe(
    and LIDs into provided buffers.
 
    @param vmeshes pointer to buffer of pointers to vmeshes of all cells on this process
-   @param dev_blockDataOrdered pointer to buffer of pointers, which point to allocated
+   @param dev_probeCubeData pointer to buffer of pointers, which point to allocated
     temporary arrays, which are recast and used as the probe cube.
    @param D0 Vmesh maximal extents in X-direction
    @param D1 Vmesh maximal extents in Y-direction
@@ -474,7 +485,7 @@ __global__ void scan_probe(
 */
 __global__ void build_column_offsets(
    vmesh::VelocityMesh** __restrict__ vmeshes,
-   Realf** dev_blockDataOrdered, // recast to vmesh::LocalID *probeCube, *probeFlattened
+   vmesh::LocalID* dev_probeCubeData, // recast to vmesh::LocalID *probeCube, *probeFlattened
    const vmesh::LocalID D0,
    const vmesh::LocalID D1,
    const vmesh::LocalID D2,
@@ -483,7 +494,8 @@ __global__ void build_column_offsets(
    const vmesh::LocalID invalidLID,
    ColumnOffsets* dev_columnOffsetData,
    split::SplitVector<vmesh::GlobalID> ** dev_vbwcl_vec, // use as LIDlist
-   const uint cumulativeOffset
+   const uint cumulativeOffset,
+   const size_t gpu_probeStride
    ) {
    // Probe cube contents have been ordered based on acceleration dimesion
    // so this kernel always reads in the same way.
@@ -498,7 +510,7 @@ __global__ void build_column_offsets(
    vmesh::LocalID* LIDlist = reinterpret_cast<vmesh::LocalID*>(dev_vbwcl_vec[cellOffset]->data());
    ColumnOffsets* columnData = dev_columnOffsetData + parallelOffsetIndex;
 
-   vmesh::LocalID* probeFlattened = reinterpret_cast<vmesh::LocalID*>(dev_blockDataOrdered[parallelOffsetIndex]);
+   vmesh::LocalID* probeFlattened = dev_probeCubeData + parallelOffsetIndex * gpu_probeStride;
    vmesh::LocalID* probeCube = probeFlattened + flatExtent*GPU_PROBEFLAT_N;
 
    // definition: potColumn is a potential column(set), i.e. a stack from the probe cube.
@@ -670,7 +682,7 @@ __global__ void __launch_bounds__(WID3) reorder_blocks_by_dimension_kernel(
    const uint parallelOffsetIndex = blockIdx.y;
    const uint cellOffset = parallelOffsetIndex + cumulativeOffset;
    // Early return if already dealt with all columns
-   if (iColumn >= dev_nColumns[cellOffset]) {
+   if (iColumn >= dev_nColumns[parallelOffsetIndex]) {
       return;
    }
    const vmesh::VelocityBlockContainer* __restrict__ blockContainer = blockContainers[cellOffset];
@@ -1242,7 +1254,9 @@ __host__ bool gpu_acc_map_1d(
 
        For reductions, each slice of the flattened array should have a size a multiple of 2*MAX_BLOCKSIZE:
    */
-   const size_t flatExtent = 2*Hashinator::defaults::MAX_BLOCKSIZE * (1 + ((Dother - 1) / (2*Hashinator::defaults::MAX_BLOCKSIZE)));
+   //const size_t flatExtent = 2*Hashinator::defaults::MAX_BLOCKSIZE * (1 + ((Dother - 1) / (2*Hashinator::defaults::MAX_BLOCKSIZE)));
+   // This is now pre-computed in gpu_base.cpp
+   const size_t flatExtent = gpu_probeFlattenedSize;
 
    /**
       For the gathered LIDlist, we re-use the allocation of spatial_cell->dev_velocity_block_with_content_list,
@@ -1256,13 +1270,11 @@ __host__ bool gpu_acc_map_1d(
       bailout(true, message, __FILE__, __LINE__);
    }
 
-   // Temporary: parallel for loop in here (number of entries is equal to omp threads for now)
    const uint nLaunchCells = launchCells.size();
-   const size_t n_grid_cube = 1 + ((Dother - 1) / Hashinator::defaults::MAX_BLOCKSIZE);
-   size_t largestSizePower=0;
-   size_t largestNBefore=0;
-   vmesh::LocalID largest_totalColumns=0;
-   vmesh::LocalID largest_totalColumnSets=0;
+   size_t largestSizePower = 0;
+   size_t largestNBefore = 0;
+   vmesh::LocalID largest_totalColumns = 0;
+   vmesh::LocalID largest_totalColumnSets = 0;
    vmesh::LocalID largest_nAfter = 0;
 
    for (size_t cellIndex = 0; cellIndex < nLaunchCells; cellIndex++) {
@@ -1271,14 +1283,6 @@ __host__ bool gpu_acc_map_1d(
       largestSizePower = std::max(largestSizePower, (size_t)SC->vbwcl_sizePower);
       largestSizePower = std::max(largestSizePower, (size_t)SC->vbwncl_sizePower);
       largestNBefore = std::max(largestNBefore, (size_t)SC->get_number_of_velocity_blocks(popID));
-      // probe cube and flattened version now re-use gpu_blockDataOrdered[cpuThreadID].
-      // Due to alignment, Flattened version is at start of buffer, followed by the cube.
-      vmesh::LocalID* probeFlattened = reinterpret_cast<vmesh::LocalID*>(host_blockDataOrdered[cellIndex]);
-      //probeCube = reinterpret_cast<vmesh::LocalID*>(host_blockDataOrdered[cpuThreadID]) + flatExtent*GPU_PROBEFLAT_N;
-
-      // Fill probe cube vmesh invalid LID values (in next kernel), flattened array with zeros (here)
-      CHK_ERR( gpuMemset(probeFlattened, 0, flatExtent*GPU_PROBEFLAT_N*sizeof(vmesh::LocalID)) );
-      // Could trial if doing the zero-memset of the flattened array below would be faster?
    }
    prepTimer.stop();
 
@@ -1286,21 +1290,34 @@ __host__ bool gpu_acc_map_1d(
    // Clear hash maps used to evaluate block updates
    clear_maps_caller(nLaunchCells,largestSizePower,0,cumulativeOffset);
 
-   const size_t n_fill_invalid = 1 + ((Dacc*Dother - 1) / Hashinator::defaults::MAX_BLOCKSIZE);
-   const dim3 grid_fill_invalid(n_fill_invalid,nLaunchCells,1);
-   fill_probe_invalid<<<grid_fill_invalid,Hashinator::defaults::MAX_BLOCKSIZE,0,baseStream>>>(
-      dev_vmeshes,
-      dev_blockDataOrdered, // recast to vmesh::LocalID *probeCube
+   gpu_calculateProbeAllocation(nLaunchCells);
+   gpuMemoryManager.startSession(0,0);
+   
+   SESSION_ALLOCATE(gpuMemoryManager, vmesh::LocalID, dev_probeCubeData, gpu_getAllocationCount()*gpu_probeStride*sizeof(vmesh::LocalID));
+
+   // probe cube and flattened version now re-use gpu_probeCubeData[cpuThreadID].
+   // Due to alignment, Flattened version is at start of buffer, followed by the cube.
+   // Required allocation sizes are calculated in gpu_base.cpp
+   // Solve launch grid
+   const size_t probeCombinedSize = gpu_probeFullSize + gpu_probeFlattenedSize * GPU_PROBEFLAT_N;
+   const size_t n_prefill = 1 + ((probeCombinedSize - 1) / Hashinator::defaults::MAX_BLOCKSIZE);
+   // This kernel fills the probe cube with invalid values and the flattened one with zeroes.
+   const dim3 grid_prefill_probe(n_prefill,nLaunchCells,1);
+   prefill_probe_kernel<<<grid_prefill_probe,Hashinator::defaults::MAX_BLOCKSIZE,0,baseStream>>>(
+      GET_POINTER(gpuMemoryManager, vmesh::VelocityMesh*, dev_vmeshes),
+      GET_SESSION_POINTER(gpuMemoryManager, vmesh::LocalID, dev_probeCubeData), // recast to vmesh::LocalID *probeCube
       flatExtent,
-      Dacc*Dother,
+      Dacc,
+      Dother,
       invalidLocalID,
       // Pass vectors for clearing
-      dev_lists_with_replace_new,
-      dev_lists_delete,
-      dev_lists_to_replace,
-      dev_lists_with_replace_old,
-      dev_vbwcl_vec, // dev_velocity_block_with_content_list, // Resize to use as LIDlist
-      cumulativeOffset
+      GET_POINTER(gpuMemoryManager, split::SplitVector<vmesh::GlobalID>*, dev_lists_with_replace_new),
+      GET_POINTER(gpuMemoryManager, SINGLE_ARG(split::SplitVector<Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>>*), dev_lists_delete),
+      GET_POINTER(gpuMemoryManager, SINGLE_ARG(split::SplitVector<Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>>*), dev_lists_to_replace),
+      GET_POINTER(gpuMemoryManager, SINGLE_ARG(split::SplitVector<Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>>*), dev_lists_with_replace_old),
+      GET_POINTER(gpuMemoryManager, split::SplitVector<vmesh::GlobalID>*, dev_vbwcl_vec), // dev_velocity_block_with_content_list, // Resize to use as LIDlist
+      cumulativeOffset,
+      gpu_probeStride
       );
    CHK_ERR( gpuPeekAtLastError() );
    CHK_ERR( gpuStreamSynchronize(baseStream) );
@@ -1312,11 +1329,12 @@ __host__ bool gpu_acc_map_1d(
    const size_t n_fill_ord = 1 + ((largestNBefore - 1) / Hashinator::defaults::MAX_BLOCKSIZE);
    const dim3 grid_fill_ord(n_fill_ord,nLaunchCells,1);
    fill_probe_ordered<<<grid_fill_ord,Hashinator::defaults::MAX_BLOCKSIZE,0,baseStream>>>(
-      dev_vmeshes,
-      dev_blockDataOrdered, // recast to vmesh::LocalID *probeCube
+      GET_POINTER(gpuMemoryManager, vmesh::VelocityMesh*, dev_vmeshes),
+      GET_SESSION_POINTER(gpuMemoryManager, vmesh::LocalID, dev_probeCubeData), // recast to vmesh::LocalID *probeCube
       flatExtent,
-      gpu_block_indices_to_probe,
-      cumulativeOffset
+      GET_POINTER(gpuMemoryManager, uint, gpu_block_indices_to_probe),
+      cumulativeOffset,
+      gpu_probeStride
       );
    CHK_ERR( gpuPeekAtLastError() );
    CHK_ERR( gpuStreamSynchronize(baseStream) );
@@ -1325,13 +1343,15 @@ __host__ bool gpu_acc_map_1d(
    // Now we perform reductions / flattenings / scans of the probe cube.
    // The kernel loops over the acceleration direction (Dacc).
    phiprof::Timer flattenTimer {"flatten probe cube"};
+   const size_t n_grid_cube = 1 + ((Dother - 1) / Hashinator::defaults::MAX_BLOCKSIZE);
    const dim3 grid_cube(n_grid_cube,nLaunchCells,1);
    flatten_probe_cube<<<grid_cube,Hashinator::defaults::MAX_BLOCKSIZE,0,baseStream>>>(
-      dev_blockDataOrdered, // recast to vmesh::LocalID *probeCube, *probeFlattened
+      GET_SESSION_POINTER(gpuMemoryManager, vmesh::LocalID, dev_probeCubeData), // recast to vmesh::LocalID *probeCube, *probeFlattened
       Dacc,
       Dother,
       flatExtent,
-      invalidLocalID
+      invalidLocalID,
+      gpu_probeStride
       );
    CHK_ERR( gpuPeekAtLastError() );
    CHK_ERR( gpuStreamSynchronize(baseStream) );
@@ -1347,42 +1367,45 @@ __host__ bool gpu_acc_map_1d(
      but here we do an iterative loop processing MAX_BLOCKSIZE elements at once.
      Not as efficient but simpler, and will be parallelized over spatial cells.
    */
+   SESSION_HOST_ALLOCATE(gpuMemoryManager, vmesh::LocalID, host_nColumns, nLaunchCells*sizeof(vmesh::LocalID));
+   SESSION_HOST_ALLOCATE(gpuMemoryManager, vmesh::LocalID, host_nColumnSets, nLaunchCells*sizeof(vmesh::LocalID));
+   SESSION_ALLOCATE(gpuMemoryManager, vmesh::LocalID, dev_nColumns, nLaunchCells*sizeof(vmesh::LocalID));
+   SESSION_ALLOCATE(gpuMemoryManager, vmesh::LocalID, dev_nColumnSets, nLaunchCells*sizeof(vmesh::LocalID));
+
    phiprof::Timer scanTimer {"scan probe cube"};
    const dim3 grid_scan(1,nLaunchCells,1);
    scan_probe<<<grid_scan,Hashinator::defaults::MAX_BLOCKSIZE,0,baseStream>>>(
-      dev_vmeshes,
-      dev_blockDataOrdered, // recast to vmesh::LocalID *probeFlattened
+      GET_POINTER(gpuMemoryManager, vmesh::VelocityMesh*, dev_vmeshes),
+      GET_SESSION_POINTER(gpuMemoryManager, vmesh::LocalID, dev_probeCubeData), // recast to vmesh::LocalID *probeFlattened
       Dacc,
       Dother,
       flatExtent,
-      dev_nColumns,
-      dev_nColumnSets,
-      dev_resizeSuccess,
-      dev_columnOffsetData,
-      cumulativeOffset
+      GET_SESSION_POINTER(gpuMemoryManager, vmesh::LocalID, dev_nColumns),
+      GET_SESSION_POINTER(gpuMemoryManager, vmesh::LocalID, dev_nColumnSets),
+      GET_POINTER(gpuMemoryManager, vmesh::LocalID, dev_resizeSuccess),
+      GET_POINTER(gpuMemoryManager, ColumnOffsets, dev_columnOffsetData),
+      cumulativeOffset,
+      gpu_probeStride
       );
    CHK_ERR( gpuPeekAtLastError() );
+
    // Copy back to host sizes of found columns etc
-   CHK_ERR( gpuMemcpyAsync(host_nColumns+cumulativeOffset, dev_nColumns+cumulativeOffset, nLaunchCells*sizeof(vmesh::LocalID), gpuMemcpyDeviceToHost, baseStream) );
-   CHK_ERR( gpuMemcpyAsync(host_nColumnSets+cumulativeOffset, dev_nColumnSets+cumulativeOffset, nLaunchCells*sizeof(vmesh::LocalID), gpuMemcpyDeviceToHost, baseStream) );
-   CHK_ERR( gpuMemcpyAsync(host_resizeSuccess+cumulativeOffset, dev_resizeSuccess+cumulativeOffset, nLaunchCells*sizeof(vmesh::LocalID), gpuMemcpyDeviceToHost, baseStream) );
+   CHK_ERR( gpuMemcpyAsync(GET_SESSION_HOST_POINTER(gpuMemoryManager, vmesh::LocalID, host_nColumns), GET_SESSION_POINTER(gpuMemoryManager, vmesh::LocalID, dev_nColumns), nLaunchCells*sizeof(vmesh::LocalID), gpuMemcpyDeviceToHost, baseStream) );
+   CHK_ERR( gpuMemcpyAsync(GET_SESSION_HOST_POINTER(gpuMemoryManager, vmesh::LocalID, host_nColumnSets), GET_SESSION_POINTER(gpuMemoryManager, vmesh::LocalID, dev_nColumnSets), nLaunchCells*sizeof(vmesh::LocalID), gpuMemcpyDeviceToHost, baseStream) );
+   CHK_ERR( gpuMemcpyAsync(GET_POINTER(gpuMemoryManager, vmesh::LocalID, host_resizeSuccess)+cumulativeOffset, GET_POINTER(gpuMemoryManager, vmesh::LocalID, dev_resizeSuccess)+cumulativeOffset, nLaunchCells*sizeof(vmesh::LocalID), gpuMemcpyDeviceToHost, baseStream) );
    CHK_ERR( gpuStreamSynchronize(baseStream) );
    scanTimer.stop();
 
    phiprof::Timer allocTimer {"ensure allocations"};
-   // Ensure allocations
-   #pragma omp parallel for
+   // Ensure allocations (faster without threading)
    for (size_t cellIndex = 0; cellIndex < nLaunchCells; cellIndex++) {
       uint cellOffset = cellIndex + cumulativeOffset;
       // Read count of columns and columnsets, calculate required size of buffers
-      vmesh::LocalID host_totalColumns = host_nColumns[cellOffset];
-      vmesh::LocalID host_totalColumnSets = host_nColumnSets[cellOffset];
-      vmesh::LocalID host_recapacitateVectors = host_resizeSuccess[cellOffset]; // resize of columnData vectors
-      #pragma omp critical
-      {
-         largest_totalColumns = std::max(largest_totalColumns,host_totalColumns);
-         largest_totalColumnSets = std::max(largest_totalColumnSets,host_totalColumnSets);
-      }
+      vmesh::LocalID host_totalColumns = (GET_SESSION_HOST_POINTER(gpuMemoryManager, vmesh::LocalID, host_nColumns))[cellIndex];
+      vmesh::LocalID host_totalColumnSets = (GET_SESSION_HOST_POINTER(gpuMemoryManager, vmesh::LocalID, host_nColumnSets))[cellIndex];
+      vmesh::LocalID host_recapacitateVectors = (GET_POINTER(gpuMemoryManager, vmesh::LocalID, host_resizeSuccess))[cellOffset]; // resize of columnData vectors
+      largest_totalColumns = std::max(largest_totalColumns,host_totalColumns);
+      largest_totalColumnSets = std::max(largest_totalColumnSets,host_totalColumnSets);
       if (host_recapacitateVectors) {
          // Can't call CPU reallocation directly as then copies go out of sync.
          // This function updates both CPU and GPU copies correctly.
@@ -1395,78 +1418,100 @@ __host__ bool gpu_acc_map_1d(
    // now launch a kernel which constructs the columns offsets in parallel.
    phiprof::Timer columnsTimer {"build columns"};
    build_column_offsets<<<grid_cube,Hashinator::defaults::MAX_BLOCKSIZE,0,baseStream>>>(
-      dev_vmeshes,
-      dev_blockDataOrdered, // recast to vmesh::LocalID *probeCube, *probeFlattened
+      GET_POINTER(gpuMemoryManager, vmesh::VelocityMesh*, dev_vmeshes),
+      GET_SESSION_POINTER(gpuMemoryManager, vmesh::LocalID, dev_probeCubeData), // recast to vmesh::LocalID *probeCube, *probeFlattened
       D0,D1,D2,
       dimension,
       flatExtent,
       invalidLocalID,
-      dev_columnOffsetData,
-      dev_vbwcl_vec, //dev_velocity_block_with_content_list, // use as LIDlist
-      cumulativeOffset
+      GET_POINTER(gpuMemoryManager, ColumnOffsets, dev_columnOffsetData),
+      GET_POINTER(gpuMemoryManager, split::SplitVector<vmesh::GlobalID>*, dev_vbwcl_vec), //dev_velocity_block_with_content_list, // use as LIDlist
+      cumulativeOffset,
+      gpu_probeStride
       );
    CHK_ERR( gpuPeekAtLastError() );
    CHK_ERR( gpuStreamSynchronize(baseStream) );
    columnsTimer.stop();
+
+   phiprof::Timer allocTimer2 {"ensure vlasov allocations"};
+   // Ensure allocations
+   for (size_t cellIndex = 0; cellIndex < nLaunchCells; cellIndex++) {
+      uint cellOffset = cellIndex + cumulativeOffset;
+      // Read count of columns and columnsets, calculate required size of buffers
+      vmesh::LocalID host_totalColumns = (GET_SESSION_HOST_POINTER(gpuMemoryManager, vmesh::LocalID, host_nColumns))[cellIndex];
+
+      const CellID cid = launchCells[cellIndex];
+      SpatialCell *SC = mpiGrid[cid];
+      const vmesh::VelocityMesh *thisVmesh = SC->get_velocity_mesh(popID);
+      const vmesh::LocalID nBlocks = thisVmesh->size();
+      gpu_vlasov_allocate_perthread(cellIndex, 2*host_totalColumns+nBlocks);
+   } // end parallel region
+
+   CHK_ERR( gpuMemcpy(GET_POINTER(gpuMemoryManager, Realf*, dev_blockDataOrdered), GET_POINTER(gpuMemoryManager, Realf*, host_blockDataOrdered), gpu_getAllocationCount()*sizeof(Realf*), gpuMemcpyHostToDevice) );
+   
+   allocTimer2.stop();
+
 
    // Launch kernels for transposing and ordering velocity space data into columns
    phiprof::Timer reorderTimer {"reorder blocks"};
    const dim3 grid_reorder(largest_totalColumns,nLaunchCells,1);
    const dim3 block_reorder(WID,WID,WID);
    reorder_blocks_by_dimension_kernel<<<grid_reorder, block_reorder, 0, baseStream>>> (
-      dev_VBCs,
-      dev_blockDataOrdered,
-      gpu_cell_indices_to_id,
-      dev_vbwcl_vec, //dev_velocity_block_with_content_list, // use as LIDlist
-      dev_columnOffsetData,
-      dev_nColumns,
+      GET_POINTER(gpuMemoryManager, vmesh::VelocityBlockContainer*, dev_VBCs),
+      GET_POINTER(gpuMemoryManager, Realf*, dev_blockDataOrdered),
+      GET_POINTER(gpuMemoryManager, uint, gpu_cell_indices_to_id),
+      GET_POINTER(gpuMemoryManager, split::SplitVector<vmesh::GlobalID>*, dev_vbwcl_vec), //dev_velocity_block_with_content_list, // use as LIDlist
+      GET_POINTER(gpuMemoryManager, ColumnOffsets, dev_columnOffsetData),
+      GET_SESSION_POINTER(gpuMemoryManager, vmesh::LocalID, dev_nColumns),
       cumulativeOffset
       );
    CHK_ERR( gpuPeekAtLastError() );
    CHK_ERR( gpuStreamSynchronize(baseStream) );
    reorderTimer.stop();
 
+   gpuMemoryManager.endSession();
+
    phiprof::Timer extentsTimer {"column extents"};
    // Reset counters used for verifying sufficient vector capacities and not overflowing v-space
-   CHK_ERR( gpuMemset(dev_resizeSuccess+cumulativeOffset, 0, nLaunchCells*sizeof(vmesh::LocalID)) );
-   CHK_ERR( gpuMemset(dev_overflownElements+cumulativeOffset, 0, nLaunchCells*sizeof(vmesh::LocalID)) );
+   CHK_ERR( gpuMemset(GET_POINTER(gpuMemoryManager, vmesh::LocalID, dev_resizeSuccess)+cumulativeOffset, 0, nLaunchCells*sizeof(vmesh::LocalID)) );
+   CHK_ERR( gpuMemset(GET_POINTER(gpuMemoryManager, vmesh::LocalID, dev_overflownElements)+cumulativeOffset, 0, nLaunchCells*sizeof(vmesh::LocalID)) );
 
    // Calculate target column extents
    const dim3 grid_column_extents(largest_totalColumnSets,nLaunchCells,1);
    evaluate_column_extents_kernel<<<grid_column_extents, GPUTHREADS, 0, baseStream>>> (
       dimension,
-      dev_vmeshes,
-      dev_columnOffsetData,
-      dev_lists_with_replace_new,
-      dev_allMaps,
-      gpu_block_indices_to_id,
-      dev_intersections,
+      GET_POINTER(gpuMemoryManager, vmesh::VelocityMesh*, dev_vmeshes),
+      GET_POINTER(gpuMemoryManager, ColumnOffsets, dev_columnOffsetData),
+      GET_POINTER(gpuMemoryManager, split::SplitVector<vmesh::GlobalID>*, dev_lists_with_replace_new),
+      GET_POINTER(gpuMemoryManager, SINGLE_ARG(Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>*), dev_allMaps),
+      GET_POINTER(gpuMemoryManager, uint, gpu_block_indices_to_id),
+      GET_POINTER(gpuMemoryManager, Realf, dev_intersections),
       Parameters::bailout_velocity_space_wall_margin,
       max_v_length,
       v_min,
       dv,
-      dev_resizeSuccess, // bailout flag: splitvector list_with_replace_new capacity error
-      dev_overflownElements, // bailout flag: touching velspace wall
+      GET_POINTER(gpuMemoryManager, vmesh::LocalID, dev_resizeSuccess), // bailout flag: splitvector list_with_replace_new capacity error
+      GET_POINTER(gpuMemoryManager, vmesh::LocalID, dev_overflownElements), // bailout flag: touching velspace wall
       cumulativeOffset
       );
    CHK_ERR( gpuPeekAtLastError() );
    // Check whether we exceeded the column data splitVectors on the way or if we need to bailout due to hitting v-space edge
-   CHK_ERR( gpuMemcpyAsync(host_resizeSuccess+cumulativeOffset, dev_resizeSuccess+cumulativeOffset, nLaunchCells*sizeof(vmesh::LocalID), gpuMemcpyDeviceToHost, baseStream) );
-   CHK_ERR( gpuMemcpyAsync(host_overflownElements+cumulativeOffset, dev_overflownElements+cumulativeOffset, nLaunchCells*sizeof(vmesh::LocalID), gpuMemcpyDeviceToHost, baseStream) );
+   CHK_ERR( gpuMemcpyAsync(GET_POINTER(gpuMemoryManager, vmesh::LocalID, host_resizeSuccess)+cumulativeOffset, GET_POINTER(gpuMemoryManager, vmesh::LocalID, dev_resizeSuccess)+cumulativeOffset, nLaunchCells*sizeof(vmesh::LocalID), gpuMemcpyDeviceToHost, baseStream) );
+   CHK_ERR( gpuMemcpyAsync(GET_POINTER(gpuMemoryManager, vmesh::LocalID, host_overflownElements)+cumulativeOffset, GET_POINTER(gpuMemoryManager, vmesh::LocalID, dev_overflownElements)+cumulativeOffset, nLaunchCells*sizeof(vmesh::LocalID), gpuMemcpyDeviceToHost, baseStream) );
    CHK_ERR( gpuStreamSynchronize(baseStream) );
    extentsTimer.stop();
 
    phiprof::Timer extents2Timer {"column extents 2"};
    bool needSecondLaunchColumnExtents = false;
-   #pragma omp parallel for schedule(static)
+   // Faster without threading
    for (size_t cellIndex = 0; cellIndex < nLaunchCells; cellIndex++) {
       SpatialCell* SC = mpiGrid[launchCells[cellIndex]];
       const uint cellOffset = cellIndex + cumulativeOffset;
-      if (host_resizeSuccess[cellOffset] != 0) {
+      if ((GET_POINTER(gpuMemoryManager, vmesh::LocalID, host_resizeSuccess))[cellOffset] != 0) {
          needSecondLaunchColumnExtents = true;
          // counter indicates how many vector additions failed due to out-of-capacity.
          // Recapacitate with added safety factor and gather extents again.
-         size_t newCapacity = (size_t)((SC->getReservation(popID)+host_resizeSuccess[cellOffset])*BLOCK_ALLOCATION_FACTOR);
+         size_t newCapacity = (size_t)((SC->getReservation(popID)+(GET_POINTER(gpuMemoryManager, vmesh::LocalID, host_resizeSuccess))[cellOffset])*BLOCK_ALLOCATION_FACTOR);
          SC->setReservation(popID, newCapacity);
          SC->applyReservation(popID);
          // Clear the vector which receives push_backs. The maps do not need to be cleared.
@@ -1475,41 +1520,42 @@ __host__ bool gpu_acc_map_1d(
    } // end parallel for
 
    if (needSecondLaunchColumnExtents) {
-      // Reset counters.
-      CHK_ERR( gpuMemsetAsync(dev_resizeSuccess+cumulativeOffset, 0, nLaunchCells*sizeof(vmesh::LocalID), baseStream) );
-      CHK_ERR( gpuMemsetAsync(dev_overflownElements+cumulativeOffset, 0, nLaunchCells*sizeof(vmesh::LocalID), baseStream) );
+      // Reset counters, upload new pointers to splitvectors
+      CHK_ERR( gpuMemsetAsync(GET_POINTER(gpuMemoryManager, vmesh::LocalID, dev_resizeSuccess)+cumulativeOffset, 0, nLaunchCells*sizeof(vmesh::LocalID), baseStream) );
+      CHK_ERR( gpuMemsetAsync(GET_POINTER(gpuMemoryManager, vmesh::LocalID, dev_overflownElements)+cumulativeOffset, 0, nLaunchCells*sizeof(vmesh::LocalID), baseStream) );
+      // Think this might not be actually needed, but let's play safe
+      CHK_ERR( gpuMemcpyAsync(GET_POINTER(gpuMemoryManager, split::SplitVector<vmesh::GlobalID>*, dev_lists_with_replace_new)+cumulativeOffset, GET_POINTER(gpuMemoryManager, split::SplitVector<vmesh::GlobalID>*, host_lists_with_replace_new)+cumulativeOffset, nLaunchCells*sizeof(split::SplitVector<vmesh::GlobalID>*), gpuMemcpyHostToDevice, baseStream) );
       // Launch kernel a second time (now capacity should be sufficient)
       evaluate_column_extents_kernel<<<grid_column_extents, GPUTHREADS, 0, baseStream>>> (
          dimension,
-         dev_vmeshes,
-         dev_columnOffsetData,
-         dev_lists_with_replace_new,
-         dev_allMaps,
-         gpu_block_indices_to_id,
-         dev_intersections,
+         GET_POINTER(gpuMemoryManager, vmesh::VelocityMesh*, dev_vmeshes),
+         GET_POINTER(gpuMemoryManager, ColumnOffsets, dev_columnOffsetData),
+         GET_POINTER(gpuMemoryManager, split::SplitVector<vmesh::GlobalID>*, dev_lists_with_replace_new),
+         GET_POINTER(gpuMemoryManager, SINGLE_ARG(Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>*), dev_allMaps),
+         GET_POINTER(gpuMemoryManager, uint, gpu_block_indices_to_id),
+         GET_POINTER(gpuMemoryManager, Realf, dev_intersections),
          Parameters::bailout_velocity_space_wall_margin,
          max_v_length,
          v_min,
          dv,
-         dev_resizeSuccess, // bailout flag: splitvector list_with_replace_new capacity error
-         dev_overflownElements, // bailout flag: touching velspace wall
+         GET_POINTER(gpuMemoryManager, vmesh::LocalID, dev_resizeSuccess), // bailout flag: splitvector list_with_replace_new capacity error
+         GET_POINTER(gpuMemoryManager, vmesh::LocalID, dev_overflownElements), // bailout flag: touching velspace wall
          cumulativeOffset
          );
       CHK_ERR( gpuPeekAtLastError() );
       // Check whether we exceeded the column data splitVectors on the way and ensure capacity was now sufficient.
-      CHK_ERR( gpuMemcpyAsync(host_resizeSuccess+cumulativeOffset, dev_resizeSuccess+cumulativeOffset, nLaunchCells*sizeof(vmesh::LocalID), gpuMemcpyDeviceToHost, baseStream) );
-      CHK_ERR( gpuMemcpyAsync(host_overflownElements+cumulativeOffset, dev_overflownElements+cumulativeOffset, nLaunchCells*sizeof(vmesh::LocalID), gpuMemcpyDeviceToHost, baseStream) );
+      CHK_ERR( gpuMemcpyAsync(GET_POINTER(gpuMemoryManager, vmesh::LocalID, host_resizeSuccess)+cumulativeOffset, GET_POINTER(gpuMemoryManager, vmesh::LocalID, dev_resizeSuccess)+cumulativeOffset, nLaunchCells*sizeof(vmesh::LocalID), gpuMemcpyDeviceToHost, baseStream) );
+      CHK_ERR( gpuMemcpyAsync(GET_POINTER(gpuMemoryManager, vmesh::LocalID, host_overflownElements)+cumulativeOffset, GET_POINTER(gpuMemoryManager, vmesh::LocalID, dev_overflownElements)+cumulativeOffset, nLaunchCells*sizeof(vmesh::LocalID), gpuMemcpyDeviceToHost, baseStream) );
       CHK_ERR( gpuStreamSynchronize(baseStream) );
    }
    extents2Timer.stop();
 
-   // Bailout checks
-   #pragma omp parallel for schedule(static)
+   // Bailout checks (faster without threading)
    for (size_t cellIndex = 0; cellIndex < nLaunchCells; cellIndex++) {
       SpatialCell* SC = mpiGrid[launchCells[cellIndex]];
       const uint cellOffset = cellIndex + cumulativeOffset;
       // Check if we need to bailout due to hitting v-space edge
-      if (host_overflownElements[cellOffset] != 0) { //host_wallspace_margin_bailout_flag
+      if ((GET_POINTER(gpuMemoryManager, vmesh::LocalID, host_overflownElements))[cellOffset] != 0) { //host_wallspace_margin_bailout_flag
          string message = "Some target blocks in acceleration are going to be less than ";
          message += std::to_string(Parameters::bailout_velocity_space_wall_margin);
          message += " blocks away from the current velocity space walls for population ";
@@ -1520,7 +1566,7 @@ __host__ bool gpu_acc_map_1d(
          bailout(true, message, __FILE__, __LINE__);
       }
       // Also bail out if recapacitation was insufficient.
-      if (host_resizeSuccess[cellOffset] != 0) {
+      if ((GET_POINTER(gpuMemoryManager, vmesh::LocalID, host_resizeSuccess))[cellOffset] != 0) {
          string message = "Recapacitation of added velocity blocks vector for population ";
          message += " blocks away from the current velocity space walls for population ";
          message += getObjectWrapper().particleSpecies[popID].name;
@@ -1539,34 +1585,34 @@ __host__ bool gpu_acc_map_1d(
    // TODO: Launch these three extracts in parallel from different streams?
    // Finds Blocks (GID,LID) to be rescued from end of v-space
    extract_to_delete_or_move_caller(
-      dev_allMaps+2*cumulativeOffset, //dev_has_content_maps, // input maps
-      dev_lists_with_replace_old+cumulativeOffset, // output vecs
+      GET_POINTER(gpuMemoryManager, SINGLE_ARG(Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>*), dev_allMaps)+2*cumulativeOffset, //dev_has_content_maps, // input maps
+      GET_POINTER(gpuMemoryManager, SINGLE_ARG(split::SplitVector<Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>>*), dev_lists_with_replace_old)+cumulativeOffset, // output vecs
       NULL, // pass null to not store vector lengths
-      dev_vmeshes+cumulativeOffset, // rule_meshes
-      dev_allMaps+2*cumulativeOffset+1, //dev_has_no_content_maps// rule_maps
-      dev_lists_with_replace_new+cumulativeOffset, // rule_vectors
+      GET_POINTER(gpuMemoryManager, vmesh::VelocityMesh*, dev_vmeshes)+cumulativeOffset, // rule_meshes
+      GET_POINTER(gpuMemoryManager, SINGLE_ARG(Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>*), dev_allMaps)+2*cumulativeOffset+1, //dev_has_no_content_maps// rule_maps
+      GET_POINTER(gpuMemoryManager, split::SplitVector<vmesh::GlobalID>*, dev_lists_with_replace_new)+cumulativeOffset, // rule_vectors
       nLaunchCells,
       baseStream
       );
    // Find Blocks (GID,LID) to be outright deleted
    extract_to_delete_or_move_caller(
-      dev_allMaps+2*cumulativeOffset+1,//dev_has_no_content_maps, // input maps
-      dev_lists_delete+cumulativeOffset, // output vecs
+      GET_POINTER(gpuMemoryManager, SINGLE_ARG(Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>*), dev_allMaps)+2*cumulativeOffset+1,//dev_has_no_content_maps, // input maps
+      GET_POINTER(gpuMemoryManager, SINGLE_ARG(split::SplitVector<Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>>*), dev_lists_delete)+cumulativeOffset, // output vecs
       NULL, // pass null to not store vector lengths
-      dev_vmeshes+cumulativeOffset, // rule_meshes
-      dev_allMaps+2*cumulativeOffset+1, //dev_has_no_content_maps, // rule_maps
-      dev_lists_with_replace_new+cumulativeOffset, // rule_vectors
+      GET_POINTER(gpuMemoryManager, vmesh::VelocityMesh*, dev_vmeshes)+cumulativeOffset, // rule_meshes
+      GET_POINTER(gpuMemoryManager, SINGLE_ARG(Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>*), dev_allMaps)+2*cumulativeOffset+1, //dev_has_no_content_maps, // rule_maps
+      GET_POINTER(gpuMemoryManager, split::SplitVector<vmesh::GlobalID>*, dev_lists_with_replace_new)+cumulativeOffset, // rule_vectors
       nLaunchCells,
       baseStream
       );
    // Find Blocks (GID,LID) to be replaced with new ones
    extract_to_replace_caller(
-      dev_allMaps+2*cumulativeOffset+1,//dev_has_no_content_maps, // input maps
-      dev_lists_to_replace+cumulativeOffset, // output vecs
+      GET_POINTER(gpuMemoryManager, SINGLE_ARG(Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>*), dev_allMaps)+2*cumulativeOffset+1,//dev_has_no_content_maps, // input maps
+      GET_POINTER(gpuMemoryManager, SINGLE_ARG(split::SplitVector<Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>>*), dev_lists_to_replace)+cumulativeOffset, // output vecs
       NULL, // pass null to not store vector lengths
-      dev_vmeshes+cumulativeOffset, // rule_meshes
-      dev_allMaps+2*cumulativeOffset+1,//dev_has_no_content_maps, // rule_maps
-      dev_lists_with_replace_new+cumulativeOffset, // rule_vectors
+      GET_POINTER(gpuMemoryManager, vmesh::VelocityMesh*, dev_vmeshes)+cumulativeOffset, // rule_meshes
+      GET_POINTER(gpuMemoryManager, SINGLE_ARG(Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>*), dev_allMaps)+2*cumulativeOffset+1,//dev_has_no_content_maps, // rule_maps
+      GET_POINTER(gpuMemoryManager, split::SplitVector<vmesh::GlobalID>*, dev_lists_with_replace_new)+cumulativeOffset, // rule_vectors
       nLaunchCells,
       baseStream
       );
@@ -1593,17 +1639,13 @@ __host__ bool gpu_acc_map_1d(
 
    // Track of largest vmesh size, evaluate launch parameters for zeroing kernel
    phiprof::Timer alloc2Timer {"ensure allocations 2"};
-   #pragma omp parallel for schedule(static)
    for (size_t cellIndex = 0; cellIndex < nLaunchCells; cellIndex++) {
       SpatialCell* SC = mpiGrid[launchCells[cellIndex]];
       const uint cellOffset = cellIndex + cumulativeOffset;
       // The function batch_adjust_blocks_caller updates host_nAfter
-      const vmesh::LocalID nBlocksAfterAdjust = host_nAfter[cellOffset];
+      const vmesh::LocalID nBlocksAfterAdjust = (GET_POINTER(gpuMemoryManager, vmesh::LocalID, host_nAfter))[cellOffset];
       SC->largestvmesh = SC->largestvmesh > nBlocksAfterAdjust ? SC->largestvmesh : nBlocksAfterAdjust;
-      #pragma omp critical
-      {
-         largest_nAfter = std::max(largest_nAfter,nBlocksAfterAdjust);
-      }
+      largest_nAfter = std::max(largest_nAfter,nBlocksAfterAdjust);
    } // end parallel region
    alloc2Timer.stop();
 
@@ -1616,7 +1658,7 @@ __host__ bool gpu_acc_map_1d(
    const size_t n_fill_VBC_zero = 1 + ((largest_nAfter*WID3 - 1) / Hashinator::defaults::MAX_BLOCKSIZE);
    const dim3 grid_fill_VBC_zero(n_fill_VBC_zero,nLaunchCells,1);
    fill_VBC_zero_kernel<<<grid_fill_VBC_zero,Hashinator::defaults::MAX_BLOCKSIZE,0,baseStream>>>(
-      dev_VBCs, // indexing: cellOffset
+      GET_POINTER(gpuMemoryManager, vmesh::VelocityBlockContainer*, dev_VBCs), // indexing: cellOffset
       cumulativeOffset
       );
    CHK_ERR( gpuPeekAtLastError() );
@@ -1628,17 +1670,17 @@ __host__ bool gpu_acc_map_1d(
    const dim3 grid_acc(largest_totalColumnSets,nLaunchCells,1);
    const dim3 block_acc(WID,WID,WID); // Calculates a whole block at a time
    acceleration_kernel<<<grid_acc, block_acc, 0, baseStream>>> (
-      dev_vmeshes, // indexing: cellOffset
-      dev_VBCs, // indexing: cellOffset
-      dev_blockDataOrdered, //indexing: blockIdx.y
-      gpu_cell_indices_to_id,
-      gpu_block_indices_to_id,
-      dev_columnOffsetData, //indexing: blockIdx.y
-      dev_intersections, // indexing: cellOffset
+      GET_POINTER(gpuMemoryManager, vmesh::VelocityMesh*, dev_vmeshes), // indexing: cellOffset
+      GET_POINTER(gpuMemoryManager, vmesh::VelocityBlockContainer*, dev_VBCs), // indexing: cellOffset
+      GET_POINTER(gpuMemoryManager, Realf*, dev_blockDataOrdered), //indexing: blockIdx.y
+      GET_POINTER(gpuMemoryManager, uint, gpu_cell_indices_to_id),
+      GET_POINTER(gpuMemoryManager, uint, gpu_block_indices_to_id),
+      GET_POINTER(gpuMemoryManager, ColumnOffsets, dev_columnOffsetData), //indexing: blockIdx.y
+      GET_POINTER(gpuMemoryManager, Realf, dev_intersections), // indexing: cellOffset
       v_min,
       i_dv,
       dv,
-      dev_minValues, // indexing: cellOffset, used by slope limiters
+      GET_POINTER(gpuMemoryManager, Real, dev_minValues), // indexing: cellOffset, used by slope limiters
       invalidLocalID,
       cumulativeOffset
       );

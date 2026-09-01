@@ -1,3 +1,8 @@
+# Print a friendly banner
+$(shell echo "=[Thank you for]=================================" 1>&2)
+$(shell echo "4pSP4pSTIOKVuyDilbvilbvilbsgIOKVuuKUs+KUk+KVu+KUj+KUk+KVu+KUj+KUgeKVuCAgIOKVuyDilbvilbsgIOKUj+KUgeKUk+KUj+KUgeKUk+KVu+KUj+KUgeKUk+KVuuKUs+KVuOKUj+KUgeKUk+KUj+KUgeKUk+KVuwrilKPilLvilJPilIMg4pSD4pSD4pSDICAg4pSD4pSD4pSD4pSD4pSX4pSr4pSD4pW64pSTICAg4pSD4pSP4pSb4pSDICDilKPilIHilKvilJfilIHilJPilIPilKPilIHilKsg4pSDIOKUgyDilIPilKPilLPilJvilbkK4pSX4pSB4pSb4pSX4pSB4pSb4pW54pSX4pSB4pW44pW64pS74pSb4pW54pW5IOKVueKUl+KUgeKUmyAgIOKUl+KUmyDilJfilIHilbjilbkg4pW54pSX4pSB4pSb4pW54pW5IOKVuSDilbkg4pSX4pSB4pSb4pW54pSX4pW44pW5Cg==" | base64 -d 1>&2)
+$(shell echo "============[recommended by 9 out of 10 doctors]=\n" 1>&2)
+
 #set default architecture, can be overridden from the compile line
 ARCH = ${VLASIATOR_ARCH}
 
@@ -125,6 +130,11 @@ ifeq ($(USE_HIP),1)
 	INC_VECTORCLASS =
 endif
 
+#Update GPU memeory pointer list
+ifeq ($(USE_GPU),1)
+$(shell ./updateGpuMemoryPointerList.sh 1>&2)
+endif
+
 #GPU specs
 ifeq ($(USE_GPU),1)
 	ifdef THREADS_PER_MP
@@ -189,6 +199,9 @@ LIBS += ${LIB_PROFILE}
 LIBS += ${LIB_VLSV}
 LIBS += ${LIB_JEMALLOC}
 LIBS += ${LIB_PAPI}
+LIBS += ${LIB_OCTREE_COMPRESSOR}
+LIBS += ${LIB_ZFP}
+LIBS += ${LIB_NN_COMPRESSOR}
 
 # Define common dependencies
 DEPS_COMMON = common.h common.cpp definitions.h mpiconversion.h logger.h object_wrapper.h
@@ -198,7 +211,8 @@ DEPS_COMMON = common.h common.cpp definitions.h mpiconversion.h logger.h object_
 OBJS = 	version.o memoryallocation.o memory_report.o backgroundfield.o quadr.o dipole.o linedipole.o vectordipole.o constantfield.o integratefunction.o \
 	datareducer.o datareductionoperator.o dro_populations.o \
 	donotcompute.o ionosphere.o copysphere.o outflow.o inflow.o setmaxwellian.o\
-	fieldtracing.o arch_moments.o \
+	compression_tools.o\
+	fieldtracing.o compression.o arch_moments.o \
 	sysboundary.o sysboundarycondition.o particle_species.o\
 	project.o projectTriAxisSearch.o read_gaussian_population.o\
 	Alfven.o Diffusion.o Dispersion.o Distributions.o Firehose.o\
@@ -297,7 +311,7 @@ endif
 # for all files in the main source dir
 %.o: %.cpp
 	@echo [CC] $<
-	$(SILENT)$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -c $< $(INC_BOOST) ${INC_DCCRG} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_VECTORCLASS} ${INC_FSGRID} ${INC_PROFILE} ${INC_VLSV} ${INC_PAPI} ${INC_MPI}
+	$(SILENT)$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -c $< $(INC_BOOST) ${INC_DCCRG} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_VECTORCLASS} ${INC_FSGRID} ${INC_PROFILE} ${INC_VLSV} ${INC_PAPI} ${INC_MPI} ${INC_ZFP} ${INC_OCTREE_COMPRESSOR} ${INC_NN_COMPRESSOR}
 
 # for all files in the arch/ dir
 %.o: arch/%.cpp
@@ -343,7 +357,12 @@ endif
 # for all files in the fieldsolver/ dir
 %.o: fieldsolver/%.cpp ${DEPS_FSOLVER}
 	@echo [CC] $<
-	$(SILENT)${CMP} ${CXXFLAGS} ${MATHFLAGS} ${FLAGS} -c $< -I$(CURDIR)  ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG} ${INC_FSGRID} ${INC_PROFILE} ${INC_ZOLTAN} ${INC_VECTORCLASS}
+	$(SILENT)${CMP} ${CXXFLAGS} ${FLAGS} -c $< -I$(CURDIR)  ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG} ${INC_FSGRID} ${INC_PROFILE} ${INC_ZOLTAN} ${INC_VECTORCLASS}
+	
+# for all files in the vdf_compression/ dir
+%.o: vdf_compression/%.cpp
+	@echo [CC] $<
+	$(SILENT)${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c $< ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_NN_COMPRESSOR} ${INC_ZOLTAN} ${INC_EIGEN} ${INC_ZFP} ${INC_OCTREE_COMPRESSOR}
 
 # Make executable
 vlasiator: $(OBJS) $(OBJS_FSOLVER)

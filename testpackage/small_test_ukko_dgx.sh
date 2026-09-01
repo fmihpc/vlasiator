@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH -t 02:00:00        # Run time (hh:mm:ss)
 #SBATCH --job-name=TP_ukko_dgx
-#SBATCH -M ukko
 #SBATCH -p gpu
 #SBATCH --constraint=v100
+#SBATCH --gres="gpu:V100"
 #SBATCH -G 1
 #SBATCH --cpus-per-task 10                 # CPU cores per task
 #SBATCH --hint=nomultithread
@@ -16,7 +16,7 @@
 create_verification_files=0
 
 # folder for all reference data
-reference_dir="/proj/group/spacephysics/vlasiator_testpackage/"
+reference_dir="/turso/group/spacephysics/vlasiator/testpackage/"
 cd $SLURM_SUBMIT_DIR
 
 #compare agains which revision
@@ -24,11 +24,11 @@ cd $SLURM_SUBMIT_DIR
 reference_revision="current"
 
 bin="/proj/USERNAME/BINARYNAME"
-diffbin="/proj/group/spacephysics/vlasiator_testpackage/vlsvdiff_DP_ukkogpu"
+diffbin="/turso/group/spacephysics/vlasiator/testpackage/vlsvdiff_DP_ukkogpu"
 
 export UCX_NET_DEVICES=eth0
 ulimit -c unlimited
-module purge;  ml OpenMPI/4.1.6.withucx-GCC-13.2.0 PAPI/7.1.0-GCCcore-13.2.0 CUDA/12.6.0
+source ../modules/ukko_dgx.sh
 
 nodes=$SLURM_NNODES
 t=$SLURM_CPUS_PER_TASK # used by TP script
@@ -65,5 +65,5 @@ source test_definitions_small.sh
 wait
 # Run tests
 source run_tests.sh
-wait 
+wait
 

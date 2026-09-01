@@ -86,6 +86,7 @@
 #define gpuMemcpyDeviceToHost            cudaMemcpyDeviceToHost
 #define gpuMemcpyHostToDevice            cudaMemcpyHostToDevice
 #define gpuMemcpyDeviceToDevice          cudaMemcpyDeviceToDevice
+#define gpuMemcpyHostToHost              cudaMemcpyHostToHost
 #define gpuMemcpyToSymbol                cudaMemcpyToSymbol
 
 #define gpuKernelBallot(mask, input)     __ballot_sync(mask, input)

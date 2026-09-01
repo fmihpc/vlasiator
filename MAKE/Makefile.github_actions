@@ -45,16 +45,16 @@ CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 #                         mpi.h in c++ on Cray
 
 FLAGS =
-CXXFLAGS += -I ${GITHUB_WORKSPACE}/libraries/include -L ${GITHUB_WORKSPACE}/libraries/lib -march=native -O3 -std=c++20 -fopenmp -Wall -Wno-unused -fabi-version=0 -mavx -g -Wno-cast-function-type
+CXXFLAGS += -I ${GITHUB_WORKSPACE}/libraries-docker/include -L ${GITHUB_WORKSPACE}/libraries-docker/lib -march=native -O3 -std=c++20 -fopenmp -Wall -Wno-unused -fabi-version=0 -mavx -g -Wno-cast-function-type
 MATHFLAGS = # -ffast-math -fno-finite-math-only
 testpackage: MATHFLAGS = # -fno-unsafe-math-optimizations
-LDFLAGS = -L ${GITHUB_WORKSPACE}/libraries/lib -Wl,-rpath=${GITHUB_WORKSPACE}/libraries/lib -g
+LDFLAGS = -L ${GITHUB_WORKSPACE}/libraries-docker/lib -Wl,-rpath=${GITHUB_WORKSPACE}/libraries-docker/lib -g
 LIB_MPI = -lgomp 
 
 
 #======== Libraries ===========
 
-LIBRARY_PREFIX = ${GITHUB_WORKSPACE}/libraries
+LIBRARY_PREFIX = ${GITHUB_WORKSPACE}/libraries-docker
 
 INC_BOOST =
 LIB_BOOST = -lboost_program_options
@@ -65,18 +65,18 @@ LIB_JEMALLOC = $(LIBRARY_PREFIX)/lib/libjemalloc.a
 INC_ZOLTAN =
 LIB_ZOLTAN = -lzoltan
 
-INC_VLSV = -I $(LIBRARY_PREFIX)/include
-LIB_VLSV = -L $(LIBRARY_PREFIX)/lib -lvlsv
-
 INC_SILO =
 LIB_SILO = -lsiloh5
 
 INC_PAPI =
 LIB_PAPI = -lpapi
 
-LIB_PROFILE = -I $(LIBRARY_PREFIX)/include ${GITHUB_WORKSPACE}/libraries/lib/libphiprof.a
-INC_PROFILE =
-INC_TOPO =
+LIB_PROFILE = -I$(LIBRARY_PREFIX)/include $(LIBRARY_PREFIX)/lib/libphiprof.a
+INC_PROFILE = 
+
+INC_VLSV = -I$(LIBRARY_PREFIX)/include
+LIB_VLSV = -L$(LIBRARY_PREFIX)/lib -lvlsv -Wl,-rpath=$(LIBRARY_PREFIX)/lib
+
 
 # Works without but as an example: arch-specific INCLUDE paths be like this:
 INC_DCCRG = -I${GITHUB_WORKSPACE}/submodules/dccrg

@@ -37,7 +37,7 @@ double lineAverage(
    const T3DFunction& f1,
    coordinate line,
    double accuracy,
-   const double r1[3],
+   const std::array<double, 3>& r1,
    double L
 );
 
@@ -49,8 +49,9 @@ double lineAverage(
 */
 double surfaceAverage(
    const T3DFunction& f1,
-   coordinate face, double accuracy,
-   const double r1[3],
+   coordinate face,
+   double accuracy,
+   const std::array<double, 3>& r1,
    double L1,
    double L2
 );
@@ -62,8 +63,8 @@ double surfaceAverage(
 double volumeAverage(
    const T3DFunction& f1,
    double accuracy,
-   const double r1[3],
-   const double r2[3]
+   const std::array<double, 3>& r1,
+   const std::array<double, 3>& r2
 );
 #endif
 

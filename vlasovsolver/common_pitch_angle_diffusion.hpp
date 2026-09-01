@@ -48,6 +48,6 @@ Realf interpolateNuFromArray(
 
 void computePitchAngleDiffusionParameters(
    SpatialCell& cell,
-   const uint popID, size_t CellIdx, bool& currentSpatialLoopComplete,
+   const uint popID,const size_t CellIdx, bool& currentSpatialLoopComplete,
    Realf& sparsity, std::array<Real,3>& b, Real& nu0
    );

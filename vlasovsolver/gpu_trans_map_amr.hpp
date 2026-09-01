@@ -29,8 +29,6 @@
 
 // Buffers, vectors and set for use in translation. Cannot be declared in arch/gpu_base.hpp, because of
 // compilation errors.
-extern vmesh::VelocityMesh **host_allPencilsMeshes, **dev_allPencilsMeshes;
-extern vmesh::VelocityBlockContainer **host_allPencilsContainers, **dev_allPencilsContainers;
 extern split::SplitVector<vmesh::GlobalID> *unionOfBlocks, *dev_unionOfBlocks;
 extern Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *unionOfBlocksSet, *dev_unionOfBlocksSet;
 
