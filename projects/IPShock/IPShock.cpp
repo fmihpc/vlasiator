@@ -60,6 +60,7 @@ namespace projects {
       RP::add("IPShock.BY0d", "Downstream mag. field value (T)", 2.0e-9);
       RP::add("IPShock.BZ0d", "Downstream mag. field value (T)", 3.0e-9);
       RP::add("IPShock.Width", "Shock Width (m)", 50000);
+      RP::add("IPShock.deHoffmanTeller","Convert to dHT reference frame (default true)",1);
 
       RP::add("IPShock.AMR_L1width", "L1 AMR region width (m)", 0);
       RP::add("IPShock.AMR_L2width", "L2 AMR region width (m)", 0);
@@ -97,6 +98,7 @@ namespace projects {
       RP::get("IPShock.BY0d", this->B0d[1]);
       RP::get("IPShock.BZ0d", this->B0d[2]);
       RP::get("IPShock.Width", this->Shockwidth);
+      RP::get("IPShock.deHoffmanTeller",this->doUsedHT);
 
       RP::get("IPShock.AMR_L1width", this->AMR_L1width);
       RP::get("IPShock.AMR_L2width", this->AMR_L2width);
@@ -242,6 +244,11 @@ namespace projects {
                std::cout<<" Vdcosphi "<<sP.Vdcosphi<<" Vucosphi "<<sP.Vucosphi<<" Vydsign "<<sP.Vydsign<<" Vzdsign "<<sP.Vzdsign<<" Vyusign "<<sP.Vyusign<<" Vzusign "<<sP.Vzusign<<std::endl;
             }
          }
+         if (!this->doUsedHT) {
+            if(myRank == MASTER_RANK) {
+               std::cout<<" Warning: Initialising simulation in NIF frame instead of dHT frame. User is responsible for downstream state being correct"<<std::endl;
+            }
+         }
       }
     
    }
@@ -259,30 +266,64 @@ namespace projects {
       const Real z  = cell->parameters[CellParams::ZCRD] + 0.5*cell->parameters[CellParams::DZ];
 
       // Interpolate density between upstream and downstream
-      // All other values are calculated from jump conditions
+      // All other values are calculated from jump conditions or interpolated depending on frame
       Real DENSITY = interpolate(sP.DENSITYu,sP.DENSITYd, x);
       if (DENSITY < 1e-20) {
          std::cout<<"density too low! "<<DENSITY<<" x "<<x<<" y "<<y<<" z "<<z<<std::endl;
       }
-    
-      // Solve tangential components for B and V
-      Real hereVX = sP.DENSITYu * sP.V0u[0] / DENSITY;
-      Real hereBX = this->B0u[0];
-      Real MAsq = std::pow((sP.V0u[0]/this->B0u[0]), 2) * sP.DENSITYu * mass * mu0;
-      Real hereBtang = this->B0u[2] * (MAsq - 1.0)/(MAsq*hereVX/sP.V0u[0] -1.0);
-      Real hereVtang = hereVX * hereBtang / hereBX;
+      
+      Real dxmax = (P::xmax-P::xmin)/P::xcells_ini;
 
-      /* Reconstruct Y and Z components using cos(phi) values and signs. Tangential variables are always positive. */
-      //Real hereBY = hereBtang * this->Bucosphi * this->Byusign;
-      //Real hereBZ = hereBtang * sqrt(1. - this->Bucosphi * this->Bucosphi) * this->Bzusign;
-      Real hereVY = abs(hereVtang) * sP.Vucosphi * sP.Vyusign;
-      Real hereVZ = abs(hereVtang) * sqrt(1. - sP.Vucosphi * sP.Vucosphi) * sP.Vzusign;
+      Real hereVX;
+      Real hereVY;
+      Real hereVZ;
+      Real TEMPERATURE;
+      
+      if (this->doUsedHT) {
+         // Solve tangential components for B and V
+         hereVX = sP.DENSITYu * sP.V0u[0] / DENSITY;
+         Real hereBX = this->B0u[0];
+         Real MAsq = std::pow((sP.V0u[0]/this->B0u[0]), 2) * sP.DENSITYu * mass * mu0;
+         Real hereBtang = this->B0u[2] * (MAsq - 1.0)/(MAsq*hereVX/sP.V0u[0] -1.0);
+         Real hereVtang = hereVX * hereBtang / hereBX;
 
-      // Old incorrect temperature - just interpolate for now
-      //Real adiab = 5./3.;
-      //Real TEMPERATURE = this->TEMPERATUREu + (mass*(adiab-1.0)/(2.0*KB*adiab)) * 
-      //  ( std::pow(this->V0u[0],2) + std::pow(this->V0u[2],2) - std::pow(hereVX,2) - std::pow(hereVZ,2) );
-      Real TEMPERATURE = interpolate(sP.TEMPERATUREu,sP.TEMPERATUREd, x);
+         /* Reconstruct Y and Z components using cos(phi) values and signs. Tangential variables are always positive. */
+         //Real hereBY = hereBtang * this->Bucosphi * this->Byusign;
+         //Real hereBZ = hereBtang * sqrt(1. - this->Bucosphi * this->Bucosphi) * this->Bzusign;
+         hereVY = abs(hereVtang) * sP.Vucosphi * sP.Vyusign;
+         hereVZ = abs(hereVtang) * sqrt(1. - sP.Vucosphi * sP.Vucosphi) * sP.Vzusign;
+
+         // Old incorrect temperature - just interpolate for now
+         //Real adiab = 5./3.;
+         //Real TEMPERATURE = this->TEMPERATUREu + (mass*(adiab-1.0)/(2.0*KB*adiab)) * 
+         //  ( std::pow(this->V0u[0],2) + std::pow(this->V0u[2],2) - std::pow(hereVX,2) - std::pow(hereVZ,2) );
+         TEMPERATURE = interpolate(sP.TEMPERATUREu,sP.TEMPERATUREd, x);
+      } else {
+         if (this->Shockwidth > dxmax) {
+            hereVX = interpolate(sP.V0u[0], sP.V0d[0], x);
+            hereVY = interpolate(sP.V0u[1], sP.V0d[1], x);
+            hereVZ = interpolate(sP.V0u[2], sP.V0d[2], x);
+            // Old incorrect temperature - just interpolate for now
+            //Real adiab = 5./3.;
+            //Real TEMPERATURE = this->TEMPERATUREu + (mass*(adiab-1.0)/(2.0*KB*adiab)) * 
+            //  ( std::pow(this->V0u[0],2) + std::pow(this->V0u[2],2) - std::pow(hereVX,2) - std::pow(hereVZ,2) );
+            TEMPERATURE = interpolate(sP.TEMPERATUREu,sP.TEMPERATUREd, x);
+         } else {
+            if (x>0) {
+               DENSITY = sP.DENSITYu;
+               hereVX = sP.V0u[0];
+               hereVY = sP.V0u[1];
+               hereVZ = sP.V0u[2];
+               TEMPERATURE = sP.TEMPERATUREu;
+            } else {
+               DENSITY = sP.DENSITYd;
+               hereVX = sP.V0d[0];
+               hereVY = sP.V0d[1];
+               hereVZ = sP.V0d[2];
+               TEMPERATURE = sP.TEMPERATUREd;
+            }
+         }
+      }
 
       Real initRho = DENSITY;
       Real initT = TEMPERATURE;
@@ -346,14 +387,45 @@ namespace projects {
       if (DENSITY < 1e-20) {
          std::cout<<"density too low! "<<DENSITY<<" x "<<x<<" y "<<y<<" z "<<z<<std::endl;
       }
-      Real hereVX = sP.DENSITYu * sP.V0u[0] / DENSITY;
-      Real hereBX = this->B0u[0];
-      Real MAsq = std::pow((sP.V0u[0]/this->B0u[0]), 2) * sP.DENSITYu * mass * mu0;
-      Real hereBtang = this->B0u[2] * (MAsq - 1.0)/(MAsq*hereVX/sP.V0u[0] -1.0);
-      Real hereVtang = hereVX * hereBtang / hereBX;
-      Real hereVY = abs(hereVtang) * sP.Vucosphi * sP.Vyusign;
-      Real hereVZ = abs(hereVtang) * sqrt(1. - sP.Vucosphi * sP.Vucosphi) * sP.Vzusign;
-      Real TEMPERATURE = interpolate(sP.TEMPERATUREu,sP.TEMPERATUREd, x);
+
+      Real dxmax = (P::xmax-P::xmin)/P::xcells_ini;
+      Real hereVX;
+      Real hereVY;
+      Real hereVZ;
+      Real TEMPERATURE;
+
+      if (this->doUsedHT) {
+         hereVX = sP.DENSITYu * sP.V0u[0] / DENSITY;
+         Real hereBX = this->B0u[0];   
+         Real MAsq = std::pow((sP.V0u[0]/this->B0u[0]), 2) * sP.DENSITYu * mass * mu0;
+         Real hereBtang = this->B0u[2] * (MAsq - 1.0)/(MAsq*hereVX/sP.V0u[0] -1.0);
+         Real hereVtang = hereVX * hereBtang / hereBX;
+         hereVY = abs(hereVtang) * sP.Vucosphi * sP.Vyusign;
+         hereVZ = abs(hereVtang) * sqrt(1. - sP.Vucosphi * sP.Vucosphi) * sP.Vzusign;
+         TEMPERATURE = interpolate(sP.TEMPERATUREu,sP.TEMPERATUREd, x);
+      } else {
+         if (this->Shockwidth > dxmax) {
+            hereVX = interpolate(sP.V0u[0], sP.V0d[0], x);
+            hereVY = interpolate(sP.V0u[1], sP.V0d[1], x);
+            hereVZ = interpolate(sP.V0u[2], sP.V0d[2], x);
+            TEMPERATURE = interpolate(sP.TEMPERATUREu, sP.TEMPERATUREd, x);
+         } else {
+            if (x > 0) {
+               DENSITY = sP.DENSITYu;
+               hereVX = sP.V0u[0];
+               hereVY = sP.V0u[1];
+               hereVZ = sP.V0u[2];
+               TEMPERATURE = sP.TEMPERATUREu;
+            } else {
+               DENSITY = sP.DENSITYd;
+               hereVX = sP.V0d[0];
+               hereVY = sP.V0d[1];
+               hereVZ = sP.V0d[2];
+               TEMPERATURE = sP.TEMPERATUREd;
+            }
+         }
+      }
+
       Real initRho = DENSITY;
       Real initT = TEMPERATURE;
       const Real initV0X = hereVX;
@@ -373,24 +445,48 @@ namespace projects {
       const IPShockSpeciesParameters& sP = this->speciesParams[popID];
 
       // Interpolate density between upstream and downstream
-      // All other values are calculated from jump conditions
+      // All other values are calculated from jump conditions or interpolated based on frame
       Real DENSITY = interpolate(sP.DENSITYu,sP.DENSITYd, x);
       if (DENSITY < 1e-20) {
          std::cout<<"density too low! "<<DENSITY<<" x "<<x<<" y "<<y<<" z "<<z<<std::endl;
       }
-    
-      // Solve tangential components for B and V
-      Real VX = sP.DENSITYu * sP.V0u[0] / DENSITY;
-      Real BX = this->B0u[0];
-      Real MAsq = std::pow((sP.V0u[0]/this->B0u[0]), 2) * sP.DENSITYu * mass * mu0;
-      Real Btang = this->B0utangential * (MAsq - 1.0)/(MAsq*VX/sP.V0u[0] -1.0);
-      Real Vtang = VX * Btang / BX;
 
-      /* Reconstruct Y and Z components using cos(phi) values and signs. Tangential variables are always positive. */
-      //Real BY = Btang * this->Bucosphi * this->Byusign;
-      //Real BZ = Btang * sqrt(1. - this->Bucosphi * this->Bucosphi) * this->Bzusign;
-      Real VY = abs(Vtang) * sP.Vucosphi * sP.Vyusign;
-      Real VZ = abs(Vtang) * sqrt(1. - sP.Vucosphi * sP.Vucosphi) * sP.Vzusign;
+      Real VX;
+      Real VY;
+      Real VZ;
+
+      Real dxmax = (P::xmax-P::xmin)/P::xcells_ini;
+      
+      if (this->doUsedHT) {
+         // Solve tangential components for B and V
+         VX = sP.DENSITYu * sP.V0u[0] / DENSITY;
+         Real BX = this->B0u[0];
+         Real MAsq = std::pow((sP.V0u[0]/this->B0u[0]), 2) * sP.DENSITYu * mass * mu0;
+         Real Btang = this->B0utangential * (MAsq - 1.0)/(MAsq*VX/sP.V0u[0] -1.0);
+         Real Vtang = VX * Btang / BX;
+
+         /* Reconstruct Y and Z components using cos(phi) values and signs. Tangential variables are always positive. */
+         //Real BY = Btang * this->Bucosphi * this->Byusign;
+         //Real BZ = Btang * sqrt(1. - this->Bucosphi * this->Bucosphi) * this->Bzusign;
+         VY = abs(Vtang) * sP.Vucosphi * sP.Vyusign;
+         VZ = abs(Vtang) * sqrt(1. - sP.Vucosphi * sP.Vucosphi) * sP.Vzusign;
+      } else {
+         if (this->Shockwidth > dxmax) {
+            VX = interpolate(sP.V0u[0], sP.V0d[0], x);
+            VY = interpolate(sP.V0u[1], sP.V0d[1], x);
+            VZ = interpolate(sP.V0u[2], sP.V0d[2], x);
+         } else {
+            if (x > 0) {
+               VX = sP.V0u[0];
+               VY = sP.V0u[1];
+               VZ = sP.V0u[2];
+            } else {
+               VX = sP.V0d[0];
+               VY = sP.V0d[1];
+               VZ = sP.V0d[2];
+            }
+         }
+      }
 
       // Disable compiler warnings: (unused variables but the function is inherited)
       (void)y;
@@ -455,20 +551,44 @@ namespace projects {
                EffectiveVu0 += sP.V0u[0] * mass * sP.DENSITYu;
             }
             EffectiveVu0 /= MassDensityU;
+            Real BX;
+            Real BY;
+            Real BZ;
 
-            // Solve tangential components for B and V
-            Real VX = MassDensityU * EffectiveVu0 / MassDensity;
-            Real BX = B0u_l[0];
-            Real MAsq = std::pow((EffectiveVu0 / B0u_l[0]), 2) * MassDensityU * mu0;
-            Real Btang = B0utangential_l * (MAsq - 1.0) / (MAsq * VX / EffectiveVu0 - 1.0);
+            Real dxmax = (P::xmax-P::xmin)/P::xcells_ini;
 
-            /* Reconstruct Y and Z components using cos(phi) values and signs. Tangential variables are always
-             * positive. */
-            Real BY = abs(Btang) * Bucosphi_l * Byusign_l;
-            Real BZ = abs(Btang) * sqrt(1. - Bucosphi_l * Bucosphi_l) * Bzusign_l;
-            // Real Vtang = VX * Btang / BX;
-            // Real VY = Vtang * this->Vucosphi * this->Vyusign;
-            // Real VZ = Vtang * sqrt(1. - this->Vucosphi * this->Vucosphi) * this->Vzusign;
+            if (this->doUsedHT) {
+               // Solve tangential components for B and V
+               Real VX = MassDensityU * EffectiveVu0 / MassDensity;
+               BX = B0u_l[0];
+               Real MAsq = std::pow((EffectiveVu0 / B0u_l[0]), 2) * MassDensityU * mu0;
+               Real Btang = B0utangential_l * (MAsq - 1.0) / (MAsq * VX / EffectiveVu0 - 1.0);
+
+               /* Reconstruct Y and Z components using cos(phi) values and signs. Tangential variables are always
+               * positive. */
+               BY = abs(Btang) * Bucosphi_l * Byusign_l;
+               BZ = abs(Btang) * sqrt(1. - Bucosphi_l * Bucosphi_l) * Bzusign_l;
+               // Real Vtang = VX * Btang / BX;
+               // Real VY = Vtang * this->Vucosphi * this->Vyusign;
+               // Real VZ = Vtang * sqrt(1. - this->Vucosphi * this->Vucosphi) * this->Vzusign;
+            } else {
+               if (this->Shockwidth > dxmax ) {
+                  BX = interpolate(this->B0u[0], this->B0d[0], xyz[0]);
+                  BY = interpolate(this->B0u[1], this->B0d[1], xyz[0]);
+                  BZ = interpolate(this->B0u[2], this->B0d[2], xyz[0]);
+               } else {
+                  if (xyz[0] > 0) {
+                     BX = this->B0u[0];
+                     BY = this->B0u[1];
+                     BZ = this->B0u[2];
+                  } else {
+                     BX = this->B0d[0];
+                     BY = this->B0d[1];
+                     BZ = this->B0d[2];
+                  }
+               }
+            }
+            
 
             cell[fsgrids::bfield::PERBX] = BX;
             cell[fsgrids::bfield::PERBY] = BY;

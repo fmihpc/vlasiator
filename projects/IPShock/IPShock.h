@@ -96,6 +96,7 @@ namespace projects {
       Real AMR_L2width;
       Real AMR_L3width;
       Real AMR_L4width;
+      bool doUsedHT;
 
       std::vector<IPShockSpeciesParameters> speciesParams;
 
