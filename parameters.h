@@ -193,6 +193,7 @@ struct Parameters {
    static bool refineOnRestart;
    static bool forceRefinement;
    static bool shouldFilter;
+   static int seed;
    static bool useAlpha1;
    static Real alpha1RefineThreshold;
    static Real alpha1CoarsenThreshold;
@@ -231,6 +232,7 @@ struct Parameters {
    static std::vector<Realf> amrBoxCenterY;
    static std::vector<Realf> amrBoxCenterZ;
    static std::vector<int> amrBoxMaxLevel;
+   static int mapOrderShift;
    static bool amrTransShortPencils;        /*!< Use short or long pencils in AMR translation.*/
    static std::vector<std::string> blurPassString;
    static std::vector<int> numPasses;

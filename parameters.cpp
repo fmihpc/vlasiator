@@ -149,7 +149,7 @@ int P::writeRestartAsFloat = false;
 string P::loadBalanceAlgorithm = string("");
 std::map<std::string, std::string> P::loadBalanceOptions;
 uint P::rebalanceInterval = numeric_limits<uint>::max();
-
+int P::mapOrderShift=0;
 vector<string> P::outputVariableList;
 vector<string> P::diagnosticVariableList;
 
@@ -214,6 +214,7 @@ vector<string> P::blurPassString;
 vector<int> P::numPasses;
 
 bool P::artificialPADiff;
+int P::seed;
 Realf P::PADcoefficient;
 Realf P::PADCFL;
 int P::PADvbins;
@@ -245,6 +246,8 @@ bool P::addParameters() {
    typedef Readparameters RP;
    // the other default parameters we read through the add/get interface
    RP::add("io.diagnostic_write_interval", "Write diagnostic output every arg time steps", numeric_limits<uint>::max());
+   RP::add("map_order_shift","shift the map_order seed",0);
+   RP::add("map_order.seed","Scalar multiplier for map_order in vlasovmover",579450);
 
    RP::addComposing(
        "io.system_write_t_interval",
@@ -608,6 +611,8 @@ bool P::addParameters() {
 void Parameters::getParameters() {
    typedef Readparameters RP;
    // get numerical values of the parameters
+   RP::get("map_order_shift",P::mapOrderShift);
+   RP::get("map_order.seed",P::seed);
    RP::get("io.diagnostic_write_interval", P::diagnosticInterval);
    RP::get("io.diagnostic_write_all_data_reducers", P::diagnosticWriteAllDROs);
    RP::get("io.system_write_t_interval", P::systemWriteTimeInterval);
@@ -640,6 +645,9 @@ void Parameters::getParameters() {
    // Checks for validity of io and restart parameters
    int myRank;
    MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
+   if (myRank==MASTER_RANK) {
+     std::cout << "mapOrderShift=" << P::mapOrderShift << std::endl;
+   }
    const string prefix = string("./");
    if (access(&(P::restartWritePath[0]), W_OK) != 0) {
       if (myRank == MASTER_RANK) {
