@@ -61,6 +61,7 @@ static struct {
 	std::vector<Real> point1, point2;
 	unsigned int pointAmount;
 	std::vector<string> outputdirectory;
+	std::string mask;
 } flags = {}; // static variables should be init with 0s anyway
 
 // If set to true, vlsvextract writes some debugging info to stderr
@@ -1552,7 +1553,7 @@ bool retrieveOptions( const int argn, char *args[], UserOptions & mainOptions ) 
       //app.add_flag("--help", flags.help, "display help");
       app.add_flag("--debug", flags.debug, "write debugging info to stderr");
       app.add_option("--cellid", flags.cellid, "Set cell id");
-      app.add_option("cellidlist", flags.cellidlist, "Set list of cell ids");
+      app.add_option("--cellidlist", flags.cellidlist, "Set list of cell ids");
       app.add_flag("--rotate", flags.rotate, "Rotate velocities so that they face z-axis");
       app.add_option("--plasmaFrame", flags.plasmaFrame, "Shift the distribution so that the bulk velocity is 0");
       app.add_option("--coordinates", flags.coordinates, "Set spatial coordinates x y z");
@@ -1561,6 +1562,7 @@ bool retrieveOptions( const int argn, char *args[], UserOptions & mainOptions ) 
       app.add_option("--point2", flags.point2, "Set the ending point x y z of a line");
       app.add_option("--pointamount", flags.pointAmount, "Number of points along a line (OPTIONAL)");
       app.add_option("--outputdirectory", flags.outputdirectory, "The directory where the file is saved (default current folder) (OPTIONAL)");
+      app.add_option("file", flags.mask, "The input file path.");
 
       CLI11_PARSE(app, argn, args);
          
