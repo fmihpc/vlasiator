@@ -157,13 +157,13 @@ void SysBoundary::initSysBoundaries(Project& project, creal& t) {
 
    if (sysBoundaryCondList.size() == 0) {
       if (!periodic[0] && !Readparameters::helpRequested) {
-         abort_mpi("Non-periodic in x but no boundary condtion loaded!");
+         abort_mpi("Non-periodic in x but no boundary condition loaded!");
       }
       if (!periodic[1] && !Readparameters::helpRequested) {
-         abort_mpi("Non-periodic in y but no boundary condtion loaded!");
+         abort_mpi("Non-periodic in y but no boundary condition loaded!");
       }
       if (!periodic[2] && !Readparameters::helpRequested) {
-         abort_mpi("Non-periodic in z but no boundary condtion loaded!");
+         abort_mpi("Non-periodic in z but no boundary condition loaded!");
       }
    }
 
