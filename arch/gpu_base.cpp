@@ -663,11 +663,13 @@ __host__ void gpu_trans_allocate(
 __host__ void gpu_trans_deallocate() {
    // Deallocate any translation vectors or sets which exist
    if (gpu_allocated_largestVmeshSizePower != 0) {
-      ::delete unionOfBlocksSet;
+      unionOfBlocksSet->~Hashmap();
+      free(unionOfBlocksSet);
       gpu_allocated_largestVmeshSizePower = 0;
    }
    if (gpu_allocated_unionSetSize != 0) {
-      ::delete unionOfBlocks;
+      unionOfBlocks->~SplitVector();
+      free(unionOfBlocks);
       gpu_allocated_unionSetSize = 0;
    }
 }
