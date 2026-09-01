@@ -78,7 +78,7 @@ testpackage: CXXFLAGS += -DPAPI_MEM
 # LIBRARY_PREFIX = /projappl/project_2004522/libraries/gcc-10.4.0/openmpi-4.1.5-cuda/cuda-12.1.1/
 
 #======== Module Libraries ===========
-LIB_BOOST = -lboost_program_options -Xlinker=-rpath=/appl/spack/v020/install-tree/gcc-10.4.0/boost-1.82.0-ystwi2/lib/
+
 
 LIB_PAPI = -lpapi -Xlinker=-rpath=/appl/spack/v020/install-tree/gcc-10.4.0/papi-7.1.0-pl56uv/lib
 

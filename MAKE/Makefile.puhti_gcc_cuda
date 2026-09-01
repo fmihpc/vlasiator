@@ -84,7 +84,7 @@ LIBRARY_PREFIX = /projappl/project_2000203/libraries
 #compiled libraries
 #INC_BOOST = -I$(LIBRARY_PREFIX)/$(MPT_BRAND)/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/boost/1.61.0/include/
 #LIB_BOOST = -L$(LIBRARY_PREFIX)/$(MPT_BRAND)/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/boost/1.61.0/lib -lboost_program_options
-LIB_BOOST = -lboost_program_options
+
 
 INC_ZOLTAN = -I$(LIBRARY_PREFIX)/$(MPT_BRAND)/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/zoltan/include
 LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/$(MPT_BRAND)/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/zoltan/lib -lzoltan

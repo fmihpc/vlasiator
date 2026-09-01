@@ -41,14 +41,12 @@ namespace projects {
 
    void Template::addParameters() {
       typedef Readparameters RP;
-      RP::add("Template.param", "This is my project's parameter. Default is 0.0", 0.0);
+      RP::add<Real>("Template.param", "This is my project's parameter. Default is 0.0", this->param,0.0);
    }
 
    void Template::getParameters(){
-      Parameters::getParameters();
-
+      //Verify/change parameters after they have been read
       typedef Readparameters RP;
-      RP::get("Template.param", this->param);
    }
 
    bool Template::initialize() {
@@ -136,14 +134,12 @@ namespace projects {
       return value;
    }
 
-   void Template::setProjectBField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
-   ) {
+   void Template::setProjectBField(fsgrids::perbspan perb,
+                                   fsgrids::bgbspan bgb,
+                                   fsgrids::technicalspan technical, FieldSolverGrid &fsgrid) {
       Dipole bgField;
       bgField.initialize(8e15, 0.0, 0.0, 0.0, 0.0); //set dipole moment and location
-      setBackgroundField(bgField, BgBGrid);
+      setBackgroundField(bgField, bgb, technical, fsgrid);
    }
 
    vector<std::array<Real, 3>> Template::getV0(

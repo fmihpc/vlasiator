@@ -40,14 +40,14 @@ namespace projects {
       virtual ~Alfven();
       
       virtual bool initialize(void) override;
-      static void addParameters(void);
+      virtual void addParameters(void) override;
       virtual void getParameters(void) override;
       virtual void setProjectBField(
-         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-         FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-         FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
+         fsgrids::perbspan perb,
+         fsgrids::bgbspan bgb,
+         fsgrids::technicalspan technical, FieldSolverGrid &fsgrid
       ) override;
-      
+
       virtual Realf fillPhaseSpace(spatial_cell::SpatialCell *cell,
                                   const uint popID,
                                   const uint nRequested) const override;
@@ -61,6 +61,7 @@ namespace projects {
       Real WAVELENGTH;
       Real A_MAG;
       std::vector<AlfvenSpeciesParameters> speciesParams;
+      std::vector<AlfvenSpeciesParameters*> speciesParamsRead;
    } ; // class Alfven
 } // namespace projects
 

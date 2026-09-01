@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH -t 01:30:00        # Run time (hh:mm:ss)
 #SBATCH --job-name=ctestpackage
-##SBATCH -A spacephysics 
+##SBATCH -A spacephysics
 #SBATCH --constraint="carrington"
 # test short medium 20min1d 3d
 #SBATCH -p short
@@ -16,7 +16,7 @@
 # if 0 then we check the v1 against reference files
 create_verification_files=0
 
-# folder for all reference data 
+# folder for all reference data
 reference_dir="/turso/group/spacephysics/vlasiator/testpackage/"
 cd $SLURM_SUBMIT_DIR
 
@@ -27,15 +27,14 @@ diffbin="/turso/group/spacephysics/vlasiator/testpackage/vlsvdiff_DP_carrington"
 #reference_revision="CI_reference"
 reference_revision="current"
 
-module purge
-module load GCC/13.2.0
-module load OpenMPI/4.1.6-GCC-13.2.0
-module load PMIx/4.2.6-GCCcore-13.2.0
-module load PAPI/7.1.0-GCCcore-13.2.0
-module load Boost/1.83.0-GCC-13.2.0
-#module load xthi
-export UCX_NET_DEVICES=eth5 # This is important for multi-node performance!
+source ../modules/carrington_gcc_openmpi.sh
+# export UCX_NET_DEVICES=eth5,mlx5_0:1 # This is important for multi-node performance!
+export UCX_TLS=dc_mlx5
+export UCX_NET_DEVICES=mlx5_0:1
 
+export OMPI_MCA_btl='^uct,ofi'
+export OMPI_MCA_pml='ucx'
+export OMPI_MCA_mtl='^ofi'
 #Carrington has 2 x 16 cores per node, plus hyperthreading
 ht=2
 t=$SLURM_CPUS_PER_TASK
@@ -60,5 +59,4 @@ source test_definitions_small.sh
 wait
 # Run tests
 source run_tests.sh
-wait 
-
+wait

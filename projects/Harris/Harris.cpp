@@ -37,43 +37,30 @@ using namespace spatial_cell;
 namespace projects {
    Harris::Harris(): TriAxisSearch() { }
    Harris::~Harris() { }
-
+   
    bool Harris::initialize(void) {return Project::initialize();}
-
+   
    void Harris::addParameters(){
       typedef Readparameters RP;
-      RP::add("Harris.Scale_size", "Harris sheet scale size (m)", 150000.0);
-      RP::add("Harris.BX0", "Magnetic field at infinity (T)", 8.33061003094e-8);
-      RP::add("Harris.BY0", "Magnetic field at infinity (T)", 8.33061003094e-8);
-      RP::add("Harris.BZ0", "Magnetic field at infinity (T)", 8.33061003094e-8);
+      RP::add<Real>("Harris.Scale_size", "Harris sheet scale size (m)", this->SCA_LAMBDA,150000.0);
+      RP::add<Real>("Harris.BX0", "Magnetic field at infinity (T)", this->BX0,8.33061003094e-8);
+      RP::add<Real>("Harris.BY0", "Magnetic field at infinity (T)", this->BY0,8.33061003094e-8);
+      RP::add<Real>("Harris.BZ0", "Magnetic field at infinity (T)", this->BZ0,8.33061003094e-8);
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
+         HarrisSpeciesParameters* sP=new HarrisSpeciesParameters();
+         speciesParamsRead.push_back(sP);
 
-         RP::add(pop + "_Harris.Temperature", "Temperature (K)", 2.0e6);
-         RP::add(pop + "_Harris.rho", "Number density at infinity (m^-3)", 1.0e7);
+         RP::add<Real>(pop + "_Harris.Temperature", "Temperature (K)", sP->TEMPERATURE,2.0e6);
+         RP::add<Real>(pop + "_Harris.rho", "Number density at infinity (m^-3)", sP->DENSITY,1.0e7);
       }
    }
-
+   
    void Harris::getParameters(){
-      Project::getParameters();
-      typedef Readparameters RP;
-      RP::get("Harris.Scale_size", this->SCA_LAMBDA);
-      RP::get("Harris.BX0", this->BX0);
-      RP::get("Harris.BY0", this->BY0);
-      RP::get("Harris.BZ0", this->BZ0);
-
-
-      // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
-         HarrisSpeciesParameters sP;
-
-         RP::get(pop + "_Harris.Temperature", sP.TEMPERATURE);
-         RP::get(pop + "_Harris.rho", sP.DENSITY);
-
-         speciesParams.push_back(sP);
+        this->speciesParams.push_back(*this->speciesParamsRead.at(i));
       }
    }
 
@@ -177,29 +164,29 @@ namespace projects {
       return V0;
    }
 
-   void Harris::setProjectBField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
-   ) {
-      setBackgroundFieldToZero(BgBGrid);
+   void Harris::setProjectBField(fsgrids::perbspan perb,
+                                 fsgrids::bgbspan bgb,
+                                 fsgrids::technicalspan technical, FieldSolverGrid &fsgrid) {
+      setBackgroundFieldToZero(fsgrid, technical, bgb);
 
       if(!P::isRestart) {
-         auto localSize = perBGrid.getLocalSize().data();
+         // local copies for lambda capture
+         const auto BX0_l = this->BX0;
+         const auto BY0_l = this->BY0;
+         const auto BZ0_l = this->BZ0;
+         const auto SCA_LAMBDA_l = this->SCA_LAMBDA;
 
-         #pragma omp parallel for collapse(3)
-         for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
-            for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
-               for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
-                  const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
-                  std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
+         fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                             phiprof::initializeTimer("setProjectBField-loop"), technical,
+                             [=](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+            const std::array<Real, 3> xyz = coordinates.getPhysicalCoords(stencil.i, stencil.j, stencil.k);
+            const std::array<Real, 3> gridSpacing = coordinates.physicalGridSpacing;
+            auto& cell = perb[stencil.ooo()];
 
-                  cell->at(fsgrids::bfield::PERBX) = this->BX0 * tanh((xyz[1] + 0.5 * perBGrid.DY) / this->SCA_LAMBDA);
-                  cell->at(fsgrids::bfield::PERBY) = this->BY0 * tanh((xyz[2] + 0.5 * perBGrid.DZ) / this->SCA_LAMBDA);
-                  cell->at(fsgrids::bfield::PERBZ) = this->BZ0 * tanh((xyz[0] + 0.5 * perBGrid.DX) / this->SCA_LAMBDA);
-               }
-            }
-         }
+            cell[fsgrids::bfield::PERBX] = BX0_l * tanh((xyz[1] + 0.5 * gridSpacing[1]) / SCA_LAMBDA_l);
+            cell[fsgrids::bfield::PERBY] = BY0_l * tanh((xyz[2] + 0.5 * gridSpacing[2]) / SCA_LAMBDA_l);
+            cell[fsgrids::bfield::PERBZ] = BZ0_l * tanh((xyz[0] + 0.5 * gridSpacing[0]) / SCA_LAMBDA_l);
+         });
       }
    }
 

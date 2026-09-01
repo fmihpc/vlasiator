@@ -51,46 +51,30 @@ namespace projects {
 
    void Alfven::addParameters() {
       typedef Readparameters RP;
-      RP::add("Alfven.B0", "Guiding field value (T)", 1.0e-10);
-      RP::add("Alfven.Bx_guiding", "Guiding field x component", 1);
-      RP::add("Alfven.By_guiding", "Guiding field y component", 0);
-      RP::add("Alfven.Bz_guiding", "Guiding field z component", 0);
-      RP::add("Alfven.Wavelength", "Wavelength (m)", 100000.0);
-      RP::add("Alfven.A_mag", "Amplitude of the magnetic perturbation", 0.1);
+      RP::add<Real>("Alfven.B0", "Guiding field value (T)", this->B0,1.0e-10);
+      RP::add<Real>("Alfven.Bx_guiding", "Guiding field x component", this->Bx_guiding,1.0);
+      RP::add<Real>("Alfven.By_guiding", "Guiding field y component", this->By_guiding,0.0);
+      RP::add<Real>("Alfven.Bz_guiding", "Guiding field z component", this->Bz_guiding,0.0);
+      RP::add<Real>("Alfven.Wavelength", "Wavelength (m)", this->WAVELENGTH,100000.0);
+      RP::add<Real>("Alfven.A_mag", "Amplitude of the magnetic perturbation", this->A_MAG,0.1);
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
 
-         RP::add(pop + "_Alfven.rho", "Number density (m^-3)", 1.0e8);
-         RP::add(pop + "_Alfven.Temperature", "Temperature (K)", 0.86456498092);
-         RP::add(pop + "_Alfven.A_vel", "Amplitude of the velocity perturbation", 0.1);
+         AlfvenSpeciesParameters* sP=new AlfvenSpeciesParameters();
+         
+         this->speciesParamsRead.push_back(sP);
+         RP::add<Real>(pop + "_Alfven.rho", "Number density (m^-3)", sP->rho,10.e8);
+         RP::add<Real>(pop + "_Alfven.Temperature", "Temperature (K)", sP->T,0.86456498092);
+         RP::add<Real>(pop + "_Alfven.A_vel", "Amplitude of the velocity perturbation", sP->A_VEL,0.1);
 
       }
    }
 
    void Alfven::getParameters(){
-      Project::getParameters();
-
-      typedef Readparameters RP;
-      RP::get("Alfven.B0", this->B0);
-      RP::get("Alfven.Bx_guiding", this->Bx_guiding);
-      RP::get("Alfven.By_guiding", this->By_guiding);
-      RP::get("Alfven.Bz_guiding", this->Bz_guiding);
-      RP::get("Alfven.Wavelength", this->WAVELENGTH);
-      RP::get("Alfven.A_mag", this->A_MAG);
-
-      // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
-
-         AlfvenSpeciesParameters sP;
-
-         RP::get(pop + "_Alfven.rho", sP.rho);
-         RP::get(pop + "_Alfven.Temperature",sP.T);
-         RP::get(pop + "_Alfven.A_vel", sP.A_VEL);
-
-         speciesParams.push_back(sP);
+        this->speciesParams.push_back(*this->speciesParamsRead.at(i));
       }
    }
 
@@ -166,36 +150,36 @@ namespace projects {
       //Real dBzavg = cos(2.0 * M_PI * ksi);
    }
 
-   void Alfven::setProjectBField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
-   ) {
-      setBackgroundFieldToZero(BgBGrid);
+   void Alfven::setProjectBField(fsgrids::perbspan perb,
+                                 fsgrids::bgbspan bgb,
+                                 fsgrids::technicalspan technical, FieldSolverGrid &fsgrid) {
+      setBackgroundFieldToZero(fsgrid, technical, bgb);
 
       if (!P::isRestart) {
-         auto localSize = perBGrid.getLocalSize().data();
+         // local copies for lambda capture
+         const auto ALPHA_l = this->ALPHA;
+         const auto WAVELENGTH_l = this->WAVELENGTH;
+         const auto B0_l = this->B0;
+         const auto A_MAG_l = this->A_MAG;
 
-#pragma omp parallel for collapse(3)
-         for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
-            for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
-               for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
-                  const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
-                  std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
-                  Real dx = perBGrid.DX;
-                  Real dy = perBGrid.DY;
-                  Real ksi = ((xyz[0] + 0.5 * dx)  * cos(this->ALPHA) + (xyz[1] + 0.5 * dy) * sin(this->ALPHA)) / this->WAVELENGTH;
-                  Real dBxavg = sin(2.0 * M_PI * ksi);
-                  Real dByavg = sin(2.0 * M_PI * ksi);
-                  Real dBzavg = cos(2.0 * M_PI * ksi);
+         fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                             phiprof::initializeTimer("setProjectBField"), technical,
+                             [=](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+            const std::array<Real, 3> xyz = coordinates.getPhysicalCoords(stencil.i, stencil.j, stencil.k);
+            const std::array<Real, 3> gridSpacing = coordinates.physicalGridSpacing;
+            auto& cell = perb[stencil.ooo()];
 
-                  cell->at(fsgrids::bfield::PERBX) = this->B0 * cos(this->ALPHA) - this->A_MAG * this->B0 * sin(this->ALPHA) * dBxavg;
-                  cell->at(fsgrids::bfield::PERBY) = this->B0 * sin(this->ALPHA) + this->A_MAG * this->B0 * cos(this->ALPHA) * dByavg;
-                  cell->at(fsgrids::bfield::PERBZ) = this->B0 * this->A_MAG * dBzavg;
+            const Real dx = gridSpacing[0];
+            const Real dy = gridSpacing[1];
+            const Real ksi = ((xyz[0] + 0.5 * dx) * cos(ALPHA_l) + (xyz[1] + 0.5 * dy) * sin(ALPHA_l)) / WAVELENGTH_l;
+            const Real dBxavg = sin(2.0 * M_PI * ksi);
+            const Real dByavg = sin(2.0 * M_PI * ksi);
+            const Real dBzavg = cos(2.0 * M_PI * ksi);
 
-               }
-            }
-         }
+            cell[fsgrids::bfield::PERBX] = B0_l * cos(ALPHA_l) - A_MAG_l * B0_l * sin(ALPHA_l) * dBxavg;
+            cell[fsgrids::bfield::PERBY] = B0_l * sin(ALPHA_l) + A_MAG_l * B0_l * cos(ALPHA_l) * dByavg;
+            cell[fsgrids::bfield::PERBZ] = B0_l * A_MAG_l * dBzavg;
+         });
       }
    }
 

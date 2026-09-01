@@ -26,131 +26,120 @@
 
 #include "ldz_magnetic_field.hpp"
 
-/*! \brief Low-level magnetic field propagation function.
- *
- * Propagates the cell's face-averaged magnetic field components by
- * using Faraday's law on the face edges. Depending on the time order
- * of accuracy it is done in one stage or in two stages using the
- * intermediate E1 components for the first stage of the second-order
- * Runge-Kutta method and E for the other cases.
- *
- *
- * \param perBGrid fsGrid holding the perturbed B quantities at runge-kutta t=0
- * \param perBDt2Grid fsGrid holding the perturbed B quantities at runge-kutta t=0.5
- * \param EGrid fsGrid holding the Electric field quantities at runge-kutta t=0
- * \param EDt2Grid fsGrid holding the Electric field quantities at runge-kutta t=0.5
- * \param i,j,k fsGrid cell coordinates for the current cell
- * \param dt Length of the time step
- * \param RKCase Element in the enum defining the Runge-Kutta method steps
- * \param doX If true, compute the x component (default true).
- * \param doY If true, compute the y component (default true).
- * \param doZ If true, compute the z component (default true).
- */
-void propagateMagneticField(
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBDt2Grid,
-   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
-   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EDt2Grid,
-   cint i,
-   cint j,
-   cint k,
-   creal& dt,
-   cint& RKCase,
-   const bool doX, //=true (default)
-   const bool doY, //=true (default)
-   const bool doZ  //=true (default)
-) {
-   creal dx = perBGrid.DX;
-   creal dy = perBGrid.DY;
-   creal dz = perBGrid.DZ;
+void propagateMagneticField(fsgrids::perbspan perb,
+                            fsgrids::perbspan perbdt2,
+                            fsgrids::constefieldspan e,
+                            fsgrids::constefieldspan edt2,
+                            const fsgrid::FsStencil& stencil, Real dt, int32_t RKCase, bool doX, bool doY, bool doZ,
+                            const std::array<Real, 3>& gridSpacing) {
+   creal dtdx = dt / gridSpacing[0];
+   creal dtdy = dt / gridSpacing[1];
+   creal dtdz = dt / gridSpacing[2];
 
-   std::array<Real, fsgrids::bfield::N_BFIELD> * perBGrid0 = perBGrid.get(i,j,k);
-   std::array<Real, fsgrids::efield::N_EFIELD> * EGrid0;
-   std::array<Real, fsgrids::efield::N_EFIELD> * EGrid1;
-   std::array<Real, fsgrids::efield::N_EFIELD> * EGrid2;
-   std::array<Real, fsgrids::bfield::N_BFIELD> * perBDt2Grid0;
+   std::array<Real, fsgrids::bfield::N_BFIELD>& perBGrid0 = perb[stencil.ooo()];
 
    if (doX == true) {
       switch (RKCase) {
-         case RK_ORDER1:
-            EGrid0 = EGrid.get(i,j,k);
-            EGrid1 = EGrid.get(i,j+1,k);
-            EGrid2 = EGrid.get(i,j,k+1);
-            perBGrid0->at(fsgrids::bfield::PERBX) += dt/dz*(EGrid2->at(fsgrids::efield::EY) - EGrid0->at(fsgrids::efield::EY)) + dt/dy*(EGrid0->at(fsgrids::efield::EZ) - EGrid1->at(fsgrids::efield::EZ));
-            break;
+      case RK_ORDER1: {
+         const auto& EGrid0 = e[stencil.ooo()];
+         const auto& EGrid1 = e[stencil.opo()];
+         const auto& EGrid2 = e[stencil.oop()];
+         perBGrid0[fsgrids::bfield::PERBX] += dtdz * (EGrid2[fsgrids::efield::EY] - EGrid0[fsgrids::efield::EY]) +
+                                              dtdy * (EGrid0[fsgrids::efield::EZ] - EGrid1[fsgrids::efield::EZ]);
+         break;
+      }
 
-         case RK_ORDER2_STEP1:
-            perBDt2Grid0 = perBDt2Grid.get(i,j,k);
-            EGrid0 = EGrid.get(i,j,k);
-            EGrid1 = EGrid.get(i,j+1,k);
-            EGrid2 = EGrid.get(i,j,k+1);
-            perBDt2Grid0->at(fsgrids::bfield::PERBX) = perBGrid0->at(fsgrids::bfield::PERBX) + 0.5*dt*(1.0/dz*(EGrid2->at(fsgrids::efield::EY) - EGrid0->at(fsgrids::efield::EY)) + 1.0/dy*(EGrid0->at(fsgrids::efield::EZ) - EGrid1->at(fsgrids::efield::EZ)));
-            break;
+      case RK_ORDER2_STEP1: {
+         auto& perBDt2Grid0 = perbdt2[stencil.ooo()];
+         const auto& EGrid0 = e[stencil.ooo()];
+         const auto& EGrid1 = e[stencil.opo()];
+         const auto& EGrid2 = e[stencil.oop()];
+         perBDt2Grid0[fsgrids::bfield::PERBX] = perBGrid0[fsgrids::bfield::PERBX] +
+             0.5 * (dtdz * (EGrid2[fsgrids::efield::EY] - EGrid0[fsgrids::efield::EY]) +
+                    dtdy * (EGrid0[fsgrids::efield::EZ] - EGrid1[fsgrids::efield::EZ]));
+         break;
+      }
 
-         case RK_ORDER2_STEP2:
-            EGrid0 = EDt2Grid.get(i,j,k);
-            EGrid1 = EDt2Grid.get(i,j+1,k);
-            EGrid2 = EDt2Grid.get(i,j,k+1);
-            perBGrid0->at(fsgrids::bfield::PERBX) += dt * (1.0/dz*(EGrid2->at(fsgrids::efield::EY) - EGrid0->at(fsgrids::efield::EY)) + 1.0/dy*(EGrid0->at(fsgrids::efield::EZ) - EGrid1->at(fsgrids::efield::EZ)));
-            break;
+      case RK_ORDER2_STEP2: {
+         const auto& EGrid0 = edt2[stencil.ooo()];
+         const auto& EGrid1 = edt2[stencil.opo()];
+         const auto& EGrid2 = edt2[stencil.oop()];
+         perBGrid0[fsgrids::bfield::PERBX] += dtdz * (EGrid2[fsgrids::efield::EY] - EGrid0[fsgrids::efield::EY]) +
+                                              dtdy * (EGrid0[fsgrids::efield::EZ] - EGrid1[fsgrids::efield::EZ]);
+         break;
+      }
 
-         default:
-            std::cerr << __FILE__ << ":" << __LINE__ << ":" << "Invalid RK case." << std::endl;
-            abort();
+      default:
+         std::cerr << __FILE__ << ":" << __LINE__ << ":" << "Invalid RK case." << std::endl;
+         abort();
       }
    }
 
    if (doY == true) {
       switch (RKCase) {
-         case RK_ORDER1:
-            EGrid0 = EGrid.get(i,j,k);
-            EGrid1 = EGrid.get(i,j,k+1);
-            EGrid2 = EGrid.get(i+1,j,k);
-            perBGrid0->at(fsgrids::bfield::PERBY) += dt/dx*(EGrid2->at(fsgrids::efield::EZ) - EGrid0->at(fsgrids::efield::EZ)) + dt/dz*(EGrid0->at(fsgrids::efield::EX) - EGrid1->at(fsgrids::efield::EX));
-            break;
-         case RK_ORDER2_STEP1:
-            perBDt2Grid0 = perBDt2Grid.get(i,j,k);
-            EGrid0 = EGrid.get(i,j,k);
-            EGrid1 = EGrid.get(i,j,k+1);
-            EGrid2 = EGrid.get(i+1,j,k);
-            perBDt2Grid0->at(fsgrids::bfield::PERBY) = perBGrid0->at(fsgrids::bfield::PERBY) + 0.5*dt*(1.0/dx*(EGrid2->at(fsgrids::efield::EZ) - EGrid0->at(fsgrids::efield::EZ)) + 1.0/dz*(EGrid0->at(fsgrids::efield::EX) - EGrid1->at(fsgrids::efield::EX)));
-            break;
-         case RK_ORDER2_STEP2:
-            EGrid0 = EDt2Grid.get(i,j,k);
-            EGrid1 = EDt2Grid.get(i,j,k+1);
-            EGrid2 = EDt2Grid.get(i+1,j,k);
-            perBGrid0->at(fsgrids::bfield::PERBY) += dt * (1.0/dx*(EGrid2->at(fsgrids::efield::EZ) - EGrid0->at(fsgrids::efield::EZ)) + 1.0/dz*(EGrid0->at(fsgrids::efield::EX) - EGrid1->at(fsgrids::efield::EX)));
-            break;
-         default:
-            std::cerr << __FILE__ << ":" << __LINE__ << ":" << "Invalid RK case." << std::endl;
-            abort();
+      case RK_ORDER1: {
+         const auto& EGrid0 = e[stencil.ooo()];
+         const auto& EGrid1 = e[stencil.oop()];
+         const auto& EGrid2 = e[stencil.poo()];
+         perBGrid0[fsgrids::bfield::PERBY] += dtdx * (EGrid2[fsgrids::efield::EZ] - EGrid0[fsgrids::efield::EZ]) +
+                                              dtdz * (EGrid0[fsgrids::efield::EX] - EGrid1[fsgrids::efield::EX]);
+         break;
+      }
+      case RK_ORDER2_STEP1: {
+         auto& perBDt2Grid0 = perbdt2[stencil.ooo()];
+         const auto& EGrid0 = e[stencil.ooo()];
+         const auto& EGrid1 = e[stencil.oop()];
+         const auto& EGrid2 = e[stencil.poo()];
+         perBDt2Grid0[fsgrids::bfield::PERBY] = perBGrid0[fsgrids::bfield::PERBY] +
+             0.5 * (dtdx * (EGrid2[fsgrids::efield::EZ] - EGrid0[fsgrids::efield::EZ]) +
+                    dtdz * (EGrid0[fsgrids::efield::EX] - EGrid1[fsgrids::efield::EX]));
+         break;
+      }
+      case RK_ORDER2_STEP2: {
+         const auto& EGrid0 = edt2[stencil.ooo()];
+         const auto& EGrid1 = edt2[stencil.oop()];
+         const auto& EGrid2 = edt2[stencil.poo()];
+         perBGrid0[fsgrids::bfield::PERBY] += dtdx * (EGrid2[fsgrids::efield::EZ] - EGrid0[fsgrids::efield::EZ]) +
+                                              dtdz * (EGrid0[fsgrids::efield::EX] - EGrid1[fsgrids::efield::EX]);
+         break;
+      }
+      default:
+         std::cerr << __FILE__ << ":" << __LINE__ << ":" << "Invalid RK case." << std::endl;
+         abort();
       }
    }
 
    if (doZ == true) {
       switch (RKCase) {
-         case RK_ORDER1:
-            EGrid0 = EGrid.get(i,j,k);
-            EGrid1 = EGrid.get(i+1,j,k);
-            EGrid2 = EGrid.get(i,j+1,k);
-            perBGrid0->at(fsgrids::bfield::PERBZ) += dt/dy*(EGrid2->at(fsgrids::efield::EX) - EGrid0->at(fsgrids::efield::EX)) + dt/dx*(EGrid0->at(fsgrids::efield::EY) - EGrid1->at(fsgrids::efield::EY));
-            break;
-         case RK_ORDER2_STEP1:
-            perBDt2Grid0 = perBDt2Grid.get(i,j,k);
-            EGrid0 = EGrid.get(i,j,k);
-            EGrid1 = EGrid.get(i+1,j,k);
-            EGrid2 = EGrid.get(i,j+1,k);
-            perBDt2Grid0->at(fsgrids::bfield::PERBZ) = perBGrid0->at(fsgrids::bfield::PERBZ) + 0.5*dt*(1.0/dy*(EGrid2->at(fsgrids::efield::EX) - EGrid0->at(fsgrids::efield::EX)) + 1.0/dx*(EGrid0->at(fsgrids::efield::EY) - EGrid1->at(fsgrids::efield::EY)));
-            break;
-         case RK_ORDER2_STEP2:
-            EGrid0 = EDt2Grid.get(i,j,k);
-            EGrid1 = EDt2Grid.get(i+1,j,k);
-            EGrid2 = EDt2Grid.get(i,j+1,k);
-            perBGrid0->at(fsgrids::bfield::PERBZ) += dt  * (1.0/dy*(EGrid2->at(fsgrids::efield::EX) - EGrid0->at(fsgrids::efield::EX)) + 1.0/dx*(EGrid0->at(fsgrids::efield::EY) - EGrid1->at(fsgrids::efield::EY)));
-            break;
-         default:
-            std::cerr << __FILE__ << ":" << __LINE__ << ":" << "Invalid RK case." << std::endl;
-            abort();
+      case RK_ORDER1: {
+         const auto& EGrid0 = e[stencil.ooo()];
+         const auto& EGrid1 = e[stencil.poo()];
+         const auto& EGrid2 = e[stencil.opo()];
+         perBGrid0[fsgrids::bfield::PERBZ] += dtdy * (EGrid2[fsgrids::efield::EX] - EGrid0[fsgrids::efield::EX]) +
+                                              dtdx * (EGrid0[fsgrids::efield::EY] - EGrid1[fsgrids::efield::EY]);
+         break;
+      }
+      case RK_ORDER2_STEP1: {
+         auto& perBDt2Grid0 = perbdt2[stencil.ooo()];
+         const auto& EGrid0 = e[stencil.ooo()];
+         const auto& EGrid1 = e[stencil.poo()];
+         const auto& EGrid2 = e[stencil.opo()];
+         perBDt2Grid0[fsgrids::bfield::PERBZ] = perBGrid0[fsgrids::bfield::PERBZ] +
+             0.5 * (dtdy * (EGrid2[fsgrids::efield::EX] - EGrid0[fsgrids::efield::EX]) +
+                    dtdx * (EGrid0[fsgrids::efield::EY] - EGrid1[fsgrids::efield::EY]));
+         break;
+      }
+      case RK_ORDER2_STEP2: {
+         const auto& EGrid0 = edt2[stencil.ooo()];
+         const auto& EGrid1 = edt2[stencil.poo()];
+         const auto& EGrid2 = edt2[stencil.opo()];
+         perBGrid0[fsgrids::bfield::PERBZ] += dtdy * (EGrid2[fsgrids::efield::EX] - EGrid0[fsgrids::efield::EX]) +
+                                              dtdx * (EGrid0[fsgrids::efield::EY] - EGrid1[fsgrids::efield::EY]);
+         break;
+      }
+      default:
+         std::cerr << __FILE__ << ":" << __LINE__ << ":" << "Invalid RK case." << std::endl;
+         abort();
       }
    }
 }
@@ -159,190 +148,149 @@ void propagateMagneticField(
  *
  * Propagates the magnetic field according to the system boundary conditions.
  *
- * \param perBGrid fsGrid holding the perturbed B quantities at runge-kutta t=0
- * \param perBDt2Grid fsGrid holding the perturbed B quantities at runge-kutta t=0.5
- * \param bgbGrid fsGrid holding the background field B quantities
- * \param EGrid fsGrid holding the Electric field quantities at runge-kutta t=0
- * \param EDt2Grid fsGrid holding the Electric field quantities at runge-kutta t=0.5
- * \param technicalGrid fsGrid holding technical information (such as boundary types)
- * \param i,j,k fsGrid cell coordinates for the current cell
+ * \param perb fsGrid holding the perturbed B quantities at runge-kutta t=0
+ * \param perbdt2 fsGrid holding the perturbed B quantities at runge-kutta t=0.5
+ * \param bgb fsGrid holding the background field B quantities
+ * \param technical fsgrid holding the technical parameters
+ * \param gridSpacing cell size in x,y,z
+ * \param globalCoordinates cell global grid coordinate indices
+ * \param stencil fsgrid stencil for cell
  * \param sysBoundaries System boundary conditions existing
- * \param dt Length of the time step
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
+ * \param component component to compute
  *
  * \sa propagateMagneticFieldSimple propagateMagneticField
  */
-void propagateSysBoundaryMagneticField(
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBDt2Grid,
-   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & bgbGrid,
-   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
-   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EDt2Grid,
-   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-   cint i,
-   cint j,
-   cint k,
-   SysBoundary& sysBoundaries,
-   creal& dt,
-   cint& RKCase,
-   cuint component
-) {
-   if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBX + component) = sysBoundaries.getSysBoundary(technicalGrid.get(i,j,k)->sysBoundaryFlag)->fieldSolverBoundaryCondMagneticField(perBGrid, bgbGrid, technicalGrid, i, j, k, dt, component);
-   } else {
-      perBDt2Grid.get(i,j,k)->at(fsgrids::bfield::PERBX + component) = sysBoundaries.getSysBoundary(technicalGrid.get(i,j,k)->sysBoundaryFlag)->fieldSolverBoundaryCondMagneticField(perBDt2Grid, bgbGrid, technicalGrid, i, j, k, dt, component);
-   }
+void propagateSysBoundaryMagneticField(fsgrids::perbspan perb,
+                                       fsgrids::perbspan perbdt2,
+                                       fsgrids::constbgbspan bgb,
+                                       fsgrids::consttechnicalspan technical,
+                                       const std::array<Real, 3>& gridSpacing,
+                                       const std::array<fsgrid::FsSize_t, 3>& globalCoordinates,
+                                       const fsgrid::FsStencil& stencil, SysBoundary& sysBoundaries, int32_t RKCase,
+                                       uint32_t component) {
+   const bool case0 = RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2;
+   auto& out = case0 ? perb[stencil.ooo()] : perbdt2[stencil.ooo()];
+   const auto& pb = case0 ? perb : perbdt2;
+
+   out[fsgrids::bfield::PERBX + component] =
+       sysBoundaries.getSysBoundary(technical[stencil.ooo()].sysBoundaryFlag)
+           ->fieldSolverBoundaryCondMagneticField(pb, bgb, technical, gridSpacing, globalCoordinates, stencil,
+                                                  component);
 }
 
 /*! \brief High-level magnetic field propagation function.
  *
  * Propagates the magnetic field and applies the field boundary conditions defined in project.h where needed.
  *
- * \param perBGrid fsGrid holding the perturbed B quantities at runge-kutta t=0
- * \param perBDt2Grid fsGrid holding the perturbed B quantities at runge-kutta t=0.5
- * \param EGrid fsGrid holding the Electric field quantities at runge-kutta t=0
- * \param EDt2Grid fsGrid holding the Electric field quantities at runge-kutta t=0.5
- * \param technicalGrid fsGrid holding technical information (such as boundary types)
+ * \param perb fsGrid holding the perturbed B quantities at runge-kutta t=0
+ * \param perbdt2 fsGrid holding the perturbed B quantities at runge-kutta t=0.5
+ * \param bgb fsGrid holding the background B quantities
+ * \param e fsGrid holding the Electric field quantities at runge-kutta t=0
+ * \param edt2 fsGrid holding the Electric field quantities at runge-kutta t=0.5
+ * \param technical fsGrid holding technical information (such as boundary types)
+ * \param fsgrid container of all fsgrids
  * \param sysBoundaries System boundary conditions existing
  * \param dt Length of the time step
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  *
  * \sa propagateMagneticField propagateSysBoundaryMagneticField
  */
-void propagateMagneticFieldSimple(
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBDt2Grid,
-   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & bgbGrid,
-   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
-   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EDt2Grid,
-   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-   SysBoundary& sysBoundaries,
-   creal& dt,
-   cint& RKCase
-) {
-   //const std::array<int, 3> gridDims = technicalGrid.getLocalSize();
-   const FsGridTools::FsIndex_t* gridDims = &technicalGrid.getLocalSize()[0];
-   const size_t N_cells = gridDims[0]*gridDims[1]*gridDims[2];
-   phiprof::Timer propagateBTimer {"Propagate magnetic field"};
+void propagateMagneticFieldSimple(fsgrids::perbspan perb,
+                                  fsgrids::perbspan perbdt2,
+                                  fsgrids::bgbspan bgb,
+                                  fsgrids::efieldspan e,
+                                  fsgrids::efieldspan edt2,
+                                  fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
+                                  SysBoundary& sysBoundaries, creal& dt, cint& RKCase) {
+   phiprof::Timer propagateBTimer{"Propagate magnetic field"};
+   const auto* localSize = &fsgrid.getLocalSize()[0];
+   const auto& gridSpacing = fsgrid.getGridSpacing();
+   const size_t numCells = fsgrid.getNumCells();
 
-   int computeTimerId {phiprof::initializeTimer("Magnetic Field compute cells")};
-   int sysBoundaryTimerId {phiprof::initializeTimer("Magnetic Field compute sysboundary cells")};
-   #pragma omp parallel
-   {
-      phiprof::Timer computeTimer {computeTimerId};
-      #pragma omp for collapse(2) // Here a collapse(2) should be beneficial in most cases
-      for (FsGridTools::FsIndex_t k=0; k<gridDims[2]; k++) {
-         for (FsGridTools::FsIndex_t j=0; j<gridDims[1]; j++) {
-            for (FsGridTools::FsIndex_t i=0; i<gridDims[0]; i++) {
-               cuint bitfield = technicalGrid.get(i,j,k)->SOLVE;
-               propagateMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, i, j, k, dt, RKCase, ((bitfield & compute::BX) == compute::BX), ((bitfield & compute::BY) == compute::BY), ((bitfield & compute::BZ) == compute::BZ));
-            }
-         }
-      }
-   }
+   int sysBoundaryTimerId{phiprof::initializeTimer("Magnetic Field compute sysboundary cells")};
+   fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                       phiprof::initializeTimer("Magnetic Field compute cells"), technical,
+                       [=](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+                          cuint bitfield = technical[stencil.ooo()].SOLVE;
+                          propagateMagneticField(
+                             perb, perbdt2, e, edt2, stencil, dt, RKCase, ((bitfield & compute::BX) == compute::BX),
+                             ((bitfield & compute::BY) == compute::BY), ((bitfield & compute::BZ) == compute::BZ), coordinates.physicalGridSpacing);
+                       });
 
-   //This communication is needed for boundary conditions, in practice almost all
-   //of the communication is going to be redone in calculateDerivativesSimple
-   //TODO: do not transfer if there are no field boundaryconditions
-   phiprof::Timer mpiTimer {"MPI", {"MPI"}};
+   // This communication is needed for boundary conditions, in practice almost all
+   // of the communication is going to be redone in calculateDerivativesSimple
+   // TODO: do not transfer if there are no field boundaryconditions
+   phiprof::Timer mpiTimer{"MPI", {"MPI"}};
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
       // Exchange PERBX,PERBY,PERBZ with neighbours
-      perBGrid.updateGhostCells();
+      fsgrid.updateGhostCells(perb);
    } else { // RKCase == RK_ORDER2_STEP1
       // Exchange PERBX_DT2,PERBY_DT2,PERBZ_DT2 with neighbours
-      perBDt2Grid.updateGhostCells();
+      fsgrid.updateGhostCells(perbdt2);
    }
    mpiTimer.stop();
 
+   // The looping below was modified in https://github.com/fmihpc/vlasiator/pull/1110/files
+   // with a reported performance gain of 10% of field solver performance in production-like
+   // conditions. Unfortunately as of https://github.com/fmihpc/vlasiator/pull/1099 (fsgrid
+   // parallel_for mechanism) this split would become very cumbersome and is therefore
+   // reversed until more optimisation is needed on CPU or GPU.
+
    // Propagate B on system boundary/process inner cells
    phiprof::Timer sysBoundaryTimer {sysBoundaryTimerId};
-   // L1 pass, gather which faces to solve
-   std::vector<std::array<int,4>> L1Solve;
-   #pragma omp parallel
-   {
-      std::vector<std::array<int,4>> threadL1Solve;
-      #pragma omp for collapse(2)
-      for (int k=0; k<gridDims[2]; k++) {
-         for (int j=0; j<gridDims[1]; j++) {
-            for (int i=0; i<gridDims[0]; i++) {
-               cuint bitfield = technicalGrid.get(i,j,k)->SOLVE;
-               // L1 pass
-               if (technicalGrid.get(i,j,k)->sysBoundaryLayer == 1) {
-                  if ((bitfield & compute::BX) != compute::BX) {
-                     threadL1Solve.push_back({i,j,k,0});
-                  }
-                  if ((bitfield & compute::BY) != compute::BY) {
-                     threadL1Solve.push_back({i,j,k,1});
-                  }
-                  if ((bitfield & compute::BZ) != compute::BZ) {
-                     threadL1Solve.push_back({i,j,k,2});
-                  }
-               }
-            }
+
+   // L1 pass
+   fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                       phiprof::initializeTimer("Magnetic field L1 pass"), technical,
+                       [=, &sysBoundaries](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+      if (sysBoundaryLayer == 1) {
+         cuint bitfield = technical[stencil.ooo()].SOLVE;
+         const auto globalCoordinates = coordinates.localToGlobal(stencil.i, stencil.j, stencil.k);
+         if ((bitfield & compute::BX) != compute::BX) {
+            propagateSysBoundaryMagneticField(perb, perbdt2, bgb, technical, gridSpacing, globalCoordinates, stencil, sysBoundaries, RKCase, 0);
+         }
+         if ((bitfield & compute::BY) != compute::BY) {
+            propagateSysBoundaryMagneticField(perb, perbdt2, bgb, technical, gridSpacing, globalCoordinates, stencil, sysBoundaries, RKCase, 1);
+         }
+         if ((bitfield & compute::BZ) != compute::BZ) {
+            propagateSysBoundaryMagneticField(perb, perbdt2, bgb, technical, gridSpacing, globalCoordinates, stencil, sysBoundaries, RKCase, 2);
          }
       }
-      #pragma omp critical
-      {
-         L1Solve.insert(L1Solve.end(), threadL1Solve.begin(), threadL1Solve.end());
-      }
-      #pragma omp barrier
-      //for (auto [i,j,k,dir] : L1Solve) { // not supported with OpenMP on old CLANG
-      #pragma omp for // default i.e. schedule(static,1)
-      for (uint entry=0; entry<L1Solve.size(); ++entry) {
-         const int i = L1Solve.at(entry)[0];
-         const int j = L1Solve.at(entry)[1];
-         const int k = L1Solve.at(entry)[2];
-         const int dir = L1Solve.at(entry)[3];
-         propagateSysBoundaryMagneticField(perBGrid, perBDt2Grid, bgbGrid, EGrid, EDt2Grid, technicalGrid, i, j, k, sysBoundaries, dt, RKCase, dir);
-      }
-   }
+   });
    sysBoundaryTimer.stop();
 
    mpiTimer.start();
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
       // Exchange PERBX,PERBY,PERBZ with neighbours
-      perBGrid.updateGhostCells();
+      fsgrid.updateGhostCells(perb);
    } else { // RKCase == RK_ORDER2_STEP1
       // Exchange PERBX_DT2,PERBY_DT2,PERBZ_DT2 with neighbours
-      perBDt2Grid.updateGhostCells();
+      fsgrid.updateGhostCells(perbdt2);
    }
    mpiTimer.stop();
 
    sysBoundaryTimer.start();
-   // L2 pass, gather which faces to solve
-   std::vector<std::array<int,4>> L2Solve;
-   #pragma omp parallel
-   {
-      std::vector<std::array<int,4>> threadL2Solve;
-      #pragma omp for collapse(2)
-      for (int k=0; k<gridDims[2]; k++) {
-         for (int j=0; j<gridDims[1]; j++) {
-            for (int i=0; i<gridDims[0]; i++) {
-               if(technicalGrid.get(i,j,k)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY &&
-                  technicalGrid.get(i,j,k)->sysBoundaryLayer == 2
-                  ) {
-                  for (int component = 0; component < 3; component++) {
-                     threadL2Solve.push_back({i,j,k,component});
-                  }
-               }
-            }
+   // L2 pass
+   fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                       phiprof::initializeTimer("Magnetic field L2 pass"), technical,
+                       [=, &sysBoundaries](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+      if(sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY &&
+         sysBoundaryLayer == 2
+      ) {
+         cuint bitfield = technical[stencil.ooo()].SOLVE;
+         const auto globalCoordinates = coordinates.localToGlobal(stencil.i, stencil.j, stencil.k);
+         if ((bitfield & compute::BX) != compute::BX) {
+            propagateSysBoundaryMagneticField(perb, perbdt2, bgb, technical, gridSpacing, globalCoordinates, stencil, sysBoundaries, RKCase, 0);
+         }
+         if ((bitfield & compute::BY) != compute::BY) {
+            propagateSysBoundaryMagneticField(perb, perbdt2, bgb, technical, gridSpacing, globalCoordinates, stencil, sysBoundaries, RKCase, 1);
+         }
+         if ((bitfield & compute::BZ) != compute::BZ) {
+            propagateSysBoundaryMagneticField(perb, perbdt2, bgb, technical, gridSpacing, globalCoordinates, stencil, sysBoundaries, RKCase, 2);
          }
       }
-      #pragma omp critical
-      {
-         L2Solve.insert(L2Solve.end(), threadL2Solve.begin(), threadL2Solve.end());
-      }
-      #pragma omp barrier
-      //for (auto [i,j,k,dir] : L2Solve) { // not supported with OpenMP on old CLANG
-      #pragma omp for // default i.e. schedule(static,1)
-      for (uint entry=0; entry<L2Solve.size(); ++entry) {
-         const int i = L2Solve.at(entry)[0];
-         const int j = L2Solve.at(entry)[1];
-         const int k = L2Solve.at(entry)[2];
-         const int dir = L2Solve.at(entry)[3];
-         propagateSysBoundaryMagneticField(perBGrid, perBDt2Grid, bgbGrid, EGrid, EDt2Grid, technicalGrid, i, j, k, sysBoundaries, dt, RKCase, dir);
-      }
-   }
+   });
    sysBoundaryTimer.stop();
-   propagateBTimer.stop(N_cells,"Spatial Cells");
+   propagateBTimer.stop(numCells, "Spatial Cells");
 }

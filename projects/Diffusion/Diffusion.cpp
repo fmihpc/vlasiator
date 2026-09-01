@@ -45,36 +45,25 @@ namespace projects {
 
    void Diffusion::addParameters() {
       typedef Readparameters RP;
-      RP::add("Diffusion.B0", "Background field value (T)", 1.0e-9);
+      RP::add<Real>("Diffusion.B0", "Background field value (T)", this->B0,1.0e-9);
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
 
-         RP::add(pop + "_Diffusion.rho", "Number density (m^-3)", 1.0e7);
-         RP::add(pop + "_Diffusion.Temperature", "Temperature (K)", 2.0e6);
-         RP::add(pop + "_Diffusion.Scale_x", "Scale length in x (m)", 100000.0);
-         RP::add(pop + "_Diffusion.Scale_y", "Scale length in y (m)", 100000.0);
+         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
+         DiffusionSpeciesParameters* sP=new DiffusionSpeciesParameters;
+    
+         this->speciesParamsRead.push_back(sP);
+         RP::add<Real>(pop + "_Diffusion.rho", "Number density (m^-3)",sP->DENSITY ,1.0e7);
+         RP::add<Real>(pop + "_Diffusion.Temperature", "Temperature (K)", sP->TEMPERATURE,2.0e6);
+         RP::add<Real>(pop + "_Diffusion.Scale_x", "Scale length in x (m)", sP->SCA_X,100000.0);
+         RP::add<Real>(pop + "_Diffusion.Scale_y", "Scale length in y (m)", sP->SCA_Y,100000.0);
       }
    }
 
    void Diffusion::getParameters() {
-      Project::getParameters();
-
-      typedef Readparameters RP;
-      RP::get("Diffusion.B0", this->B0);
-
-      // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-        const std::string& pop = getObjectWrapper().particleSpecies[i].name;
-        DiffusionSpeciesParameters sP;
-
-        RP::get(pop + "_Diffusion.rho", sP.DENSITY);
-        RP::get(pop + "_Diffusion.Temperature", sP.TEMPERATURE);
-        RP::get(pop + "_Diffusion.Scale_x", sP.SCA_X);
-        RP::get(pop + "_Diffusion.Scale_y", sP.SCA_Y);
-
-        speciesParams.push_back(sP);
+        this->speciesParams.push_back(*this->speciesParamsRead.at(i));
       }
    }
 
@@ -139,12 +128,13 @@ namespace projects {
    void Diffusion::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
 
    void Diffusion::setProjectBField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
+      fsgrids::perbspan perb,
+      fsgrids::bgbspan bgb,
+      fsgrids::technicalspan technical,
+      FieldSolverGrid &fsgrid
    ) {
       ConstantField bgField;
       bgField.initialize(0,0,this->B0); //bg bx, by,bz
-      setBackgroundField(bgField, BgBGrid);
+      setBackgroundField(bgField, bgb, technical, fsgrid);
    }
 } // namespace projects
