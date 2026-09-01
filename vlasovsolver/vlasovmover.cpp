@@ -20,8 +20,10 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#include <cstdint>
 #include <cstdlib>
 #include <iostream>
+#include <random>
 #include <vector>
 #include <stdint.h>
 
@@ -422,7 +424,8 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
    // set seed, initialise generator and get value. The order is the same
    // for all cells, but varies with timestep.
    std::knuth_b rndState;
-   rndState.seed(P::tstep);
+   uint64_t seed=(P::seed*(uint64_t(P::tstep)+1)<<32);
+   rndState.seed(seed);
    uint map_order = std::uniform_int_distribution<>(0,2)(rndState);
 
    // Calculate length of step for each cell
