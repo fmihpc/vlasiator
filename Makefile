@@ -214,7 +214,7 @@ OBJS = 	version.o memoryallocation.o memory_report.o backgroundfield.o quadr.o d
 	fieldtracing.o compression.o arch_moments.o \
 	sysboundary.o sysboundarycondition.o particle_species.o\
 	project.o projectTriAxisSearch.o read_gaussian_population.o\
-	Alfven.o Diffusion.o Dispersion.o Distributions.o Firehose.o\
+	Alfven.o Dispersion.o Distributions.o\
 	Flowthrough.o Fluctuations.o Harris.o KHB.o Larmor.o Magnetosphere.o MultiPeak.o LossCone.o\
 	Riemann1.o Shock.o Template.o test_fp.o testHall.o IPShock.o object_wrapper.o\
 	verificationLarmor.o Shocktest.o grid.o ioread.o iowrite.o vlasiator.o logger.o\

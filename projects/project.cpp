@@ -31,10 +31,8 @@
 #include "../velocity_mesh_parameters.h"
 
 #include "Alfven/Alfven.h"
-#include "Diffusion/Diffusion.h"
 #include "Dispersion/Dispersion.h"
 #include "Distributions/Distributions.h"
-#include "Firehose/Firehose.h"
 #include "Flowthrough/Flowthrough.h"
 #include "Fluctuations/Fluctuations.h"
 #include "Harris/Harris.h"
@@ -76,10 +74,8 @@ namespace projects {
       typedef Readparameters RP;
       // TODO add all projects' static addParameters() functions here.
       projects::Alfven::addParameters();
-      projects::Diffusion::addParameters();
       projects::Dispersion::addParameters();
       projects::Distributions::addParameters();
-      projects::Firehose::addParameters();
       projects::Flowthrough::addParameters();
       projects::Fluctuations::addParameters();
       projects::Harris::addParameters();
@@ -655,17 +651,11 @@ Project* createProject() {
    if(Parameters::projectName == "Alfven") {
       rvalue = new projects::Alfven;
    }
-   if(Parameters::projectName == "Diffusion") {
-      rvalue = new projects::Diffusion;
-   }
    if(Parameters::projectName == "Dispersion") {
       rvalue = new projects::Dispersion;
    }
    if(Parameters::projectName == "Distributions") {
       rvalue = new projects::Distributions;
-   }
-   if(Parameters::projectName == "Firehose") {
-      rvalue = new projects::Firehose;
    }
    if(Parameters::projectName == "Flowthrough") {
       rvalue = new projects::Flowthrough;
