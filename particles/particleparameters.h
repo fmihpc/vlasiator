@@ -73,8 +73,8 @@ struct ParticleParameters {
    static Real ipshock_transmit;  /*!< X-Coordinate for particle transmission (downstream) (meters) */
    static Real ipshock_reflect;   /*!< X-Coordinate for particle reflection (upstream) (meters) */
 
-   static std::default_random_engine::result_type random_seed; /*!< Random seed for particle creation */
-   static Distribution* (*distribution)(std::default_random_engine&); /*!< Type of distribution from which to sample the particles */
+   static std::knuth_b::result_type random_seed; /*!< Random seed for particle creation */
+   static Distribution* (*distribution)(std::knuth_b&); /*!< Type of distribution from which to sample the particles */
    static Real temperature; /*!< Initial particle temperature (for distributions where a temperature is meaningful) */
    static Real particle_vel; /*!< Initial particle velocity (for distributions with a single initial velocity) */
 
