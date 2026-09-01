@@ -445,28 +445,25 @@ bool P::addParameters() {
                     string() +
                         "List of data reduction operators (DROs) to add to the grid file output.  Each variable to be "
                         "added has to be on a new line output = XXX. Names are case insensitive.  " +
-                        "Available (20250413): " + "fg_b fg_b_background fg_b_perturbed fg_b_background_vol fg_derivs_b_background fg_e " +
-                        "vg_rhom vg_rhoq populations_vg_rho " + "fg_rhom fg_rhoq " + "vg_v fg_v populations_vg_v " +
-                        "populations_vg_moments_thermal populations_vg_moments_nonthermal " +
-                        "populations_vg_effectivesparsitythreshold populations_vg_rho_loss_adjust " +
-                        "populations_vg_energydensity populations_vg_precipitationdifferentialflux " +
-                        "populations_vg_heatflux " + "populations_vg_1dmuspace " +
-                        "populations_vg_nonmaxwellianity " +
-                        "vg_maxdt_acceleration vg_maxdt_translation populations_vg_maxdt_acceleration " +
-                        "populations_vg_maxdt_translation " +
-                        "fg_maxdt_fieldsolver " + "vg_rank fg_rank fg_amr_level vg_loadbalance_weight " +
-                        "vg_boundarytype fg_boundarytype vg_boundarylayer fg_boundarylayer " +
-                        "populations_vg_blocks vg_f_saved " + "populations_vg_acceleration_subcycles " +
-                        "vg_e_vol fg_e_vol " +
-                        "fg_e_hall vg_e_gradpe fg_b_vol vg_b_vol vg_b_background_vol vg_b_perturbed_vol " +
-                        "vg_pressure fg_pressure populations_vg_ptensor " + "vg_b_vol_derivatives fg_derivs " +
-                        "ig_fac ig_latitude ig_chi0 ig_cellarea ig_upmappedarea ig_sigmap ig_sigmah ig_sigmaparallel ig_rhon " +
-                        "ig_electrontemp ig_solverinternals ig_upmappednodecoords ig_upmappedb ig_openclosed ig_potential "+
-                        "ig_precipitation ig_deltaphi "+
-                        "ig_inplanecurrent ig_b ig_e vg_drift vg_ionospherecoupling vg_connection vg_fluxrope fg_curvature "+
-                        "vg_amr_drho vg_amr_du vg_amr_dpsq vg_amr_dbsq vg_amr_db vg_amr_alpha1 vg_amr_reflevel vg_amr_alpha2 "+
-                        "vg_gridcoordinates fg_gridcoordinates vg_pressure_anisotropy vg_amr_vorticity");
-
+                        "Available (20260618): " +
+                        "fg_amr_level fg_b fg_b_background fg_b_background_vol fg_boundarylayer fg_boundarytype fg_b_perturbed fg_b_vol " +
+                        "fg_curvature fg_derivs fg_derivs_b_background fg_e fg_e_hall fg_e_vol fg_gridcoordinates fg_maxdt_fieldsolver " +
+                        "fg_pressure fg_rank fg_rhom fg_rhoq fg_v " +
+                        "ig_b ig_cellarea ig_chi0 ig_deltaphi ig_e ig_electrontemp ig_fac ig_inplanecurrent ig_jfromcurlj ig_jfromdivj " +
+                        "ig_latitude ig_openclosed ig_potential ig_precipavgenergy ig_precipitation ig_precipnumflux ig_rhon ig_sigmah " +
+                        "ig_sigmap ig_sigmaparallel ig_solverinternals ig_upmappedarea ig_upmappedb ig_upmappednodecoords " +
+                        "populations_vg_1dmuspace populations_vg_acceleration_subcycles populations_vg_blocks " +
+                        "populations_vg_effectivesparsitythreshold populations_vg_energydensity populations_vg_heatflux " +
+                        "populations_vg_maxdt_acceleration populations_vg_maxdt_translation populations_vg_moments_nonthermal " +
+                        "populations_vg_moments_thermal populations_vg_nonmaxwellianity populations_vg_precipitationdifferentialflux " +
+                        "populations_vg_precipitationlinedifferentialflux populations_vg_ptensor populations_vg_rho " +
+                        "populations_vg_rho_loss_adjust populations_vg_v " +
+                        "vg_amr_alpha1 vg_amr_alpha2 vg_amr_db vg_amr_dbsq vg_amr_dpsq vg_amr_drho vg_amr_du vg_amr_reflevel " +
+                        "vg_amr_vorticity " +
+                        "vg_b_background_vol vg_boundarylayer vg_boundarytype vg_b_perturbed_vol vg_b_vol vg_b_vol_derivatives " +
+                        "vg_connection vg_curvature vg_drift vg_e_gradpe vg_e_vol vg_fluxrope vg_f_saved vg_gridcoordinates " +
+                        "vg_ionospherecoupling vg_loadbalance_weight vg_maxdt_acceleration vg_maxdt_translation vg_nu0 vg_pressure " +
+                        "vg_pressure_anisotropy vg_rank vg_rhom vg_rhoq vg_v");
    RP::addComposing(
        "variables_deprecated.output",
        string() + "List of deprecated names for data reduction operators (DROs). Names are case insensitive. " +

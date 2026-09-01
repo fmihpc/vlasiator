@@ -50,7 +50,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       std::string lowercase = *it;
       for(auto& c : lowercase) c = tolower(c);
 
-      if(P::systemWriteAllDROs || lowercase == "fg_b" || lowercase == "b") { // Bulk magnetic field at Yee-Lattice locations
+      if(P::systemWriteAllDROs || lowercase == "b" || lowercase == "fg_b") { // Bulk magnetic field at Yee-Lattice locations
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_b",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
                const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
@@ -147,7 +147,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             continue;
          }
       }
-      if(P::systemWriteAllDROs || lowercase == "fg_e" || lowercase == "e") { // Bulk electric field at Yee-lattice locations
+      if(P::systemWriteAllDROs || lowercase == "e" || lowercase == "fg_e") { // Bulk electric field at Yee-lattice locations
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_e",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
                const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
@@ -171,7 +171,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             continue;
          }
       }
-      if(P::systemWriteAllDROs || lowercase == "vg_rhom" || lowercase == "rhom") { // Overall mass density (summed over all populations)
+      if(P::systemWriteAllDROs || lowercase == "rhom" || lowercase == "vg_rhom") { // Overall mass density (summed over all populations)
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_rhom",CellParams::RHOM,1));
          outputReducer->addMetadata(outputReducer->size()-1,"kg/m^3","$\\mathrm{kg}\\,\\mathrm{m}^{-3}$","$\\rho_\\mathrm{m}$","1.0");
          if(!P::systemWriteAllDROs) {
@@ -207,7 +207,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             continue;
          }
       }
-      if(P::systemWriteAllDROs || lowercase == "vg_rhoq" || lowercase == "rhoq") { // Overall charge density (summed over all populations)
+      if(P::systemWriteAllDROs || lowercase == "rhoq" || lowercase == "vg_rhoq") { // Overall charge density (summed over all populations)
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_rhoq",CellParams::RHOQ,1));
          outputReducer->addMetadata(outputReducer->size()-1,"C/m^3","$\\mathrm{C}\\,\\mathrm{m}^{-3}$","$\\rho_\\mathrm{q}$","1.0");
          if(!P::systemWriteAllDROs) {
@@ -279,7 +279,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             continue;
          }
       }
-      if(P::systemWriteAllDROs || lowercase == "vg_nu0" || lowercase == "nu0") { // nu0 for sub-grid diffusion
+      if(P::systemWriteAllDROs || lowercase == "nu0" || lowercase == "vg_nu0") { // nu0 for sub-grid diffusion
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_nu0",CellParams::NU0,1));
          outputReducer->addMetadata(outputReducer->size()-1,"1/s","$\\mathrm{s}^{-1}$","$\\nu_0$","1.0");
          if(!P::systemWriteAllDROs) {
@@ -371,7 +371,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             continue;
          }
       }
-      if(P::systemWriteAllDROs || lowercase == "populations_maxvdt" || lowercase == "populations_vg_maxdt_acceleration" || lowercase == "populations_maxdt_acceleration") {
+      if(P::systemWriteAllDROs || lowercase == "populations_maxvdt" || lowercase == "populations_maxdt_acceleration" || lowercase == "populations_vg_maxdt_acceleration") {
          // Per-population maximum timestep constraint as calculated by the velocity space vlasov update
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             species::Species& species=getObjectWrapper().particleSpecies[i];
@@ -391,7 +391,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             continue;
          }
       }
-      if(P::systemWriteAllDROs || lowercase == "populations_maxrdt" || lowercase == "populations_vg_maxdt_translation" || lowercase == "populations_maxdt_translation") {
+      if(P::systemWriteAllDROs || lowercase == "populations_maxrdt" || lowercase == "populations_maxdt_translation" || lowercase == "populations_vg_maxdt_translation") {
          // Per-population maximum timestep constraint as calculated by the real space vlasov update
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             species::Species& species=getObjectWrapper().particleSpecies[i];
@@ -417,7 +417,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             continue;
          }
       }
-      if(P::systemWriteAllDROs || lowercase == "populations_precipitationflux" || lowercase == "populations_vg_precipitationdifferentialflux" || lowercase == "populations_precipitationdifferentialflux") {
+      if(P::systemWriteAllDROs || lowercase == "populations_precipitationflux" || lowercase == "populations_precipitationdifferentialflux" || lowercase == "populations_vg_precipitationdifferentialflux") {
          // Per-population precipitation differential flux (within loss cone)
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             species::Species& species=getObjectWrapper().particleSpecies[i];
@@ -443,7 +443,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             continue;
          }
       }
-      if(P::systemWriteAllDROs || lowercase == "populations_precipitationlineflux" || lowercase == "populations_vg_precipitationlinedifferentialflux" || lowercase == "populations_precipitationlinedifferentialflux") {
+      if(P::systemWriteAllDROs || lowercase == "populations_precipitationlineflux" || lowercase == "populations_precipitationlinedifferentialflux" || lowercase == "populations_vg_precipitationlinedifferentialflux") {
          // Per-population precipitation differential flux (along line)
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             species::Species& species=getObjectWrapper().particleSpecies[i];
@@ -469,7 +469,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             continue;
          }
       }
-      if (P::systemWriteAllDROs || lowercase == "populations_nonmaxwellianity" || lowercase == "populations_vg_nonmaxwellianity") {
+      if(P::systemWriteAllDROs || lowercase == "populations_nonmaxwellianity" || lowercase == "populations_vg_nonmaxwellianity") {
          // Per-population dimensionless non-maxwellianity parameter
          for (unsigned int i = 0; i < getObjectWrapper().particleSpecies.size(); i++) {
             species::Species& species = getObjectWrapper().particleSpecies[i];
@@ -668,7 +668,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             continue;
          }
       }
-      if(P::systemWriteAllDROs || lowercase == "vole" || lowercase == "vg_vole" || lowercase == "evol" || lowercase == "vg_e_vol" || lowercase == "e_vol") {
+      if(P::systemWriteAllDROs || lowercase == "vole" || lowercase == "vg_vole" || lowercase == "evol" || lowercase == "e_vol" || lowercase == "vg_e_vol") {
          // Volume-averaged E field
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_e_vol",CellParams::EXVOL,3));
          outputReducer->addMetadata(outputReducer->size()-1,"V/m","$\\mathrm{V}\\,\\mathrm{m}^{-1}$","$E_\\mathrm{vol,vg}$","1.0");
@@ -676,7 +676,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             continue;
          }
       }
-      if(P::systemWriteAllDROs || lowercase == "fg_vole" || lowercase == "fg_e_vol" || lowercase == "fg_evol") { // Volume-averaged E field from the fieldSolver grid
+      if(P::systemWriteAllDROs || lowercase == "fg_vole" || lowercase == "fg_evol" || lowercase == "fg_e_vol") { // Volume-averaged E field from the fieldSolver grid
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_e_vol",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
                const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
@@ -825,7 +825,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             continue;
          }
       }
-      if(P::systemWriteAllDROs || lowercase == "bvolderivs" || lowercase == "b_vol_derivs" || lowercase == "b_vol_derivatives" || lowercase == "vg_b_vol_derivatives" || lowercase == "derivs") {
+      if(P::systemWriteAllDROs || lowercase == "bvolderivs" || lowercase == "b_vol_derivs" || lowercase == "b_vol_derivatives" || lowercase == "derivs" || lowercase == "vg_b_vol_derivatives") {
          // Volume-averaged derivatives
          outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("vg_derivatives/vg_dperbxvoldx",bvolderivatives::dPERBXVOLdx,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("vg_derivatives/vg_dperbxvoldy",bvolderivatives::dPERBXVOLdy,1));
@@ -2802,7 +2802,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             continue;
          }
       }
-      if(P::diagnosticWriteAllDROs || lowercase == "vg_rhom" || lowercase == "rhom") {
+      if(P::diagnosticWriteAllDROs || lowercase == "rhom" || lowercase == "vg_rhom") {
          // Overall mass density
          diagnosticReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_rhom",CellParams::RHOM,1));
          if(!P::diagnosticWriteAllDROs) {
@@ -2820,7 +2820,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             continue;
          }
       }
-      if(P::diagnosticWriteAllDROs || lowercase == "lbweight" || lowercase == "vg_lbweight" || lowercase == "vg_loadbalanceweight" || lowercase == "vg_loadbalance_weight" || lowercase == "loadbalance_weight") {
+      if(P::diagnosticWriteAllDROs || lowercase == "lbweight" || lowercase == "vg_lbweight" || lowercase == "vg_loadbalanceweight" || lowercase == "loadbalance_weight" || lowercase == "vg_loadbalance_weight") {
          diagnosticReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_loadbalance_weight",CellParams::LBWEIGHTCOUNTER,1));
          if(!P::diagnosticWriteAllDROs) {
             continue;
