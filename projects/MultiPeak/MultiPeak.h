@@ -59,7 +59,7 @@ namespace projects {
       virtual ~MultiPeak();
 
       virtual bool initialize(void) override;
-      static void addParameters(void);
+      virtual void addParameters(void) override;
       virtual void getParameters(void) override;
       virtual void setProjectBField(
          fsgrids::perbspan perb,
@@ -68,6 +68,7 @@ namespace projects {
       ) override;
 
       std::vector<MultiPeakSpeciesParameters> speciesParams;
+      std::vector<MultiPeakSpeciesParameters*> speciesParamsRead;
 
       virtual Realf fillPhaseSpace(spatial_cell::SpatialCell* cell,
                                    const uint popID,
@@ -94,7 +95,7 @@ namespace projects {
       Real magYPertAbsAmp;
       Real magZPertAbsAmp;
       Real lambda;
-
+      string densModelString="";
       enum densitymodel {
          Uniform,
          TestCase

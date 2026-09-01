@@ -163,6 +163,9 @@ struct Parameters {
 
    static std::string loadBalanceAlgorithm; /*!< Algorithm to be used for load balance.*/
    static std::map<std::string, std::string> loadBalanceOptions;  // Other Load balancing options
+   
+   static std::vector<std::string> loadBalanceKeys;
+   static std::vector<std::string> loadBalanceValues;
    static uint rebalanceInterval;           /*!< Load rebalance interval (steps). */
    static bool prepareForRebalance; /**< If true, propagators should measure their time consumption in preparation
                                      * for mesh repartitioning.*/
@@ -240,11 +243,16 @@ struct Parameters {
    static int PADvbins; // Number of bins in velocity for pitch-angle diffusion
    static int PADmubins; // Number of bins in mu for pitch-angle diffusion
    static std::string PADnu0; // Path to txt file for nu0
-   static Realf PADfudge; // Fudge factore for diffusion
+   static Realf PADfudge; // Fudge factore for diffusion   
+   static std::vector<std::string> mpiioKeysWrite;
+   static std::vector<std::string> mpiioValuesWrite;
+   static std::vector<std::string> mpiioKeysRestartRead;
+   static std::vector<std::string> mpiioValuesRestartRead;
+   static std::vector<std::string> mpiioKeysRestartWrite;
+   static std::vector<std::string> mpiioValuesRestartWrite;
 
    static std::array<fsgrid::Task_t,3> manualFsGridDecomposition;
    static std::array<fsgrid::Task_t,3> overrideReadFsGridDecomposition;
-
    //Asterix  VDF Compression
    enum ASTERIX_COMPRESSION_METHODS{
            NONE,

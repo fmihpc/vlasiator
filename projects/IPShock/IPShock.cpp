@@ -49,81 +49,48 @@ namespace projects {
    bool IPShock::initialize() {
       return Project::initialize();
    }
-  
    void IPShock::addParameters() {
       typedef Readparameters RP;
       // Common (field / etc.) parameters
-      RP::add("IPShock.BX0u", "Upstream mag. field value (T)", 1.0e-9);
-      RP::add("IPShock.BY0u", "Upstream mag. field value (T)", 2.0e-9);
-      RP::add("IPShock.BZ0u", "Upstream mag. field value (T)", 3.0e-9);
-      RP::add("IPShock.BX0d", "Downstream mag. field value (T)", 1.0e-9);
-      RP::add("IPShock.BY0d", "Downstream mag. field value (T)", 2.0e-9);
-      RP::add("IPShock.BZ0d", "Downstream mag. field value (T)", 3.0e-9);
-      RP::add("IPShock.Width", "Shock Width (m)", 50000);
+      RP::add<Real>("IPShock.BX0u", "Upstream mag. field value (T)",this->B0u[0],1.0e-9);
+      RP::add<Real>("IPShock.BY0u", "Upstream mag. field value (T)",this->B0u[1],2.0e-9);
+      RP::add<Real>("IPShock.BZ0u", "Upstream mag. field value (T)",this->B0u[2],3.0e-9);
+      RP::add<Real>("IPShock.BX0d", "Downstream mag. field value (T)",this->B0d[0],1.0e-9);
+      RP::add<Real>("IPShock.BY0d", "Downstream mag. field value (T)",this->B0d[1],2.0e-9);
+      RP::add<Real>("IPShock.BZ0d", "Downstream mag. field value (T)",this->B0d[2],3.0e-9);
+      RP::add<Real>("IPShock.Width", "Shock Width (m)",this->Shockwidth,50000);
 
-      RP::add("IPShock.AMR_L1width", "L1 AMR region width (m)", 0);
-      RP::add("IPShock.AMR_L2width", "L2 AMR region width (m)", 0);
-      RP::add("IPShock.AMR_L3width", "L3 AMR region width (m)", 0);
-      RP::add("IPShock.AMR_L4width", "L4 AMR region width (m)", 0);
+      RP::add<Real>("IPShock.AMR_L1width", "L1 AMR region width (m)",this->AMR_L1width,0);
+      RP::add<Real>("IPShock.AMR_L2width", "L2 AMR region width (m)",this->AMR_L2width,0);
+      RP::add<Real>("IPShock.AMR_L3width", "L3 AMR region width (m)",this->AMR_L3width,0);
+      RP::add<Real>("IPShock.AMR_L4width", "L4 AMR region width (m)",this->AMR_L4width,0);
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
-         RP::add(pop + "_IPShock.VX0u", "Upstream Bulk velocity in x", 0.0);
-         RP::add(pop + "_IPShock.VY0u", "Upstream Bulk velocity in y", 0.0);
-         RP::add(pop + "_IPShock.VZ0u", "Upstream Bulk velocuty in z", 0.0);
-         RP::add(pop + "_IPShock.rhou", "Upstream Number density (m^-3)", 1.0e7);
-         RP::add(pop + "_IPShock.Temperatureu", "Upstream Temperature (K)", 2.0e6);
+         
+         IPShockSpeciesParameters* sP=new IPShockSpeciesParameters();
+         this->speciesParamsRead.push_back(sP);
 
-         RP::add(pop + "_IPShock.VX0d", "Downstream Bulk velocity in x", 0.0);
-         RP::add(pop + "_IPShock.VY0d", "Downstream Bulk velocity in y", 0.0);
-         RP::add(pop + "_IPShock.VZ0d", "Downstream Bulk velocuty in z", 0.0);
-         RP::add(pop + "_IPShock.rhod", "Downstream Number density (m^-3)", 1.0e7);
-         RP::add(pop + "_IPShock.Temperatured", "Downstream Temperature (K)", 2.0e6);
+         RP::add<Real>(pop + "_IPShock.VX0u", "Upstream Bulk velocity in x",sP->V0u[0],0.0);
+         RP::add<Real>(pop + "_IPShock.VY0u", "Upstream Bulk velocity in y",sP->V0u[1],0.0);
+         RP::add<Real>(pop + "_IPShock.VZ0u", "Upstream Bulk velocuty in z",sP->V0u[2],0.0);
+         RP::add<Real>(pop + "_IPShock.rhou", "Upstream Number density (m^-3)",sP->DENSITYu,1.0e7);
+         RP::add<Real>(pop + "_IPShock.Temperatureu", "Upstream Temperature (K)",sP->TEMPERATUREu,2.0e6);
 
-         RP::add(pop + "_IPShock.maxwCutoff", "Cutoff for the maxwellian distribution", 1e-12);
+         RP::add<Real>(pop + "_IPShock.VX0d", "Downstream Bulk velocity in x",sP->V0d[0],0.0);
+         RP::add<Real>(pop + "_IPShock.VY0d", "Downstream Bulk velocity in y",sP->V0d[1],0.0);
+         RP::add<Real>(pop + "_IPShock.VZ0d", "Downstream Bulk velocuty in z",sP->V0d[2],0.0);
+         RP::add<Real>(pop + "_IPShock.rhod", "Downstream Number density (m^-3)",sP->DENSITYd,1.0e7);
+         RP::add<Real>(pop + "_IPShock.Temperatured", "Downstream Temperature (K)",sP->TEMPERATUREd,2.0e6);
+
+         RP::add<Real>(pop + "_IPShock.maxwCutoff", "Cutoff for the maxwellian distribution",sP->maxwCutoff,1e-12);
       }
 
    }
 
    void IPShock::getParameters() {
-      Project::getParameters();
-
-      typedef Readparameters RP;
-      RP::get("IPShock.BX0u", this->B0u[0]);
-      RP::get("IPShock.BY0u", this->B0u[1]);
-      RP::get("IPShock.BZ0u", this->B0u[2]);
-      RP::get("IPShock.BX0d", this->B0d[0]);
-      RP::get("IPShock.BY0d", this->B0d[1]);
-      RP::get("IPShock.BZ0d", this->B0d[2]);
-      RP::get("IPShock.Width", this->Shockwidth);
-
-      RP::get("IPShock.AMR_L1width", this->AMR_L1width);
-      RP::get("IPShock.AMR_L2width", this->AMR_L2width);
-      RP::get("IPShock.AMR_L3width", this->AMR_L3width);
-      RP::get("IPShock.AMR_L4width", this->AMR_L4width);
-
-      // Per-population parameters
-      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
-         IPShockSpeciesParameters sP;
-
-         RP::get(pop + "_IPShock.VX0u", sP.V0u[0]);
-         RP::get(pop + "_IPShock.VY0u", sP.V0u[1]);
-         RP::get(pop + "_IPShock.VZ0u", sP.V0u[2]);
-         RP::get(pop + "_IPShock.rhou", sP.DENSITYu);
-         RP::get(pop + "_IPShock.Temperatureu", sP.TEMPERATUREu);
-
-         RP::get(pop + "_IPShock.VX0d", sP.V0d[0]);
-         RP::get(pop + "_IPShock.VY0d", sP.V0d[1]);
-         RP::get(pop + "_IPShock.VZ0d", sP.V0d[2]);
-         RP::get(pop + "_IPShock.rhod", sP.DENSITYd);
-         RP::get(pop + "_IPShock.Temperatured", sP.TEMPERATUREd);
-
-         RP::get(pop + "_IPShock.maxwCutoff", sP.maxwCutoff);
-
-         speciesParams.push_back(sP);
-      }
+      // Project::getParameters();
 
       int myRank;
 
@@ -153,11 +120,18 @@ namespace projects {
          //std::cerr << "Width = " << this->Shockwidth << std::endl;
       }
       */
+      //NOTE: This could be refactored but not really worth it when speciesParams is of size ~1-10 usually
 
       /* 
          Now allows flow and field both in z and y -directions. As assuming we're
          in the dHT frame, all flow and magnetic field should be in a single plane.
       */
+      typedef Readparameters RP;
+      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
+         IPShockSpeciesParameters* sP=speciesParamsRead.at(i);
+         speciesParams.push_back(*sP);
+      }
+
 
       /* Magnitude of tangential B-field and flow components */
       this->B0utangential = sqrt(this->B0u[1]*this->B0u[1] + this->B0u[2]*this->B0u[2]);

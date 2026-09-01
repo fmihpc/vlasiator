@@ -45,82 +45,47 @@ namespace projects {
 
    void Distributions::addParameters(){
       typedef Readparameters RP;
-      RP::add("Distributions.rho1", "Number density, first peak (m^-3)", 0.0);
-      RP::add("Distributions.rho2", "Number density, second peak (m^-3)", 0.0);
-      RP::add("Distributions.Tx1", "Temperature, first peak (K)", 0.0);
-      RP::add("Distributions.Tx2", "Temperature, second peak (K)", 0.0);
-      RP::add("Distributions.Ty1", "Temperature, first peak (K)", 0.0);
-      RP::add("Distributions.Ty2", "Temperature, second peak (K)", 0.0);
-      RP::add("Distributions.Tz1", "Temperature, first peak (K)", 0.0);
-      RP::add("Distributions.Tz2", "Temperature, second peak (K)", 0.0);
-      RP::add("Distributions.Vx1", "Bulk velocity x component, first peak (m/s)", 0.0);
-      RP::add("Distributions.Vx2", "Bulk velocity x component, second peak (m/s)", 0.0);
-      RP::add("Distributions.Vy1", "Bulk velocity y component, first peak (m/s)", 0.0);
-      RP::add("Distributions.Vy2", "Bulk velocity y component, second peak (m/s)", 0.0);
-      RP::add("Distributions.Vz1", "Bulk velocity z component, first peak (m/s)", 0.0);
-      RP::add("Distributions.Vz2", "Bulk velocity z component, second peak (m/s)", 0.0);
-      RP::add("Distributions.Bx", "Magnetic field x component (T)", 0.0);
-      RP::add("Distributions.By", "Magnetic field y component (T)", 0.0);
-      RP::add("Distributions.Bz", "Magnetic field z component (T)", 0.0);
-      RP::add("Distributions.dBx", "Magnetic field x component cosine perturbation amplitude (T)", 0.0);
-      RP::add("Distributions.dBy", "Magnetic field y component cosine perturbation amplitude (T)", 0.0);
-      RP::add("Distributions.dBz", "Magnetic field z component cosine perturbation amplitude (T)", 0.0);
-      RP::add("Distributions.magXPertAbsAmp", "Absolute amplitude of the random magnetic perturbation along x (T)", 1.0e-9);
-      RP::add("Distributions.magYPertAbsAmp", "Absolute amplitude of the random magnetic perturbation along y (T)", 1.0e-9);
-      RP::add("Distributions.magZPertAbsAmp", "Absolute amplitude of the random magnetic perturbation along z (T)", 1.0e-9);
-      RP::add("Distributions.rho1PertAbsAmp", "Absolute amplitude of the density perturbation, first peak", 0.1);
-      RP::add("Distributions.rho2PertAbsAmp", "Absolute amplitude of the density perturbation, second peak", 0.1);
-//       RP::add("Distributions.Vx1PertAbsAmp", "Absolute amplitude of the Vx perturbation, first peak", 1.0e6);
-//       RP::add("Distributions.Vy1PertAbsAmp", "Absolute amplitude of the Vy perturbation, first peak", 1.0e6);
-//       RP::add("Distributions.Vz1PertAbsAmp", "Absolute amplitude of the Vz perturbation, first peak", 1.0e6);
-//       RP::add("Distributions.Vx2PertAbsAmp", "Absolute amplitude of the Vx perturbation, second peak", 1.0e6);
-//       RP::add("Distributions.Vy2PertAbsAmp", "Absolute amplitude of the Vy perturbation, second peak", 1.0e6);
-//       RP::add("Distributions.Vz2PertAbsAmp", "Absolute amplitude of the Vz perturbation, second peak", 1.0e6);
-      RP::add("Distributions.lambda", "B cosine perturbation wavelength (m)", 0.0);
+      RP::add<Real>("Distributions.rho1", "Number density, first peak (m^-3)", this->rho[0],0.0);
+      RP::add<Real>("Distributions.rho2", "Number density, second peak (m^-3)", this->rho[1],0.0);
+      RP::add<Real>("Distributions.Tx1", "Temperature, first peak (K)", this->Tx[0],0.0);
+      RP::add<Real>("Distributions.Tx2", "Temperature, second peak (K)", this->Tx[1],0.0);
+      RP::add<Real>("Distributions.Ty1", "Temperature, first peak (K)", this->Ty[0],0.0);
+      RP::add<Real>("Distributions.Ty2", "Temperature, second peak (K)", this->Ty[1],0.0);
+      RP::add<Real>("Distributions.Tz1", "Temperature, first peak (K)", this->Tz[0],0.0);
+      RP::add<Real>("Distributions.Tz2", "Temperature, second peak (K)", this->Tz[1],0.0);
+      RP::add<Real>("Distributions.Vx1", "Bulk velocity x component, first peak (m/s)", this->Vx[0],0.0);
+      RP::add<Real>("Distributions.Vx2", "Bulk velocity x component, second peak (m/s)", this->Vx[1],0.0);
+      RP::add<Real>("Distributions.Vy1", "Bulk velocity y component, first peak (m/s)", this->Vy[0],0.0);
+      RP::add<Real>("Distributions.Vy2", "Bulk velocity y component, second peak (m/s)", this->Vy[1],0.0);
+      RP::add<Real>("Distributions.Vz1", "Bulk velocity z component, first peak (m/s)", this->Vz[0],0.0);
+      RP::add<Real>("Distributions.Vz2", "Bulk velocity z component, second peak (m/s)", this->Vz[1],0.0);
+      RP::add<Real>("Distributions.Bx", "Magnetic field x component (T)", this->Bx,0.0);
+      RP::add<Real>("Distributions.By", "Magnetic field y component (T)", this->By,0.0);
+      RP::add<Real>("Distributions.Bz", "Magnetic field z component (T)", this->Bz,0.0);
+      RP::add<Real>("Distributions.dBx", "Magnetic field x component cosine perturbation amplitude (T)", this->dBx,0.0);
+      RP::add<Real>("Distributions.dBy", "Magnetic field y component cosine perturbation amplitude (T)", this->dBy,0.0);
+      RP::add<Real>("Distributions.dBz", "Magnetic field z component cosine perturbation amplitude (T)", this->dBz,0.0);
+      RP::add<Real>("Distributions.magXPertAbsAmp", "Absolute amplitude of the random magnetic perturbation along x (T)", this->magXPertAbsAmp,1.0e-9);
+      RP::add<Real>("Distributions.magYPertAbsAmp", "Absolute amplitude of the random magnetic perturbation along y (T)", this->magYPertAbsAmp,1.0e-9);
+      RP::add<Real>("Distributions.magZPertAbsAmp", "Absolute amplitude of the random magnetic perturbation along z (T)", this->magZPertAbsAmp,1.0e-9);
+      RP::add<Real>("Distributions.rho1PertAbsAmp", "Absolute amplitude of the density perturbation, first peak", this->rhoPertAbsAmp[0],0.1);
+      RP::add<Real>("Distributions.rho2PertAbsAmp", "Absolute amplitude of the density perturbation, second peak", this->rhoPertAbsAmp[1],0.1);
+//       RP::add("Distributions.Vx1PertAbsAmp", "Absolute amplitude of the Vx perturbation, first peak", this->Vx1PertAbsAmp\);
+//       RP::add("Distributions.Vy1PertAbsAmp", "Absolute amplitude of the Vy perturbation, first peak", this->Vy1PertAbsAmp\);
+//       RP::add("Distributions.Vz1PertAbsAmp", "Absolute amplitude of the Vz perturbation, first peak", this->Vz1PertAbsAmp\);
+//       RP::add("Distributions.Vx2PertAbsAmp", "Absolute amplitude of the Vx perturbation, second peak", this->Vx2PertAbsAmp\);
+//       RP::add("Distributions.Vy2PertAbsAmp", "Absolute amplitude of the Vy perturbation, second peak", this->Vy2PertAbsAmp\);
+//       RP::add("Distributions.Vz2PertAbsAmp", "Absolute amplitude of the Vz perturbation, second peak", this->Vz2PertAbsAmp\);
+      RP::add<Real>("Distributions.lambda", "B cosine perturbation wavelength (m)", this->lambda,0.0);
    }
 
    void Distributions::getParameters(){
-      Project::getParameters();
-      typedef Readparameters RP;
-      Project::getParameters();
 
       if(getObjectWrapper().particleSpecies.size() > 1) {
          std::cerr << "The selected project does not support multiple particle populations! Aborting in " << __FILE__ << " line " << __LINE__ << std::endl;
          abort();
       }
 
-      RP::get("Distributions.rho1", this->rho[0]);
-      RP::get("Distributions.rho2", this->rho[1]);
-      RP::get("Distributions.Tx1", this->Tx[0]);
-      RP::get("Distributions.Tx2", this->Tx[1]);
-      RP::get("Distributions.Ty1", this->Ty[0]);
-      RP::get("Distributions.Ty2", this->Ty[1]);
-      RP::get("Distributions.Tz1", this->Tz[0]);
-      RP::get("Distributions.Tz2", this->Tz[1]);
-      RP::get("Distributions.Vx1", this->Vx[0]);
-      RP::get("Distributions.Vx2", this->Vx[1]);
-      RP::get("Distributions.Vy1", this->Vy[0]);
-      RP::get("Distributions.Vy2", this->Vy[1]);
-      RP::get("Distributions.Vz1", this->Vz[0]);
-      RP::get("Distributions.Vz2", this->Vz[1]);
-      RP::get("Distributions.Bx", this->Bx);
-      RP::get("Distributions.By", this->By);
-      RP::get("Distributions.Bz", this->Bz);
-      RP::get("Distributions.magXPertAbsAmp", this->magXPertAbsAmp);
-      RP::get("Distributions.magYPertAbsAmp", this->magYPertAbsAmp);
-      RP::get("Distributions.magZPertAbsAmp", this->magZPertAbsAmp);
-      RP::get("Distributions.rho1PertAbsAmp", this->rhoPertAbsAmp[0]);
-      RP::get("Distributions.rho2PertAbsAmp", this->rhoPertAbsAmp[1]);
-//       RP::get("Distributions.Vx1PertAbsAmp", this->Vx1PertAbsAmp);
-//       RP::get("Distributions.Vy1PertAbsAmp", this->Vy1PertAbsAmp);
-//       RP::get("Distributions.Vz1PertAbsAmp", this->Vz1PertAbsAmp);
-//       RP::get("Distributions.Vx2PertAbsAmp", this->Vx2PertAbsAmp);
-//       RP::get("Distributions.Vy2PertAbsAmp", this->Vy2PertAbsAmp);
-//       RP::get("Distributions.Vz2PertAbsAmp", this->Vz2PertAbsAmp);
-      RP::get("Distributions.dBx", this->dBx);
-      RP::get("Distributions.dBy", this->dBy);
-      RP::get("Distributions.dBz", this->dBz);
-      RP::get("Distributions.lambda", this->lambda);
    }
 
    Realf Distributions::fillPhaseSpace(spatial_cell::SpatialCell *cell,
