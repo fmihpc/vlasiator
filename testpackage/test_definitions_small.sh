@@ -260,6 +260,16 @@ variable_components[${index}]="0 0 1 2 0 1 2"
 single_cell[${index}]=1
 ((index+=1))
 
+#######
+# WRITE PATH TEST (26)
+#######
+
+# 26 write path test 
+test_name[${index}]="write_path_test"
+single_cell[${index}]=1
+((index+=1))
+
+
 # choose tests to run (default: all tests)
 run_tests=( )
 for (( c=1; c<$index; c++ ))
