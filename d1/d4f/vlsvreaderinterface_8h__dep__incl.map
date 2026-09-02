@@ -1,0 +1,19 @@
+<map id="tools/vlsvreaderinterface.h" name="tools/vlsvreaderinterface.h">
+<area shape="rect" id="Node000001" title=" " alt="" coords="490,5,687,31"/>
+<area shape="rect" id="Node000002" href="$d3/d1c/readfields_8h.html" title=" " alt="" coords="172,79,331,104"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="522,36,307,81,305,76,521,31"/>
+<area shape="rect" id="Node000006" href="$dd/d95/vlsv2silo_8cpp.html" title=" " alt="" coords="355,79,497,104"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="551,39,454,81,452,76,549,34"/>
+<area shape="rect" id="Node000007" href="$d4/d8a/vlsvdiff_8cpp.html" title="File containing write IO for vlasiator. More info at: https://agora.fmi.fi/display/CORSAIR/VLSV+File+..." alt="" coords="522,79,655,104"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="591,44,591,79,586,79,586,44"/>
+<area shape="rect" id="Node000008" href="$de/d99/vlsvextract_8cpp.html" title=" " alt="" coords="680,79,839,104"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="630,33,732,76,730,81,628,38"/>
+<area shape="rect" id="Node000009" href="$d7/df2/vlsvreaderinterface_8cpp.html" title=" " alt="" coords="863,79,1075,104"/>
+<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="664,31,908,76,907,81,663,36"/>
+<area shape="rect" id="Node000003" href="$da/d6f/particle__post__pusher_8cpp.html" title=" " alt="" coords="5,152,140,192"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="214,112,117,154,115,149,212,107"/>
+<area shape="rect" id="Node000004" href="$dc/d49/readfields_8cpp.html" title=" " alt="" coords="165,159,338,185"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="254,118,254,159,249,159,249,118"/>
+<area shape="rect" id="Node000005" href="$d4/d3a/fluxfunction_8cpp.html" title=" " alt="" coords="362,159,525,185"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="293,107,416,157,414,162,291,112"/>
+</map>

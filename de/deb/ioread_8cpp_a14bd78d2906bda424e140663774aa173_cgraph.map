@@ -1,0 +1,7 @@
+<map id="exitOnError" name="exitOnError">
+<area shape="rect" id="Node000001" title="Collective exit on error functions." alt="" coords="5,5,101,31"/>
+<area shape="rect" id="Node000002" href="$d3/d30/logger_8cpp.html#a8a4ad0ef8144875dad9a9e46831ed042" title=" " alt="" coords="149,5,204,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="102,15,136,15,136,21,102,21"/>
+<area shape="rect" id="Node000003" href="$d3/d42/class_logger.html#ab45d7f3a73f2ddbb92c27752f688be68" title=" " alt="" coords="252,5,357,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="205,15,238,15,238,21,205,21"/>
+</map>

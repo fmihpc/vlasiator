@@ -1,0 +1,18 @@
+<map id="getElementCircumcentre" name="getElementCircumcentre">
+<area shape="rect" id="Node000001" title=" " alt="" coords="692,81,876,107"/>
+<area shape="rect" id="Node000002" href="$d4/d0b/ionosphere_solver_tests_2main_8cpp.html#a6bf2604683f6cdaebffb89832d531016" title=" " alt="" coords="477,5,644,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="732,79,598,33,600,28,733,74"/>
+<area shape="rect" id="Node000003" href="$d4/d0b/ionosphere_solver_tests_2main_8cpp.html#a3c04138a5bfe5d72780bb7e82a18e627" title=" " alt="" coords="301,81,355,107"/>
+<area shape="poly" id="edge9_Node000001_Node000003" title=" " alt="" coords="678,97,356,97,356,91,678,91"/>
+<area shape="rect" id="Node000004" href="$d4/d0b/ionosphere_solver_tests_2main_8cpp.html#ae47d4fea7f2d68ac35c193a752a8cacd" title=" " alt="" coords="483,107,638,132"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="678,109,638,113,638,108,678,103"/>
+<area shape="rect" id="Node000005" href="$d4/d0b/ionosphere_solver_tests_2main_8cpp.html#a31dfbcf5f135fd31a8ca8aea83b53ef2" title=" " alt="" coords="488,156,633,181"/>
+<area shape="poly" id="edge5_Node000001_Node000005" title=" " alt="" coords="738,114,645,147,608,159,606,153,643,142,736,109"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="509,37,356,88,355,83,507,32"/>
+<area shape="poly" id="edge4_Node000004_Node000003" title=" " alt="" coords="469,112,355,100,356,94,469,107"/>
+<area shape="poly" id="edge8_Node000005_Node000003" title=" " alt="" coords="500,155,477,147,355,106,356,101,478,142,502,149"/>
+<area shape="rect" id="Node000006" href="$d4/d0b/ionosphere_solver_tests_2main_8cpp.html#a0973b859f7e8c300c7a8b9fb5d828e2b" title=" " alt="" coords="227,156,429,181"/>
+<area shape="poly" id="edge6_Node000005_Node000006" title=" " alt="" coords="474,171,430,171,430,166,474,166"/>
+<area shape="rect" id="Node000007" href="$d4/d0b/ionosphere_solver_tests_2main_8cpp.html#a3d507f1561beeaf891d5e4e23b766b12" title=" " alt="" coords="5,156,179,181"/>
+<area shape="poly" id="edge7_Node000006_Node000007" title=" " alt="" coords="213,171,179,171,179,166,213,166"/>
+</map>

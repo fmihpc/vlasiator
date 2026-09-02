@@ -1,0 +1,13 @@
+<map id="projects::Magnetosphere::getV0" name="projects::Magnetosphere::getV0">
+<area shape="rect" id="Node000001" title="Return a vector containing the velocity coordinate of the centre of each ion population in the distri..." alt="" coords="5,23,188,63"/>
+<area shape="rect" id="Node000002" href="$df/d57/classprojects_1_1_magnetosphere.html#a9acaf047095a308aad9c7cf780a2afe7" title=" " alt="" coords="236,23,419,63"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="188,41,222,41,222,46,188,46"/>
+<area shape="rect" id="Node000003" href="$d8/dbc/vectorclass__fallback_8h.html#a92b2075c51472d120e4ef0a663e3814b" title=" " alt="" coords="467,5,517,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="418,27,452,21,453,27,419,32"/>
+<area shape="rect" id="Node000006" href="$de/d31/_dispersion_8m.html#af276a2aede715061015c735080cf65df" title=" " alt="" coords="469,55,515,80"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="419,54,456,59,455,65,418,59"/>
+<area shape="rect" id="Node000004" href="$d7/d8b/class_vec_simple.html#a145923009b9b82410c5a072b8f8127f0" title=" " alt="" coords="565,5,700,31"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="517,15,551,15,551,21,517,21"/>
+<area shape="rect" id="Node000005" href="$d7/d8b/class_vec_simple.html#ae16798cf2ee14257d0706c60613cd733" title=" " alt="" coords="748,5,915,31"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="700,15,734,15,734,21,700,21"/>
+</map>

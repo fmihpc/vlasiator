@@ -1,0 +1,37 @@
+<map id="compute_h7_left_face_derivative" name="compute_h7_left_face_derivative">
+<area shape="rect" id="Node000001" title=" " alt="" coords="1677,73,1843,113"/>
+<area shape="rect" id="Node000002" href="$d0/d93/cpu__face__estimates_8hpp.html#a1248bf57f38b9f855101caca4acfea88" title=" " alt="" coords="1463,73,1629,113"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="1663,95,1630,95,1630,90,1663,90"/>
+<area shape="rect" id="Node000003" href="$dc/d8a/gpu__1d__pqm_8hpp.html#a0de367d676906d9d8da52e780d62f805" title=" " alt="" coords="1260,55,1415,80"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="1449,84,1415,79,1415,74,1450,78"/>
+<area shape="rect" id="Node000004" href="$d2/dd5/cpu__1d__pqm_8hpp.html#a7d796e440ec22dcf8e6d3d13e4de0303" title=" " alt="" coords="1260,104,1415,129"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="1450,106,1415,110,1415,105,1449,101"/>
+<area shape="rect" id="Node000005" href="$db/db8/gpu__acc__map_8cpp.html#a026347c8ae8381613d9d307407944ff2" title="GPU kernel for main task of semi&#45;Lagrangian acceleration. Reads data in from buffer,..." alt="" coords="1063,5,1209,31"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="1272,101,1259,94,1243,81,1234,68,1225,56,1211,44,1187,33,1190,28,1213,40,1229,52,1238,65,1247,77,1261,89,1275,96"/>
+<area shape="rect" id="Node000006" href="$db/d0f/cpu__acc__map_8cpp.html#ab4ba4dbc0e3448cd62e30e546e347908" title=" " alt="" coords="1099,55,1173,80"/>
+<area shape="poly" id="edge5_Node000004_Node000006" title=" " alt="" coords="1271,103,1173,79,1175,74,1272,98"/>
+<area shape="rect" id="Node000014" href="$d1/d9f/acceleration-vlasiator_2map__test_8cpp.html#a5ecd67c56a9621d507886b719ddaaa11" title=" " alt="" coords="1060,104,1212,129"/>
+<area shape="poly" id="edge14_Node000004_Node000014" title=" " alt="" coords="1246,119,1212,119,1212,114,1246,114"/>
+<area shape="rect" id="Node000016" href="$d1/d9f/acceleration-vlasiator_2map__test_8cpp.html#a37ab49d5e056f48beef521004563daad" title=" " alt="" coords="1092,153,1180,179"/>
+<area shape="poly" id="edge16_Node000004_Node000016" title=" " alt="" coords="1273,135,1181,158,1180,153,1271,130"/>
+<area shape="rect" id="Node000017" href="$db/df3/cpu__trans__map_8cpp.html#a750c6af0f5630fbc462d35ba69456474" title=" " alt="" coords="1079,203,1193,228"/>
+<area shape="poly" id="edge18_Node000004_Node000017" title=" " alt="" coords="1308,139,1264,167,1213,194,1184,205,1182,200,1211,189,1261,162,1305,135"/>
+<area shape="rect" id="Node000007" href="$d7/d31/cpu__acc__semilag_8cpp.html#aef3052717c19e2b16a6c4cf93e24ffcc" title=" " alt="" coords="861,55,1012,80"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="1085,70,1012,70,1012,65,1085,65"/>
+<area shape="rect" id="Node000008" href="$d7/d31/cpu__acc__semilag_8cpp.html#a16eb408704dcb3c4fb17300f0fc4be8a" title=" " alt="" coords="656,55,813,80"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="847,70,814,70,814,65,847,65"/>
+<area shape="rect" id="Node000009" href="$d5/d5d/vlasovmover_8cpp.html#a95b050f52235f371f937b7746c575025" title=" " alt="" coords="445,55,608,80"/>
+<area shape="poly" id="edge8_Node000008_Node000009" title=" " alt="" coords="642,70,608,70,608,65,642,65"/>
+<area shape="rect" id="Node000010" href="$d5/d5d/vlasovmover_8cpp.html#a72de3eb0ed9d5985acc51e471edfb808" title=" " alt="" coords="235,5,397,31"/>
+<area shape="poly" id="edge9_Node000009_Node000010" title=" " alt="" coords="458,54,370,33,372,28,459,49"/>
+<area shape="rect" id="Node000011" href="$d7/d70/grid_8cpp.html#a9e9166bda148ddef07e30ac56e3b7085" title="Initialize DCCRG and fsgrids." alt="" coords="260,55,372,80"/>
+<area shape="poly" id="edge10_Node000009_Node000011" title=" " alt="" coords="431,70,372,70,372,65,431,65"/>
+<area shape="rect" id="Node000012" href="$d4/d5b/vlasiator_8cpp.html#acfd343080edd07ae79384688a7e48693" title=" " alt="" coords="108,80,187,105"/>
+<area shape="poly" id="edge13_Node000009_Node000012" title=" " alt="" coords="456,85,398,94,282,99,187,97,187,92,282,94,397,89,456,80"/>
+<area shape="poly" id="edge11_Node000011_Node000012" title=" " alt="" coords="247,80,188,89,187,84,246,75"/>
+<area shape="rect" id="Node000013" href="$d4/d5b/vlasiator_8cpp.html#a54790573f350e250ccca3cbb94733391" title=" " alt="" coords="5,80,60,105"/>
+<area shape="poly" id="edge12_Node000012_Node000013" title=" " alt="" coords="94,95,60,95,60,90,94,90"/>
+<area shape="rect" id="Node000015" href="$d1/d9f/acceleration-vlasiator_2map__test_8cpp.html#a840291bc02cba5474a4cb46a9b9566fe" title=" " alt="" coords="909,128,964,153"/>
+<area shape="poly" id="edge15_Node000014_Node000015" title=" " alt="" coords="1047,130,965,140,964,135,1046,125"/>
+<area shape="poly" id="edge17_Node000016_Node000015" title=" " alt="" coords="1078,161,964,147,965,141,1079,156"/>
+</map>

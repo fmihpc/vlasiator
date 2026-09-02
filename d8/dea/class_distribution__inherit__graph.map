@@ -1,0 +1,13 @@
+<map id="Distribution" name="Distribution">
+<area shape="rect" id="Node000001" title=" " alt="" coords="171,5,270,31"/>
+<area shape="rect" id="Node000002" href="$db/d3e/class_kappa.html" title=" " alt="" coords="56,79,119,104"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="189,39,110,81,108,76,186,35"/>
+<area shape="rect" id="Node000005" href="$db/d12/class_maxwell___boltzmann.html" title=" " alt="" coords="143,79,298,104"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="223,44,223,79,218,79,218,44"/>
+<area shape="rect" id="Node000006" href="$d9/d72/class_monoenergetic.html" title=" " alt="" coords="323,79,441,104"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="260,34,357,76,355,81,258,39"/>
+<area shape="rect" id="Node000003" href="$d5/d16/class_kappa2.html" title=" " alt="" coords="5,152,76,177"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="74,117,50,153,46,150,70,114"/>
+<area shape="rect" id="Node000004" href="$d9/d76/class_kappa6.html" title=" " alt="" coords="100,152,171,177"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="105,114,130,150,125,153,101,117"/>
+</map>

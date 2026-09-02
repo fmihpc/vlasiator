@@ -1,0 +1,22 @@
+<map id="projects::Dispersion::setProjectBField" name="projects::Dispersion::setProjectBField">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,23,156,63"/>
+<area shape="rect" id="Node000002" href="$de/d55/class_constant_field.html#a7365835b7917968def85ec324e35476f" title=" " alt="" coords="204,5,379,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="156,32,190,27,191,33,157,37"/>
+<area shape="rect" id="Node000003" href="$d0/d58/backgroundfield_8cpp.html#abf92210b0c796171a4765c4728b1f465" title=" " alt="" coords="216,55,367,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="157,49,203,55,202,60,156,55"/>
+<area shape="rect" id="Node000004" href="$d0/d58/backgroundfield_8cpp.html#a6cd256683e30fe4fc462dd4d76085c0f" title=" " alt="" coords="427,5,621,31"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="351,52,449,31,451,36,352,57"/>
+<area shape="rect" id="Node000005" href="$d1/d37/integratefunction_8cpp.html#af0da45424201ab223e1e902ed6a6d160" title=" " alt="" coords="463,55,585,80"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="367,65,449,65,449,70,367,70"/>
+<area shape="rect" id="Node000010" href="$d1/d37/integratefunction_8cpp.html#a7e18de830892dfd65c31cdd3563f4a71" title=" " alt="" coords="462,104,586,129"/>
+<area shape="poly" id="edge9_Node000003_Node000010" title=" " alt="" coords="352,77,451,98,449,104,351,83"/>
+<area shape="rect" id="Node000006" href="$d3/da8/quadr_8cpp.html#a54bbf527c4ebeb2484d25660f73fca81" title=" " alt="" coords="669,80,751,105"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="586,73,656,83,656,88,585,78"/>
+<area shape="rect" id="Node000007" href="$d3/da8/quadr_8cpp.html#adde271c5da57f58e525315c139e1a37d" title=" " alt="" coords="801,31,859,56"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="741,78,787,58,789,63,743,82"/>
+<area shape="rect" id="Node000008" href="$d3/da8/quadr_8cpp.html#a1fac0542d7675c60cd58b31bc9fb020f" title=" " alt="" coords="801,80,859,105"/>
+<area shape="poly" id="edge7_Node000006_Node000008" title=" " alt="" coords="751,90,788,90,788,95,751,95"/>
+<area shape="rect" id="Node000009" href="$d3/da8/quadr_8cpp.html#ab15a726e703d67fd81e39363e1f815de" title=" " alt="" coords="799,129,861,155"/>
+<area shape="poly" id="edge8_Node000006_Node000009" title=" " alt="" coords="743,103,787,122,785,127,741,108"/>
+<area shape="poly" id="edge10_Node000010_Node000006" title=" " alt="" coords="586,106,655,97,656,102,587,111"/>
+</map>

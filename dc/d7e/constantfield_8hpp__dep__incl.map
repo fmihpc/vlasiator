@@ -1,0 +1,31 @@
+<map id="backgroundfield/constantfield.hpp" name="backgroundfield/constantfield.hpp">
+<area shape="rect" id="Node000001" title=" " alt="" coords="1274,5,1517,31"/>
+<area shape="rect" id="Node000002" href="$d5/dc9/constantfield_8cpp.html" title=" " alt="" coords="5,86,247,111"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="1260,25,815,43,538,59,260,81,199,89,199,83,259,76,538,54,815,37,1260,20"/>
+<area shape="rect" id="Node000003" href="$d2/d86/_diffusion_8cpp.html" title=" " alt="" coords="271,79,407,119"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="1260,23,1091,27,880,37,650,54,420,81,408,83,407,78,419,76,649,49,880,32,1090,22,1260,18"/>
+<area shape="rect" id="Node000004" href="$d4/d69/_dispersion_8cpp.html" title=" " alt="" coords="431,79,578,119"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="1260,26,953,43,771,59,590,81,579,83,578,78,590,76,771,54,952,38,1260,21"/>
+<area shape="rect" id="Node000005" href="$d5/df2/_distributions_8cpp.html" title=" " alt="" coords="603,79,764,119"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="1261,31,1034,50,777,81,765,83,764,78,776,76,1033,45,1260,26"/>
+<area shape="rect" id="Node000006" href="$df/daa/_firehose_8cpp.html" title=" " alt="" coords="789,86,1007,111"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="1310,35,971,89,970,83,1309,30"/>
+<area shape="rect" id="Node000007" href="$d3/d0c/_flowthrough_8cpp.html" title=" " alt="" coords="1032,79,1191,119"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="1342,37,1180,81,1179,76,1340,32"/>
+<area shape="rect" id="Node000008" href="$d4/d41/_fluctuations_8cpp.html" title=" " alt="" coords="1215,79,1373,119"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="1371,41,1320,81,1317,76,1368,37"/>
+<area shape="rect" id="Node000009" href="$d0/dd9/_larmor_8cpp.html" title=" " alt="" coords="1398,86,1598,111"/>
+<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="1423,37,1484,84,1481,88,1420,41"/>
+<area shape="rect" id="Node000010" href="$df/d4f/_loss_cone_8cpp.html" title=" " alt="" coords="1623,86,1856,111"/>
+<area shape="poly" id="edge9_Node000001_Node000010" title=" " alt="" coords="1459,31,1690,83,1689,89,1458,36"/>
+<area shape="rect" id="Node000011" href="$d3/d46/_magnetosphere_8cpp.html" title=" " alt="" coords="1881,79,2059,119"/>
+<area shape="poly" id="edge10_Node000001_Node000011" title=" " alt="" coords="1514,30,1682,50,1869,76,1881,78,1880,83,1868,81,1682,55,1513,35"/>
+<area shape="rect" id="Node000012" href="$d5/d03/_multi_peak_8cpp.html" title=" " alt="" coords="2084,79,2227,119"/>
+<area shape="poly" id="edge11_Node000001_Node000012" title=" " alt="" coords="1530,23,1782,42,1928,57,2072,76,2084,78,2084,83,2071,81,1927,62,1782,47,1530,29"/>
+<area shape="rect" id="Node000013" href="$d5/d64/_shocktest_8cpp.html" title=" " alt="" coords="2251,79,2393,119"/>
+<area shape="poly" id="edge12_Node000001_Node000013" title=" " alt="" coords="1531,20,1855,36,2048,53,2240,76,2251,78,2250,83,2239,81,2047,58,1854,42,1531,25"/>
+<area shape="rect" id="Node000014" href="$df/d18/project_8cpp.html" title=" " alt="" coords="2417,86,2568,111"/>
+<area shape="poly" id="edge13_Node000001_Node000014" title=" " alt="" coords="1531,18,1706,23,1925,32,2165,50,2406,76,2447,83,2446,89,2406,81,2165,55,1924,38,1706,28,1530,23"/>
+<area shape="rect" id="Node000015" href="$df/d81/verification_larmor_8cpp.html" title=" " alt="" coords="2593,79,2790,119"/>
+<area shape="poly" id="edge14_Node000001_Node000015" title=" " alt="" coords="1530,18,1734,23,1996,33,2288,50,2581,76,2593,77,2592,83,2580,81,2287,55,1996,38,1734,28,1530,24"/>
+</map>

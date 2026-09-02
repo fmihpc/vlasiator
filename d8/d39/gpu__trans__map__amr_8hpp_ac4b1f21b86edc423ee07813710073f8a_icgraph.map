@@ -1,0 +1,11 @@
+<map id="update_remote_mapping_contribution_amr" name="update_remote_mapping_contribution_amr">
+<area shape="rect" id="Node000001" title=" " alt="" coords="599,23,784,63"/>
+<area shape="rect" id="Node000002" href="$d5/d5d/vlasovmover_8cpp.html#afbb2eb92643919d19733d48bada33359" title=" " alt="" coords="353,31,551,56"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="585,46,551,46,551,41,585,41"/>
+<area shape="rect" id="Node000003" href="$d5/d5d/vlasovmover_8cpp.html#aacc4f1870b12e805320d6b001af33133" title=" " alt="" coords="108,5,305,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="339,34,305,31,306,26,340,29"/>
+<area shape="rect" id="Node000004" href="$d4/d5b/vlasiator_8cpp.html#acfd343080edd07ae79384688a7e48693" title=" " alt="" coords="167,55,246,80"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="340,57,247,66,246,61,339,52"/>
+<area shape="rect" id="Node000005" href="$d4/d5b/vlasiator_8cpp.html#a54790573f350e250ccca3cbb94733391" title=" " alt="" coords="5,55,60,80"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="154,70,60,70,60,65,154,65"/>
+</map>

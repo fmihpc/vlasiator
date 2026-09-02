@@ -1,0 +1,25 @@
+<map id="calculateWaveSpeedYZ" name="calculateWaveSpeedYZ">
+<area shape="rect" id="Node000001" title="Low&#45;level helper function." alt="" coords="5,104,180,129"/>
+<area shape="rect" id="Node000002" href="$d9/d68/struct_reconstructions.html#a7d72124055e923b802fa00097271657e" title=" " alt="" coords="228,5,441,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="111,102,162,71,227,40,250,32,252,37,229,44,165,75,114,106"/>
+<area shape="rect" id="Node000003" href="$d9/d68/struct_reconstructions.html#aab5af0a3bc219b59953640652077b3c5" title=" " alt="" coords="263,55,406,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="155,101,258,80,259,85,156,107"/>
+<area shape="rect" id="Node000009" href="$d9/d68/struct_reconstructions.html#a2952ffd2e3315395919d50d49fc4de38" title=" " alt="" coords="232,104,437,129"/>
+<area shape="poly" id="edge9_Node000001_Node000009" title=" " alt="" coords="180,114,218,114,218,119,180,119"/>
+<area shape="rect" id="Node000010" href="$d9/d68/struct_reconstructions.html#a2dc3b21d9cad3de9dca31ba1e2c4c1e8" title=" " alt="" coords="251,153,419,179"/>
+<area shape="poly" id="edge10_Node000001_Node000010" title=" " alt="" coords="156,127,259,148,258,153,155,132"/>
+<area shape="rect" id="Node000011" href="$d9/d68/struct_reconstructions.html#ad49763a851d4daedeba8577513cf4270" title=" " alt="" coords="241,203,428,228"/>
+<area shape="poly" id="edge12_Node000001_Node000011" title=" " alt="" coords="115,127,166,157,229,188,256,196,254,201,227,192,163,162,112,132"/>
+<area shape="rect" id="Node000004" href="$d9/d68/struct_reconstructions.html#aa5542fe7b25122edefe92c5e658086e0" title=" " alt="" coords="489,97,695,137"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="402,77,476,92,475,97,401,83"/>
+<area shape="rect" id="Node000005" href="$d8/dbc/vectorclass__fallback_8h.html#a92b2075c51472d120e4ef0a663e3814b" title=" " alt="" coords="743,79,793,104"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="695,99,729,94,729,99,696,104"/>
+<area shape="rect" id="Node000008" href="$d8/dbc/vectorclass__fallback_8h.html#a1896c5fbdb17de74189d1d18cdd4cf29" title=" " alt="" coords="745,128,791,153"/>
+<area shape="poly" id="edge7_Node000004_Node000008" title=" " alt="" coords="696,128,731,133,731,138,695,133"/>
+<area shape="rect" id="Node000006" href="$d7/d8b/class_vec_simple.html#a145923009b9b82410c5a072b8f8127f0" title=" " alt="" coords="841,104,976,129"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="794,93,828,99,827,105,793,98"/>
+<area shape="rect" id="Node000007" href="$d7/d8b/class_vec_simple.html#ae16798cf2ee14257d0706c60613cd733" title=" " alt="" coords="1024,104,1191,129"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="976,114,1010,114,1010,119,976,119"/>
+<area shape="poly" id="edge8_Node000008_Node000006" title=" " alt="" coords="791,134,827,128,828,133,792,139"/>
+<area shape="poly" id="edge11_Node000010_Node000004" title=" " alt="" coords="401,151,475,136,476,142,402,156"/>
+</map>

@@ -1,0 +1,13 @@
+<map id="SBC::SysBoundaryCondition::fieldSolverBoundaryCondGradPeElectricField" name="SBC::SysBoundaryCondition::fieldSolverBoundaryCondGradPeElectricField">
+<area shape="rect" id="Node000001" title=" " alt="" coords="871,5,1112,60"/>
+<area shape="rect" id="Node000002" href="$d3/dfe/ldz__gradpe_8cpp.html#a9bdf4c2141456c5735f3848bb884dd57" title=" " alt="" coords="663,20,823,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="857,35,823,35,823,30,857,30"/>
+<area shape="rect" id="Node000003" href="$d3/dfe/ldz__gradpe_8cpp.html#aea151e4aa36b63eddcb5d837b957b347" title=" " alt="" coords="409,20,615,45"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="649,35,615,35,615,30,649,30"/>
+<area shape="rect" id="Node000004" href="$de/dff/ldz__main_8cpp.html#ac91e0dc80c9375ba517e2f263308c64f" title="Top&#45;level field propagation function." alt="" coords="235,20,361,45"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="396,35,362,35,362,30,396,30"/>
+<area shape="rect" id="Node000005" href="$d4/d5b/vlasiator_8cpp.html#acfd343080edd07ae79384688a7e48693" title=" " alt="" coords="108,20,187,45"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="221,35,187,35,187,30,221,30"/>
+<area shape="rect" id="Node000006" href="$d4/d5b/vlasiator_8cpp.html#a54790573f350e250ccca3cbb94733391" title=" " alt="" coords="5,20,60,45"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="94,35,60,35,60,30,94,30"/>
+</map>

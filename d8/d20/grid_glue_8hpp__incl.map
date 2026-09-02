@@ -1,0 +1,19 @@
+<map id="fieldsolver/gridGlue.hpp" name="fieldsolver/gridGlue.hpp">
+<area shape="rect" id="Node000001" title=" " alt="" coords="261,5,439,31"/>
+<area shape="rect" id="Node000002" href="$d6/dc2/definitions_8h.html" title=" " alt="" coords="27,79,142,104"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="308,33,142,78,140,72,307,28"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="167,79,253,104"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="329,33,246,75,244,70,326,28"/>
+<area shape="rect" id="Node000006" title=" " alt="" coords="277,79,340,104"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="345,32,325,68,320,65,341,30"/>
+<area shape="rect" id="Node000007" title=" " alt="" coords="365,79,421,104"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="359,30,381,66,377,68,355,32"/>
+<area shape="rect" id="Node000008" title=" " alt="" coords="445,79,495,104"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="371,28,440,69,437,74,368,33"/>
+<area shape="rect" id="Node000009" title=" " alt="" coords="519,79,562,104"/>
+<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="382,28,507,75,505,80,380,33"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="5,152,76,177"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="80,106,57,142,53,139,75,103"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="101,152,159,177"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="94,103,118,139,113,142,90,106"/>
+</map>

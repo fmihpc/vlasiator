@@ -1,0 +1,43 @@
+<map id="Readparameters::parseCommandName" name="Readparameters::parseCommandName">
+<area shape="rect" id="Node000001" title=" " alt="" coords="1321,341,1601,366"/>
+<area shape="rect" id="Node000002" href="$de/d5d/class_readparameters.html#a28e551f05837f412b6c6dd76d2aca97c" title=" " alt="" coords="1097,235,1259,261"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="1412,338,1212,263,1214,258,1414,333"/>
+<area shape="rect" id="Node000016" href="$de/d5d/class_readparameters.html#a070a6b311490f37e2cda6a98a13bee01" title=" " alt="" coords="1083,365,1273,390"/>
+<area shape="poly" id="edge21_Node000001_Node000016" title=" " alt="" coords="1308,369,1274,372,1273,367,1307,364"/>
+<area shape="rect" id="Node000003" href="$db/d19/classprojects_1_1_project.html#a1ddfd102303d319cd6ca9cc75d673e69" title=" " alt="" coords="828,5,1007,45"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="1162,224,1142,187,1114,142,1077,98,1033,60,1006,45,1008,41,1036,55,1081,94,1118,139,1147,184,1167,221"/>
+<area shape="rect" id="Node000007" href="$de/d5d/class_readparameters.html#af8b8ce2efd1bb450236ac4fdc33c3644" title=" " alt="" coords="800,70,1035,95"/>
+<area shape="poly" id="edge6_Node000002_Node000007" title=" " alt="" coords="1156,226,1104,171,1070,142,1033,117,986,98,987,93,1036,112,1074,138,1108,167,1160,223"/>
+<area shape="rect" id="Node000008" href="$da/d6b/class_s_b_c_1_1_ionosphere.html#a1da19f2ca6792eb9bef3a111611106c1" title=" " alt="" coords="511,121,746,146"/>
+<area shape="poly" id="edge14_Node000002_Node000008" title=" " alt="" coords="1150,229,1098,192,1067,175,1034,161,961,143,886,133,813,128,746,128,746,123,813,123,886,127,962,138,1035,156,1069,170,1101,188,1153,224"/>
+<area shape="rect" id="Node000010" href="$d0/d60/struct_particle_parameters.html#a59139691a7bf77d484bb37d4735b25bc" title=" " alt="" coords="845,171,989,211"/>
+<area shape="poly" id="edge10_Node000002_Node000010" title=" " alt="" coords="1105,235,989,209,990,204,1107,230"/>
+<area shape="rect" id="Node000012" href="$dd/d8a/class_s_b_c_1_1_copysphere.html#a6aed887e5ad3172437b09534ffc0ea9f" title=" " alt="" coords="509,235,748,261"/>
+<area shape="poly" id="edge12_Node000002_Node000012" title=" " alt="" coords="1083,251,748,251,748,245,1083,245"/>
+<area shape="rect" id="Node000013" href="$da/ddf/class_s_b_c_1_1_maxwellian.html#a14f5141d8f1986bee1f1e6dcb63fd86d" title=" " alt="" coords="510,286,747,311"/>
+<area shape="poly" id="edge15_Node000002_Node000013" title=" " alt="" coords="1084,259,748,290,747,285,1083,254"/>
+<area shape="rect" id="Node000014" href="$d5/d71/class_s_b_c_1_1_outflow.html#a8620e015afb169eba6f39b37344f0ea5" title=" " alt="" coords="812,337,1023,362"/>
+<area shape="poly" id="edge17_Node000002_Node000014" title=" " alt="" coords="1143,270,1093,295,1036,320,974,339,972,334,1034,315,1091,290,1140,265"/>
+<area shape="rect" id="Node000015" href="$dd/d3d/class_sys_boundary.html#a9d9a4610407b4c9cc7906f5314d36bef" title="Add its own and all existing SysBoundaryConditions&#39; parameters." alt="" coords="235,332,457,372"/>
+<area shape="poly" id="edge19_Node000002_Node000015" title=" " alt="" coords="1161,274,1110,329,1075,356,1036,377,953,402,868,415,781,420,696,418,615,411,540,400,419,375,420,369,541,395,615,406,696,413,781,415,867,410,952,396,1034,372,1072,352,1106,325,1157,270"/>
+<area shape="rect" id="Node000004" href="$d9/df1/namespaceprojects.html#a0c0ca79688034cefcaf8c18a9d1f28d1" title=" " alt="" coords="262,114,430,139"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="815,46,419,117,418,111,814,41"/>
+<area shape="rect" id="Node000005" href="$d4/d5b/vlasiator_8cpp.html#acfd343080edd07ae79384688a7e48693" title=" " alt="" coords="108,261,187,286"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="318,150,167,263,164,258,315,146"/>
+<area shape="rect" id="Node000006" href="$d4/d5b/vlasiator_8cpp.html#a54790573f350e250ccca3cbb94733391" title=" " alt="" coords="5,261,60,286"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="94,276,60,276,60,271,94,271"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="831,100,702,123,701,118,830,95"/>
+<area shape="rect" id="Node000009" href="$dd/d3d/class_sys_boundary.html#aae6f74a26c74f9541acf0537d82fb068" title="Get this class&#39; parameters." alt="" coords="240,261,452,286"/>
+<area shape="poly" id="edge8_Node000008_Node000009" title=" " alt="" coords="550,152,506,168,464,190,424,216,364,262,361,258,421,212,461,186,504,163,548,147"/>
+<area shape="poly" id="edge9_Node000009_Node000005" title=" " alt="" coords="226,276,187,276,187,271,226,271"/>
+<area shape="rect" id="Node000011" href="$da/d6f/particle__post__pusher_8cpp.html#a3c04138a5bfe5d72780bb7e82a18e627" title=" " alt="" coords="601,178,656,203"/>
+<area shape="poly" id="edge11_Node000010_Node000011" title=" " alt="" coords="832,193,656,193,656,188,832,188"/>
+<area shape="poly" id="edge13_Node000012_Node000009" title=" " alt="" coords="496,263,453,266,452,261,495,257"/>
+<area shape="poly" id="edge16_Node000013_Node000009" title=" " alt="" coords="496,289,452,285,452,280,497,284"/>
+<area shape="poly" id="edge18_Node000014_Node000009" title=" " alt="" coords="798,352,657,346,580,338,505,327,437,309,379,289,380,284,438,304,506,321,581,333,658,341,798,347"/>
+<area shape="poly" id="edge20_Node000015_Node000005" title=" " alt="" coords="281,329,180,289,182,284,283,324"/>
+<area shape="rect" id="Node000017" href="$de/d5d/class_readparameters.html#a0395ed2bc251f27fb20a973917746b15" title=" " alt="" coords="812,437,1023,477"/>
+<area shape="poly" id="edge22_Node000016_Node000017" title=" " alt="" coords="1123,397,984,440,983,435,1122,392"/>
+<area shape="rect" id="Node000018" href="$de/d5d/class_readparameters.html#af1607e0a35352f403250767990126663" title=" " alt="" coords="505,445,752,470"/>
+<area shape="poly" id="edge23_Node000017_Node000018" title=" " alt="" coords="798,460,752,460,752,455,798,455"/>
+</map>

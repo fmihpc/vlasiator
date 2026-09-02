@@ -1,0 +1,9 @@
+<map id="DRO::DataReductionOperatorPopulations::setSpatialCell" name="DRO::DataReductionOperatorPopulations::setSpatialCell">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,55,217,95"/>
+<area shape="rect" id="Node000002" href="$d9/df9/common_8cpp.html#a6167b9f510c4eef8b16fa67bf3d5566e" title="A function to stop the simulation if the boolean condition is true. Raises a flag which gets MPI_Redu..." alt="" coords="338,5,405,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="202,53,324,25,325,31,203,58"/>
+<area shape="rect" id="Node000003" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#ac3e9c10c72c754b3ca8586d8811ad6d4" title=" " alt="" coords="284,55,459,95"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="217,73,270,73,270,78,217,78"/>
+<area shape="rect" id="Node000004" href="$d0/d65/class_d_r_o_1_1_data_reduction_operator_populations.html#a77e6c932c2714816a9a8c65c3979d4f5" title=" " alt="" coords="265,119,477,159"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="194,93,277,113,276,119,193,98"/>
+</map>

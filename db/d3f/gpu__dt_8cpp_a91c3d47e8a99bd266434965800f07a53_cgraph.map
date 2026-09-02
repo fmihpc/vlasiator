@@ -1,0 +1,29 @@
+<map id="reduce_vlasov_dt" name="reduce_vlasov_dt">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,163,141,189"/>
+<area shape="rect" id="Node000002" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#af59448707e540451a64b65a8e8516978" title=" " alt="" coords="189,5,373,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="82,161,124,110,154,81,188,55,199,49,201,53,191,60,158,85,128,114,86,165"/>
+<area shape="rect" id="Node000004" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#aae0b83f78d27bd3cdd0511d6e30813e9" title=" " alt="" coords="194,69,369,109"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="98,161,188,119,207,112,208,117,190,124,101,166"/>
+<area shape="rect" id="Node000005" href="$d4/d0b/ionosphere_solver_tests_2main_8cpp.html#a9bf4cdc41d466e8710b8aa33a33d32e0" title=" " alt="" coords="211,134,351,159"/>
+<area shape="poly" id="edge5_Node000001_Node000005" title=" " alt="" coords="142,164,198,156,198,161,142,169"/>
+<area shape="rect" id="Node000006" href="$dc/dc7/gpu__base_8cpp.html#a5a912ded80090be002a7f654f29ec235" title=" " alt="" coords="209,249,354,274"/>
+<area shape="poly" id="edge6_Node000001_Node000006" title=" " alt="" coords="97,187,140,210,190,234,215,242,213,247,188,238,137,215,95,191"/>
+<area shape="rect" id="Node000010" href="$d8/dbc/vectorclass__fallback_8h.html#a1896c5fbdb17de74189d1d18cdd4cf29" title=" " alt="" coords="258,298,305,323"/>
+<area shape="poly" id="edge10_Node000001_Node000010" title=" " alt="" coords="86,187,128,235,158,262,191,284,218,296,245,303,244,308,216,301,188,289,154,266,124,239,82,191"/>
+<area shape="rect" id="Node000013" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a4d995382c17b4b5bb92bf36e34515098" title=" " alt="" coords="194,184,369,224"/>
+<area shape="poly" id="edge13_Node000001_Node000013" title=" " alt="" coords="142,183,181,188,180,193,142,188"/>
+<area shape="rect" id="Node000003" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a0b5ae6d60c03a10b43a732a20bf20625" title=" " alt="" coords="421,69,612,109"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="356,43,430,63,429,68,355,48"/>
+<area shape="poly" id="edge4_Node000004_Node000003" title=" " alt="" coords="369,87,408,87,408,92,369,92"/>
+<area shape="rect" id="Node000007" href="$dc/dc7/gpu__base_8cpp.html#ab56cbcd02bde6293b905a8bc47bca4a4" title=" " alt="" coords="443,199,591,225"/>
+<area shape="poly" id="edge7_Node000006_Node000007" title=" " alt="" coords="342,246,441,225,442,230,343,251"/>
+<area shape="rect" id="Node000008" href="$dc/dc7/gpu__base_8cpp.html#ab486ab7b847223a57ec2238a3b25ced4" title=" " alt="" coords="456,249,577,274"/>
+<area shape="poly" id="edge8_Node000006_Node000008" title=" " alt="" coords="354,259,443,259,443,264,354,264"/>
+<area shape="rect" id="Node000009" href="$dc/dc7/gpu__base_8cpp.html#ad379894802da0a7fb52e17ae9b0f897b" title=" " alt="" coords="684,249,803,274"/>
+<area shape="poly" id="edge9_Node000008_Node000009" title=" " alt="" coords="577,259,670,259,670,264,577,264"/>
+<area shape="rect" id="Node000011" href="$d7/d8b/class_vec_simple.html#a145923009b9b82410c5a072b8f8127f0" title=" " alt="" coords="449,298,584,323"/>
+<area shape="poly" id="edge11_Node000010_Node000011" title=" " alt="" coords="305,308,436,308,436,313,305,313"/>
+<area shape="rect" id="Node000012" href="$d7/d8b/class_vec_simple.html#ae16798cf2ee14257d0706c60613cd733" title=" " alt="" coords="660,298,827,323"/>
+<area shape="poly" id="edge12_Node000011_Node000012" title=" " alt="" coords="585,308,646,308,646,313,585,313"/>
+<area shape="poly" id="edge14_Node000013_Node000003" title=" " alt="" coords="341,181,372,168,471,114,473,119,374,173,343,186"/>
+</map>

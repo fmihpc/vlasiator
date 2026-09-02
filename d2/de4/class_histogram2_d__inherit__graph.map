@@ -1,0 +1,9 @@
+<map id="Histogram2D" name="Histogram2D">
+<area shape="rect" id="Node000001" title=" " alt="" coords="200,5,308,31"/>
+<area shape="rect" id="Node000002" href="$d3/d24/class_lin_log_histogram2_d.html" title=" " alt="" coords="5,79,156,104"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="215,38,110,81,108,76,213,33"/>
+<area shape="rect" id="Node000003" href="$d9/dff/class_linear_histogram2_d.html" title=" " alt="" coords="180,79,328,104"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="257,44,257,79,251,79,251,44"/>
+<area shape="rect" id="Node000004" href="$db/dd5/class_log_histogram2_d.html" title=" " alt="" coords="353,79,483,104"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="294,34,392,76,390,81,292,39"/>
+</map>

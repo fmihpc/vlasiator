@@ -1,0 +1,27 @@
+<map id="SBC::averageCellData" name="SBC::averageCellData">
+<area shape="rect" id="Node000001" title=" " alt="" coords="1033,99,1199,125"/>
+<area shape="rect" id="Node000002" href="$db/d19/classprojects_1_1_project.html#af44d068807a3bc0122e4b2615d9272a7" title="Boxcar filters spatial cells that were recently refined." alt="" coords="770,5,905,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="1075,96,985,60,904,40,905,34,986,55,1077,91"/>
+<area shape="rect" id="Node000007" href="$d7/d70/grid_8cpp.html#ab889fc28d268ff8b7f32654247817acb" title=" " alt="" coords="779,70,896,95"/>
+<area shape="poly" id="edge7_Node000001_Node000007" title=" " alt="" coords="1019,105,896,91,896,86,1020,99"/>
+<area shape="rect" id="Node000009" href="$d8/ddb/class_s_b_c_1_1_sys_boundary_condition.html#a114ea00181c6f9cc383df8b500a18738" title=" " alt="" coords="689,120,985,160"/>
+<area shape="poly" id="edge12_Node000001_Node000009" title=" " alt="" coords="1020,124,986,128,985,122,1019,119"/>
+<area shape="rect" id="Node000010" href="$d8/ddb/class_s_b_c_1_1_sys_boundary_condition.html#a85f8b6f6ce9546e7b2aae027e5e8ac1e" title=" " alt="" coords="718,185,957,239"/>
+<area shape="poly" id="edge13_Node000001_Node000010" title=" " alt="" coords="1079,133,986,174,948,187,946,182,984,170,1077,128"/>
+<area shape="rect" id="Node000003" href="$d7/d70/grid_8cpp.html#a7f1e42e11ccc6dccce8e4b9bd9d2f415" title=" " alt="" coords="451,17,585,42"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="756,29,586,31,586,26,756,24"/>
+<area shape="rect" id="Node000004" href="$d7/d70/grid_8cpp.html#a9e9166bda148ddef07e30ac56e3b7085" title="Initialize DCCRG and fsgrids." alt="" coords="235,41,347,66"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="437,40,347,50,346,45,437,35"/>
+<area shape="rect" id="Node000005" href="$d4/d5b/vlasiator_8cpp.html#acfd343080edd07ae79384688a7e48693" title=" " alt="" coords="108,41,187,66"/>
+<area shape="poly" id="edge6_Node000003_Node000005" title=" " alt="" coords="437,25,340,23,235,31,184,43,183,38,234,25,340,18,437,20"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="221,56,187,56,187,51,221,51"/>
+<area shape="rect" id="Node000006" href="$d4/d5b/vlasiator_8cpp.html#a54790573f350e250ccca3cbb94733391" title=" " alt="" coords="5,41,60,66"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="94,56,60,56,60,51,94,51"/>
+<area shape="poly" id="edge8_Node000007_Node000003" title=" " alt="" coords="765,73,585,43,586,38,766,68"/>
+<area shape="rect" id="Node000008" href="$d7/d70/grid_8cpp.html#ad1bdb09168de4bf51ffe7b6fada86915" title="Balance load." alt="" coords="466,70,570,95"/>
+<area shape="poly" id="edge9_Node000007_Node000008" title=" " alt="" coords="765,85,570,85,570,80,765,80"/>
+<area shape="poly" id="edge10_Node000008_Node000004" title=" " alt="" coords="452,77,346,63,347,58,453,72"/>
+<area shape="poly" id="edge11_Node000008_Node000005" title=" " alt="" coords="452,89,350,89,234,80,186,69,187,63,235,75,350,84,452,83"/>
+<area shape="rect" id="Node000011" href="$dd/d8a/class_s_b_c_1_1_copysphere.html#a8b2dd19da6db4550e9f661ba7dfb8598" title=" " alt="" coords="395,192,641,232"/>
+<area shape="poly" id="edge14_Node000010_Node000011" title=" " alt="" coords="704,215,642,215,642,209,704,209"/>
+</map>

@@ -1,0 +1,15 @@
+<map id="SBC::Inflow::setCellsFromTemplate" name="SBC::Inflow::setCellsFromTemplate">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,131,192,171"/>
+<area shape="rect" id="Node000002" href="$d8/ddb/class_s_b_c_1_1_sys_boundary_condition.html#a9bae328740bdbd87689286e4a78a4532" title=" " alt="" coords="240,37,443,77"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="142,128,239,87,260,79,262,84,241,92,144,133"/>
+<area shape="rect" id="Node000005" href="$d8/ddb/class_s_b_c_1_1_sys_boundary_condition.html#a21ef1eac4a2a5bdf92387b866714ea35" title="Function used to determine on which face(s) if any the cell at given coordinates is." alt="" coords="240,101,443,141"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="192,137,226,133,227,138,192,142"/>
+<area shape="rect" id="Node000006" href="$d4/d5b/vlasiator_8cpp.html#a0e89e9e9c29d929027088b0a8dd56585" title=" " alt="" coords="287,166,396,191"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="192,159,273,168,273,173,192,164"/>
+<area shape="rect" id="Node000007" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#adb0efa30027b52e6dc6d4871277561e3" title=" " alt="" coords="254,216,429,256"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="152,168,241,201,263,209,262,214,239,207,150,173"/>
+<area shape="rect" id="Node000003" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#ac3e9c10c72c754b3ca8586d8811ad6d4" title=" " alt="" coords="491,5,665,45"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="443,41,477,36,478,42,443,46"/>
+<area shape="rect" id="Node000004" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a0cd7b26f72d55d4735500850e5a48316" title=" " alt="" coords="491,69,665,109"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="443,68,478,73,477,78,443,74"/>
+</map>

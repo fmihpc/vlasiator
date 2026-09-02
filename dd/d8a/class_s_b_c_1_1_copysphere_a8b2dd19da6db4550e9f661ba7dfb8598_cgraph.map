@@ -1,0 +1,19 @@
+<map id="SBC::Copysphere::vlasovBoundaryCondition" name="SBC::Copysphere::vlasovBoundaryCondition">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,87,252,127"/>
+<area shape="rect" id="Node000002" href="$d8/ddb/class_s_b_c_1_1_sys_boundary_condition.html#a85f8b6f6ce9546e7b2aae027e5e8ac1e" title=" " alt="" coords="300,80,539,135"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="252,105,286,105,286,110,252,110"/>
+<area shape="rect" id="Node000003" href="$d9/df9/common_8cpp.html#a3ccffabea3435cf184592d88e6a470c8" title=" " alt="" coords="665,45,753,71"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="538,84,651,65,652,70,539,90"/>
+<area shape="rect" id="Node000004" href="$d4/de8/namespace_s_b_c.html#af17aaa1a3240e7366b450798a94d613f" title=" " alt="" coords="627,95,792,120"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="539,105,613,105,613,110,539,110"/>
+<area shape="rect" id="Node000009" href="$d8/ddb/class_s_b_c_1_1_sys_boundary_condition.html#a919e9d13a92c4d823bb0609fcd82ef7a" title=" " alt="" coords="587,145,832,185"/>
+<area shape="poly" id="edge8_Node000002_Node000009" title=" " alt="" coords="539,128,595,139,594,145,538,134"/>
+<area shape="rect" id="Node000005" href="$d6/dc2/definitions_8h.html#a2e8c5518a905b923f4fe0800f0928023" title=" " alt="" coords="932,5,1003,31"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="791,93,831,80,845,71,854,61,864,51,879,41,918,26,920,31,881,46,867,55,858,65,848,75,833,84,793,98"/>
+<area shape="rect" id="Node000006" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#ac3e9c10c72c754b3ca8586d8811ad6d4" title=" " alt="" coords="880,55,1055,95"/>
+<area shape="poly" id="edge5_Node000004_Node000006" title=" " alt="" coords="792,94,866,85,866,90,792,100"/>
+<area shape="rect" id="Node000007" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a4530e51baa36317061126f602576f816" title=" " alt="" coords="880,119,1055,159"/>
+<area shape="poly" id="edge6_Node000004_Node000007" title=" " alt="" coords="792,115,866,124,866,129,792,120"/>
+<area shape="rect" id="Node000008" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a168bfb50291c93e939ac6a85c616bd0f" title=" " alt="" coords="880,183,1055,223"/>
+<area shape="poly" id="edge7_Node000004_Node000008" title=" " alt="" coords="793,116,833,130,848,140,858,149,881,169,893,175,891,180,879,174,855,153,845,144,831,135,791,121"/>
+</map>

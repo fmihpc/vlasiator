@@ -1,0 +1,59 @@
+<map id="SBC::Outflow::setupL2OutflowAtRestart" name="SBC::Outflow::setupL2OutflowAtRestart">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,301,220,341"/>
+<area shape="rect" id="Node000002" href="$d9/df9/common_8cpp.html#a3ccffabea3435cf184592d88e6a470c8" title=" " alt="" coords="697,24,785,49"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="116,300,133,249,162,182,182,147,206,114,234,84,267,60,319,34,374,17,432,8,490,4,598,8,684,21,683,26,597,14,490,9,433,13,376,23,321,39,269,64,238,88,210,117,186,150,167,184,138,251,122,301"/>
+<area shape="rect" id="Node000003" href="$d8/ddb/class_s_b_c_1_1_sys_boundary_condition.html#a21ef1eac4a2a5bdf92387b866714ea35" title="Function used to determine on which face(s) if any the cell at given coordinates is." alt="" coords="315,218,517,258"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="169,298,267,267,302,258,303,264,269,272,171,303"/>
+<area shape="rect" id="Node000004" href="$d5/d71/class_s_b_c_1_1_outflow.html#ad65daed9627fb528481d14420b094790" title=" " alt="" coords="331,283,501,308"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="220,309,317,301,317,306,220,314"/>
+<area shape="rect" id="Node000005" href="$d4/d5b/vlasiator_8cpp.html#a0e89e9e9c29d929027088b0a8dd56585" title=" " alt="" coords="361,332,471,357"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="220,326,348,337,347,342,220,332"/>
+<area shape="rect" id="Node000006" href="$d4/d0b/ionosphere_solver_tests_2main_8cpp.html#a9bf4cdc41d466e8710b8aa33a33d32e0" title=" " alt="" coords="976,383,1116,408"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="167,338,216,354,268,366,364,380,462,389,655,400,828,401,962,397,962,402,828,406,655,405,461,395,363,385,268,371,214,359,165,343"/>
+<area shape="rect" id="Node000007" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#ab3b5bf63a685b711ee0fbfb093fd971b" title=" " alt="" coords="653,561,829,601"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="123,340,142,384,172,440,215,497,240,522,269,542,314,564,361,579,409,590,458,597,554,600,638,594,639,599,554,605,458,602,408,595,359,584,312,569,267,547,237,526,211,501,168,443,137,386,118,342"/>
+<area shape="rect" id="Node000008" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a5971e9f669bcbf085734bdc050ded724" title=" " alt="" coords="641,433,840,473"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="140,338,197,377,232,396,269,411,361,434,456,448,547,454,628,455,628,460,547,459,456,453,360,440,267,416,230,401,194,382,137,343"/>
+<area shape="rect" id="Node000009" href="$d7/d70/grid_8cpp.html#ac9cfc94f1a8849f0b2c95f805cc44b8d" title=" " alt="" coords="313,493,519,533"/>
+<area shape="poly" id="edge9_Node000001_Node000009" title=" " alt="" coords="132,339,188,402,227,436,269,466,312,486,309,490,267,471,223,441,184,406,128,343"/>
+<area shape="rect" id="Node000015" href="$d8/ddb/class_s_b_c_1_1_sys_boundary_condition.html#a3cfc36b14517b28b49be49ef6a24c082" title=" " alt="" coords="279,139,553,193"/>
+<area shape="poly" id="edge19_Node000001_Node000015" title=" " alt="" coords="134,298,191,251,228,225,267,203,285,196,287,200,269,208,231,230,195,255,137,302"/>
+<area shape="rect" id="Node000020" href="$d8/ddb/class_s_b_c_1_1_sys_boundary_condition.html#a22555e61519bda622a660b60d2a85b97" title=" " alt="" coords="268,74,564,114"/>
+<area shape="poly" id="edge25_Node000001_Node000020" title=" " alt="" coords="122,299,143,261,175,213,216,164,267,124,278,117,281,122,269,128,220,168,179,216,147,264,126,302"/>
+<area shape="poly" id="edge8_Node000008_Node000006" title=" " alt="" coords="840,431,964,408,965,413,841,437"/>
+<area shape="poly" id="edge17_Node000009_Node000007" title=" " alt="" coords="513,530,639,557,638,562,512,535"/>
+<area shape="poly" id="edge18_Node000009_Node000008" title=" " alt="" coords="519,491,627,471,628,476,520,496"/>
+<area shape="rect" id="Node000010" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a6cabc1ee2449f057831682b4ce91c5f9" title=" " alt="" coords="639,497,843,537"/>
+<area shape="poly" id="edge10_Node000009_Node000010" title=" " alt="" coords="520,511,625,512,625,518,520,516"/>
+<area shape="rect" id="Node000011" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a12396b706cfbfbef0a336d936238b867" title=" " alt="" coords="959,433,1133,473"/>
+<area shape="poly" id="edge11_Node000010_Node000011" title=" " alt="" coords="836,494,945,471,946,476,837,499"/>
+<area shape="rect" id="Node000013" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a18b8ef0d4f590289f8924765b348ca6c" title=" " alt="" coords="937,497,1155,537"/>
+<area shape="poly" id="edge13_Node000010_Node000013" title=" " alt="" coords="843,514,923,514,923,519,843,519"/>
+<area shape="rect" id="Node000014" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a3a95df29bab5edf56724489af64523e5" title=" " alt="" coords="959,561,1133,601"/>
+<area shape="poly" id="edge15_Node000010_Node000014" title=" " alt="" coords="837,534,946,557,945,562,836,539"/>
+<area shape="rect" id="Node000012" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a0b5ae6d60c03a10b43a732a20bf20625" title=" " alt="" coords="1223,497,1413,537"/>
+<area shape="poly" id="edge12_Node000011_Node000012" title=" " alt="" coords="1132,470,1220,491,1219,496,1131,475"/>
+<area shape="poly" id="edge14_Node000013_Node000012" title=" " alt="" coords="1156,514,1209,514,1209,519,1156,519"/>
+<area shape="poly" id="edge16_Node000014_Node000012" title=" " alt="" coords="1131,558,1219,537,1220,542,1132,563"/>
+<area shape="poly" id="edge20_Node000015_Node000002" title=" " alt="" coords="540,136,562,124,578,109,585,92,594,75,611,60,646,44,682,36,684,42,647,49,613,64,598,79,590,95,582,112,566,128,543,141"/>
+<area shape="rect" id="Node000016" href="$d8/ddb/class_s_b_c_1_1_sys_boundary_condition.html#a9bae328740bdbd87689286e4a78a4532" title=" " alt="" coords="639,138,842,178"/>
+<area shape="poly" id="edge21_Node000015_Node000016" title=" " alt="" coords="553,160,625,158,626,163,553,165"/>
+<area shape="rect" id="Node000019" href="$d8/ddb/class_s_b_c_1_1_sys_boundary_condition.html#aa3d89d9f7805406c356384d2cdafb4ac" title=" " alt="" coords="634,202,847,242"/>
+<area shape="poly" id="edge24_Node000015_Node000019" title=" " alt="" coords="553,187,621,199,620,204,553,192"/>
+<area shape="rect" id="Node000017" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#ac3e9c10c72c754b3ca8586d8811ad6d4" title=" " alt="" coords="959,138,1133,178"/>
+<area shape="poly" id="edge22_Node000016_Node000017" title=" " alt="" coords="842,155,945,155,945,161,842,161"/>
+<area shape="rect" id="Node000018" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a0cd7b26f72d55d4735500850e5a48316" title=" " alt="" coords="959,202,1133,242"/>
+<area shape="poly" id="edge23_Node000016_Node000018" title=" " alt="" coords="837,175,946,198,945,203,836,181"/>
+<area shape="poly" id="edge26_Node000020_Node000002" title=" " alt="" coords="529,71,682,44,683,49,530,76"/>
+<area shape="poly" id="edge27_Node000020_Node000016" title=" " alt="" coords="519,111,626,133,625,138,518,117"/>
+<area shape="rect" id="Node000021" href="$d8/ddb/class_s_b_c_1_1_sys_boundary_condition.html#a0cb6b360a4cba5a9de53faa2aabf2e11" title=" " alt="" coords="612,74,869,114"/>
+<area shape="poly" id="edge28_Node000020_Node000021" title=" " alt="" coords="564,91,598,91,598,97,564,97"/>
+<area shape="rect" id="Node000022" href="$d8/ddb/class_s_b_c_1_1_sys_boundary_condition.html#a287db96725fef05e252a15c46492f3dc" title=" " alt="" coords="917,74,1175,114"/>
+<area shape="poly" id="edge29_Node000021_Node000022" title=" " alt="" coords="869,91,904,91,904,97,869,97"/>
+<area shape="rect" id="Node000023" href="$d8/dbc/vectorclass__fallback_8h.html#a1896c5fbdb17de74189d1d18cdd4cf29" title=" " alt="" coords="1295,81,1341,107"/>
+<area shape="poly" id="edge30_Node000022_Node000023" title=" " alt="" coords="1175,91,1281,91,1281,97,1175,97"/>
+<area shape="rect" id="Node000024" href="$d7/d8b/class_vec_simple.html#a145923009b9b82410c5a072b8f8127f0" title=" " alt="" coords="1461,81,1596,107"/>
+<area shape="poly" id="edge31_Node000023_Node000024" title=" " alt="" coords="1342,91,1447,91,1447,97,1342,97"/>
+<area shape="rect" id="Node000025" href="$d7/d8b/class_vec_simple.html#ae16798cf2ee14257d0706c60613cd733" title=" " alt="" coords="1644,81,1811,107"/>
+<area shape="poly" id="edge32_Node000024_Node000025" title=" " alt="" coords="1596,91,1630,91,1630,97,1596,97"/>
+</map>

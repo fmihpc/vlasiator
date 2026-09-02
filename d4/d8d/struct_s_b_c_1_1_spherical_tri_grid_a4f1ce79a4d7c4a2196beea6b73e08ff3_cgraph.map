@@ -1,0 +1,15 @@
+<map id="SBC::SphericalTriGrid::readAtmosphericModelFile" name="SBC::SphericalTriGrid::readAtmosphericModelFile">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,73,209,113"/>
+<area shape="rect" id="Node000002" href="$d8/dbc/vectorclass__fallback_8h.html#a92b2075c51472d120e4ef0a663e3814b" title=" " alt="" coords="340,5,391,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="162,70,257,39,326,23,327,28,258,45,164,75"/>
+<area shape="rect" id="Node000005" href="$d4/de8/namespace_s_b_c.html#afa31a8ecc6f9c39a2a57181ecb558187" title=" " alt="" coords="267,55,463,80"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="209,80,254,76,254,81,210,85"/>
+<area shape="rect" id="Node000006" href="$d4/de8/namespace_s_b_c.html#a4ac1a4ca7361449bbd2fbd42bc89ac4a" title=" " alt="" coords="257,104,473,129"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="210,99,244,103,243,108,209,105"/>
+<area shape="rect" id="Node000007" href="$de/d31/_dispersion_8m.html#af276a2aede715061015c735080cf65df" title=" " alt="" coords="342,153,389,179"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="168,110,258,138,329,156,328,161,257,143,167,115"/>
+<area shape="rect" id="Node000003" href="$d7/d8b/class_vec_simple.html#a145923009b9b82410c5a072b8f8127f0" title=" " alt="" coords="521,5,656,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="391,15,507,15,507,21,391,21"/>
+<area shape="rect" id="Node000004" href="$d7/d8b/class_vec_simple.html#ae16798cf2ee14257d0706c60613cd733" title=" " alt="" coords="704,5,871,31"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="656,15,690,15,690,21,656,21"/>
+</map>

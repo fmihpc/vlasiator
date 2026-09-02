@@ -1,0 +1,26 @@
+<map id="gpu_batch_allocate" name="gpu_batch_allocate">
+<area shape="rect" id="Node000001" title=" " alt="" coords="917,129,1065,155"/>
+<area shape="rect" id="Node000002" href="$d5/d9e/gpu__acc__semilag_8cpp.html#a2f3ac063bfdc2b3e88a844b929ff924a" title="Propagates the distribution function in velocity space of given list of real space cells using a semi..." alt="" coords="683,55,842,80"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="950,126,868,94,827,83,829,77,870,89,952,121"/>
+<area shape="rect" id="Node000008" href="$dc/dc7/gpu__base_8cpp.html#a5a912ded80090be002a7f654f29ec235" title=" " alt="" coords="690,104,835,129"/>
+<area shape="poly" id="edge8_Node000001_Node000008" title=" " alt="" coords="903,135,835,127,836,122,904,130"/>
+<area shape="rect" id="Node000011" href="$dc/d2e/gpu__pitch__angle__diffusion_8cpp.html#a88e83cb1bbf15b69d1d99d7704e590e0" title=" " alt="" coords="688,153,837,179"/>
+<area shape="poly" id="edge11_Node000001_Node000011" title=" " alt="" coords="904,154,838,161,837,156,904,148"/>
+<area shape="rect" id="Node000012" href="$d6/dd0/namespacespatial__cell.html#a6246a5c04af91361b63f1a3ab0b08796" title="spatial_cell::update_velocity_block_content_lists Finds blocks above the sparsity threshold" alt="" coords="656,203,869,243"/>
+<area shape="poly" id="edge12_Node000001_Node000012" title=" " alt="" coords="949,163,870,194,834,206,833,201,868,189,947,158"/>
+<area shape="rect" id="Node000003" href="$d5/d5d/vlasovmover_8cpp.html#a95b050f52235f371f937b7746c575025" title=" " alt="" coords="445,55,608,80"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="669,70,608,70,608,65,669,65"/>
+<area shape="rect" id="Node000004" href="$d5/d5d/vlasovmover_8cpp.html#a72de3eb0ed9d5985acc51e471edfb808" title=" " alt="" coords="235,5,397,31"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="458,54,370,33,372,28,459,49"/>
+<area shape="rect" id="Node000005" href="$d7/d70/grid_8cpp.html#a9e9166bda148ddef07e30ac56e3b7085" title="Initialize DCCRG and fsgrids." alt="" coords="260,55,372,80"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="431,70,372,70,372,65,431,65"/>
+<area shape="rect" id="Node000006" href="$d4/d5b/vlasiator_8cpp.html#acfd343080edd07ae79384688a7e48693" title=" " alt="" coords="108,80,187,105"/>
+<area shape="poly" id="edge7_Node000003_Node000006" title=" " alt="" coords="456,85,398,94,282,99,187,97,187,92,282,94,397,89,456,80"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="247,80,188,89,187,84,246,75"/>
+<area shape="rect" id="Node000007" href="$d4/d5b/vlasiator_8cpp.html#a54790573f350e250ccca3cbb94733391" title=" " alt="" coords="5,80,60,105"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="94,95,60,95,60,90,94,90"/>
+<area shape="rect" id="Node000009" href="$db/d3f/gpu__dt_8cpp.html#a91c3d47e8a99bd266434965800f07a53" title=" " alt="" coords="459,104,595,129"/>
+<area shape="poly" id="edge9_Node000008_Node000009" title=" " alt="" coords="676,119,595,119,595,114,676,114"/>
+<area shape="rect" id="Node000010" href="$dd/d10/gpu__trans__map__amr_8cpp.html#adb478472f8b586f9c45bc7e0961cf5fe" title=" " alt="" coords="453,153,600,179"/>
+<area shape="poly" id="edge10_Node000008_Node000010" title=" " alt="" coords="688,135,589,156,588,151,687,130"/>
+</map>

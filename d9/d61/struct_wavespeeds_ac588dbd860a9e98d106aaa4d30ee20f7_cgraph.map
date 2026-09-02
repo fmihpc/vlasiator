@@ -1,0 +1,11 @@
+<map id="Wavespeeds::minVelocity" name="Wavespeeds::minVelocity">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,31,195,56"/>
+<area shape="rect" id="Node000002" href="$d8/dbc/vectorclass__fallback_8h.html#a1896c5fbdb17de74189d1d18cdd4cf29" title=" " alt="" coords="243,5,289,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="183,28,229,21,229,26,184,33"/>
+<area shape="rect" id="Node000005" href="$de/d31/_dispersion_8m.html#af276a2aede715061015c735080cf65df" title=" " alt="" coords="243,55,289,80"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="188,53,229,59,229,65,187,59"/>
+<area shape="rect" id="Node000003" href="$d7/d8b/class_vec_simple.html#a145923009b9b82410c5a072b8f8127f0" title=" " alt="" coords="337,5,472,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="290,15,323,15,323,21,290,21"/>
+<area shape="rect" id="Node000004" href="$d7/d8b/class_vec_simple.html#ae16798cf2ee14257d0706c60613cd733" title=" " alt="" coords="520,5,687,31"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="472,15,506,15,506,21,472,21"/>
+</map>

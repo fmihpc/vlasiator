@@ -1,0 +1,19 @@
+<map id="Histogram2D::Histogram2D" name="Histogram2D::Histogram2D">
+<area shape="rect" id="Node000001" title=" " alt="" coords="565,141,768,166"/>
+<area shape="rect" id="Node000002" href="$d9/dff/class_linear_histogram2_d.html#a4c426a7cc94176c660129ff74a5fdcac" title=" " alt="" coords="315,37,471,77"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="626,137,516,92,471,78,473,73,518,87,628,132"/>
+<area shape="rect" id="Node000005" href="$d9/dff/class_linear_histogram2_d.html#afcdb0412c523191fd14f6bd46dba2849" title=" " alt="" coords="315,101,471,141"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="551,143,471,133,472,128,552,137"/>
+<area shape="rect" id="Node000006" href="$d3/d24/class_lin_log_histogram2_d.html#a5891e8f25d6317a95e95701e6b79d50b" title=" " alt="" coords="314,165,473,205"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="552,169,473,179,472,173,552,164"/>
+<area shape="rect" id="Node000007" href="$db/dd5/class_log_histogram2_d.html#af3f28c01e7f69b9b188f62a5ea337d2d" title=" " alt="" coords="269,230,517,255"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="629,174,577,198,518,220,469,233,468,227,517,215,575,193,627,170"/>
+<area shape="rect" id="Node000003" href="$d9/dff/class_linear_histogram2_d.html#a928a16f4e32bd0c7114b02b8cefe849c" title=" " alt="" coords="35,5,191,45"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="301,50,191,37,192,32,302,44"/>
+<area shape="rect" id="Node000004" href="$d9/dff/class_linear_histogram2_d.html#aec990d563fd9c88a7d74eb838f3f6869" title=" " alt="" coords="35,69,191,109"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="302,70,192,83,191,78,301,65"/>
+<area shape="rect" id="Node000008" href="$db/dd5/class_log_histogram2_d.html#a71251f5127ea6e37a9611c25dd308a4b" title=" " alt="" coords="5,205,221,230"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="255,233,221,230,222,224,256,228"/>
+<area shape="rect" id="Node000009" href="$db/dd5/class_log_histogram2_d.html#a18a9c108237ea1f436334459e738f7e7" title=" " alt="" coords="8,254,219,279"/>
+<area shape="poly" id="edge8_Node000007_Node000009" title=" " alt="" coords="256,257,219,260,219,255,255,252"/>
+</map>

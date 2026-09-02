@@ -1,0 +1,7 @@
+<map id="SBC::Ionosphere" name="SBC::Ionosphere">
+<area shape="rect" id="Node000001" title="Ionosphere is a class applying ionospheric boundary conditions." alt="" coords="149,101,277,127"/>
+<area shape="rect" id="Node000002" href="$d8/ddb/class_s_b_c_1_1_sys_boundary_condition.html" title="SBC::SysBoundaryCondition is the base class for system boundary conditions." alt="" coords="5,5,208,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="132,38,202,99,198,103,128,42"/>
+<area shape="rect" id="Node000003" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html" title=" " alt="" coords="233,5,407,31"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="298,42,228,103,225,99,295,38"/>
+</map>

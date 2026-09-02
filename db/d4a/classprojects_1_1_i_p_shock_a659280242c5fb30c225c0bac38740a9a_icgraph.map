@@ -1,0 +1,11 @@
+<map id="projects::IPShock::interpolate" name="projects::IPShock::interpolate">
+<area shape="rect" id="Node000001" title=" " alt="" coords="195,101,336,141"/>
+<area shape="rect" id="Node000002" href="$db/d4a/classprojects_1_1_i_p_shock.html#a2c3b87ed199362356e6980fa3d6f0c4c" title=" " alt="" coords="5,5,147,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="215,97,145,60,121,48,123,43,148,55,218,92"/>
+<area shape="rect" id="Node000003" href="$db/d4a/classprojects_1_1_i_p_shock.html#abf4c78b17d9725f5a6eb127bba96e8fb" title="Return a vector containing the velocity coordinate of the centre of each ion population in the distri..." alt="" coords="5,69,147,109"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="181,110,146,104,147,99,182,105"/>
+<area shape="rect" id="Node000004" href="$db/d4a/classprojects_1_1_i_p_shock.html#aafea26803501ad99a4d216d64c2d6116" title=" " alt="" coords="5,133,147,173"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="182,138,147,144,146,139,181,133"/>
+<area shape="rect" id="Node000005" href="$db/d4a/classprojects_1_1_i_p_shock.html#ad1f85ddd73fa5a8e302629fd756b5126" title=" " alt="" coords="5,197,147,237"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="218,151,148,188,123,200,121,195,145,183,215,146"/>
+</map>

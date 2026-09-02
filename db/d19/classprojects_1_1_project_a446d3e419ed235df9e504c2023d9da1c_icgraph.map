@@ -1,0 +1,21 @@
+<map id="projects::Project::Project" name="projects::Project::Project">
+<area shape="rect" id="Node000001" title=" " alt="" coords="255,241,389,281"/>
+<area shape="rect" id="Node000002" href="$d9/d08/classprojects_1_1_alfven.html#a8826194f9c3fec9f008b7a763e5f26c4" title=" " alt="" coords="19,5,193,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="310,228,296,186,275,136,245,87,226,65,205,45,183,33,186,28,208,41,230,61,249,84,279,134,301,184,315,226"/>
+<area shape="rect" id="Node000003" href="$d1/db3/classprojects_1_1_diffusion.html#ad15ab7b34816a6d80de784f04b7d8c47" title=" " alt="" coords="36,55,176,95"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="302,230,263,168,236,137,205,110,175,94,178,89,208,105,240,133,267,165,307,227"/>
+<area shape="rect" id="Node000004" href="$d2/d03/classprojects_1_1_dispersion.html#a58a8b69f414831bec785575a26633de4" title=" " alt="" coords="31,119,181,159"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="288,233,250,202,205,174,179,162,181,157,208,169,253,198,291,229"/>
+<area shape="rect" id="Node000005" href="$dc/dd5/classprojects_1_1_firehose.html#a85ccb1bdd5b89a3fa6064a89b6f4cbba" title=" " alt="" coords="37,183,175,223"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="240,242,174,224,175,219,242,237"/>
+<area shape="rect" id="Node000006" href="$de/d23/classprojects_1_1_larmor.html#a7d1847fecdc575f50408b1b264f02142" title=" " alt="" coords="15,248,197,273"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="241,263,198,263,198,258,241,258"/>
+<area shape="rect" id="Node000007" href="$d4/d0a/classprojects_1_1_riemann1.html#aa8776c0484e19295a907a1fb498cd4a0" title=" " alt="" coords="32,298,180,338"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="242,285,181,301,180,296,241,279"/>
+<area shape="rect" id="Node000008" href="$d5/db6/classprojects_1_1_shock.html#ad3f68178ab284fc82234617feaee6f8f" title=" " alt="" coords="22,363,190,388"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="292,292,254,324,208,352,174,365,172,360,205,348,251,319,289,288"/>
+<area shape="rect" id="Node000009" href="$d9/d72/classprojects_1_1_test_hall.html#a9515e1475fb7f99b90cf651267e90ac9" title=" " alt="" coords="39,413,173,453"/>
+<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="304,294,264,349,238,377,208,402,175,419,172,414,205,397,234,373,260,345,300,291"/>
+<area shape="rect" id="Node000010" href="$dd/d25/classprojects_1_1verification_larmor.html#aa5a20a34df802471dd390167a6a46e81" title=" " alt="" coords="5,477,207,517"/>
+<area shape="poly" id="edge9_Node000001_Node000010" title=" " alt="" coords="313,294,298,334,276,380,246,427,208,467,190,479,187,474,205,463,242,423,272,378,294,332,308,293"/>
+</map>

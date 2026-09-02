@@ -1,0 +1,7 @@
+<map id="SBC::Outflow::fieldSolverBoundaryCondMagneticField" name="SBC::Outflow::fieldSolverBoundaryCondMagneticField">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,13,213,53"/>
+<area shape="rect" id="Node000002" href="$d8/ddb/class_s_b_c_1_1_sys_boundary_condition.html#abf4eaf122c5fa478c8ee9c1d97c795a3" title=" " alt="" coords="261,5,496,60"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="213,30,247,30,247,35,213,35"/>
+<area shape="rect" id="Node000003" href="$d9/df9/common_8cpp.html#a3ccffabea3435cf184592d88e6a470c8" title=" " alt="" coords="544,20,632,45"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="496,30,530,30,530,35,496,35"/>
+</map>

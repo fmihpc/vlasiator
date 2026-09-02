@@ -1,0 +1,9 @@
+<map id="DataReducer::writeFsGridData" name="DataReducer::writeFsGridData">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,35,225,60"/>
+<area shape="rect" id="Node000002" href="$da/dea/class_d_r_o_1_1_data_reduction_operator_fs_grid.html#a9b51752974cf23e70f2531ef410adaa7" title=" " alt="" coords="273,27,485,67"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="226,45,259,45,259,50,226,50"/>
+<area shape="rect" id="Node000003" href="$d9/df9/common_8cpp.html#a6167b9f510c4eef8b16fa67bf3d5566e" title="A function to stop the simulation if the boolean condition is true. Raises a flag which gets MPI_Redu..." alt="" coords="606,5,673,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="485,33,592,21,593,26,486,38"/>
+<area shape="rect" id="Node000004" href="$da/dea/class_d_r_o_1_1_data_reduction_operator_fs_grid.html#af9cf391de86c667488a5768dfcb9159a" title=" " alt="" coords="533,55,745,95"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="486,56,520,60,519,65,485,61"/>
+</map>

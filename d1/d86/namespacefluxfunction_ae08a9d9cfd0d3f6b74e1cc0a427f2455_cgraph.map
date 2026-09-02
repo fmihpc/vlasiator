@@ -1,0 +1,20 @@
+<map id="fluxfunction.calculate" name="fluxfunction.calculate">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,119,168,144"/>
+<area shape="rect" id="Node000002" href="$d1/d86/namespacefluxfunction.html#a7526fc9f59f07cd6a5446902a4ebea99" title=" " alt="" coords="216,29,376,55"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="110,116,158,91,215,65,237,57,239,62,217,70,160,96,112,121"/>
+<area shape="rect" id="Node000007" href="$d1/d86/namespacefluxfunction.html#a54284dafd9669b341d3e86492fc29406" title=" " alt="" coords="221,79,371,119"/>
+<area shape="poly" id="edge7_Node000001_Node000007" title=" " alt="" coords="168,116,207,110,208,116,169,122"/>
+<area shape="rect" id="Node000008" href="$d1/d86/namespacefluxfunction.html#ac3662355b0e70d0cadd61ec15f81d2a5" title=" " alt="" coords="227,143,365,183"/>
+<area shape="poly" id="edge8_Node000001_Node000008" title=" " alt="" coords="169,141,213,148,212,153,168,146"/>
+<area shape="rect" id="Node000009" href="$d1/d86/namespacefluxfunction.html#a75beec9d44fc8b29f3500ccc3e6fca05" title=" " alt="" coords="228,207,364,247"/>
+<area shape="poly" id="edge9_Node000001_Node000009" title=" " alt="" coords="113,142,217,193,232,199,230,204,215,198,111,147"/>
+<area shape="rect" id="Node000003" href="$d8/dbc/vectorclass__fallback_8h.html#a92b2075c51472d120e4ef0a663e3814b" title=" " alt="" coords="424,5,475,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="376,27,410,21,411,27,377,32"/>
+<area shape="rect" id="Node000006" href="$d8/dbc/vectorclass__fallback_8h.html#a1896c5fbdb17de74189d1d18cdd4cf29" title=" " alt="" coords="426,55,473,80"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="374,52,413,59,412,64,373,57"/>
+<area shape="rect" id="Node000004" href="$d7/d8b/class_vec_simple.html#a145923009b9b82410c5a072b8f8127f0" title=" " alt="" coords="523,31,657,56"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="475,20,510,26,509,31,474,25"/>
+<area shape="rect" id="Node000005" href="$d7/d8b/class_vec_simple.html#ae16798cf2ee14257d0706c60613cd733" title=" " alt="" coords="705,31,872,56"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="658,41,692,41,692,46,658,46"/>
+<area shape="poly" id="edge6_Node000006_Node000004" title=" " alt="" coords="472,61,509,55,509,60,473,66"/>
+</map>

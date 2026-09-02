@@ -1,0 +1,13 @@
+<map id="check_is_active" name="check_is_active">
+<area shape="rect" id="Node000001" title=" " alt="" coords="712,43,837,68"/>
+<area shape="rect" id="Node000002" href="$d0/d80/cpu__trans__pencils_8cpp.html#a49c68a3b0ce1c8543b311e38da6a0d90" title=" " alt="" coords="299,5,393,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="698,51,393,25,394,19,698,46"/>
+<area shape="rect" id="Node000004" href="$d0/d80/cpu__trans__pencils_8cpp.html#a7c55a0cec269885b8537f2c42f85b725" title=" " alt="" coords="492,68,664,93"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="699,68,664,72,664,67,698,62"/>
+<area shape="rect" id="Node000003" href="$d0/d80/cpu__trans__pencils_8cpp.html#ab5c17889dcc66decbf29bd18cbe91751" title=" " alt="" coords="5,43,200,68"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="285,30,186,45,185,40,285,25"/>
+<area shape="rect" id="Node000005" href="$d0/d80/cpu__trans__pencils_8cpp.html#a1abcc0d85c2ea47122d3ea278f790e96" title=" " alt="" coords="248,79,444,104"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="478,88,444,89,444,84,478,83"/>
+<area shape="poly" id="edge6_Node000005_Node000003" title=" " alt="" coords="246,79,189,71,189,65,247,74"/>
+<area shape="poly" id="edge5_Node000005_Node000005" title=" " alt="" coords="388,70,377,61,346,57,321,59,308,64,305,70,312,77,308,80,300,70,304,60,320,54,346,52,379,56,391,65"/>
+</map>

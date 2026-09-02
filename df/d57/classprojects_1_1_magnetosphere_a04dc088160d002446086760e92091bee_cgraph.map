@@ -1,0 +1,11 @@
+<map id="projects::Magnetosphere::getParameters" name="projects::Magnetosphere::getParameters">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,47,188,87"/>
+<area shape="rect" id="Node000002" href="$dd/d3d/class_sys_boundary.html#a678aa5b8ba878672ba702373f0da640e" title="Boolean check if queried sysboundarycondition exists Note: this queries against the parsed list of na..." alt="" coords="236,5,467,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="188,47,272,31,273,36,189,52"/>
+<area shape="rect" id="Node000003" href="$d4/d0b/ionosphere_solver_tests_2main_8cpp.html#a9bf4cdc41d466e8710b8aa33a33d32e0" title=" " alt="" coords="281,55,421,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="188,65,268,65,268,70,188,70"/>
+<area shape="rect" id="Node000004" href="$dd/d3d/class_sys_boundary.html#a421b3fcc380523724e054d0b2778f3cf" title=" " alt="" coords="241,104,461,129"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="189,82,273,99,272,104,188,88"/>
+<area shape="rect" id="Node000005" href="$d9/df9/common_8cpp.html#a3ccffabea3435cf184592d88e6a470c8" title=" " alt="" coords="515,104,603,129"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="462,114,501,114,501,119,462,119"/>
+</map>

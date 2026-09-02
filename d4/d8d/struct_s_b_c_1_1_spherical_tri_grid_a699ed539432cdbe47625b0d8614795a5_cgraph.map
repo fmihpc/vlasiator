@@ -1,0 +1,9 @@
+<map id="SBC::SphericalTriGrid::initializeGridFromFile" name="SBC::SphericalTriGrid::initializeGridFromFile">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,37,175,77"/>
+<area shape="rect" id="Node000002" href="$d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#a4f1a56bc71ca682e0ad46981f09cb376" title=" " alt="" coords="223,5,381,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="174,42,209,37,209,42,175,47"/>
+<area shape="rect" id="Node000004" href="$d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#aa26b5bb603b771079dd88d68394ef733" title=" " alt="" coords="223,69,381,109"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="175,67,209,73,209,78,174,73"/>
+<area shape="rect" id="Node000003" href="$de/d31/_dispersion_8m.html#af276a2aede715061015c735080cf65df" title=" " alt="" coords="429,13,476,38"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="382,23,416,23,416,28,382,28"/>
+</map>

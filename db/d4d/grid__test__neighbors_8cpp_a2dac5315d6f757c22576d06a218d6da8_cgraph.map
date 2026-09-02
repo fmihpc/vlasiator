@@ -1,0 +1,6 @@
+<map id="buildPencilsWithNeighbors" name="buildPencilsWithNeighbors">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,29,201,55"/>
+<area shape="poly" id="edge1_Node000001_Node000001" title=" " alt="" coords="70,31,62,21,66,11,80,5,103,3,132,6,143,15,140,20,130,11,103,8,81,10,70,15,68,20,74,28"/>
+<area shape="rect" id="Node000002" href="$db/d4d/grid__test__neighbors_8cpp.html#a5ad0ff5aef45d3ca34a660fa21c70e78" title=" " alt="" coords="249,29,369,55"/>
+<area shape="poly" id="edge2_Node000001_Node000002" title=" " alt="" coords="202,39,235,39,235,45,202,45"/>
+</map>

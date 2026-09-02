@@ -1,0 +1,9 @@
+<map id="SBC::SphericalTriGrid::dualPolygonArea" name="SBC::SphericalTriGrid::dualPolygonArea">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,69,164,109"/>
+<area shape="rect" id="Node000002" href="$d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#a4a779e01087ea7ff447a76e2f98ce311" title=" " alt="" coords="212,5,388,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="152,67,218,47,220,52,153,72"/>
+<area shape="rect" id="Node000003" href="$d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#ab3e31cffabd0b8012c6051328dfcf362" title=" " alt="" coords="215,69,385,109"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="165,87,201,87,201,92,165,92"/>
+<area shape="rect" id="Node000004" href="$d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#a7aee5b845b0b70893a463e530996f62d" title=" " alt="" coords="213,133,387,173"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="153,107,220,127,218,132,152,112"/>
+</map>
