@@ -58,7 +58,7 @@ namespace projects {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
 
          LossConeSpeciesParameters* sP=new LossConeSpeciesParameters();
-    
+
          speciesParamsRead.push_back(sP);
          RP::add<Real>(pop + "_LossCone.rho", "Number density (m^-3)",sP->DENSITY,1.0e7);
          RP::add<Real>(pop + "_LossCone.TemperatureX", "Temperature (K)",sP->TEMPERATUREX,2.0e6);
@@ -192,7 +192,7 @@ namespace projects {
          (int) ((y - Parameters::ymin) / dy) * Parameters::xcells_ini +
          (int) ((z - Parameters::zmin) / dz) * Parameters::xcells_ini * Parameters::ycells_ini;
 
-      std::default_random_engine rndState;
+      std::knuth_b rndState;
       setRandomCellSeed(cell,rndState);
 
       this->rndRho=getRandomNumber(rndState);
@@ -228,7 +228,7 @@ namespace projects {
             auto& cell = perb[stencil.ooo()];
 
             const auto seedmodifier = coordinates.globalIDFromLocalCoordinates(stencil.i, stencil.j, stencil.k);
-            std::default_random_engine rndState_l;
+            std::knuth_b rndState_l;
             rndState_l.seed(seed+seedmodifier);
             Real rndBuffer[3];
             rndBuffer[0] = std::uniform_real_distribution<>(-0.5,0.5)(rndState_l);

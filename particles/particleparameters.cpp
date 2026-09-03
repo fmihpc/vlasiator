@@ -44,8 +44,8 @@ std::string P::V_field_name = "V";
 std::string P::rho_field_name = "rho";
 bool P::divide_rhov_by_rho = false;
 
-std::default_random_engine::result_type P::random_seed = 1;
-Distribution* (*P::distribution)(std::default_random_engine&) = NULL;
+std::knuth_b::result_type P::random_seed = 1;
+Distribution* (*P::distribution)(std::knuth_b&) = NULL;
 std::string P::distribution_name;
 Real P::temperature = 1e6;
 Real P::particle_vel = 0;
@@ -168,7 +168,7 @@ bool ParticleParameters::getParameters() {
 
    /* Look up particle distribution generator */
 
-   std::map<std::string, Distribution*(*)(std::default_random_engine&)> distribution_lookup;
+   std::map<std::string, Distribution*(*)(std::knuth_b&)> distribution_lookup;
    distribution_lookup["maxwell"]=&createDistribution<Maxwell_Boltzmann>;
    distribution_lookup["monoenergetic"]=&createDistribution<Monoenergetic>;
    distribution_lookup["kappa2"]=&createDistribution<Kappa2>;

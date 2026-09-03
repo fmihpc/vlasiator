@@ -207,7 +207,7 @@ namespace projects {
    }
 
    void Distributions::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
-      std::default_random_engine rndState;
+      std::knuth_b rndState;
       setRandomCellSeed(cell,rndState);
       for (uint i=0; i<2; i++) {
          this->rhoRnd[i] = this->rho[i] + this->rhoPertAbsAmp[i] * (0.5 - getRandomNumber(rndState));
@@ -245,7 +245,7 @@ namespace projects {
             auto& cell = perb[stencil.ooo()];
 
             const auto seedmodifier = coordinates.globalIDFromLocalCoordinates(stencil.i, stencil.j, stencil.k);
-            std::default_random_engine rndState_l;
+            std::knuth_b rndState_l;
             rndState_l.seed(seed+seedmodifier);
             Real rndBuffer[3];
             rndBuffer[0] = std::uniform_real_distribution<>(-0.5,0.5)(rndState_l);

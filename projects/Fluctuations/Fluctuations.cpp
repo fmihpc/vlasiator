@@ -66,7 +66,7 @@ namespace projects {
          RP::add<Real>(pop + "_Fluctuations.densityPertRelAmp", "Amplitude factor of the density perturbation", sP->densityPertRelAmp,0.1);
          RP::add<Real>(pop + "_Fluctuations.velocityPertAbsAmp", "Amplitude of the velocity perturbation", sP->velocityPertAbsAmp,1.0e6);
          RP::add<Real>(pop + "_Fluctuations.maxwCutoff", "Cutoff for the maxwellian distribution", sP->maxwCutoff,1e-12);
-      }          
+      }
    }
 
    void Fluctuations::getParameters() {
@@ -161,7 +161,7 @@ namespace projects {
 
    void Fluctuations::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
 
-      std::default_random_engine rndState;
+      std::knuth_b rndState;
       setRandomCellSeed(cell,rndState);
 
       this->rndRho=getRandomNumber(rndState);
@@ -196,7 +196,7 @@ namespace projects {
             auto& cell = perb[stencil.ooo()];
 
             const auto seedmodifier = coordinates.globalIDFromLocalCoordinates(stencil.i, stencil.j, stencil.k);
-            std::default_random_engine rndState_l;
+            std::knuth_b rndState_l;
             rndState_l.seed(seed+seedmodifier);
             Real rndBuffer[3];
             rndBuffer[0] = std::uniform_real_distribution<>(-0.5,0.5)(rndState_l);
@@ -221,5 +221,5 @@ namespace projects {
       centerPoints.push_back(V0);
       return centerPoints;
    }
-   
+
 } // namespace projects
