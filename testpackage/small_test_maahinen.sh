@@ -26,7 +26,7 @@ diffbin="/home/mjalho/maahinen/vlasiator/vlsvdiff_DP"
 #reference_revision="CI_reference"
 reference_revision="current"
 
-source ~/modules_maahinen.sh
+source ../modules/maahinen.sh
 # export UCX_NET_DEVICES=eth5,mlx5_0:1 # This is important for multi-node performance!
 export UCX_TLS=dc_mlx5
 export UCX_NET_DEVICES=mlx5_0:1
