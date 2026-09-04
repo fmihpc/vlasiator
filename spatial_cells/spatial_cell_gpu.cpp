@@ -1002,14 +1002,20 @@ namespace spatial_cell {
       MPI_Datatype datatype;
 
       if (displacements.size() > 0) {
-         count = 1;
-         MPI_Type_create_hindexed(
-            displacements.size(),
-            &block_lengths[0],
-            &displacements[0],
-            MPI_BYTE,
-            &datatype
-         );
+         if (displacements.size() == 1) {
+            address = address + displacements[0];
+            count = block_lengths[0];
+            datatype = MPI_BYTE;
+         } else {
+            count = 1;
+            MPI_Type_create_hindexed(
+               displacements.size(),
+               &block_lengths[0],
+               &displacements[0],
+               MPI_BYTE,
+               &datatype
+            );
+         }
       } else {
          count = 0;
          datatype = MPI_BYTE;
