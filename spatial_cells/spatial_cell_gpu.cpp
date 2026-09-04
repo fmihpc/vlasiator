@@ -33,6 +33,8 @@
 
 using namespace std;
 
+const int maxCellsPerIteration = 65535;
+
 // Certain addition lists are used in acceleration, and can require a larger allocation
 // in case very many blocks are added at once.
 const static uint acc_reserve_multiplier = 3;
@@ -1048,6 +1050,25 @@ namespace spatial_cell {
       return populations[popID].velocityBlockMinValue;
    }
 
+   /** Gather pointers from this spatial cell for preparing to receive the velocity grid over MPI.
+    * At this stage we have received a new block list (over MPI or from
+    * an initializatiom function), but the rest of the cell structures
+    * have not been adapted to this new list. Here we re-initialize
+    * the cell with empty blocks based on the new list.*/
+   void SpatialCell::prepare_to_receive_blocks_gather(const uint popID, const uint cellIndex, uint& maxNewSize) {
+      setNewSizeClear(popID);
+      // As the globalToLocalMap is empty, instead of calling
+      // vmesh->setGrid() we can update both that and the block
+      // parameters with a single kernel launch.
+
+      const uint newSize = populations[popID].N_blocks;
+      // Set velocity block parameters:
+      GET_POINTER(gpuMemoryManager, vmesh::VelocityMesh*, host_vmeshesReceive)[cellIndex] = gpuMemoryManager.getPointer<vmesh::VelocityMesh>(populations[popID].dev_vmesh);
+      GET_POINTER(gpuMemoryManager, vmesh::VelocityBlockContainer*, host_blockContainersReceive)[cellIndex] = gpuMemoryManager.getPointer<vmesh::VelocityBlockContainer>(populations[popID].dev_blockContainer);
+      GET_POINTER(gpuMemoryManager, uint, host_newSizes)[cellIndex] = newSize;
+      maxNewSize = max(maxNewSize, newSize);
+   }
+
    /** Prepares this spatial cell to receive the velocity grid over MPI.
     * At this stage we have received a new block list (over MPI or from
     * an initializatiom function), but the rest of the cell structures
@@ -1178,3 +1199,39 @@ namespace spatial_cell {
    }
 
 } // namespace spatial_cell
+
+/** Prepares all spatial cells to receive the velocity grid over MPI.
+ * At this stage we have received a new block list (over MPI or from
+ * an initializatiom function), but the rest of the cell structures
+ * have not been adapted to this new list. Here we re-initialize
+ * the cell with empty blocks based on the new list.*/
+void prepare_to_receive_blocks_multicell(const uint popID, const uint numberOfCells, uint maxNewSize){
+   if(numberOfCells == 0 || maxNewSize == 0){
+      return;
+   }
+   const gpuStream_t stream = gpu_getStream();
+   // ceil int division
+   #ifdef USE_WARPACCESSORS
+   const uint launchBlocks = 1 + ((maxNewSize - 1) / (WARPSPERBLOCK));
+   #else
+   const uint launchBlocks = 1 + ((maxNewSize - 1) / (WARPSPERBLOCK*GPUTHREADS));
+   #endif
+   int kernelIterations = (numberOfCells+maxCellsPerIteration-1)/maxCellsPerIteration;
+   int cellsLeft = numberOfCells;
+   int cellIterationOffset = 0;
+   for(int i = 0; i < kernelIterations; i++){
+      int cellsToCompute = min((numberOfCells+kernelIterations-1)/kernelIterations, cellsLeft);
+      const dim3 grid(launchBlocks,cellsToCompute,1);
+      // Set velocity block parameters:
+      update_vmesh_and_blockparameters_multicell_kernel<<<grid, (WARPSPERBLOCK*GPUTHREADS), 0, stream>>> (
+         GET_POINTER(gpuMemoryManager, vmesh::VelocityMesh*, host_vmeshesReceive),
+         GET_POINTER(gpuMemoryManager, vmesh::VelocityBlockContainer*, host_blockContainersReceive),
+         GET_POINTER(gpuMemoryManager, uint, dev_newSizes),
+         cellIterationOffset
+         );
+      cellsLeft -= cellsToCompute;
+      cellIterationOffset += cellsToCompute;
+   }
+   CHK_ERR( gpuPeekAtLastError() );
+   CHK_ERR( gpuStreamSynchronize(stream) );
+}
