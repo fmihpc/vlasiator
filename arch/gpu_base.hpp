@@ -80,6 +80,7 @@ uint gpu_getThread();
 uint gpu_getMaxThreads();
 int gpu_getDevice();
 uint gpu_getAllocationCount();
+std::size_t get_preloaded_pool_size();
 int gpu_reportMemory(const size_t local_cap=0, const size_t ghost_cap=0, const size_t local_size=0, const size_t ghost_size=0);
 
 unsigned int nextPowerOfTwo(unsigned int n);
