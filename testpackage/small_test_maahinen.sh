@@ -19,14 +19,15 @@ create_verification_files=0
 reference_dir="/turso/group/spacephysics/vlasiator/testpackage/"
 cd $SLURM_SUBMIT_DIR
 
-bin="/home/mjalho/maahinen/vlasiator/vlasiator"
-diffbin="/home/mjalho/maahinen/vlasiator/vlsvdiff_DP"
+module load PrgEnv-gnu/15.2.0  GCC/15.2.0  MPICH/5.0.1 Vlasiator
+
+bin="$(which vlasiator)"
+diffbin="$(which vlsvdiff_DP)"
 
 #compare agains which revision
 #reference_revision="CI_reference"
 reference_revision="current"
 
-source ../modules/maahinen.sh
 # export UCX_NET_DEVICES=eth5,mlx5_0:1 # This is important for multi-node performance!
 export UCX_TLS=dc_mlx5
 export UCX_NET_DEVICES=mlx5_0:1
