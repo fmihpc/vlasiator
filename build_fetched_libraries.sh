@@ -11,6 +11,7 @@ else
 fi
 echo "Using platform $PLATFORM"
 
+
 # Clean up old libraries for this platform
 rm -rf libraries${PLATFORM}
 
@@ -45,6 +46,7 @@ fi
 
 # Build phiprof
 #git clone https://github.com/fmihpc/phiprof/
+echo "################# Building phiprof ######################"
 cd phiprof/src
 make clean
 if [[ $PLATFORM == "-pioneer" ]]; then
@@ -73,6 +75,7 @@ cd ../..
 # else
 #    git clone -b appleM1Build https://github.com/ursg/vlsv.git
 # fi
+echo "################# Building VLSV #########################"
 cd vlsv
 make clean ARCH=arch
 if [[ $PLATFORM == "-leonardo_dcgp_intel" ]]; then
@@ -91,6 +94,7 @@ if [[ $PLATFORM != "-pioneer" && $PLATFORM != "-appleM1" && $PLATFORM != "-ukko_
     # This fails on RISCV and MacOS
     # LUMI, UkkoGPU and HILE use system module
     # git clone https://github.com/icl-utk-edu/papi
+    echo echo "################# Building papi #########################"
     cd papi/src
     if [[ $PLATFORM == "-leonardo_dcgp_intel" ]]; then
         # OneAPI compilers should use CC="mpiicc -cc=iccx" but this fails in configure. Needed to modify few files to pass configure and compilation phases
@@ -111,6 +115,7 @@ fi
 if [[ $PLATFORM != "-leonardo_booster" && $PLATFORM != "-karolina_cuda" && $PLATFORM != "-ukko_dgx" && $PLATFORM != "-hile_gpu" && $PLATFORM != "-lumi_hipcc" && $PLATFORM != "-mahti_cuda" && $PLATFORM != "-mahti_gcc_build" &&  $PLATFORM != "-frankenstein_hopper2_cuda" &&  $PLATFORM != "-roihu_gpu" ]]; then
     # curl -O -L https://github.com/jemalloc/jemalloc/releases/download/5.3.1/jemalloc-5.3.1.tar.bz2
     # tar xjf jemalloc-5.3.1.tar.bz2
+    echo "################# Building jemalloc #####################"
     cd jemalloc-5.3.1
     if [[ $PLATFORM == "-pioneer" ]]; then
         ./configure --prefix=$WORKSPACE/libraries${PLATFORM} --with-jemalloc-prefix=je_
@@ -128,6 +133,7 @@ if [[ $PLATFORM != "-leonardo_booster" && $PLATFORM != "-karolina_cuda" && $PLAT
 fi
 
 # Build Zoltan
+echo "################# Building Zoltan #######################"
 rm -rf zoltan-build
 mkdir zoltan-build
 cd zoltan-build
@@ -161,7 +167,7 @@ make -j $PARALLEL && make install
 cd ..
 
 # Generate cmake for eigen so that zfp and Octree can be built
-echo "### Creating eigen CMakeFiles ###"
+echo "################# Generate Eigen CMakeFiles #############"
 prev="$(pwd)"
 cd "$WORKSPACE/submodules/eigen"
 mkdir -p build
@@ -170,7 +176,7 @@ cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$WORKSPACE/libraries
 cd "$prev"
 
 #Build and test ZFP for ASTERIX
-echo "### Building ZFP. ###"
+echo "################# Building ZFP ##########################"
 cd zfp
 mkdir -p  build
 cd build
@@ -182,6 +188,7 @@ cmake --install .
 cd ../../
 
 #Build OCTREE for ASTERIX
+echo "################# Building OCTREE #######################"
 cd tucker-octree/
 sed -i s/"ColMajor"/"RowMajor"/g toctree.cpp
 rm -rf build

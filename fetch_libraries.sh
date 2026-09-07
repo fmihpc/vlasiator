@@ -32,12 +32,15 @@ mkdir -p library-build
 cd library-build
 
 # Phiprof
+echo "################# Fetching phiprof ######################"
+
 git clone --depth=1 https://github.com/fmihpc/phiprof/
 cd phiprof
 git_use_commit $PHIPROF_COMMIT
 cd ..
 
 # VLSV
+echo "################# Fetching VLSV #########################"
 if [[ $PLATFORM != "-appleM1" ]]; then
    git clone --depth=1 https://github.com/fmihpc/vlsv.git
    cd vlsv
@@ -50,10 +53,13 @@ else
    cd ..
 fi
 
+
+
 # PAPI
 if [[ $PLATFORM != "-arriesgado" && $PLATFORM != "-appleM1" && $PLATFORM != "-ukko_dgx" && $PLATFORM != "-hile_cpu" && $PLATFORM != "-hile_gpu" && $PLATFORM != "-lumi_hipcc"  && $PLATFORM != "-lumi_2403" && $PLATFORM != "-mahti_cuda" && $PLATFORM != "-mahti_gcc_build" && $PLATFORM != "-frankenstein_hopper2_cuda" && $PLATFORM != "-roihu_cpu" && $PLATFORM != "-roihu_cpu_aocc" && $PLATFORM != "-roihu_gpu" ]]; then
     # This fails on RISCV and MacOS
     # Mahti, LUMI, UkkoGPU and HILE use system module
+    echo "################# Fetching papi #########################"
     git clone --depth=1 https://github.com/icl-utk-edu/papi
     cd papi
     git_use_commit "$PAPI_COMMIT"
@@ -62,22 +68,27 @@ fi
 
 # jemalloc (not for GPU versions, on Mahti use system module)
 if [[ $PLATFORM != "-leonardo_booster" && $PLATFORM != "-karolina_cuda" && $PLATFORM != "-ukko_dgx" && $PLATFORM != "-hile_gpu" && $PLATFORM != "-lumi_hipcc" && $PLATFORM != "-mahti_cuda" && $PLATFORM != "-mahti_gcc_build" && $PLATFORM != "-frankenstein_hopper2_cuda" && $PLATFORM != "-roihu_gpu" ]]; then
+    echo "################# Fetching jemalloc #####################"
     curl -O -L https://github.com/jemalloc/jemalloc/releases/download/5.3.1/jemalloc-5.3.1.tar.bz2
     tar xjf jemalloc-5.3.1.tar.bz2
 fi
 
 # Zoltan
+echo "################# Fetching Zoltan #######################"
 git clone --depth=1 --branch="$TRILINOS_BRANCH" https://github.com/ykempf/Trilinos.git
 cd Trilinos
 git_use_commit $TRILINOS_COMMIT
 cd ..
 
 #ZFP and OCTREE
+echo "################# Fetching ZFP ##########################"
+
 git clone --depth=1 https://github.com/LLNL/zfp.git
 cd zfp
 git_use_commit $ZFP_COMMIT
 cd ..
 
+echo "################# Fetching OCTREE #######################"
 git clone --depth=1 https://github.com/cschpc/tucker-octree.git
 cd tucker-octree
 git_use_commit $TUCKER_OCTREE_COMMIT
