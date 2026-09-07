@@ -363,6 +363,33 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             continue;
          }
       }
+      if(P::systemWriteAllDROs || lowercase == "pencils" || lowercase == "vg_pencils") {
+          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_pencils_x",CellParams::PENCIL_ID_X,1));
+          outputReducer->addMetadata(outputReducer->size()-1,"","","$\\mathrm{Pencil ID_x}$","");
+          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_pencils_y",CellParams::PENCIL_ID_Y,1));
+          outputReducer->addMetadata(outputReducer->size()-1,"","","$\\mathrm{Pencil ID_y}$","");
+          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_pencils_z",CellParams::PENCIL_ID_Z,1));
+          outputReducer->addMetadata(outputReducer->size()-1,"","","$\\mathrm{Pencil ID_z}$","");
+
+          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_active_x",CellParams::ACTIVE_X,1));
+          outputReducer->addMetadata(outputReducer->size()-1,"","","$\\mathrm{Active flag_x}$","");
+          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_active_y",CellParams::ACTIVE_Y,1));
+          outputReducer->addMetadata(outputReducer->size()-1,"","","$\\mathrm{Active flag_y}$","");
+          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_active_z",CellParams::ACTIVE_Z,1));
+          outputReducer->addMetadata(outputReducer->size()-1,"","","$\\mathrm{Active flag_z}$","");
+
+          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_pencil_seeds_x",CellParams::PENCIL_SEED_X,1));
+          outputReducer->addMetadata(outputReducer->size()-1,"","","$\\mathrm{Pencil seed flag_x}$","");
+          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_pencil_seeds_y",CellParams::PENCIL_SEED_Y,1));
+          outputReducer->addMetadata(outputReducer->size()-1,"","","$\\mathrm{Pencil seed flag_y}$","");
+          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_pencil_seeds_z",CellParams::PENCIL_SEED_Z,1));
+          outputReducer->addMetadata(outputReducer->size()-1,"","","$\\mathrm{Pencil seed flag_z}$","");
+
+          if(!P::systemWriteAllDROs) {
+             continue;
+          }
+       }
+      
       if(P::systemWriteAllDROs || lowercase == "maxvdt" || lowercase == "vg_maxdt_acceleration") {
          // Overall maximum timestep constraint as calculated by the velocity space vlasov update
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_maxdt_acceleration",CellParams::MAXVDT,1));
