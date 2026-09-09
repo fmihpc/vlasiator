@@ -316,6 +316,11 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    std::vector<SpatialCell*> sourceNeighbors(localPropagatedCells.size() * nSourceNeighborsPerCell);
    std::vector<SpatialCell*> targetNeighbors(3 * localPropagatedCells.size() );
    
+   int maxTimeclass = 0;
+   for(uint celli = 0; celli < localPropagatedCells.size(); celli++){
+      maxTimeclass = max((int)mpiGrid[localPropagatedCells[celli]]->parameters[CellParams::TIMECLASS], maxTimeclass);
+   }
+
 #pragma omp parallel for
    for(uint celli = 0; celli < allCells.size(); celli++){
       allCellsPointer[celli] = mpiGrid[allCells[celli]];
@@ -566,7 +571,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
             if(targetsValid[celli]) {
                for(uint ti = 0; ti < 3; ti++) {
                   SpatialCell* spatial_cell = targetNeighbors[celli * 3 + ti];
-                  if(spatial_cell ==NULL) {
+                  if(spatial_cell == NULL) {
                      //invalid target spatial cell
                      continue;
                   }
@@ -742,7 +747,6 @@ void update_remote_mapping_contribution(
       for (size_t c=0; c < receive_cells.size(); ++c) {
          SpatialCell* spatial_cell = mpiGrid[receive_cells[c]];
          Realf *blockData = spatial_cell->get_data(popID);
-
 #pragma omp for 
          for(unsigned int cell = 0; cell<VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(popID); ++cell) {
             blockData[cell] += receiveBuffers[c][cell];

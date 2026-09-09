@@ -334,7 +334,8 @@ void propagateMagneticFieldSimple(
       }
       #pragma omp barrier
       //for (auto [i,j,k,dir] : L2Solve) { // not supported with OpenMP on old CLANG
-      #pragma omp for // default i.e. schedule(static,1)
+      // default i.e. schedule(static,1)
+      #pragma omp for
       for (uint entry=0; entry<L2Solve.size(); ++entry) {
          const int i = L2Solve.at(entry)[0];
          const int j = L2Solve.at(entry)[1];

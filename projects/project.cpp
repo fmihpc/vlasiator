@@ -31,10 +31,12 @@
 #include "../velocity_mesh_parameters.h"
 
 #include "Alfven/Alfven.h"
+#include "AlfvenCascade/AlfvenCascade.h"
 #include "Diffusion/Diffusion.h"
 #include "Dispersion/Dispersion.h"
 #include "Distributions/Distributions.h"
 #include "Firehose/Firehose.h"
+#include "FastWave/FastWave.h"
 #include "Flowthrough/Flowthrough.h"
 #include "Fluctuations/Fluctuations.h"
 #include "Harris/Harris.h"
@@ -80,6 +82,8 @@ namespace projects {
       projects::Dispersion::addParameters();
       projects::Distributions::addParameters();
       projects::Firehose::addParameters();
+      projects::AlfvenCascade::addParameters();
+      projects::FastWave::addParameters();
       projects::Flowthrough::addParameters();
       projects::Fluctuations::addParameters();
       projects::Harris::addParameters();
@@ -532,7 +536,6 @@ namespace projects {
 
       const std::vector<CellID> cells {getLocalCells()};
       Real r_max2 {pow(P::refineRadius, 2)};
-
       #pragma omp parallel for
       for (uint cid = 0; cid < cells.size(); ++cid) {
          CellID id = cells[cid];
@@ -670,6 +673,12 @@ Project* createProject() {
    }
    if(Parameters::projectName == "Firehose") {
       rvalue = new projects::Firehose;
+   }
+   if(Parameters::projectName == "AlfvenCascade") {
+      rvalue = new projects::AlfvenCascade;
+   }
+   if(Parameters::projectName == "FastWave") {
+      rvalue = new projects::FastWave;
    }
    if(Parameters::projectName == "Flowthrough") {
       rvalue = new projects::Flowthrough;

@@ -4,8 +4,8 @@
 
 [submodule "submodules/dccrg"]
 	path = submodules/dccrg
-	url = https://github.com/fmihpc/dccrg.git
-	branch = vlasiator-version
+	url = https://github.com/alhom/dccrg.git
+	branch = vlasiator_version_dummy
 
 [submodule "submodules/eigen"]
 	path = submodules/eigen
