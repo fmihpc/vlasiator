@@ -129,15 +129,18 @@ namespace spatial_cell {
 
    SpatialCell::~SpatialCell() {
       if (velocity_block_with_content_list) {
-         ::delete velocity_block_with_content_list;
+         velocity_block_with_content_list->~SplitVector();
+         free(velocity_block_with_content_list);
          velocity_block_with_content_list = 0;
       }
       if (velocity_block_with_content_map) {
-         ::delete velocity_block_with_content_map;
+         velocity_block_with_content_map->~Hashmap();
+         free(velocity_block_with_content_map);
          velocity_block_with_content_map = 0;
       }
       if (velocity_block_with_no_content_map) {
-         ::delete velocity_block_with_no_content_map;
+         velocity_block_with_no_content_map->~Hashmap();
+         free(velocity_block_with_no_content_map);
          velocity_block_with_no_content_map = 0;
       }
       velocity_block_with_content_list_size=0;
@@ -146,19 +149,23 @@ namespace spatial_cell {
       vbwncl_sizePower = 0;
 
       if (list_with_replace_new) {
-         ::delete list_with_replace_new;
+         list_with_replace_new->~SplitVector();
+         free(list_with_replace_new);
          list_with_replace_new = 0;
       }
       if (list_delete) {
-         ::delete list_delete;
+         list_delete->~SplitVector();
+         free(list_delete);
          list_delete = 0;
       }
       if (list_to_replace) {
-         ::delete list_to_replace;
+         list_to_replace->~SplitVector();
+         free(list_to_replace);
          list_to_replace = 0;
       }
       if (list_with_replace_old) {
-         ::delete list_with_replace_old;
+         list_with_replace_old->~SplitVector();
+         free(list_with_replace_old);
          list_with_replace_old = 0;
       }
       list_with_replace_new_capacity = 0;
