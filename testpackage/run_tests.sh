@@ -82,12 +82,15 @@ do
     test -e test_prelude.sh && ./test_prelude.sh
 
     # Run the actual simulation
-    if [[ ${single_cell[$run]} ]]; then
-    	$small_run_command $bin --version  > VERSION.txt
-	$small_run_command $bin --run_config=${test_name[$run]}.cfg
+    if [[ ${ranks[$run]} ]]; then
+      if [[ ${ranks[$run]} == "half" ]]; then
+        ranks[$run]=$((SLURM_NTASKS/2))
+      fi
+    	$small_run_command -n ${ranks[$run]} $bin --version  > VERSION.txt
+	    $small_run_command -n ${ranks[$run]} $bin --run_config=${test_name[$run]}.cfg
     else
-	$run_command $bin --version  > VERSION.txt
-	$run_command $bin --run_config=${test_name[$run]}.cfg
+	    $run_command $bin --version  > VERSION.txt
+	    $run_command $bin --run_config=${test_name[$run]}.cfg
     fi
 
     # Run postprocessing script, if it exists
