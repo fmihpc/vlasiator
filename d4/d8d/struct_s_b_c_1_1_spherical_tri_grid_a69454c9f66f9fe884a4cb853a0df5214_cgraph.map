@@ -1,0 +1,17 @@
+<map id="SBC::SphericalTriGrid::initSolver" name="SBC::SphericalTriGrid::initSolver">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,37,164,77"/>
+<area shape="rect" id="Node000002" href="$d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#a7120890dd640ec6076873bfcce3091fd" title=" " alt="" coords="212,37,417,77"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="164,55,198,55,198,60,164,60"/>
+<area shape="rect" id="Node000003" href="$d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#afdae6126de6c2ab1b13208ddeb4f0520" title=" " alt="" coords="465,5,643,45"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="417,41,452,36,452,42,418,46"/>
+<area shape="rect" id="Node000004" href="$d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#afbcfd8fe5bde206bebd221f733431367" title=" " alt="" coords="475,69,633,109"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="418,68,461,74,461,80,417,74"/>
+<area shape="rect" id="Node000005" href="$d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#a21cffde4ce9f0b0cba515f2ab52e7cef" title=" " alt="" coords="691,5,849,45"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="621,67,688,47,689,52,623,72"/>
+<area shape="rect" id="Node000006" href="$d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#a22ce5b162f5a0d425247686b356c228f" title=" " alt="" coords="691,69,849,109"/>
+<area shape="poly" id="edge5_Node000004_Node000006" title=" " alt="" coords="634,87,677,87,677,92,634,92"/>
+<area shape="rect" id="Node000008" href="$d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#a01fdb07b4e49a1adb404966d1f814e27" title=" " alt="" coords="691,133,849,173"/>
+<area shape="poly" id="edge7_Node000004_Node000008" title=" " alt="" coords="623,107,689,127,688,132,621,112"/>
+<area shape="rect" id="Node000007" href="$de/d31/_dispersion_8m.html#af276a2aede715061015c735080cf65df" title=" " alt="" coords="897,77,944,102"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="850,87,884,87,884,92,850,92"/>
+</map>

@@ -1,0 +1,9 @@
+<map id="Distribution::next_particle" name="Distribution::next_particle">
+<area shape="rect" id="Node000001" title=" " alt="" coords="244,69,379,109"/>
+<area shape="rect" id="Node000002" href="$d2/d57/structdistribution_scenario.html#abe41843e18531a2537c5f1b1c1e7f6d4" title=" " alt="" coords="25,5,177,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="231,68,166,48,168,43,232,63"/>
+<area shape="rect" id="Node000003" href="$da/d83/structip_shock_scenario.html#ae92267b63a0d9da27f0f8c881ad850bf" title=" " alt="" coords="13,69,188,109"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="230,92,188,92,188,87,230,87"/>
+<area shape="rect" id="Node000004" href="$d6/de0/structshock_reflectivity_scenario.html#a864c18020b4d0865d2bfba3b215c898f" title=" " alt="" coords="5,133,196,173"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="232,116,168,136,166,131,231,111"/>
+</map>

@@ -1,0 +1,21 @@
+<map id="SBC::SphericalTriGrid::solveInternal" name="SBC::SphericalTriGrid::solveInternal">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,163,164,203"/>
+<area shape="rect" id="Node000002" href="$d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#ae0aa9b8de44c78a2d822d1816916af03" title=" " alt="" coords="212,5,371,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="100,161,146,109,177,81,210,55,220,50,222,54,214,60,181,85,150,113,104,164"/>
+<area shape="rect" id="Node000003" href="$d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#ab0c808748c141f849bdddd512392c208" title=" " alt="" coords="212,69,371,109"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="125,160,211,119,226,112,229,117,213,124,127,165"/>
+<area shape="rect" id="Node000004" href="$d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#a22ce5b162f5a0d425247686b356c228f" title=" " alt="" coords="212,133,371,173"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="164,169,198,164,199,169,165,174"/>
+<area shape="rect" id="Node000005" href="$de/d31/_dispersion_8m.html#af276a2aede715061015c735080cf65df" title=" " alt="" coords="463,170,509,195"/>
+<area shape="poly" id="edge10_Node000001_Node000005" title=" " alt="" coords="164,182,212,183,371,183,449,181,449,186,371,188,212,188,164,187"/>
+<area shape="rect" id="Node000006" href="$d8/dbc/vectorclass__fallback_8h.html#a92b2075c51472d120e4ef0a663e3814b" title=" " alt="" coords="266,249,317,274"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="139,200,254,245,252,250,137,205"/>
+<area shape="rect" id="Node000009" href="$d8/dbc/vectorclass__fallback_8h.html#a1896c5fbdb17de74189d1d18cdd4cf29" title=" " alt="" coords="268,298,315,323"/>
+<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="107,201,153,243,213,284,256,301,254,305,211,289,150,247,104,205"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="371,163,450,175,449,180,370,168"/>
+<area shape="rect" id="Node000007" href="$d7/d8b/class_vec_simple.html#a145923009b9b82410c5a072b8f8127f0" title=" " alt="" coords="419,273,553,298"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="317,262,405,273,405,278,317,267"/>
+<area shape="rect" id="Node000008" href="$d7/d8b/class_vec_simple.html#ae16798cf2ee14257d0706c60613cd733" title=" " alt="" coords="601,273,768,298"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="554,283,588,283,588,288,554,288"/>
+<area shape="poly" id="edge9_Node000009_Node000007" title=" " alt="" coords="314,305,405,293,406,298,315,310"/>
+</map>

@@ -1,0 +1,7 @@
+<map id="fieldmodels.dipole.get_ldp" name="fieldmodels.dipole.get_ldp">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,5,200,31"/>
+<area shape="rect" id="Node000002" href="$db/db8/gpu__acc__map_8cpp.html#aaf1084e80814f7eeebdf844bddc62f65" title=" " alt="" coords="248,5,287,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="200,15,234,15,234,21,200,21"/>
+<area shape="rect" id="Node000003" href="$dc/d2e/gpu__pitch__angle__diffusion_8cpp.html#ae687dbe50139c5805369b59554bddc67" title=" " alt="" coords="335,5,449,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="287,15,321,15,321,21,287,21"/>
+</map>

@@ -1,0 +1,11 @@
+<map id="computeSpatialSourceCellsForPencil" name="computeSpatialSourceCellsForPencil">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,47,205,87"/>
+<area shape="rect" id="Node000002" href="$d0/d80/cpu__trans__pencils_8cpp.html#a6997108f26362977c2b30cd34f236e4b" title=" " alt="" coords="265,5,416,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="201,45,266,31,267,36,202,50"/>
+<area shape="rect" id="Node000003" href="$d0/d80/cpu__trans__pencils_8cpp.html#a58ca207c0acfb0fff0a67380f49229e0" title=" " alt="" coords="273,55,408,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="205,65,260,65,260,70,205,70"/>
+<area shape="rect" id="Node000004" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a3a95df29bab5edf56724489af64523e5" title=" " alt="" coords="253,105,428,145"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="189,85,245,99,244,104,187,90"/>
+<area shape="rect" id="Node000005" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a0b5ae6d60c03a10b43a732a20bf20625" title=" " alt="" coords="476,105,667,145"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="428,122,462,122,462,127,428,127"/>
+</map>

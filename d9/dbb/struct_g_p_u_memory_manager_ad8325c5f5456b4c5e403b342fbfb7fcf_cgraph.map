@@ -1,0 +1,15 @@
+<map id="GPUMemoryManager::startSession" name="GPUMemoryManager::startSession">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,92,255,117"/>
+<area shape="rect" id="Node000002" href="$d9/dbb/struct_g_p_u_memory_manager.html#a19eaac6531f64dfcd191d1e4ff85bff7" title=" " alt="" coords="317,5,539,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="162,89,226,65,302,41,342,31,343,36,303,46,228,70,164,94"/>
+<area shape="rect" id="Node000003" href="$d9/dbb/struct_g_p_u_memory_manager.html#a74e38da013b4c50ef5a4c32d8ccbfc0f" title=" " alt="" coords="323,55,533,95"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="255,90,309,84,309,90,255,95"/>
+<area shape="rect" id="Node000004" href="$d9/dbb/struct_g_p_u_memory_manager.html#ad926f905411237e559b133d6988e8dbb" title=" " alt="" coords="303,120,553,145"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="255,114,289,117,289,122,255,119"/>
+<area shape="rect" id="Node000005" href="$d8/dbc/vectorclass__fallback_8h.html#a92b2075c51472d120e4ef0a663e3814b" title=" " alt="" coords="403,169,453,195"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="170,115,303,154,390,173,389,178,302,159,169,120"/>
+<area shape="rect" id="Node000006" href="$d7/d8b/class_vec_simple.html#a145923009b9b82410c5a072b8f8127f0" title=" " alt="" coords="601,169,736,195"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="453,179,587,179,587,185,453,185"/>
+<area shape="rect" id="Node000007" href="$d7/d8b/class_vec_simple.html#ae16798cf2ee14257d0706c60613cd733" title=" " alt="" coords="784,169,951,195"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="736,179,770,179,770,185,736,185"/>
+</map>

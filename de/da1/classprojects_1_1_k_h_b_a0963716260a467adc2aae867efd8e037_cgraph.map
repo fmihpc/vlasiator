@@ -1,0 +1,16 @@
+<map id="projects::KHB::probePhaseSpace" name="projects::KHB::probePhaseSpace">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,99,200,139"/>
+<area shape="rect" id="Node000002" href="$d4/d0b/ionosphere_solver_tests_2main_8cpp.html#a9bf4cdc41d466e8710b8aa33a33d32e0" title=" " alt="" coords="276,31,416,57"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="156,96,247,65,276,57,277,63,249,71,158,101"/>
+<area shape="rect" id="Node000003" href="$de/da1/classprojects_1_1_k_h_b.html#a1facf2fb424ea5cb10dd5942f2fb2677" title="Return a vector containing the velocity coordinate of the centre of each ion population in the distri..." alt="" coords="268,81,424,106"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="200,106,254,100,255,105,200,111"/>
+<area shape="rect" id="Node000005" href="$de/da1/classprojects_1_1_k_h_b.html#a532d2e9bb7666e3ffa7ecfad087bfa8d" title=" " alt="" coords="492,134,651,159"/>
+<area shape="poly" id="edge7_Node000001_Node000005" title=" " alt="" coords="201,122,478,138,478,144,200,127"/>
+<area shape="rect" id="Node000007" href="$d9/df1/namespaceprojects.html#a5225e191b92fd7d52b3b30c60f752346" title=" " alt="" coords="248,181,444,221"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="163,136,274,174,273,179,161,141"/>
+<area shape="rect" id="Node000004" href="$db/d19/classprojects_1_1_project.html#a4edca85a367571de52d58b772c08191b" title=" " alt="" coords="497,5,646,45"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="398,78,443,65,499,47,501,52,445,71,399,83"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="401,104,505,128,503,133,400,109"/>
+<area shape="rect" id="Node000006" href="$db/d19/classprojects_1_1_project.html#a9fa1ae6ea89d3e235f5ad25c5fe87e66" title=" " alt="" coords="504,69,639,109"/>
+<area shape="poly" id="edge5_Node000003_Node000006" title=" " alt="" coords="425,89,490,88,490,93,425,95"/>
+</map>

@@ -1,0 +1,9 @@
+<map id="vlasovsolver/cpu_acc_intersections.hpp" name="vlasovsolver/cpu_acc_intersections.hpp">
+<area shape="rect" id="Node000001" title=" " alt="" coords="191,5,352,45"/>
+<area shape="rect" id="Node000002" href="$d9/d30/cpu__acc__intersections_8cpp.html" title=" " alt="" coords="5,93,167,133"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="219,54,128,96,125,91,217,49"/>
+<area shape="rect" id="Node000003" href="$d7/d31/cpu__acc__semilag_8cpp.html" title=" " alt="" coords="191,93,352,133"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="274,59,274,93,269,93,269,59"/>
+<area shape="rect" id="Node000004" href="$d5/d9e/gpu__acc__semilag_8cpp.html" title=" " alt="" coords="377,93,539,133"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="326,49,418,91,416,96,323,53"/>
+</map>

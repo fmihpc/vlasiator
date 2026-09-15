@@ -1,0 +1,9 @@
+<map id="SBC::Maxwellian::addParameters" name="SBC::Maxwellian::addParameters">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,31,243,56"/>
+<area shape="rect" id="Node000002" href="$de/d5d/class_readparameters.html#a28e551f05837f412b6c6dd76d2aca97c" title=" " alt="" coords="291,5,453,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="243,29,277,25,277,30,243,34"/>
+<area shape="rect" id="Node000004" href="$d4/d0b/ionosphere_solver_tests_2main_8cpp.html#a9bf4cdc41d466e8710b8aa33a33d32e0" title=" " alt="" coords="302,55,442,80"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="243,52,288,57,288,62,243,57"/>
+<area shape="rect" id="Node000003" href="$de/d5d/class_readparameters.html#a7999e40e742e6f02e06687630dd0f93c" title=" " alt="" coords="501,5,781,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="453,15,488,15,488,21,453,21"/>
+</map>
