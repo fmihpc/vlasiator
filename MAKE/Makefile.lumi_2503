@@ -1,8 +1,8 @@
 # Suggested modules (after clean shell, no module purging)
 
-# module load LUMI/24.03 ; module load Boost/1.83.0-cpeGNU-24.03 ; module load partition/C; module load papi/7.1.0.1
+# module load LUMI/25.03 ; module load partition/C; module load papi/7.2.0.1
 
-# Build libraries with ./build_libraries.sh lumi_2403
+# Build libraries with ./build_libraries.sh lumi_2503
 
 #======== Vectorization ==========
 #Set vector backend type for vlasov solvers, sets precision and length. 
@@ -20,7 +20,7 @@ else
 endif
 
 #======== Library directory ===========
-LIBRARY_PREFIX = $(CURDIR)/libraries-lumi_2403
+LIBRARY_PREFIX = $(CURDIR)/libraries-lumi_2503
 
 CMP = CC
 LNK = CC

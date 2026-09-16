@@ -30,6 +30,7 @@
 #include "arch_device_api.h"
 
 #include <stdio.h>
+#include <dlfcn.h>
 #include <mutex>
 #include "include/splitvector/splitvec.h"
 #include "include/hashinator/hashinator.h"
@@ -80,6 +81,7 @@ uint gpu_getThread();
 uint gpu_getMaxThreads();
 int gpu_getDevice();
 uint gpu_getAllocationCount();
+std::size_t get_preloaded_pool_size();
 int gpu_reportMemory(const size_t local_cap=0, const size_t ghost_cap=0, const size_t local_size=0, const size_t ghost_size=0);
 
 unsigned int nextPowerOfTwo(unsigned int n);
@@ -279,7 +281,7 @@ struct GPUMemoryManager {
    // Useful for passing typenames with commas to other macros
    #define SINGLE_ARG(...) __VA_ARGS__
 
-   /* 
+   /*
    Definitions for global pointer indices
    Run the updateGpuMemoryPointerList.sh script to automatically update the list
    All "names" for pointersinitialized with CREATE_UNIQUE_POINTER, CREATE_SUBPOINTERS, SESSION_HOST_ALLOCATE
@@ -315,7 +317,7 @@ struct GPUMemoryManager {
 
       maxPointerIndex++;
       pointerIndex = maxPointerIndex;
-      
+
       return true;
    }
 
@@ -343,7 +345,7 @@ struct GPUMemoryManager {
          allocationSizes.push_back((size_t)(0));
          pointerDevice.push_back(NO_POINTER_DEVICE);
       }
-      
+
       return true;
    }
 
@@ -414,7 +416,7 @@ struct GPUMemoryManager {
          //No need to reallocate
          return false;
       }
-      
+
       if (gpuMemoryPointers[pointerIndex] != nullptr) {
          CHK_ERR( gpuFree(gpuMemoryPointers[pointerIndex]) );
       }

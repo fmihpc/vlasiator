@@ -1,12 +1,17 @@
-# For Roihu GPU
-#One liner:
-#module load  boost/1.88.0  cuda/12.9.1 openmpi/5.0.10 papi/7.2.0
+# Makefile for the gpu partition of Roihu at CSC
+#
+# Build libraries as ./fetch_and_build_libraries.sh roihu_gpu
+#
+# Recommended modules:
+# module load papi
+# One liner:
+# module load cuda/12.9.1 openmpi/5.0.10 papi/7.2.0
 VECTORCLASS = VEC_FALLBACK_GENERIC
 #WID=8
 WID=4
 USE_CUDA=1
 
-CMP=nvcc -ccbin mpic++
+CMP = nvcc -ccbin mpic++
 LNK = nvcc -ccbin mpic++
 
 CXXFLAGS = -g -O3 -x cu  -DVLASIATOR_ALLOW_MCA_OMPIO  -std=c++20 -Xcompiler -std=c++20 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_90,code=sm_90 -Xcompiler -fopenmp --generate-line-info -line-info -Xcompiler="-fpermissive"  --extra-device-vectorization
@@ -17,6 +22,11 @@ LDFLAGS = -O2 -g #lnvToolsExt
 LIB_MPI = -lgomp
 LIB_CUDA = -L/usr/local/cuda/lib64
 INC_CUDA = -isystem /usr/local/cuda/include
+
+#======== PAPI ==========
+#Add PAPI_MEM define to use papi to report memory consumption?
+CXXFLAGS +=  -DPAPI_MEM
+testpackage: CXXFLAGS +=  -DPAPI_MEM
 
 # module libraries
 LIB_PAPI = -lpapi

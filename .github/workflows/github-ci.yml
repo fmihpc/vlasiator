@@ -102,6 +102,13 @@ jobs:
             run_tp: false
             debug: false
 
+          - name: lumi-c
+            runner: lumi
+            arch: lumi_2503
+            compile_tp: true
+            run_tp: true
+            debug: true
+
     runs-on: ${{ matrix.runner }}
     needs: get_git_diff
     if: github.repository_owner == 'fmihpc'
@@ -181,7 +188,7 @@ jobs:
         path: testpackage-output.tar.gz
     - &fluxTest
       name: Run fluxfunction test
-      if: ${{ matrix.run_tp }}
+      if: ${{ matrix.run_tp && needs.get_git_diff.outputs.RUN_TP != 'False' }}
       run: |
         ./.github/workflows/slurm_run.sh "FLUXTEST"
     - &uploadTools
@@ -215,7 +222,7 @@ jobs:
     # (to be used in any subsequent compilation and run jobs on said image)
 
     runs-on: ubuntu-latest
-    container: ursg/vlasiator_ci:20250909_1
+    container: ursg/vlasiator_ci:20260910_1
 
     steps:
       - uses: lukka/get-cmake@latest
@@ -270,7 +277,7 @@ jobs:
       matrix:
         compile_flags: ["prod","prod_debug","ord1_time","ord1_space"]
     runs-on: ubuntu-latest
-    container: ursg/vlasiator_ci:20250909_1
+    container: ursg/vlasiator_ci:20260910_1
     needs: build_libraries_github
     env:
       VLASIATOR_ARCH: github_actions
@@ -312,7 +319,7 @@ jobs:
   ionosphereTests_github:
     # Build IonosphereSolverTests miniApp
     runs-on: ubuntu-latest
-    container: ursg/vlasiator_ci:20250909_1
+    container: ursg/vlasiator_ci:20260910_1
     needs: build_libraries_github
     steps:
     - *checkoutSource
@@ -380,7 +387,7 @@ jobs:
 
   check_cfg_files:
     runs-on: ubuntu-latest
-    container: ursg/vlasiator_ci:20250909_1
+    container: ursg/vlasiator_ci:20260910_1
     needs: build_github
     steps:
     - name: Checkout source

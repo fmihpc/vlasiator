@@ -45,7 +45,7 @@ CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 #                         mpi.h in c++ on Cray
 
 FLAGS =
-CXXFLAGS += -I ${GITHUB_WORKSPACE}/libraries-docker/include -L ${GITHUB_WORKSPACE}/libraries-docker/lib -march=native -O3 -std=c++20 -fopenmp -Wall -Wno-unused -fabi-version=0 -mavx -g -Wno-cast-function-type
+CXXFLAGS += -I ${GITHUB_WORKSPACE}/libraries-docker/include -L ${GITHUB_WORKSPACE}/libraries-docker/lib -march=x86-64-v3 -O3 -std=c++20 -fopenmp -Wall -Wno-unused -fabi-version=0 -mavx -g -Wno-cast-function-type
 MATHFLAGS = # -ffast-math -fno-finite-math-only
 testpackage: MATHFLAGS = # -fno-unsafe-math-optimizations
 LDFLAGS = -L ${GITHUB_WORKSPACE}/libraries-docker/lib -Wl,-rpath=${GITHUB_WORKSPACE}/libraries-docker/lib -g

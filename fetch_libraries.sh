@@ -12,8 +12,9 @@ fi
 echo "Fetching library files for platform $PLATFORM"
 
 PHIPROF_COMMIT="605a7247c85d967fe22fe079c96c817b461c92b1"
-VLSV_COMMIT="0d06db7078ee7066f69180b559c506c4cb0d7f1b"
+VLSV_COMMIT="95cac1bb4a4a52c2eed5bbfe8c74f0ee22e64a1b"
 PAPI_COMMIT="721ba0013473af6f9b7aa8ce5a2205e8403af2d1"
+JEMALLOC_COMMIT="fe336672309b724764093bff8253276bd600ce27"
 
 TRILINOS_BRANCH="zoltanLBSafeAllreduce-issue15235"
 #TRILINOS_COMMIT="16ceeebdfbe0809a549e0543f2824a79ebc2aa2d"
@@ -51,7 +52,7 @@ else
 fi
 
 # PAPI
-if [[ $PLATFORM != "-arriesgado" && $PLATFORM != "-appleM1" && $PLATFORM != "-ukko_dgx" && $PLATFORM != "-hile_cpu" && $PLATFORM != "-hile_gpu" && $PLATFORM != "-lumi_hipcc"  && $PLATFORM != "-lumi_2403" && $PLATFORM != "-mahti_cuda" && $PLATFORM != "-mahti_gcc_build" && $PLATFORM != "-frankenstein_hopper2_cuda" && $PLATFORM != "-roihu_cpu" && $PLATFORM != "-roihu_cpu_aocc" && $PLATFORM != "-roihu_gpu" ]]; then
+if [[ $PLATFORM != "-arriesgado" && $PLATFORM != "-appleM1" && $PLATFORM != "-ukko_dgx" && $PLATFORM != "-hile_cpu" && $PLATFORM != "-hile_gpu" && $PLATFORM != "-lumi_hipcc"  && $PLATFORM != "-lumi_2503" && $PLATFORM != "-mahti_cuda" && $PLATFORM != "-mahti_gcc_build" && $PLATFORM != "-frankenstein_hopper2_cuda" && $PLATFORM != "-roihu_cpu" && $PLATFORM != "-roihu_cpu_aocc" && $PLATFORM != "-roihu_gpu" ]]; then
     # This fails on RISCV and MacOS
     # Mahti, LUMI, UkkoGPU and HILE use system module
     git clone --depth=1 https://github.com/icl-utk-edu/papi
@@ -62,8 +63,13 @@ fi
 
 # jemalloc (not for GPU versions, on Mahti use system module)
 if [[ $PLATFORM != "-leonardo_booster" && $PLATFORM != "-karolina_cuda" && $PLATFORM != "-ukko_dgx" && $PLATFORM != "-hile_gpu" && $PLATFORM != "-lumi_hipcc" && $PLATFORM != "-mahti_cuda" && $PLATFORM != "-mahti_gcc_build" && $PLATFORM != "-frankenstein_hopper2_cuda" && $PLATFORM != "-roihu_gpu" ]]; then
-    curl -O -L https://github.com/jemalloc/jemalloc/releases/download/5.3.1/jemalloc-5.3.1.tar.bz2
-    tar xjf jemalloc-5.3.1.tar.bz2
+    #curl -O -L https://github.com/jemalloc/jemalloc/releases/download/5.3.1/jemalloc-5.3.1.tar.bz2
+    #tar xjf jemalloc-5.3.1.tar.bz2
+    git clone --depth=1 https://github.com/jemalloc/jemalloc
+    cd jemalloc
+    git fetch --tags origin 
+    git_use_commit "$JEMALLOC_COMMIT"
+    cd ..
 fi
 
 # Zoltan
