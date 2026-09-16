@@ -6,6 +6,15 @@ set -e   # Abort on error
 # Cloned into ./submodules/, matching the paths expected by the Makefile.
 # Pinned to the same commits the git submodules last pointed at, so
 # updating these versions is a deliberate, reviewable change.
+#
+# Kept separate from fetch_libraries.sh (which calls this script) on
+# purpose: some CI jobs (e.g. build_github, ionosphereTests_github in
+# github-ci.yml) only need these headers and call this script directly,
+# without re-fetching the heavier phiprof/vlsv/papi/jemalloc/Trilinos/
+# zfp/tucker-octree sources that fetch_libraries.sh also pulls in and
+# that are already built once and shared as a CI artifact. Inlining
+# this into fetch_libraries.sh would force those jobs to pay for those
+# redundant fetches on every run.
 
 FSGRID_COMMIT="34f8ffbe72db0fe3119d9013a21bc4df117b5307"
 DCCRG_COMMIT="f086044ff1cf683ca125e61c9e43e4584b6a00bf"
