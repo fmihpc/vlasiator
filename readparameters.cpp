@@ -179,14 +179,16 @@ void Readparameters::applyConfigFile(const std::string& filename, bool extras, s
    std::set<std::string> touched;
    std::string rawLine;
    while (std::getline(in, rawLine)) {
+      //allow # comments inline
+      const auto commentPos = rawLine.find('#');
+      if (commentPos != std::string::npos) {
+         rawLine.erase(commentPos);
+      }
+
       const auto firstNonSpace = rawLine.find_first_not_of(" \t\r\n");
       if (firstNonSpace == std::string::npos) {
          continue;
       }
-      if (rawLine[firstNonSpace] == '#' || rawLine[firstNonSpace] == ';') {
-         continue;
-      }
-
       std::string line = rawLine;
       line.erase(std::remove_if(line.begin(), line.end(), [](unsigned char ch) { return std::isspace(ch); }), line.end());
       if (line.empty()) {
