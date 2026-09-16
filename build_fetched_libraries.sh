@@ -60,6 +60,9 @@ elif [[ $PLATFORM == "-lumi_hipcc" ]]; then
    make -j $PARALLEL CC=hipcc CCFLAGS="-fpic -O2 -std=c++17 -DCLOCK_ID=CLOCK_MONOTONIC -fopenmp" LDFLAGS="-lstdc++ -fopenmp -lgomp -lroctx64 -lroctracer64"
 elif [[ $PLATFORM == "-roihu_cpu" || $PLATFORM == "-roihu_cpu_aocc" ]]; then
    make -j $PARALLEL CCC=mpic++ CCFLAGS="-fpic -O2 -std=c++17 -DCLOCK_ID=CLOCK_MONOTONIC -fopenmp" LDFLAGS="-fopenmp"
+elif [[ $PLATFORM == "-roihu_gpu" ]]; then
+   sed -i 's/-lnvToolsExt//' Makefile
+   make -j $PARALLEL CC=nvcc CCC="nvcc -ccbin mpic++ -I$CUDA_HOME/include/nvtx3 -L$CUDA_HOME/lib"
 else
    make -j $PARALLEL CCC=mpic++
 fi
