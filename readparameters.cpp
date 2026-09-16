@@ -197,7 +197,7 @@ void Readparameters::applyConfigFile(const std::string& filename, bool extras, s
          if (line.back() == ']') {
             section = line.substr(1, line.size() - 2);
          } else {
-            std::cerr << "Invalid configuration line, found a line starting with '[' which doews not end with ']':\n"
+            std::cerr << "Invalid configuration line, found a line starting with '[' which does not end with ']':\n"
                       << rawLine << std::endl;
          }
          continue;
