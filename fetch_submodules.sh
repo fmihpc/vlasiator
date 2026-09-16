@@ -25,37 +25,37 @@ mkdir -p submodules
 cd submodules
 
 rm -rf fsgrid
-git clone https://github.com/fmihpc/fsgrid.git
+git clone --depth=1 https://github.com/fmihpc/fsgrid.git
 cd fsgrid
 git_use_commit "$FSGRID_COMMIT"
 cd ..
 
 rm -rf dccrg
-git clone -b vlasiator-version https://github.com/fmihpc/dccrg.git
+git clone --depth=1 -b vlasiator-version https://github.com/fmihpc/dccrg.git
 cd dccrg
 git_use_commit "$DCCRG_COMMIT"
 cd ..
 
 rm -rf eigen
-git clone -b master https://gitlab.com/libeigen/eigen.git
+git clone --depth=1 -b master https://gitlab.com/libeigen/eigen.git
 cd eigen
 git_use_commit "$EIGEN_COMMIT"
 cd ..
 
 rm -rf vectorclass
-git clone https://github.com/vectorclass/version2 vectorclass
+git clone --depth=1 https://github.com/vectorclass/version2 vectorclass
 cd vectorclass
 git_use_commit "$VECTORCLASS_COMMIT"
 cd ..
 
 rm -rf vectorclass-addon
-git clone https://github.com/vectorclass/add-on vectorclass-addon
+git clone --depth=1 https://github.com/vectorclass/add-on vectorclass-addon
 cd vectorclass-addon
 git_use_commit "$VECTORCLASS_ADDON_COMMIT"
 cd ..
 
 rm -rf hashinator
-git clone https://github.com/fmihpc/hashinator.git
+git clone --depth=1 https://github.com/fmihpc/hashinator.git
 cd hashinator
 git_use_commit "$HASHINATOR_COMMIT"
 cd ..
