@@ -29,6 +29,9 @@ git_use_commit() {
 	fi
 }
 
+# Header-only / source dependencies that used to be git submodules
+bash "$(dirname "$0")/fetch_submodules.sh"
+
 mkdir -p library-build
 cd library-build
 

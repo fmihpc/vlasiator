@@ -12,15 +12,12 @@ In Vlasiator, ions are represented as velocity distribution functions, while ele
 
 Due to the multi-dimensional approach at ion scales, Vlasiator's computational challenges are immense. We use advanced high performance computing techniques to allow massively parallel computations on tens of thousands of cores.
 
-## git submodules
-We are transferring to use `git submodules` for the dependent libraries. Some of the header libraries have already been moved to this framework. Thus, we recommend to use the `--recurse-submodules` option when pulling or checking out branches.
-
-For first-time cloning, the following is required in order to initialize submodules correctly:
+## Dependent libraries
+Vlasiator depends on a number of external libraries (fsgrid, dccrg, eigen, vectorclass, vectorclass-addon, hashinator, and others). These are no longer git submodules; instead, fetch them by running:
 ```
-git clone --recurse-submodules https://github.com/fmihpc/vlasiator
-git checkout <branch>
-git submodule update --init --recursive
+./fetch_libraries.sh
 ```
+which clones the header-only libraries into `./submodules/` and the remaining libraries into `./library-build/`. Use `./fetch_and_build_libraries.sh` to also build the latter.
 
 ## Documentation
 See the [wiki](https://github.com/fmihpc/vlasiator/wiki) for build instructions and general advice.

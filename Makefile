@@ -6,12 +6,9 @@ $(shell echo "============[recommended by 9 out of 10 doctors]=\n" 1>&2)
 #set default architecture, can be overridden from the compile line
 ARCH = ${VLASIATOR_ARCH}
 
-# NB updating git submodules require e.g. using the --recurse-submodules flag, e.g.:
-# submodules currently include the header library fsgrid
-# git clone --recurse-submodules
-# git pull --recurse-submodules
-# or if you cloned without --recurse-submodules:
-# git submodule update --init --recursive
+# NB fsgrid, dccrg, eigen, vectorclass, vectorclass-addon and hashinator are
+# no longer git submodules: run ./fetch_libraries.sh (or
+# ./fetch_and_build_libraries.sh) to clone them into ./submodules/
 
 #set FP precision to SP (single) or DP (double)
 FP_PRECISION = DP

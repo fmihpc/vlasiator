@@ -25,8 +25,6 @@ jobs:
           srun -C c bash -c "$RUN_STRING"
       - name: Checkout source
         uses: actions/checkout@v4
-        with:
-          submodules: true
       - name: Make clean
         run: VLASIATOR_ARCH=hile_cpu make clean
       - uses: ursg/gcc-problem-matcher@master
