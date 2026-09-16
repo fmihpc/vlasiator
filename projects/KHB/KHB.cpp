@@ -40,59 +40,36 @@ namespace projects {
    
    void KHB::addParameters() {
       typedef Readparameters RP;
-      RP::add("KHB.P", "Constant total pressure (thermal+magnetic), used to determine the temperature profile (Pa)", 0.0);
-      RP::add("KHB.rho1", "Number density, this->TOP state (m^-3)", 0.0);
-      RP::add("KHB.rho2", "Number density, this->BOTTOM state (m^-3)", 0.0);
-      RP::add("KHB.Vx1", "Bulk velocity x component, this->TOP state (m/s)", 0.0);
-      RP::add("KHB.Vx2", "Bulk velocity x component, this->BOTTOM state (m/s)", 0.0);
-      RP::add("KHB.Vy1", "Bulk velocity y component, this->TOP state (m/s)", 0.0);
-      RP::add("KHB.Vy2", "Bulk velocity y component, this->BOTTOM state (m/s)", 0.0);
-      RP::add("KHB.Vz1", "Bulk velocity z component, this->TOP state (m/s)", 0.0);
-      RP::add("KHB.Vz2", "Bulk velocity z component, this->BOTTOM state (m/s)", 0.0);
-      RP::add("KHB.Bx1", "Magnetic field x component, this->TOP state (T)", 0.0);
-      RP::add("KHB.Bx2", "Magnetic field x component, this->BOTTOM state (T)", 0.0);
-      RP::add("KHB.By1", "Magnetic field y component, this->TOP state (T)", 0.0);
-      RP::add("KHB.By2", "Magnetic field y component, this->BOTTOM state (T)", 0.0);
-      RP::add("KHB.Bz1", "Magnetic field z component, this->TOP state (T)", 0.0);
-      RP::add("KHB.Bz2", "Magnetic field z component, this->BOTTOM state (T)", 0.0);
-      RP::add("KHB.lambda", "Initial perturbation wavelength (m)", 0.0);
-      RP::add("KHB.amp", "Initial velocity perturbation amplitude (m s^-1)", 0.0);
-      RP::add("KHB.offset", "Boundaries offset from 0 (m)", 0.0);
-      RP::add("KHB.transitionWidth", "Width of tanh transition for all changing values", 0.0);
-      RP::add("KHB.harmonics", "Number of harmonics of lambda included in the initial perturbation", 0);
-      RP::add("KHB.randomPhase", "If true, set a random phase for each mode of the initial perturbation. Seed set via project_common.seed", 0);
+      RP::add<Real>("KHB.P", "Constant total pressure (thermal+magnetic), used to determine the temperature profile (Pa)",this->P,0.0);
+      RP::add<Real>("KHB.rho1", "Number density, this->TOP state (m^-3)",this->rho[this->TOP],0.0);
+      RP::add<Real>("KHB.rho2", "Number density, this->BOTTOM state (m^-3)",this->rho[this->BOTTOM],0.0);
+      RP::add<Real>("KHB.Vx1", "Bulk velocity x component, this->TOP state (m/s)",this->Vx[this->TOP],0.0);
+      RP::add<Real>("KHB.Vx2", "Bulk velocity x component, this->BOTTOM state (m/s)",this->Vx[this->BOTTOM],0.0);
+      RP::add<Real>("KHB.Vy1", "Bulk velocity y component, this->TOP state (m/s)",this->Vy[this->TOP],0.0);
+      RP::add<Real>("KHB.Vy2", "Bulk velocity y component, this->BOTTOM state (m/s)",this->Vy[this->BOTTOM],0.0);
+      RP::add<Real>("KHB.Vz1", "Bulk velocity z component, this->TOP state (m/s)",this->Vz[this->TOP],0.0);
+      RP::add<Real>("KHB.Vz2", "Bulk velocity z component, this->BOTTOM state (m/s)",this->Vz[this->BOTTOM],0.0);
+      RP::add<Real>("KHB.Bx1", "Magnetic field x component, this->TOP state (T)",this->Bx[this->TOP],0.0);
+      RP::add<Real>("KHB.Bx2", "Magnetic field x component, this->BOTTOM state (T)",this->Bx[this->BOTTOM],0.0);
+      RP::add<Real>("KHB.By1", "Magnetic field y component, this->TOP state (T)",this->By[this->TOP],0.0);
+      RP::add<Real>("KHB.By2", "Magnetic field y component, this->BOTTOM state (T)",this->By[this->BOTTOM],0.0);
+      RP::add<Real>("KHB.Bz1", "Magnetic field z component, this->TOP state (T)",this->Bz[this->TOP],0.0);
+      RP::add<Real>("KHB.Bz2", "Magnetic field z component, this->BOTTOM state (T)",this->Bz[this->BOTTOM],0.0);
+      RP::add<Real>("KHB.lambda", "Initial perturbation wavelength (m)",this->lambda,0.0);
+      RP::add<Real>("KHB.amp", "Initial velocity perturbation amplitude (m s^-1)",this->amp,0.0);
+      RP::add<Real>("KHB.offset", "Boundaries offset from 0 (m)",this->offset,0.0);
+      RP::add<Real>("KHB.transitionWidth", "Width of tanh transition for all changing values",this->transitionWidth,0.0);
+      RP::add<int>("KHB.harmonics", "Number of harmonics of lambda included in the initial perturbation",this->harmonics,0);
+      RP::add<bool>("KHB.randomPhase", "If true, set a random phase for each mode of the initial perturbation. Seed set via project_common.seed",this->randomPhase,0);
    }
 
    void KHB::getParameters() {
-      Project::getParameters();
-      typedef Readparameters RP;
 
       if(getObjectWrapper().particleSpecies.size() > 1) {
          std::cerr << "The selected project does not support multiple particle populations! Aborting in " << __FILE__ << " line " << __LINE__ << std::endl;
          abort();
       }
 
-      RP::get("KHB.P", this->P);
-      RP::get("KHB.rho1", this->rho[this->TOP]);
-      RP::get("KHB.rho2", this->rho[this->BOTTOM]);
-      RP::get("KHB.Vx1", this->Vx[this->TOP]);
-      RP::get("KHB.Vx2", this->Vx[this->BOTTOM]);
-      RP::get("KHB.Vy1", this->Vy[this->TOP]);
-      RP::get("KHB.Vy2", this->Vy[this->BOTTOM]);
-      RP::get("KHB.Vz1", this->Vz[this->TOP]);
-      RP::get("KHB.Vz2", this->Vz[this->BOTTOM]);
-      RP::get("KHB.Bx1", this->Bx[this->TOP]);
-      RP::get("KHB.Bx2", this->Bx[this->BOTTOM]);
-      RP::get("KHB.By1", this->By[this->TOP]);
-      RP::get("KHB.By2", this->By[this->BOTTOM]);
-      RP::get("KHB.Bz1", this->Bz[this->TOP]);
-      RP::get("KHB.Bz2", this->Bz[this->BOTTOM]);
-      RP::get("KHB.lambda", this->lambda);
-      RP::get("KHB.amp", this->amp);
-      RP::get("KHB.offset", this->offset);
-      RP::get("KHB.transitionWidth", this->transitionWidth);
-      RP::get("KHB.harmonics", this->harmonics);
-      RP::get("KHB.randomPhase", this->randomPhase);
    }
    
    

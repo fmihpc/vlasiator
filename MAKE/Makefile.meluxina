@@ -65,7 +65,7 @@ LIBRARY_PREFIX = $(CURDIR)/libraries-meluxina/
 LIBRARY_PREFIX_HEADERS = $(CURDIR)/libraries-meluxina/
 
 #compiled libraries
-LIB_BOOST = -lboost_program_options
+
 
 INC_ZOLTAN = -isystem$(LIBRARY_PREFIX)/include
 LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/lib -lzoltan -Wl,-rpath=$(LIBRARY_PREFIX)/lib

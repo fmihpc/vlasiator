@@ -20,8 +20,8 @@ LIB_MPI = -lgomp
 #======== Libraries ===========
 LIBRARY_PREFIX = /gpfs/home/hels/hels895673/vlasiator/libraries-mn5_cuda
 
-INC_BOOST = -isystem /usr/include/boost
-LIB_BOOST = -L/usr/include/boost -lboost_program_options
+
+
 
 INC_ZOLTAN = -I$(LIBRARY_PREFIX)/include
 LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/lib -lzoltan

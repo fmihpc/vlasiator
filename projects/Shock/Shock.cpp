@@ -41,48 +41,32 @@ namespace projects {
 
    void Shock::addParameters() {
       typedef Readparameters RP;
-      RP::add("Shock.BX0", "Background field value (T)", 1.0e-9);
-      RP::add("Shock.BY0", "Background field value (T)", 2.0e-9);
-      RP::add("Shock.BZ0", "Background field value (T)", 3.0e-9);
-      RP::add("Shock.EX0", "Background electric field", 0.0);
-      RP::add("Shock.VX0", "Bulk velocity in x", 0.0);
-      RP::add("Shock.VY0", "Bulk velocity in y", 0.0);
-      RP::add("Shock.VZ0", "Bulk velocuty in z", 0.0);
-      RP::add("Shock.rho", "Number density (m^-3)", 1.0e7);
-      RP::add("Shock.Temperature", "Temperature (K)", 2.0e6);
-      RP::add("Shock.magPertAmp", "Amplitude of the magnetic perturbation", 1.0e-9);
-      RP::add("Shock.densityPertAmp", "Amplitude factor of the density perturbation", 0.1);
-      RP::add("Shock.velocityPertAmp", "Amplitude of the velocity perturbation", 1.0e6);
-      RP::add("Shock.maxwCutoff", "Cutoff for the maxwellian distribution", 1e-12);
-      RP::add("Shock.Scale_x", "Scale length in x (m)", 2.0e6);
-      RP::add("Shock.Scale_y", "Scale length in y (m)", 2.0e6);
-      RP::add("Shock.Sharp_Y", "Sharpness of tannh", 0.1);
+      RP::add<Real>("Shock.BX0", "Background field value (T)",this->BX0,1.0e-9);
+      RP::add<Real>("Shock.BY0", "Background field value (T)",this->BY0,2.0e-9);
+      RP::add<Real>("Shock.BZ0", "Background field value (T)",this->BZ0,3.0e-9);
+      RP::add<Real>("Shock.EX0", "Background electric field",this->EX0,0.0);
+      RP::add<Real>("Shock.VX0", "Bulk velocity in x",this->VX0,0.0);
+      RP::add<Real>("Shock.VY0", "Bulk velocity in y",this->VY0,0.0);
+      RP::add<Real>("Shock.VZ0", "Bulk velocuty in z",this->VZ0,0.0);
+      RP::add<Real>("Shock.rho", "Number density (m^-3)",this->DENSITY,1.0e7);
+      RP::add<Real>("Shock.Temperature", "Temperature (K)",this->TEMPERATURE,2.0e6);
+      RP::add<Real>("Shock.magPertAmp", "Amplitude of the magnetic perturbation",this->magPertAmp,1.0e-9);
+      RP::add<Real>("Shock.densityPertAmp", "Amplitude factor of the density perturbation",this->densityPertAmp,0.1);
+      RP::add<Real>("Shock.velocityPertAmp", "Amplitude of the velocity perturbation",this->velocityPertAmp,1.0e6);
+      RP::add<Real>("Shock.maxwCutoff", "Cutoff for the maxwellian distribution",this->maxwCutoff,1e-12);
+      RP::add<Real>("Shock.Scale_x", "Scale length in x (m)",this->SCA_X,2.0e6);
+      RP::add<Real>("Shock.Scale_y", "Scale length in y (m)",this->SCA_Y,2.0e6);
+      RP::add<Real>("Shock.Sharp_Y", "Sharpness of tannh",this->Sharp_Y,0.1);
    }
 
    void Shock::getParameters() {
-      Project::getParameters();
+      // Project::getParameters();
       typedef Readparameters RP;
 
       if(getObjectWrapper().particleSpecies.size() > 1) {
          std::cerr << "The selected project does not support multiple particle populations! Aborting in " << __FILE__ << " line " << __LINE__ << std::endl;
          abort();
       }
-      RP::get("Shock.BX0", this->BX0);
-      RP::get("Shock.BY0", this->BY0);
-      RP::get("Shock.BZ0", this->BZ0);
-      RP::get("Shock.EX0", this->EX0);
-      RP::get("Shock.VX0", this->VX0);
-      RP::get("Shock.VY0", this->VY0);
-      RP::get("Shock.VZ0", this->VZ0);
-      RP::get("Shock.rho", this->DENSITY);
-      RP::get("Shock.Temperature", this->TEMPERATURE);
-      RP::get("Shock.magPertAmp", this->magPertAmp);
-      RP::get("Shock.densityPertAmp", this->densityPertAmp);
-      RP::get("Shock.velocityPertAmp", this->velocityPertAmp);
-      RP::get("Shock.maxwCutoff", this->maxwCutoff);
-      RP::get("Shock.Scale_x", this->SCA_X);
-      RP::get("Shock.Scale_y", this->SCA_Y);
-      RP::get("Shock.Sharp_Y", this->Sharp_Y);
    }
 
    Realf Shock::fillPhaseSpace(spatial_cell::SpatialCell *cell,

@@ -56,8 +56,8 @@ testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 #======== Libraries ===========
 LIBRARY_PREFIX = /home/markusb/git/vlasiator-lib
 
-INC_BOOST = -isystem /usr/include/boost
-LIB_BOOST = -L/usr/include/boost -lboost_program_options
+
+
 
 INC_ZOLTAN = -isystem /usr/include/trilinos
 LIB_ZOLTAN = -I/usr/lib/x86_64-linux-gnu -ltrilinos_zoltan

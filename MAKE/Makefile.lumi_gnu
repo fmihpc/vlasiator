@@ -62,7 +62,7 @@ testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 LIBRARY_PREFIX =/pfs/lustrep4/scratch/project_462000559/kostis/libs
 
 #compiled libraries
-LIB_BOOST = -lboost_program_options
+
 
 INC_ZOLTAN = -isystem$(LIBRARY_PREFIX)/zoltan/include
 LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/zoltan/lib -lzoltan -Wl,-rpath=$(LIBRARY_PREFIX)/zoltan/lib

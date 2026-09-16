@@ -62,8 +62,8 @@ LIBRARY_PREFIX = /global/homes/u/uganse/libraries/
 LIBRARY_PREFIX_HEADERS = /global/homes/u/uganse/libraries/
 
 #compiled libraries
-INC_BOOST = -I$(LIBRARY_PREFIX)/boost/include
-LIB_BOOST = -L$(LIBRARY_PREFIX)/boost/lib -lboost_program_options -Wl,-rpath=$(LIBRARY_PREFIX)/boost/lib
+
+
 
 INC_ZOLTAN = -I$(LIBRARY_PREFIX)/zoltan-build/include
 LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/zoltan-build/lib -lzoltan -Wl,-rpath=$(LIBRARY_PREFIX)/zoltan-build/lib

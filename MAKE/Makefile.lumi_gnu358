@@ -53,7 +53,7 @@ testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 #                    avoid memleak (much slower IO)
 
 #======== Libraries ===========
-LIB_BOOST = -lboost_program_options
+
 
 #compiled libraries
 LIBRARY_PREFIX = /projappl/project_462000358/cpu-libraries/2403

@@ -878,6 +878,9 @@ bool pDistance(const map<uint, Real>& orderedData1, const map<uint, Real>& order
 
    if (length != 0.0)
       *relative = *absolute / length;
+   else if (*absolute==0) {
+      *relative=0;
+   }
    else {
       cout << "WARNING (pDistance) : length of reference is 0.0, cannot divide to give relative distance." << endl;
       *relative = -1;

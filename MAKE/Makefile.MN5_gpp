@@ -69,8 +69,8 @@ testpackage: CXXFLAGS += -DMPICH_IGNORE_CXX_SEEK
 LIBRARY_PREFIX = /gpfs/projects/bsc33/bsc033626/LIBS
 
 # Compiled libraries
-INC_BOOST = -I/apps/GPP/BSCTOOLS/deps/boost/1.84.0/include
-LIB_BOOST = -L/apps/GPP/BSCTOOLS/deps/boost/1.84.0/lib -lboost_program_options
+
+
 
 INC_ZOLTAN = -I$(LIBRARY_PREFIX)/zoltan/VLASIATOR.GCC.DEV/include
 LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/zoltan/VLASIATOR.GCC.DEV/lib -lzoltan
