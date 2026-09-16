@@ -197,8 +197,7 @@ void Readparameters::applyConfigFile(const std::string& filename, bool extras, s
          if (line.back() == ']') {
             section = line.substr(1, line.size() - 2);
          } else {
-            std::cerr << "Invalid configuration line, found a line starting with '[' which doews not  end wit "
-                         "']':\n"
+            std::cerr << "Invalid configuration line, found a line starting with '[' which doews not end with ']':\n"
                       << rawLine << std::endl;
          }
          continue;
@@ -337,8 +336,8 @@ void Readparameters::parse(bool extras) {
    int confsize = 0;
    if (rank == MASTER_RANK) {
       resetAll();
-      const std::vector<std::string> tokens = tokenize(argc, argv);
-      configFileName = resolveConfigFileName(tokens);
+      const std::vector<std::string> tokens = make_tokens(argc, argv);
+      configFileName = finalizeFileName(tokens);
 
       std::vector<std::string> invalid;
       applyConfigFile(configFileName, extras, invalid);
@@ -366,6 +365,6 @@ void Readparameters::parse(bool extras) {
 
    if (rank != MASTER_RANK) {
       std::vector<std::string> invalidIgnored;
-      applyArgTokens(tokenize(conf), true, invalidIgnored);
+      applyArgTokens(make_tokens(conf), true, invalidIgnored);
    }
 }
