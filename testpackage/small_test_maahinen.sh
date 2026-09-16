@@ -23,7 +23,7 @@ cd $SLURM_SUBMIT_DIR
 source ../modules/maahinen.sh
 
 bin="../vlasiator"
-diffbin="../vlasiator"
+diffbin="../vlsvdiff_DP"
 
 #compare agains which revision
 #reference_revision="CI_reference"
