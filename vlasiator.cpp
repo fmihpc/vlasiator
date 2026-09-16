@@ -20,7 +20,6 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#include <CLI11.hpp>
 #include "common.h"
 #include <cstdlib>
 #include <iostream>
@@ -279,12 +278,8 @@ int simulate(int argn,char* args[]) {
    P::addParameters();
    sysBoundaryContainer.addSysBoundaryParameters(); //add parameter for bonudary.boundaries
 
-   auto app = readparameters.get_app();
    readparameters.parse(true); //true to ignore config extras
    getObjectWrapper().populationsParsed=true;
-   if (Readparameters::fullHelp or Readparameters::legacyHelp) {
-     Readparameters::helpRequested=true;
-   }
    if (Readparameters::helpRequested) {
      getObjectWrapper().addHelp();
    }

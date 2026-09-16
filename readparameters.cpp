@@ -21,88 +21,298 @@
  */
 
 #include "readparameters.h"
-#include <CLI11.hpp>
 #include "common.h"
-#include <algorithm>
-
 using namespace std;
-
-// Initialize static member of class ReadParameters
 bool Readparameters::helpRequested = false;
-bool Readparameters::fullHelp = false;
-bool Readparameters::legacyHelp = false;
-bool Readparameters::checkCfg = false;
 bool Readparameters::versionRequested = false;
+bool Readparameters::checkCfg = false;
 vector<string> Readparameters::populations = {};
-CLI::App app_new{"Usage: main [options (options given on the command line override "
-                 "options given everywhere else)], where options are:","vlasiator"};
-CLI::App* Readparameters::app = &app_new;
+map<string, string> Readparameters::subcommandDescriptions;
 
 int Readparameters::argc;
 char** Readparameters::argv;
+string Readparameters::configFileName = "config.cfg";
 
-map<string, string> Readparameters::options;
-map<string, string> Readparameters::optionsComposing;
-map<string, bool> Readparameters::isOptionParsed;
-map<string, bool> Readparameters::isSubComParsed;
-map<string, string> Readparameters::subcommandDescriptions;
-
-/** Constructor for class ReadParameters.
- * The constructor defines some default parameters and parses the input files.
- * @param cmdargc Command line argc.
- * @param cmdargv Command line argv.
- */
 Readparameters::Readparameters(int cmdargc, char* cmdargv[]) {
    argc = cmdargc;
    argv = cmdargv;
+   addDefaultParameters();
+   subcommandDescriptions["io"] = "I/O options";
+   subcommandDescriptions["gridbuilder"] = "Spatial grid options";
+}
+
+Readparameters::~Readparameters() {}
+Readparameters::Option* Readparameters::registerOption(const std::string& key, Option&& opt) {
+   auto result = registry().insert_or_assign(key, std::move(opt));
+   if (result.second) {
+      registryOrder().push_back(key);
+   }
+   return &(result.first->second);
+}
+
+void Readparameters::addDefaultParameters() {
+   add<std::string>("run_config",
+                    "Configuration file, overridden by options given on the command line.",
+                    configFileName, std::string("config.cfg"));
+   addFlag("help", "print help message", Readparameters::helpRequested);
+   addFlag("version", "print version ", Readparameters::versionRequested);
+   addFlag("check_cfg", "flag whether to validate the config file", Readparameters::checkCfg);
+}
+
+void Readparameters::resetAll() {
+   for (const auto& key : registryOrder()) {
+      Option& opt = registry().at(key);
+      opt.resetToDefault();
+      opt.wasSet = false;
+   }
+}
+
+std::vector<std::string> Readparameters::make_tokens(int argcIn, char** argvIn) {
+   std::vector<std::string> out;
+   if (argcIn <= 0) {
+      return out;
+   }
+   QdArgParser<' '> parser(argcIn, argvIn);
+   for (auto it = parser.begin(); it != parser.end(); ++it) {
+      out.emplace_back(*it);
+   }
+   return out;
+}
+
+std::vector<std::string> Readparameters::make_tokens(const std::string& buffer) {
+   std::vector<std::string> out;
+   if (buffer.empty()) {
+      return out;
+   }
+   QdArgParser<' '> parser(buffer.data(), buffer.size());
+   for (auto it = parser.begin(); it != parser.end(); ++it) {
+      out.emplace_back(*it);
+   }
+   return out;
+}
+
+void Readparameters::applyAssignment(Option& opt, const std::string& rawValue, std::set<std::string>& touched) {
+   const bool first = touched.insert(opt.name).second;
+   if (first) {
+      opt.clearValue();
+   }
+   opt.wasSet = true;
+
+   if (rawValue.size() >= 2 && rawValue.front() == '[' && rawValue.back() == ']') {
+      const std::string inner = rawValue.substr(1, rawValue.size() - 2);
+      std::size_t start = 0;
+      while (!inner.empty() && start <= inner.size()) {
+         const auto comma = inner.find(',', start);
+         const std::string tok = (comma == std::string::npos) ? inner.substr(start) : inner.substr(start, comma - start);
+         if (!tok.empty()) {
+            opt.assignOne(tok);
+         }
+         if (comma == std::string::npos) {
+            break;
+         }
+         start = comma + 1;
+      }
+   } else {
+      opt.assignOne(rawValue);
+   }
+}
+
+void Readparameters::applyArgTokens(const std::vector<std::string>& tokens, bool extras, std::vector<std::string>& invalid) {
+   std::set<std::string> touched;
+   std::size_t i = 0;
+   while (i < tokens.size()) {
+      const std::string& tok = tokens[i];
+      if (tok.size() < 3 || tok[0] != '-' || tok[1] != '-') {
+         ++i;
+         continue;
+      }
+      const std::string body = tok.substr(2);
+      std::string name = body;
+      std::string value;
+      bool hasValue = false;
+      if (const auto eq = body.find('='); eq != std::string::npos) {
+         name = body.substr(0, eq);
+         value = body.substr(eq + 1);
+         hasValue = true;
+      }
+
+      const std::string key = normalizeName(name);
+      auto it = registry().find(key);
+      if (it == registry().end()) {
+         if (!extras) {
+            invalid.push_back(name);
+         }
+         ++i;
+         continue;
+      }
+      Option& opt = it->second;
+
+      if (opt.isFlag) {
+         applyAssignment(opt, hasValue ? value : std::string(""), touched);
+         ++i;
+         continue;
+      }
+
+      if (!hasValue) {
+         if (i + 1 < tokens.size()) {
+            value = tokens[i + 1];
+            i += 2;
+         } else {
+            invalid.push_back(name + " (missing value)");
+            ++i;
+            continue;
+         }
+      } else {
+         ++i;
+      }
+      applyAssignment(opt, value, touched);
+   }
+}
+
+void Readparameters::applyConfigFile(const std::string& filename, bool extras, std::vector<std::string>& invalid) {
+   std::ifstream in(filename);
+   if (!in.is_open()) {
+      return;
+   }
+
+   std::string section;
+   std::set<std::string> touched;
+   std::string rawLine;
+   while (std::getline(in, rawLine)) {
+      const auto firstNonSpace = rawLine.find_first_not_of(" \t\r\n");
+      if (firstNonSpace == std::string::npos) {
+         continue;
+      }
+      if (rawLine[firstNonSpace] == '#' || rawLine[firstNonSpace] == ';') {
+         continue;
+      }
+
+      std::string line = rawLine;
+      line.erase(std::remove_if(line.begin(), line.end(), [](unsigned char ch) { return std::isspace(ch); }), line.end());
+      if (line.empty()) {
+         continue;
+      }
+
+      if (line.front() == '[') {
+         if (line.back() == ']') {
+            section = line.substr(1, line.size() - 2);
+         } else {
+            std::cerr << "Invalid configuration line, found a line starting with '[' which doews not  end wit "
+                         "']':\n"
+                      << rawLine << std::endl;
+         }
+         continue;
+      }
+
+      const auto eq = line.find('=');
+      if (eq == std::string::npos) {
+         continue;
+      }
+      const std::string name = line.substr(0, eq);
+      const std::string value = line.substr(eq + 1);
+      const std::string fullName = section.empty() ? name : section + '.' + name;
+      const std::string key = normalizeName(fullName);
+
+      auto it = registry().find(key);
+      if (it == registry().end()) {
+         if (!extras) {
+            invalid.push_back(fullName);
+         }
+         continue;
+      }
+      applyAssignment(it->second, value, touched);
+   }
+}
+
+std::string Readparameters::serializeAll() {
+   std::ostringstream oss;
+   bool first = true;
+   for (const auto& key : registryOrder()) {
+      const Option& opt = registry().at(key);
+      if (!opt.wasSet) {
+         continue;
+      }
+      if (!first) {
+         oss << ' ';
+      }
+      first = false;
+      oss << "--" << key << '=' << opt.serializeValue();
+   }
+   return oss.str();
+}
+
+std::string Readparameters::finalizeFileName(const std::vector<std::string>& tokens) {
+   static const std::string prefix = "--run_config=";
+   for (std::size_t i = 0; i < tokens.size(); ++i) {
+      const std::string& tok = tokens[i];
+      if (tok.rfind(prefix, 0) == 0) {
+         return tok.substr(prefix.size());
+      }
+      if (tok == "--run_config" && i + 1 < tokens.size()) {
+         return tokens[i + 1];
+      }
+   }
+   return configFileName;
+}
+
+void Readparameters::helpMessage() {
+   if (!helpRequested) {
+      return;
+   }
    int rank;
    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-
    if (rank == MASTER_RANK) {
-      addDefaultParameters();
-      subcommandDescriptions["io"]="I/O options";
-      subcommandDescriptions["gridbuilder"]="Spatial grid options";
-      app->set_config("--run_config","config.cfg","Configuration file, when passing multiple configuration files, with precedence last to first, so configs passed last will be overridden by the configs passed to it first.");
-   }
-   MPI_Bcast(&Readparameters::helpRequested, sizeof(bool), MPI_BYTE, 0, MPI_COMM_WORLD);
-}
+      cout << "Usage: main [options (options given on the command line override options given "
+              "everywhere else)], where options are:\n"
+           << endl;
 
-Readparameters::~Readparameters() {
-   // delete app;
-}
-
-
-/** Write the descriptions of known input options to standard output if
- * an option called "help" has been read, and exit in that case.
- */
-void Readparameters::helpMessage() {
-   if (helpRequested) {
-      int rank;
-      MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-      if (rank == MASTER_RANK) {
-         if (fullHelp) {
-            cout << app->help("",CLI::AppFormatMode::All) << endl;
-         } else if (legacyHelp) {
-            for(std::map<std::string,std::string>::iterator iter = options.begin(); iter != options.end(); ++iter) {
-               cout << iter->first << endl;
-            }
-            for(std::map<std::string,std::string>::iterator iter = optionsComposing.begin(); iter != optionsComposing.end(); ++iter) {
-               cout << iter->first << endl;
-            }
-         } else {
-            cout << app->help() << endl;
-         }
+      map<string, vector<string>> bySection;
+      for (const auto& key : registryOrder()) {
+         const auto dot = key.find('.');
+         const string section = (dot == string::npos) ? string() : key.substr(0, dot);
+         bySection[section].push_back(key);
       }
-      MPI_Finalize();
-      exit(0);
+
+      auto printGroup = [](const string& section, const vector<string>& keys) {
+         if (section.empty()) {
+            cout << "General options:" << endl;
+         } else {
+            auto it = subcommandDescriptions.find(section);
+            cout << section;
+            if (it != subcommandDescriptions.end() && !it->second.empty()) {
+               cout << ": " << it->second;
+            }
+            cout << ":" << endl;
+         }
+         for (const auto& key : keys) {
+            const Option& opt = registry().at(key);
+            cout << "  --" << key;
+            if (!opt.isFlag) {
+               cout << "=<" << (opt.isVector ? "list" : "value") << ">";
+            }
+            cout << "\n      " << opt.desc;
+            if (!opt.isFlag) {
+               cout << " (default: " << opt.defaultStr << ")";
+            }
+            cout << endl;
+         }
+         cout << endl;
+      };
+
+      if (const auto it = bySection.find(string()); it != bySection.end()) {
+         printGroup(string(), it->second);
+      }
+      for (const auto& entry : bySection) {
+         if (entry.first.empty()) {
+            continue;
+         }
+         printGroup(entry.first, entry.second);
+      }
    }
+   MPI_Finalize();
+   exit(0);
 }
 
-/** Write version information to standard output if
- * an option called "version" has been read.
- * @return If true, option called "version" was found and descriptions were
- * written to standard output.
- */
 bool Readparameters::versionMessage() {
    int rank;
    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -116,137 +326,46 @@ bool Readparameters::versionMessage() {
    return true;
 }
 
-/** Helper wrapper function to get version info
-   @return std string with the version information
- */
 std::string Readparameters::versionInfo() { return getVersion(); }
 
-/** Helper wrapper function to get the config info
-   @return std string with the config information
- */
-std::string Readparameters::configInfo() { return getConfig(app->get_config_ptr()->as<std::string>().c_str()); }
+std::string Readparameters::configInfo() { return getConfig(configFileName.c_str()); }
 
-/** Request Parameters to reparse input file(s). This function needs to be
- * called after new options have been added via Parameters:add functions.
- * Otherwise the values of the new options are not read. This is a collective
- * function, all processes have to see it.
- * @param extras true if unregistered options are parsed without error.
- * @return True if input file(s) were parsed successfully.
- */
 void Readparameters::parse(bool extras) {
    int rank;
    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+   std::string conf;
+   int confsize = 0;
    if (rank == MASTER_RANK) {
-      try {
-         app->allow_extras(extras);
-         app->allow_config_extras(extras);
-         app->parse(argc, argv);
-      } catch (const CLI::ConfigError& err) {
-         auto config_file=app->get_config_ptr()->as<std::string>();
-         std::vector<CLI::ConfigItem> givenOptions = app->get_config_formatter()->from_file(config_file);
-         std::string invalidOptions="";
-         bool lastSubcomValid=true;
-         for (auto &opt : givenOptions) {
-            auto optName=opt.fullname();
-            std::string subcom="";
-            if (optName.back()=='+') {
-              subcom=optName.substr(0,optName.size()-3);
-              if (!isSubComParsed[subcom]) {
-                invalidOptions+="["+subcom+"]\n";
-                lastSubcomValid=false;
-              }
-              continue;
-            }
-            else if (optName.back()=='-') { 
-              lastSubcomValid=true;
-              continue;
-            };
-            if( (options.find(optName)==options.end()) && (optionsComposing.find(optName)==optionsComposing.end()) && lastSubcomValid) {
-                invalidOptions+=" "+opt.fullname()+'\n';
-            } 
-          }
-         std::cerr << "Error parsing config, following options are invalid:\n"<<invalidOptions << std::endl;
+      resetAll();
+      const std::vector<std::string> tokens = tokenize(argc, argv);
+      configFileName = resolveConfigFileName(tokens);
+
+      std::vector<std::string> invalid;
+      applyConfigFile(configFileName, extras, invalid);
+      applyArgTokens(tokens, extras, invalid);
+      if (!extras && !invalid.empty()) {
+         std::cerr << "Error parsing config, following options are invalid:\n";
+         for (const auto& name : invalid) {
+            std::cerr << " " << name << "\n";
+         }
+         std::cerr << std::endl;
          MPI_Finalize();
          exit(1);
       }
+
+      conf = serializeAll();
+      confsize = static_cast<int>(conf.size());
    }
-    std::string conf;
-    int confsize;
 
-    if (rank == MASTER_RANK) {
-        conf = app->config_to_str();
-        confsize = conf.size();
-    }
+   MPI_Bcast(&confsize, 1, MPI_INT, MASTER_RANK, MPI_COMM_WORLD);
+   if (rank != MASTER_RANK) {
+      resetAll();
+      conf.resize(confsize);
+   }
+   MPI_Bcast(conf.data(), confsize, MPI_CHAR, MASTER_RANK, MPI_COMM_WORLD);
 
-    MPI_Bcast(&confsize, 1, MPI_INT,
-              MASTER_RANK, MPI_COMM_WORLD);
-    if (rank != MASTER_RANK) {
-        conf.resize(confsize);
-    }
-    MPI_Bcast(conf.data(), confsize, MPI_CHAR,
-              MASTER_RANK, MPI_COMM_WORLD);
-
-    //send the parsed configuration file as string to other ranks
-    if (rank != MASTER_RANK) {
-      stringstream strs(conf);
-      std::istream_iterator<string> it(strs);
-      std::istream_iterator<string> end;
-      std::string parsed_conf = "";
-      for (it = it; it != end; ++it) {
-          // lists/vectors in the config are parsed to have a space between the items
-          // since strings are parsed with quotes, we can prevent adding " --" to items inside the list
-          // by checking if the first character is an alphabet.
-          //special handling incase we have parameter with just single letter or a flag
-          if (((*it).at(1)=='=') || ((*it).size()==1) ) {
-            parsed_conf.append(" -" + *it);
-          }
-          else if (std::isalpha((*it).at(0))) {
-            parsed_conf.append(" --" + *it);
-          } else {
-            parsed_conf.append(*it);
-          }
-      }
-
-      parsed_conf.erase(remove(parsed_conf.begin(), parsed_conf.end(), '"'), parsed_conf.end());
-      app->allow_extras(extras);
-      app->parse(parsed_conf);
-    }
-}
-
-
-/** Add basic program parameters **/
-void Readparameters::addDefaultParameters() {
-   int rank;
-   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-   if (rank == MASTER_RANK) {
-      //Remove the original CLI11-made flag, since we want to replace it with helpRequested.
-      app->remove_option(app->get_help_ptr());
-      Readparameters::addFlag("--help", "print this help message", Readparameters::helpRequested);
-      Readparameters::addFlag("--full_help","print the full help without subcommand categorization", Readparameters::fullHelp);
-      Readparameters::addFlag("--legacy_help","print all the options as a long list", Readparameters::legacyHelp);
-      Readparameters::addFlag("--version", "print version information", Readparameters::versionRequested);
-      Readparameters::addFlag("--check_cfg","flag whether to validate the config file",Readparameters::checkCfg); 
-      // // Parameters which set the names of the configuration file(s):
-      // descriptions->add_options()(
-      //     "global_config", PO::value<string>(&global_config_file_name)->default_value(""),
-      //     "read options from the global configuration file arg (relative to the current working directory). Options "
-      //     "given in this file are overridden by options given in the user's and run's configuration files and by "
-      //     "options given in environment variables (prefixed with MAIN_) and the command line")(
-      //     "user_config", PO::value<string>(&user_config_file_name)->default_value(""),
-      //     "read options from the user's configuration file arg (relative to the current working directory). Options "
-      //     "given in this file override options given in the global configuration file. Options given in this file "
-      //     "are "
-      //     "overridden by options given in the run's configuration file and by options given in environment "
-      //     "variables "
-      //     "(prefixed with MAIN_) and the command line")("run_config",
-      //                                                   PO::value<string>(&run_config_file_name)->default_value(""),
-      //                                                   "read options from the run's configuration file arg "
-      //                                                   "(relative to the current working directory). Options "
-      //                                                   "given in this file override options given in the user's "
-      //                                                   "and global configuration files. Options given in "
-      //                                                   "this override options given in the user's and global "
-      //                                                   "configuration files. Options given in this file are "
-      //                                                   "overridden by options given in environment variables "
-      //                                                   "(prefixed with MAIN_) and the command line");
+   if (rank != MASTER_RANK) {
+      std::vector<std::string> invalidIgnored;
+      applyArgTokens(tokenize(conf), true, invalidIgnored);
    }
 }

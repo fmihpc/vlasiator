@@ -21,7 +21,6 @@
  */
 
 #include "parameters.h"
-#include <CLI11.hpp>
 #include "common.h"
 #include "mpi.h"
 #include "object_wrapper.h"
