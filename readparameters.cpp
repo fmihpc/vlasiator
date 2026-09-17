@@ -20,6 +20,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#include <cstdio>
 #include "readparameters.h"
 #include "common.h"
 using namespace std;
@@ -100,17 +101,14 @@ void Readparameters::applyAssignment(Option& opt, const std::string& rawValue, s
 
    if (rawValue.size() >= 2 && rawValue.front() == '[' && rawValue.back() == ']') {
       const std::string inner = rawValue.substr(1, rawValue.size() - 2);
-      std::size_t start = 0;
-      while (!inner.empty() && start <= inner.size()) {
-         const auto comma = inner.find(',', start);
-         const std::string tok = (comma == std::string::npos) ? inner.substr(start) : inner.substr(start, comma - start);
-         if (!tok.empty()) {
-            opt.assignOne(tok);
+      if (!inner.empty()) {
+         QdArgParser<','> parser(inner.data(), inner.size());
+         for (auto it = parser.begin(); it != parser.end(); ++it) {
+            const std::string tok(*it);
+            if (!tok.empty()) {
+               opt.assignOne(tok);
+            }
          }
-         if (comma == std::string::npos) {
-            break;
-         }
-         start = comma + 1;
       }
    } else {
       opt.assignOne(rawValue);
@@ -171,15 +169,28 @@ void Readparameters::applyArgTokens(const std::vector<std::string>& tokens, bool
 }
 
 void Readparameters::applyConfigFile(const std::string& filename, bool extras, std::vector<std::string>& invalid) {
-   std::ifstream in(filename);
-   if (!in.is_open()) {
+   std::FILE* fp = std::fopen(filename.c_str(), "rb");
+   if (!fp) {
+      return;
+   }
+   std::fseek(fp, 0, SEEK_END);
+   const long fsize = std::ftell(fp);
+   std::fseek(fp, 0, SEEK_SET);
+   std::string buffer;
+   if (fsize > 0) {
+      buffer.resize(static_cast<std::size_t>(fsize));
+      buffer.resize(std::fread(buffer.data(), 1, buffer.size(), fp));
+   }
+   std::fclose(fp);
+   if (buffer.empty()) {
       return;
    }
 
    std::string section;
    std::set<std::string> touched;
-   std::string rawLine;
-   while (std::getline(in, rawLine)) {
+   QdArgParser<'\n'> parser(buffer.data(), buffer.size());
+   for (auto lineIt = parser.begin(); lineIt != parser.end(); ++lineIt) {
+      std::string rawLine(*lineIt);
       //allow # comments inline
       const auto commentPos = rawLine.find('#');
       if (commentPos != std::string::npos) {
