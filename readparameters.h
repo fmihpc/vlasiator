@@ -127,7 +127,7 @@ public:
 
    static std::string configInfo();
 
-   static void parse(bool extras = false);
+   static std::vector<std::string> parse(bool extras = false);
 
    static void parseComposing() {}
    static bool helpRequested;

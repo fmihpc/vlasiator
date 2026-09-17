@@ -331,17 +331,18 @@ std::string Readparameters::versionInfo() { return getVersion(); }
 
 std::string Readparameters::configInfo() { return getConfig(configFileName.c_str()); }
 
-void Readparameters::parse(bool extras) {
+std::vector<std::string> Readparameters::parse(bool extras) {
    int rank;
    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
    std::string conf;
    int confsize = 0;
+   std::vector<std::string> invalid;
+
    if (rank == MASTER_RANK) {
       resetAll();
       const std::vector<std::string> tokens = make_tokens(argc, argv);
       configFileName = finalizeFileName(tokens);
 
-      std::vector<std::string> invalid;
       applyConfigFile(configFileName, extras, invalid);
       applyArgTokens(tokens, extras, invalid);
       if (!extras && !invalid.empty()) {
@@ -366,7 +367,8 @@ void Readparameters::parse(bool extras) {
    MPI_Bcast(conf.data(), confsize, MPI_CHAR, MASTER_RANK, MPI_COMM_WORLD);
 
    if (rank != MASTER_RANK) {
-      std::vector<std::string> invalidIgnored;
-      applyArgTokens(make_tokens(conf), true, invalidIgnored);
+      applyArgTokens(make_tokens(conf), true, invalid);
    }
+
+   return invalid;
 }

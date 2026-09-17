@@ -61,6 +61,7 @@ static struct {
 	std::vector<Real> point1, point2;
 	unsigned int pointAmount;
 	std::vector<string> outputdirectory;
+	std::vector<string> filenames;
 } flags = {}; // static variables should be init with 0s anyway
 
 // If set to true, vlsvextract writes some debugging info to stderr
@@ -1565,7 +1566,7 @@ bool retrieveOptions( const int argn, char *args[], UserOptions & mainOptions ) 
 
       //Parse the command line options. Invalid options cause an error message
       //to be printed and the program to exit.
-      params.parse(false);
+      flags.filenames = params.parse(true);
       //Print help and exit if --help was given on the command line.
       params.helpMessage();
          
@@ -1630,6 +1631,7 @@ bool retrieveOptions( const int argn, char *args[], UserOptions & mainOptions ) 
          outputDirectoryPath = flags.outputdirectory;
          //Make sure the vector is of length 1:
          if( outputDirectoryPath.size() != 1 ) {
+            cerr << "Too many output directories specified!" << endl;
             return false;
          }
          //If '/' or '\' was not added to the end of the path, add it:
@@ -2044,15 +2046,6 @@ int main(int argn, char* args[]) {
       }
    }
 
-   //Get the file name
-   if (argn < 2) {
-      if (rank == 0) printUsageMessage();
-      MPI_Finalize();
-      return 0;
-   }
-   const string mask = args[1];
-   std::vector<string> fileList = toolutil::getFiles(mask);
-
    //Retrieve options variables:
    UserOptions mainOptions;
 
@@ -2062,10 +2055,22 @@ int main(int argn, char* args[]) {
       printUsageMessage(); //Prints the usage message
       return 0;
    }
-   if (rank == 0 && argn < 3) {
-      //Failed to retrieve options (Due to contradiction or an error)
-      printUsageMessage(); //Prints the usage message
+
+   //Get the file names
+   if (flags.filenames.size() == 0) {
+
+      if (rank == 0) {
+         cerr << "No filenames specified!" << endl;
+         printUsageMessage();
+      }
+      MPI_Finalize();
       return 0;
+   }
+   std::vector<string> fileList;
+
+   for(unsigned int i=0; i< flags.filenames.size(); i++) {
+      std::vector<string> theseFiles = toolutil::getFiles(flags.filenames[i]);
+      fileList.insert(fileList.end(), theseFiles.begin(), theseFiles.end());
    }
 
    //Convert files
