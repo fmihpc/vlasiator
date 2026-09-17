@@ -21,6 +21,7 @@ vlsvextract_DP
 compile_commands.json
 libraries*/
 library-build/
+submodules/
 run_*/
 !run_tests.sh
 profile/

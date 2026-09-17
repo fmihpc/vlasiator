@@ -16,7 +16,7 @@ jobs:
     - name: Clean workspace
       run: |
         RUN_STRING=$( cat << MORO
-        rm -rf libraries-carrington_gcc_openmpi library-build testpackage
+        rm -rf libraries-carrington_gcc_openmpi library-build testpackage submodules
         rm -f libraries-binaries-carrington_gcc_openmpi.tar.gz testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
         rm -f *.xml
         MORO
@@ -24,8 +24,6 @@ jobs:
         srun --constraint="carrington" bash -c "$RUN_STRING"
     - name: Checkout source
       uses: actions/checkout@v4
-      with:
-        submodules: true
     - name: Make clean
       run: VLASIATOR_ARCH=carrington_gcc_openmpi make clean
     - uses: ursg/gcc-problem-matcher@master
