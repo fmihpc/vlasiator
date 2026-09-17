@@ -278,7 +278,9 @@ int simulate(int argn,char* args[]) {
    P::addParameters();
    sysBoundaryContainer.addSysBoundaryParameters(); //add parameter for bonudary.boundaries
 
-   readparameters.parse(true); //true to ignore config extras
+   std::vector<std::string> extras;               // extra options we didn't expect but found
+   std::vector<std::string> filenames;            // things that don't start with -- and smell like a filename
+   readparameters.parse(extras, filenames, true); //true to ignore config extras
    getObjectWrapper().populationsParsed=true;
    if (Readparameters::helpRequested) {
      getObjectWrapper().addHelp();
@@ -290,17 +292,17 @@ int simulate(int argn,char* args[]) {
      MPI_Finalize();
      exit(0);
    }
-   getObjectWrapper().addPopulationParameters(); 
+   getObjectWrapper().addPopulationParameters();
    //objectwrapper.AddParameters adds the parameters during parse
    //but the callback works such that those added parameters do not make it to the parse above, so
-   //Second parse to get the population specific parameters read.  
-   readparameters.parse(true); 
+   //Second parse to get the population specific parameters read.
+   readparameters.parse(extras, filenames, true);
    getObjectWrapper().getPopulationParameters(); //particleSpecies is populated here from particleSpeciesRead
    sysBoundaryContainer.addParameters(); //add the parameters for parsed boundary.boundaries boundaries, including population specific ones
    projects::createProject();
-   
-   readparameters.parse(false); // Final parse
-   readparameters.helpMessage(); // Call after last parse, exits after printing help if help requested 
+
+   readparameters.parse(extras, filenames, false); // Final parse
+   readparameters.helpMessage(); // Call after last parse, exits after printing help if help requested
    Readparameters::parseComposing(); //has to be done afterwards, will do callbacks on the final addComposing values that are parsed here
    P::getParameters();
 

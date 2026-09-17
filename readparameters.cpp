@@ -117,13 +117,14 @@ void Readparameters::applyAssignment(Option& opt, const std::string& rawValue, s
    }
 }
 
-void Readparameters::applyArgTokens(const std::vector<std::string>& tokens, bool extras, std::vector<std::string>& invalid) {
+void Readparameters::applyArgTokens(const std::vector<std::string>& tokens, bool extras, std::vector<std::string>& invalid, std::vector<std::string>& filenames) {
    std::set<std::string> touched;
    std::size_t i = 0;
    while (i < tokens.size()) {
       const std::string& tok = tokens[i];
       if (tok.size() < 3 || tok[0] != '-' || tok[1] != '-') {
          ++i;
+         filenames.push_back(tok);
          continue;
       }
       const std::string body = tok.substr(2);
@@ -331,20 +332,19 @@ std::string Readparameters::versionInfo() { return getVersion(); }
 
 std::string Readparameters::configInfo() { return getConfig(configFileName.c_str()); }
 
-std::vector<std::string> Readparameters::parse(bool extras) {
+void Readparameters::parse(std::vector<std::string>& invalid, std::vector<std::string>& filenames, bool extras) {
    int rank;
    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
    std::string conf;
    int confsize = 0;
-   std::vector<std::string> invalid;
 
    if (rank == MASTER_RANK) {
       resetAll();
-      const std::vector<std::string> tokens = make_tokens(argc, argv);
+      const std::vector<std::string> tokens = make_tokens(argc-1, argv+1); // skip the program name in argv[0]
       configFileName = finalizeFileName(tokens);
 
       applyConfigFile(configFileName, extras, invalid);
-      applyArgTokens(tokens, extras, invalid);
+      applyArgTokens(tokens, extras, invalid, filenames);
       if (!extras && !invalid.empty()) {
          std::cerr << "Error parsing config, following options are invalid:\n";
          for (const auto& name : invalid) {
@@ -367,8 +367,6 @@ std::vector<std::string> Readparameters::parse(bool extras) {
    MPI_Bcast(conf.data(), confsize, MPI_CHAR, MASTER_RANK, MPI_COMM_WORLD);
 
    if (rank != MASTER_RANK) {
-      applyArgTokens(make_tokens(conf), true, invalid);
+      applyArgTokens(make_tokens(conf), true, invalid, filenames);
    }
-
-   return invalid;
 }

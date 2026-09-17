@@ -1566,10 +1566,13 @@ bool retrieveOptions( const int argn, char *args[], UserOptions & mainOptions ) 
 
       //Parse the command line options. Invalid options cause an error message
       //to be printed and the program to exit.
-      flags.filenames = params.parse(true);
+      std::vector<std::string> extras;
+      std::vector<std::string> filenames;
+      params.parse(extras, filenames, false);
+      flags.filenames = filenames;
       //Print help and exit if --help was given on the command line.
       params.helpMessage();
-         
+
       //Check if coordinates have been input and make sure there's only 3 coordinates
       const size_t _size = 3;
       if( !flags.coordinates.empty() && flags.coordinates.size() == _size ) {
