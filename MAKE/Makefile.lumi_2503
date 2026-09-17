@@ -58,8 +58,11 @@ testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 #======== Libraries ===========
 
 
-INC_PAPI = -isystem /opt/cray/pe/papi/7.1.0.1/include/
-LIB_PAPI = -lpapi -L/opt/cray/pe/papi/7.1.0.1/lib -Wl,-rpath=/opt/cray/pe/papi/7.1.0.1/lib
+#INC_PAPI = -isystem /opt/cray/pe/papi/7.1.0.1/include/
+#LIB_PAPI = -lpapi -L/opt/cray/pe/papi/7.1.0.1/lib -Wl,-rpath=/opt/cray/pe/papi/7.1.0.1/lib
+
+INC_PAPI = 
+LIB_PAPI = -lpapi
 
 #======== Compiled libraries ========
 INC_ZOLTAN = -isystem$(LIBRARY_PREFIX)/include
