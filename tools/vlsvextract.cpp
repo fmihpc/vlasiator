@@ -32,7 +32,7 @@
 
 #include <unordered_set>
 
-#include <CLI11.hpp>
+#include "readparameters.h"
 
 #include <vlsv_reader.h>
 #include <vlsv_writer.h>
@@ -48,9 +48,9 @@ using namespace std;
 using namespace Eigen;
 using namespace vlsv;
 
-CLI::App app{"Options", "vlsvextract"};
+// The command line options are registered with Readparameters (which uses the
+// qdparser based parsing) and the parsed values are stored into this struct.
 static struct {
-	bool help;
 	bool debug;
 	uint64_t cellid;
 	std::vector<uint64_t> cellidlist;
@@ -61,7 +61,7 @@ static struct {
 	std::vector<Real> point1, point2;
 	unsigned int pointAmount;
 	std::vector<string> outputdirectory;
-	std::string mask;
+	std::vector<string> filenames;
 } flags = {}; // static variables should be init with 0s anyway
 
 // If set to true, vlsvextract writes some debugging info to stderr
@@ -1547,24 +1547,28 @@ bool retrieveOptions( const int argn, char *args[], UserOptions & mainOptions ) 
       return false;
    }
    try {
-      //Create an options_description
-      //Add options -- cellID takes input of type uint64_t and coordinates takes a Real-valued std::vector
-      //CLI11 has its own --help
-      //app.add_flag("--help", flags.help, "display help");
-      app.add_flag("--debug", flags.debug, "write debugging info to stderr");
-      app.add_option("--cellid", flags.cellid, "Set cell id");
-      app.add_option("--cellidlist", flags.cellidlist, "Set list of cell ids");
-      app.add_flag("--rotate", flags.rotate, "Rotate velocities so that they face z-axis");
-      app.add_option("--plasmaFrame", flags.plasmaFrame, "Shift the distribution so that the bulk velocity is 0");
-      app.add_option("--coordinates", flags.coordinates, "Set spatial coordinates x y z");
-      app.add_option("--unit", flags.unit, "Sets the units. Options: re, km, m (OPTIONAL)");
-      app.add_option("--point1", flags.point1, "Set the starting point x y z of a line");
-      app.add_option("--point2", flags.point2, "Set the ending point x y z of a line");
-      app.add_option("--pointamount", flags.pointAmount, "Number of points along a line (OPTIONAL)");
-      app.add_option("--outputdirectory", flags.outputdirectory, "The directory where the file is saved (default current folder) (OPTIONAL)");
-      app.add_option("file", flags.mask, "The input file path.");
+      //Add options to the qdparser based parameter registry. The option values
+      //are stored into the flags struct when Readparameters::parse() runs below.
+      //The input file name mask is a positional argument, so it is not
+      //registered here; it is read directly from the arguments in main().
+      Readparameters params(argn, args);
+      Readparameters::addFlag("debug", "write debugging info to stderr", flags.debug);
+      Readparameters::add<uint64_t>("cellid", "Set cell id", flags.cellid, uint64_t(0));
+      Readparameters::add<std::vector<uint64_t> >("cellidlist", "Set list of cell ids", flags.cellidlist);
+      Readparameters::addFlag("rotate", "Rotate velocities so that they face z-axis", flags.rotate);
+      Readparameters::addFlag("plasmaFrame", "Shift the distribution so that the bulk velocity is 0", flags.plasmaFrame);
+      Readparameters::add<std::vector<Real> >("coordinates", "Set spatial coordinates x y z", flags.coordinates);
+      Readparameters::add<std::string>("unit", "Sets the units. Options: re, km, m (OPTIONAL)", flags.unit, std::string());
+      Readparameters::add<std::vector<Real> >("point1", "Set the starting point x y z of a line", flags.point1);
+      Readparameters::add<std::vector<Real> >("point2", "Set the ending point x y z of a line", flags.point2);
+      Readparameters::add<unsigned int>("pointamount", "Number of points along a line (OPTIONAL)", flags.pointAmount, 0);
+      Readparameters::add<std::vector<std::string> >("outputdirectory", "The directory where the file is saved (default current folder) (OPTIONAL)", flags.outputdirectory);
 
-      CLI11_PARSE(app, argn, args);
+      //Parse the command line options. Invalid options cause an error message
+      //to be printed and the program to exit.
+      flags.filenames = params.parse(true);
+      //Print help and exit if --help was given on the command line.
+      params.helpMessage();
          
       //Check if coordinates have been input and make sure there's only 3 coordinates
       const size_t _size = 3;
@@ -1627,6 +1631,7 @@ bool retrieveOptions( const int argn, char *args[], UserOptions & mainOptions ) 
          outputDirectoryPath = flags.outputdirectory;
          //Make sure the vector is of length 1:
          if( outputDirectoryPath.size() != 1 ) {
+            cerr << "Too many output directories specified!" << endl;
             return false;
          }
          //If '/' or '\' was not added to the end of the path, add it:
@@ -1641,7 +1646,7 @@ bool retrieveOptions( const int argn, char *args[], UserOptions & mainOptions ) 
             //Check if the character was found:
             if( index1 != string::npos && index2 != string::npos ) {
                cout << "Do not use both '/' and '\\' in directory path! " << index1 << " " << index2 << endl;
-               cout << app.help() << endl;
+               printUsageMessage();
                return false;
             } else if( index1 != string::npos ) {
                //The user used '/' in the path
@@ -1676,7 +1681,7 @@ bool retrieveOptions( const int argn, char *args[], UserOptions & mainOptions ) 
          } else {
             //No known unit
             cout << "Invalid unit!" << endl;
-            cout << app.help() << endl;
+            printUsageMessage();
             return false;
          }
          //Convert the coordinates into correct units:
@@ -1696,7 +1701,7 @@ bool retrieveOptions( const int argn, char *args[], UserOptions & mainOptions ) 
             }
          } else {
             cout << "Nothing to convert!" << endl;
-            cout << app.help() << endl;
+            printUsageMessage();
             return false;
          }
       }
@@ -2041,10 +2046,6 @@ int main(int argn, char* args[]) {
       }
    }
 
-   //Get the file name
-   const string mask = args[1];
-   std::vector<string> fileList = toolutil::getFiles(mask);
-
    //Retrieve options variables:
    UserOptions mainOptions;
 
@@ -2054,10 +2055,22 @@ int main(int argn, char* args[]) {
       printUsageMessage(); //Prints the usage message
       return 0;
    }
-   if (rank == 0 && argn < 3) {
-      //Failed to retrieve options (Due to contradiction or an error)
-      printUsageMessage(); //Prints the usage message
+
+   //Get the file names
+   if (flags.filenames.size() == 0) {
+
+      if (rank == 0) {
+         cerr << "No filenames specified!" << endl;
+         printUsageMessage();
+      }
+      MPI_Finalize();
       return 0;
+   }
+   std::vector<string> fileList;
+
+   for(unsigned int i=0; i< flags.filenames.size(); i++) {
+      std::vector<string> theseFiles = toolutil::getFiles(flags.filenames[i]);
+      fileList.insert(fileList.end(), theseFiles.begin(), theseFiles.end());
    }
 
    //Convert files
