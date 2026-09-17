@@ -30,38 +30,41 @@ git_use_commit() {
 	fi
 }
 
+# Not rm -fr'ing the old folders so it'll error out on cloning.
+# Do not accidentally nuke Markku et al.'s WIP on libraries.
+#
+# If a folder already exists, skip the clone but still fetch and check
+# out the pinned commit, to track upstream changes to the pin. If the
+# folder has uncommitted local changes, that checkout will fail and
+# abort the script (set -e) instead of clobbering the WIP.
+fetch_submodule() {
+	local dir="$1" commit="$2"
+	shift 2
+
+	if [[ ! -d "$dir" ]]; then
+		git clone --depth=1 "$@"
+	fi
+
+	(cd "$dir" && git_use_commit "$commit")
+}
+
 mkdir -p submodules
 cd submodules
 
-# Not rm -fr'ing the old folders so it'll error out on cloning.
-# Do not accidentally nuke Markku et al.'s WIP on libraries.
+fetch_submodule fsgrid "$FSGRID_COMMIT" \
+	https://github.com/fmihpc/fsgrid.git
 
-git clone --depth=1 https://github.com/fmihpc/fsgrid.git
-cd fsgrid
-git_use_commit "$FSGRID_COMMIT"
-cd ..
+fetch_submodule dccrg "$DCCRG_COMMIT" \
+	-b vlasiator-version https://github.com/fmihpc/dccrg.git
 
-git clone --depth=1 -b vlasiator-version https://github.com/fmihpc/dccrg.git
-cd dccrg
-git_use_commit "$DCCRG_COMMIT"
-cd ..
+fetch_submodule eigen "$EIGEN_COMMIT" \
+	-b master https://gitlab.com/libeigen/eigen.git
 
-git clone --depth=1 -b master https://gitlab.com/libeigen/eigen.git
-cd eigen
-git_use_commit "$EIGEN_COMMIT"
-cd ..
+fetch_submodule vectorclass "$VECTORCLASS_COMMIT" \
+	https://github.com/vectorclass/version2 vectorclass
 
-git clone --depth=1 https://github.com/vectorclass/version2 vectorclass
-cd vectorclass
-git_use_commit "$VECTORCLASS_COMMIT"
-cd ..
+fetch_submodule vectorclass-addon "$VECTORCLASS_ADDON_COMMIT" \
+	https://github.com/vectorclass/add-on vectorclass-addon
 
-git clone --depth=1 https://github.com/vectorclass/add-on vectorclass-addon
-cd vectorclass-addon
-git_use_commit "$VECTORCLASS_ADDON_COMMIT"
-cd ..
-
-git clone --depth=1 https://github.com/fmihpc/hashinator.git
-cd hashinator
-git_use_commit "$HASHINATOR_COMMIT"
-cd ..
+fetch_submodule hashinator "$HASHINATOR_COMMIT" \
+	https://github.com/fmihpc/hashinator.git
