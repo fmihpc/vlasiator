@@ -5,24 +5,23 @@ LNK = mpic++
 # Modules loaded:
 # module load gcc/13 openmpi
 # module load papi
-# module load boost
 
 #======== Vectorization ==========
-#Set vector backend type for vlasov solvers, sets precision and length. 
-#Options: 
-# AVX:	    VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
+#Set vector backend type for vlasov solvers, sets precision and length.
+#Options:
+# AVX:      VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
 # AVX512:   VEC8D_AGNER, VEC16F_AGNER
 # Fallback: VEC_FALLBACK_GENERIC
 
 ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
-#Single-precision        
+#Single-precision
 	VECTORCLASS = VEC8F_AGNER
 else
 #Double-precision
 	VECTORCLASS = VEC4D_AGNER
 endif
 
-FLAGS = 
+FLAGS =
 
 #GNU flags:
 CC_BRAND = gcc
@@ -53,10 +52,9 @@ testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 # MATHFLAGS are for special math etc. flags, these are only applied on solver functions
 # LDFLAGS flags for linker
 
-#-DNO_WRITE_AT_ALL:  Define to disable write at all to 
+#-DNO_WRITE_AT_ALL:  Define to disable write at all to
 #                    avoid memleak (much slower IO)
 
-# BOOST_VERSION = current trilinos version
 # ZOLTAN_VERSION = current trilinos verson
 #
 #======== Libraries ===========
@@ -80,7 +78,7 @@ INC_VLSV = -I$(LIBRARY_PREFIX)/include
 LIB_VLSV = -L$(LIBRARY_PREFIX)/lib -lvlsv -Wl,-rpath=$(LIBRARY_PREFIX)/lib
 
 LIB_PROFILE = -L$(LIBRARY_PREFIX)/lib -lphiprof -lgfortran -Wl,-rpath=$(LIBRARY_PREFIX)/lib
-INC_PROFILE = -I$(LIBRARY_PREFIX)/include 
+INC_PROFILE = -I$(LIBRARY_PREFIX)/include
 
 
 #header libraries

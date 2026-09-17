@@ -3,8 +3,7 @@ ARCH = ${VLASIATOR_ARCH}
 
 include ../../MAKE/Makefile.${ARCH}
 MATHFLAGS = -DDP -DDPF -D${VECTORCLASS} -DACC_SEMILAG_PQM -DTRANS_SEMILAG_PPM
-LIBS = ${LIB_BOOST}
-LIBS += ${LIB_JEMALLOC}
+LIBS = ${LIB_JEMALLOC}
 LIBS += ${LIB_PROFILE}
 LIBS += ${LIB_ZOLTAN}
 LIBS += ${LIB_VLSV}
@@ -31,16 +30,16 @@ clean:
 	-rm *.o main differentialFlux sigmaProfiles
 
 ionosphere.o: ../../sysboundary/ionosphere.h ../../sysboundary/ionosphere.cpp ../../backgroundfield/backgroundfield.h ../../projects/project.h
-	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c ../../sysboundary/ionosphere.cpp ${INC_DCCRG} ${INC_FSGRID} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN} ${INC_VECTORCLASS} ${INC_PROFILE} ${INC_JEMALLOC} -Wno-comment
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c ../../sysboundary/ionosphere.cpp ${INC_DCCRG} ${INC_FSGRID} ${INC_ZOLTAN} ${INC_EIGEN} ${INC_VECTORCLASS} ${INC_PROFILE} ${INC_JEMALLOC} -Wno-comment
 
 sysboundarycondition.o: ../../sysboundary/sysboundarycondition.h ../../sysboundary/sysboundarycondition.cpp ../../sysboundary/donotcompute.h ../../sysboundary/donotcompute.cpp ../../sysboundary/ionosphere.h ../../sysboundary/ionosphere.cpp ../../sysboundary/copysphere.h ../../sysboundary/copysphere.cpp ../../sysboundary/outflow.h ../../sysboundary/outflow.cpp ../../sysboundary/setmaxwellian.h ../../sysboundary/setmaxwellian.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c ../../sysboundary/sysboundarycondition.cpp ${INC_DCCRG} ${INC_FSGRID} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN} ${INC_PROFILE} ${INC_JEMALLOC}
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c ../../sysboundary/sysboundarycondition.cpp ${INC_DCCRG} ${INC_FSGRID} ${INC_ZOLTAN} ${INC_EIGEN} ${INC_PROFILE} ${INC_JEMALLOC}
 
 parameters.o: ../../parameters.h ../../parameters.cpp ../../readparameters.h
-	$(CMP) $(CXXFLAGS) $(FLAGS) ${MATHFLAGS} -c ../../parameters.cpp ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG} ${INC_ZOLTAN} ${INC_FSGRID} ${INC_PROFILE} ${INC_JEMALLOC}
+	$(CMP) $(CXXFLAGS) $(FLAGS) ${MATHFLAGS} -c ../../parameters.cpp ${INC_EIGEN} ${INC_DCCRG} ${INC_ZOLTAN} ${INC_FSGRID} ${INC_PROFILE} ${INC_JEMALLOC}
 
 readparameters.o: ../../readparameters.h ../../readparameters.cpp ../../version.h ../../version.cpp
-	$(CMP) $(CXXFLAGS) $(FLAGS) -c ../../readparameters.cpp ${INC_BOOST} ${INC_EIGEN}
+	$(CMP) $(CXXFLAGS) $(FLAGS) -c ../../readparameters.cpp ${INC_EIGEN}
 
 version.o: ../../version.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c ../../version.cpp
@@ -49,31 +48,31 @@ version.o: ../../version.cpp
 	make -C../.. version.cpp
 
 object_wrapper.o:  ../../object_wrapper.h ../../object_wrapper.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c ../../object_wrapper.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_FSGRID} ${INC_PROFILE} ${INC_JEMALLOC}
+	${CMP} ${CXXFLAGS} ${FLAGS} -c ../../object_wrapper.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_FSGRID} ${INC_PROFILE} ${INC_JEMALLOC}
 
 velocity_mesh_parameters.o:  ../../velocity_mesh_parameters.h ../../velocity_mesh_parameters.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c ../../velocity_mesh_parameters.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_FSGRID} ${INC_PROFILE} ${INC_JEMALLOC}
+	${CMP} ${CXXFLAGS} ${FLAGS} -c ../../velocity_mesh_parameters.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_FSGRID} ${INC_PROFILE} ${INC_JEMALLOC}
 
 particle_species.o: ../../particle_species.h ../../particle_species.cpp
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c ../../particle_species.cpp
 
 spatial_cell.o: ../../spatial_cells/spatial_cell_cpu.cpp
-	$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -c ../../spatial_cells/spatial_cell_cpu.cpp -o spatial_cell.o $(INC_BOOST) ${INC_DCCRG} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_VECTORCLASS} ${INC_FSGRID} ${INC_PROFILE} ${INC_JEMALLOC}
+	$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -c ../../spatial_cells/spatial_cell_cpu.cpp -o spatial_cell.o ${INC_DCCRG} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_VECTORCLASS} ${INC_FSGRID} ${INC_PROFILE} ${INC_JEMALLOC}
 
 arch_moments.o: ../../vlasovsolver/arch_moments.cpp
-	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c ../../vlasovsolver/arch_moments.cpp ${INC_DCCRG} ${INC_BOOST} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_FSGRID} ${INC_JEMALLOC}
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c ../../vlasovsolver/arch_moments.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_FSGRID} ${INC_JEMALLOC}
 
 iowrite.o:  ../../parameters.h ../../iowrite.cpp ../../iowrite.h
-	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c ../../iowrite.cpp ${INC_MPI} ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VLSV} ${INC_JEMALLOC}
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c ../../iowrite.cpp ${INC_MPI} ${INC_DCCRG} ${INC_FSGRID} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VLSV} ${INC_JEMALLOC}
 
 compression_tools.o:  ../../vdf_compression/compression_tools.cpp
-	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c ../../vdf_compression/compression_tools.cpp  ${INC_MPI} ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VLSV} ${INC_JEMALLOC}
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c ../../vdf_compression/compression_tools.cpp  ${INC_MPI} ${INC_DCCRG} ${INC_FSGRID} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VLSV} ${INC_JEMALLOC}
 
 compression.o:  ../../vdf_compression/compression.cpp
-	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c ../../vdf_compression/compression.cpp  ${INC_MPI} ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VLSV} ${INC_JEMALLOC}
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c ../../vdf_compression/compression.cpp  ${INC_MPI} ${INC_DCCRG} ${INC_FSGRID} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VLSV} ${INC_JEMALLOC}
 
 ioread.o:  ../../parameters.h ../../ioread.cpp ../../ioread.h
-	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c ../../ioread.cpp ${INC_MPI} ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VLSV} ${INC_JEMALLOC}
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c ../../ioread.cpp ${INC_MPI} ${INC_DCCRG} ${INC_FSGRID} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VLSV} ${INC_JEMALLOC}
 
 logger.o: ../../logger.h ../../logger.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c ../../logger.cpp ${INC_MPI}
@@ -82,22 +81,22 @@ common.o: ../../common.h ../../common.cpp
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c ../../common.cpp
 
 datareducer.o: ../../datareduction/datareducer.h ../../datareduction/datareductionoperator.h ../../datareduction/datareducer.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c ../../datareduction/datareducer.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_MPI} ${INC_BOOST} ${INC_EIGEN} ${INC_VLSV} ${INC_FSGRID} ${INC_JEMALLOC} ${INC_PROFILE}
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c ../../datareduction/datareducer.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_MPI} ${INC_EIGEN} ${INC_VLSV} ${INC_FSGRID} ${INC_JEMALLOC} ${INC_PROFILE}
 
 datareductionoperator.o:  ../../parameters.h ../../datareduction/datareductionoperator.h ../../datareduction/datareductionoperator.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c ../../datareduction/datareductionoperator.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_MPI} ${INC_BOOST} ${INC_EIGEN} ${INC_VLSV} ${INC_FSGRID} ${INC_PROFILE} ${INC_JEMALLOC} ${INC_VECTORCLASS}
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c ../../datareduction/datareductionoperator.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_MPI} ${INC_EIGEN} ${INC_VLSV} ${INC_FSGRID} ${INC_PROFILE} ${INC_JEMALLOC} ${INC_VECTORCLASS}
 
 fs_common.o: ../../fieldsolver/fs_limiters.h ../../fieldsolver/fs_limiters.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c ../../fieldsolver/fs_common.cpp -I$(CURDIR)  ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG} ${INC_FSGRID} ${INC_PROFILE} ${INC_ZOLTAN} ${INC_JEMALLOC}
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c ../../fieldsolver/fs_common.cpp -I$(CURDIR) ${INC_EIGEN} ${INC_DCCRG} ${INC_FSGRID} ${INC_PROFILE} ${INC_ZOLTAN} ${INC_JEMALLOC}
 
 grid.o:  ../../grid.cpp ../../grid.h  ../../sysboundary/sysboundary.h
-	${CMP} ${CXXFLAGS} ${MATHFLAGS} ${FLAG_OPENMP} ${FLAGS} -c ../../grid.cpp ${INC_MPI} ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VLSV} ${INC_PAPI} ${INC_VECTORCLASS}
+	${CMP} ${CXXFLAGS} ${MATHFLAGS} ${FLAG_OPENMP} ${FLAGS} -c ../../grid.cpp ${INC_MPI} ${INC_DCCRG} ${INC_FSGRID} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VLSV} ${INC_PAPI} ${INC_VECTORCLASS}
 
 fieldtracing.o: ../../fieldtracing/fieldtracing.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c ../../fieldtracing/fieldtracing.cpp ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_ZOLTAN} ${INC_EIGEN} ${INC_PROFILE} ${INC_JEMALLOC}
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c ../../fieldtracing/fieldtracing.cpp ${INC_DCCRG} ${INC_FSGRID} ${INC_ZOLTAN} ${INC_EIGEN} ${INC_PROFILE} ${INC_JEMALLOC}
 
 main.o: main.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c ./main.cpp  ${INC_VLSV} ${INC_BOOST} ${INC_PROFILE} ${INC_JEMALLOC} ${INC_DCCRG} ${INC_ZOLTAN} ${INC_FSGRID} ${INC_EIGEN}
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c ./main.cpp  ${INC_VLSV} ${INC_PROFILE} ${INC_JEMALLOC} ${INC_DCCRG} ${INC_ZOLTAN} ${INC_FSGRID} ${INC_EIGEN}
 
 main: main.o ionosphere.o sysboundarycondition.o parameters.o readparameters.o object_wrapper.o particle_species.o spatial_cell.o arch_moments.o iowrite.o compression_tools.o compression.o logger.o datareducer.o datareductionoperator.o common.o ioread.o fs_common.o version.o fieldtracing.o velocity_mesh_parameters.o
 	${LNK} ${LDFLAGS} -o main $^ $(LIBS) -lgomp

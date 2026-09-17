@@ -36,7 +36,7 @@ umask 007
 ulimit -c unlimited
 
 module purge
-module load gcc/10.4.0 openmpi/4.1.5-cuda cuda/12.1.1 boost/1.82.0-mpi papi/7.1.0
+module load gcc/10.4.0 openmpi/4.1.5-cuda cuda/12.1.1 papi/7.1.0
 
 BIN="./vlasiator"
 CFG="./Flowthrough_amr.cfg"

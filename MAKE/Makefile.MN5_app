@@ -1,13 +1,13 @@
 # For MN5 acc (gpu) partition
 #Suggested modules
-#openmpi/4.1.5-gcc-mt   2) cuda/12.2   3) boost/1.69.0-gcc-ompi-mt 
+#openmpi/4.1.5-gcc-mt   2) cuda/12.2
 
 VECTORCLASS = VEC_FALLBACK_GENERIC
 #WID=8
 WID=4
 USE_CUDA=1
 
-CMP=nvcc -ccbin mpic++ 
+CMP=nvcc -ccbin mpic++
 LNK = nvcc -ccbin mpic++
 
 CXXFLAGS = -g -O3 -x cu  -DASTERIX_ZFP  -DASTERIX_MLP -DASTERIX_OCTREE  -std=c++20 -Xcompiler -std=c++20 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_90,code=sm_90 -Xcompiler -fopenmp --generate-line-info -line-info -Xcompiler="-fpermissive"  --extra-device-vectorization

@@ -13,7 +13,7 @@ LNK = CC
 #======== Vectorization ==========
 #Set vector backend type for vlasov solvers, sets precision and length.
 #Options:
-# AVX:	    VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
+# AVX:      VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
 # AVX512:   VEC8D_AGNER, VEC16F_AGNER
 # Fallback: VEC_FALLBACK_GENERIC
 
@@ -57,7 +57,6 @@ testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 #-DNO_WRITE_AT_ALL:  Define to disable write at all to
 #                    avoid memleak (much slower IO)
 
-# BOOST_VERSION = current trilinos version
 # ZOLTAN_VERSION = current trilinos verson
 #
 #======== Libraries ===========
@@ -83,4 +82,4 @@ INC_VLSV = -I$(LIBRARY_PREFIX)/vlsv
 LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv -lvlsv -Wl,-rpath=$(LIBRARY_PREFIX2)/vlsv
 
 LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/lib -lphiprof -lgfortran -Wl,-rpath=$(LIBRARY_PREFIX)/phiprof/lib
-INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/include 
+INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/include

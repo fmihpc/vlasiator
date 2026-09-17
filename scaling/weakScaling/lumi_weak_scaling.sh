@@ -19,7 +19,7 @@
 # If 0 then we check the v1
 create_verification_files=0
 
-# Folder for all reference data 
+# Folder for all reference data
 reference_dir="/scratch/project_462000358/testpackage_2025_06/"
 cd $SLURM_SUBMIT_DIR
 
@@ -53,14 +53,13 @@ CPU_BIND="${CPU_BIND},7e,7e00"
 CPU_BIND="${CPU_BIND},7e00000000,7e0000000000"
 
 
-module load LUMI/24.03; module load partition/G; module load cpeAMD; module load rocm/6.2.2; module load Boost/1.83.0-cpeAMD-24.03; module load papi/7.1.0.1
+module load LUMI/24.03; module load partition/G; module load cpeAMD; module load rocm/6.2.2; module load papi/7.1.0.1
 
 # module load LUMI/24.03
 # module load partition/G
 # module load cpeAMD
 # #module load rocm/6.0.3
 # module load rocm/6.2.2
-# module load Boost/1.83.0-cpeGNU-24.03
 # module load papi/7.1.0.1
 module list
 

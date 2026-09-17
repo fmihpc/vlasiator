@@ -6,19 +6,18 @@
 #module load profile/advanced
 #module load intel
 #module load intelmpi
-#module load boost
 #module swap intelmpi mvapich2/2.2--intel--pe-xe-2017--binary
 
 
 #======== Vectorization ==========
-#Set vector backend type for vlasov solvers, sets precision and length. 
-#Options: 
-# AVX:	    VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
+#Set vector backend type for vlasov solvers, sets precision and length.
+#Options:
+# AVX:      VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
 # AVX512:   VEC8D_AGNER, VEC16F_AGNER
 # Fallback: VEC_FALLBACK_GENERIC
 
 ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
-#Single-precision        
+#Single-precision
 	VECTORCLASS = VEC16F_AGNER
 else
 #Double-precision
@@ -35,7 +34,7 @@ testpackage: CXXFLAGS = -O2 -g -DMAX_VECTOR_SIZE=512 -xMIC-AVX512 -std=c++20 -qo
 MATHFLAGS = #-ffast-math -fno-finite-math-only
 testpackage: MATHFLAGS = #-fno-unsafe-math-optimizations
 
-LDFLAGS += -qopenmp -lifcore -Wl,-rpath,/cineca/prod/opt/libraries/boost/1.61.0/intelmpi--2017--binary/lib,-rpath,/marconi_work/Pra14_3521/libraries/phiprof/lib,-rpath,/marconi_work/Pra14_3521/libraries/papi/lib
+LDFLAGS += -qopenmp -lifcore -Wl,-rpath,/marconi_work/Pra14_3521/libraries/phiprof/lib,-rpath,/marconi_work/Pra14_3521/libraries/papi/lib
 CMP = mpicxx
 LNK = mpicxx
 
