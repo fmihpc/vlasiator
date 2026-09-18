@@ -1,0 +1,19 @@
+<map id="SBC::Ionosphere::assignSysBoundary" name="SBC::Ionosphere::assignSysBoundary">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,47,207,87"/>
+<area shape="rect" id="Node000002" href="$da/d6b/class_s_b_c_1_1_ionosphere.html#a3ff24d9937945d78fb20ea461d4fac8b" title=" " alt="" coords="255,5,448,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="206,45,274,31,275,36,207,50"/>
+<area shape="rect" id="Node000003" href="$d4/d5b/vlasiator_8cpp.html#a0e89e9e9c29d929027088b0a8dd56585" title=" " alt="" coords="297,55,406,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="207,65,283,65,283,70,207,70"/>
+<area shape="rect" id="Node000004" href="$d4/de8/namespace_s_b_c.html#acff2a580e1234d2ba50d942108b5c1a4" title=" " alt="" coords="308,104,395,129"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="207,85,295,103,294,108,206,90"/>
+<area shape="rect" id="Node000005" href="$d9/df9/common_8cpp.html#a3ccffabea3435cf184592d88e6a470c8" title=" " alt="" coords="496,55,584,80"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="394,103,482,80,484,85,396,108"/>
+<area shape="rect" id="Node000006" href="$d8/dbc/vectorclass__fallback_8h.html#a92b2075c51472d120e4ef0a663e3814b" title=" " alt="" coords="515,104,565,129"/>
+<area shape="poly" id="edge5_Node000004_Node000006" title=" " alt="" coords="395,114,501,114,501,119,395,119"/>
+<area shape="rect" id="Node000009" href="$de/d31/_dispersion_8m.html#af276a2aede715061015c735080cf65df" title=" " alt="" coords="517,153,563,179"/>
+<area shape="poly" id="edge8_Node000004_Node000009" title=" " alt="" coords="396,125,504,154,503,159,394,130"/>
+<area shape="rect" id="Node000007" href="$d7/d8b/class_vec_simple.html#a145923009b9b82410c5a072b8f8127f0" title=" " alt="" coords="632,104,767,129"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="565,114,619,114,619,119,565,119"/>
+<area shape="rect" id="Node000008" href="$d7/d8b/class_vec_simple.html#ae16798cf2ee14257d0706c60613cd733" title=" " alt="" coords="815,104,981,129"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="767,114,801,114,801,119,767,119"/>
+</map>

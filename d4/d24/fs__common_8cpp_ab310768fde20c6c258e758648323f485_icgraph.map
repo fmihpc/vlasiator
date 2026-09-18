@@ -1,0 +1,40 @@
+<map id="reconstructionCoefficients" name="reconstructionCoefficients">
+<area shape="rect" id="Node000001" title="Low&#45;level helper function." alt="" coords="1307,99,1499,124"/>
+<area shape="rect" id="Node000002" href="$d0/dd7/ldz__hall_8cpp.html#a0ef9d3ceaa52afc57eb49aef8a3033f0" title="Calculate the numerator of the Hall term on all given cells." alt="" coords="1075,9,1213,35"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="1359,96,1258,57,1194,37,1196,32,1260,51,1361,91"/>
+<area shape="rect" id="Node000007" href="$d4/dfe/ldz__volume_8cpp.html#aac267aa1275b8d429263cedfa906f86b" title=" " alt="" coords="1029,67,1259,92"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="1293,100,1247,95,1247,89,1293,95"/>
+<area shape="rect" id="Node000009" href="$d4/d24/fs__common_8cpp.html#a64e74f2d89c9a8dd19d259fe64a9c429" title=" " alt="" coords="1080,123,1208,148"/>
+<area shape="poly" id="edge9_Node000001_Node000009" title=" " alt="" coords="1293,124,1209,132,1208,127,1293,119"/>
+<area shape="rect" id="Node000011" href="$d4/d24/fs__common_8cpp.html#af7cae9c4ed85ea1a5847908a56b9af65" title=" " alt="" coords="1061,209,1227,235"/>
+<area shape="poly" id="edge11_Node000001_Node000011" title=" " alt="" coords="1361,132,1176,212,1174,207,1359,127"/>
+<area shape="rect" id="Node000003" href="$d0/dd7/ldz__hall_8cpp.html#aca3144caf971779489d7f3ad1469595a" title="High&#45;level function computing the Hall term." alt="" coords="775,5,959,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="1061,23,959,22,959,17,1061,18"/>
+<area shape="rect" id="Node000004" href="$de/dff/ldz__main_8cpp.html#ac91e0dc80c9375ba517e2f263308c64f" title="Top&#45;level field propagation function." alt="" coords="521,63,648,88"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="790,36,648,65,647,60,789,31"/>
+<area shape="rect" id="Node000005" href="$d4/d5b/vlasiator_8cpp.html#acfd343080edd07ae79384688a7e48693" title=" " alt="" coords="108,184,187,209"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="525,94,188,189,186,183,524,89"/>
+<area shape="rect" id="Node000006" href="$d4/d5b/vlasiator_8cpp.html#a54790573f350e250ccca3cbb94733391" title=" " alt="" coords="5,184,60,209"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="94,199,60,199,60,194,94,194"/>
+<area shape="rect" id="Node000008" href="$d4/dfe/ldz__volume_8cpp.html#aa306cbdea8047713ecebc632dddc9a2f" title="Top&#45;level field averaging function." alt="" coords="752,55,981,95"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="1015,80,982,80,982,74,1015,75"/>
+<area shape="poly" id="edge8_Node000008_Node000004" title=" " alt="" coords="738,78,648,78,648,73,738,73"/>
+<area shape="rect" id="Node000010" href="$d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#a07dfc031f000a1c8f901bd265693a876" title=" " alt="" coords="772,119,961,159"/>
+<area shape="poly" id="edge10_Node000009_Node000010" title=" " alt="" coords="1067,139,962,141,962,135,1066,134"/>
+<area shape="rect" id="Node000012" href="$df/dbb/namespace_field_tracing.html#a57968e42ad293046b0de7a02259b9875" title=" " alt="" coords="465,177,704,217"/>
+<area shape="poly" id="edge12_Node000011_Node000012" title=" " alt="" coords="1047,220,704,205,704,199,1048,215"/>
+<area shape="rect" id="Node000013" href="$d6/db9/balsara_fsgrid_2main_8cpp.html#a3c04138a5bfe5d72780bb7e82a18e627" title=" " alt="" coords="839,235,894,260"/>
+<area shape="poly" id="edge14_Node000011_Node000013" title=" " alt="" coords="1048,233,895,248,894,242,1047,228"/>
+<area shape="rect" id="Node000014" href="$df/dbb/namespace_field_tracing.html#a9d4aa84782f7f9d2b5179f3f91a40a8e" title=" " alt="" coords="769,285,964,325"/>
+<area shape="poly" id="edge15_Node000011_Node000014" title=" " alt="" coords="1091,241,982,275,941,287,940,282,981,270,1089,236"/>
+<area shape="poly" id="edge13_Node000012_Node000005" title=" " alt="" coords="451,199,187,199,187,194,451,194"/>
+<area shape="poly" id="edge16_Node000014_Node000012" title=" " alt="" coords="764,282,751,275,736,264,726,252,717,241,703,231,677,219,679,214,705,226,720,238,730,249,739,260,753,270,767,277"/>
+<area shape="rect" id="Node000015" href="$df/dbb/namespace_field_tracing.html#a419c4a8b8cc6f48d5141bd2bae7800d0" title=" " alt="" coords="491,241,679,281"/>
+<area shape="poly" id="edge17_Node000014_Node000015" title=" " alt="" coords="755,290,679,278,679,273,756,285"/>
+<area shape="rect" id="Node000017" href="$df/dbb/namespace_field_tracing.html#a3119c1154c9472b6266170fd365ec950" title=" " alt="" coords="475,305,694,345"/>
+<area shape="poly" id="edge20_Node000014_Node000017" title=" " alt="" coords="756,315,694,320,694,314,755,310"/>
+<area shape="rect" id="Node000016" href="$df/dbb/namespace_field_tracing.html#ac9d41efdb5093cf48aac1e4f0c03f863" title=" " alt="" coords="235,248,417,273"/>
+<area shape="poly" id="edge18_Node000015_Node000016" title=" " alt="" coords="477,263,418,263,418,258,477,258"/>
+<area shape="poly" id="edge19_Node000016_Node000005" title=" " alt="" coords="276,246,183,212,185,207,277,241"/>
+<area shape="poly" id="edge21_Node000017_Node000016" title=" " alt="" coords="489,304,378,276,379,271,491,299"/>
+</map>

@@ -1,0 +1,11 @@
+<map id="SBC::SphericalTriGrid::computeGradT" name="SBC::SphericalTriGrid::computeGradT">
+<area shape="rect" id="Node000001" title=" " alt="" coords="879,5,1037,45"/>
+<area shape="rect" id="Node000002" href="$d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#afbcfd8fe5bde206bebd221f733431367" title=" " alt="" coords="672,5,831,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="865,28,831,28,831,23,865,23"/>
+<area shape="rect" id="Node000003" href="$d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#a7120890dd640ec6076873bfcce3091fd" title=" " alt="" coords="419,5,624,45"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="658,28,624,28,624,23,658,23"/>
+<area shape="rect" id="Node000004" href="$d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#a69454c9f66f9fe884a4cb853a0df5214" title=" " alt="" coords="212,5,371,45"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="405,28,371,28,371,23,405,23"/>
+<area shape="rect" id="Node000005" href="$d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#afbfcea50d70a04c78edc90ada05f9a0a" title=" " alt="" coords="5,5,164,45"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="198,28,164,28,164,23,198,23"/>
+</map>

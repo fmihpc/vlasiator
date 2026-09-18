@@ -1,0 +1,23 @@
+<map id="calculateScaledDeltasSimple" name="calculateScaledDeltasSimple">
+<area shape="rect" id="Node000001" title="High&#45;level scaled gradient calculation wrapper function." alt="" coords="5,181,216,207"/>
+<area shape="rect" id="Node000002" href="$d9/de3/derivatives_8cpp.html#ab8008770927beb32a6a79b3a7359b845" title="Low&#45;level scaled gradients calculation." alt="" coords="269,132,435,157"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="173,179,275,158,276,163,174,184"/>
+<area shape="rect" id="Node000009" href="$d4/d5b/vlasiator_8cpp.html#a0e89e9e9c29d929027088b0a8dd56585" title=" " alt="" coords="297,181,407,207"/>
+<area shape="poly" id="edge10_Node000001_Node000009" title=" " alt="" coords="216,191,283,191,283,197,216,197"/>
+<area shape="rect" id="Node000010" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#ab3b5bf63a685b711ee0fbfb093fd971b" title=" " alt="" coords="264,231,440,271"/>
+<area shape="poly" id="edge11_Node000001_Node000010" title=" " alt="" coords="166,204,255,226,253,231,164,209"/>
+<area shape="rect" id="Node000003" href="$d9/de3/derivatives_8cpp.html#aaf097ccca5547c9fca688383c97de918" title="Calculates pressure anistotropy from B and Pi." alt="" coords="500,5,651,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="367,130,419,91,487,48,519,33,522,38,489,52,422,95,370,134"/>
+<area shape="rect" id="Node000004" href="$d9/de3/derivatives_8cpp.html#a9ec1a44de0513ba69004a1784bac87c7" title="Calculates energy density for spatial cell." alt="" coords="530,107,621,132"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="435,133,516,123,516,129,436,138"/>
+<area shape="rect" id="Node000005" href="$d9/de3/derivatives_8cpp.html#a74763edc9ece05eb8c4bfc4a8a284fdb" title="Returns volumetric B of cell." alt="" coords="759,83,831,108"/>
+<area shape="poly" id="edge7_Node000002_Node000005" title=" " alt="" coords="378,129,428,108,487,91,557,83,628,81,745,87,745,92,628,86,558,88,489,97,429,113,380,134"/>
+<area shape="rect" id="Node000006" href="$d9/de3/derivatives_8cpp.html#ace776df59ba570d228e3f3c8d02e507b" title="Calculates momentum density of cell." alt="" coords="711,132,879,157"/>
+<area shape="poly" id="edge8_Node000002_Node000006" title=" " alt="" coords="436,142,697,142,697,147,436,147"/>
+<area shape="rect" id="Node000007" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#ab65ea376c5eeb1aa58eaab61087fe2ef" title=" " alt="" coords="488,207,663,247"/>
+<area shape="poly" id="edge6_Node000002_Node000007" title=" " alt="" coords="402,155,441,167,519,199,517,204,439,173,400,160"/>
+<area shape="rect" id="Node000008" href="$de/d31/_dispersion_8m.html#af276a2aede715061015c735080cf65df" title=" " alt="" coords="552,272,599,297"/>
+<area shape="poly" id="edge9_Node000002_Node000008" title=" " alt="" coords="420,155,442,168,460,191,467,214,473,236,490,257,513,271,539,278,538,283,511,275,486,261,468,239,461,215,455,193,438,172,417,160"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="621,112,745,98,745,103,621,117"/>
+<area shape="poly" id="edge5_Node000004_Node000006" title=" " alt="" coords="621,122,697,131,697,136,621,127"/>
+</map>

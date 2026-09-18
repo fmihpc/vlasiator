@@ -1,0 +1,24 @@
+<map id="datareduction/datareducer.h" name="datareduction/datareducer.h">
+<area shape="rect" id="Node000001" title=" " alt="" coords="235,5,441,31"/>
+<area shape="rect" id="Node000002" href="$da/d47/datareducer_8cpp.html" title=" " alt="" coords="5,79,225,104"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="290,37,152,81,151,76,289,32"/>
+<area shape="rect" id="Node000003" href="$d7/d70/grid_8cpp.html" title=" " alt="" coords="182,159,257,185"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="321,43,291,80,230,161,226,158,287,77,317,40"/>
+<area shape="rect" id="Node000004" href="$d3/d53/ioread_8h.html" title=" " alt="" coords="301,79,375,104"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="341,44,341,79,335,79,335,44"/>
+<area shape="rect" id="Node000007" href="$d4/d5b/vlasiator_8cpp.html" title=" " alt="" coords="628,159,733,185"/>
+<area shape="poly" id="edge13_Node000001_Node000007" title=" " alt="" coords="383,33,491,76,659,157,657,161,489,81,381,38"/>
+<area shape="rect" id="Node000008" href="$d5/d5a/iowrite_8h.html" title=" " alt="" coords="400,79,479,104"/>
+<area shape="poly" id="edge8_Node000001_Node000008" title=" " alt="" coords="367,36,424,76,421,81,364,41"/>
+<area shape="poly" id="edge4_Node000004_Node000003" title=" " alt="" coords="310,114,238,161,235,157,307,110"/>
+<area shape="rect" id="Node000005" href="$de/deb/ioread_8cpp.html" title=" " alt="" coords="67,159,158,185"/>
+<area shape="poly" id="edge5_Node000004_Node000005" title=" " alt="" coords="293,111,146,162,145,157,292,106"/>
+<area shape="rect" id="Node000006" href="$d4/d0b/ionosphere_solver_tests_2main_8cpp.html" title=" " alt="" coords="281,152,485,192"/>
+<area shape="poly" id="edge6_Node000004_Node000006" title=" " alt="" coords="354,115,375,151,370,153,349,117"/>
+<area shape="poly" id="edge7_Node000004_Node000007" title=" " alt="" coords="390,102,505,125,617,149,644,157,643,162,616,155,504,130,389,107"/>
+<area shape="poly" id="edge9_Node000008_Node000003" title=" " alt="" coords="393,111,270,155,250,162,248,157,268,149,391,106"/>
+<area shape="poly" id="edge11_Node000008_Node000006" title=" " alt="" coords="425,117,399,153,395,150,421,114"/>
+<area shape="poly" id="edge12_Node000008_Node000007" title=" " alt="" coords="488,106,646,157,645,162,487,111"/>
+<area shape="rect" id="Node000009" href="$da/daf/iowrite_8cpp.html" title=" " alt="" coords="509,159,604,185"/>
+<area shape="poly" id="edge10_Node000008_Node000009" title=" " alt="" coords="470,110,541,157,538,161,467,114"/>
+</map>

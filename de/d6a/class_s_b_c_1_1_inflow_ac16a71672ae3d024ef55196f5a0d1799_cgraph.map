@@ -1,0 +1,7 @@
+<map id="SBC::Inflow::fieldSolverBoundaryCondMagneticField" name="SBC::Inflow::fieldSolverBoundaryCondMagneticField">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,27,213,67"/>
+<area shape="rect" id="Node000002" href="$d6/dc2/definitions_8h.html#a2e8c5518a905b923f4fe0800f0928023" title=" " alt="" coords="327,5,398,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="213,33,313,21,314,26,214,38"/>
+<area shape="rect" id="Node000003" href="$d8/ddb/class_s_b_c_1_1_sys_boundary_condition.html#a21ef1eac4a2a5bdf92387b866714ea35" title="Function used to determine on which face(s) if any the cell at given coordinates is." alt="" coords="261,55,464,95"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="214,56,248,60,248,65,213,61"/>
+</map>

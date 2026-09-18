@@ -1,0 +1,24 @@
+var searchData=
+[
+  ['k_0',['k',['../db/dba/class_physical_constants_c_g_s.html#a952491b0fc9add91908b06df39e1ce07',1,'PhysicalConstantsCGS::k'],['../dc/d9e/class_physical_constants_s_i.html#ae2537bf8f4324906abe69d0dc3752969',1,'PhysicalConstantsSI::k'],['../dd/d9a/class_physical_constantsnorm.html#a40dd8efd3dce027081ba60e64c9637bc',1,'PhysicalConstantsnorm::k'],['../dc/d2e/gpu__pitch__angle__diffusion_8cpp.html#aeac95f79b72f13ef3244522682ba9a21',1,'k:&#160;gpu_pitch_angle_diffusion.cpp']]],
+  ['k_5fb_1',['K_B',['../d7/d2f/namespacephysicalconstants.html#aae884ab721eb17968526710ba72b0996',1,'physicalconstants']]],
+  ['k_5fb_2',['k_B',['../dd/da9/namespaceplot__reconstruction.html#a6f8ffcb19a4c2086f0b35cd5698a10c0',1,'plot_reconstruction']]],
+  ['k_5fend_3',['k_end',['../de/d31/_dispersion_8m.html#aaf1ace452ab4dea7a150d702b9f65675',1,'Dispersion.m']]],
+  ['k_5fstart_4',['k_start',['../de/d31/_dispersion_8m.html#a9524bfe12bbe79eabd9cf48a44863d17',1,'Dispersion.m']]],
+  ['kaxis_5',['kaxis',['../de/d31/_dispersion_8m.html#add510406687415be9779e96aad635c92',1,'Dispersion.m']]],
+  ['kaxis2_6',['kaxis2',['../de/d31/_dispersion_8m.html#a9c624d93cfc944466d74e8a21bdedabb',1,'Dispersion.m']]],
+  ['kaxis4_7',['kaxis4',['../de/d31/_dispersion_8m.html#a1b0eaaa4a180be6014b8faf0968375e4',1,'Dispersion.m']]],
+  ['kb_8',['kB',['../d0/d96/class_dispersion_1_1_s_i.html#aca26d97a46e1aab6e4f269f9f8cfc47c',1,'Dispersion.SI.kB'],['../d3/d78/differential_flux_8cpp.html#a56216bca367b3037b1d7c06ec3c27586',1,'kB:&#160;differentialFlux.cpp'],['../dc/da5/sigma_profiles_8cpp.html#a56216bca367b3037b1d7c06ec3c27586',1,'kB:&#160;sigmaProfiles.cpp'],['../d0/d5d/namespacevdf__params.html#add72c533aff8cb113a77e060a1e43053',1,'vdf_params.kB']]],
+  ['kb_9',['kb',['../de/d31/_dispersion_8m.html#aeb1a5067dbf1ae4b6e28ba40a10794a0',1,'Dispersion.m']]],
+  ['kbegin_10',['kBegin',['../d3/d0f/struct_column_offsets.html#aa2a87d298b23aa5f885902f5355593bd',1,'ColumnOffsets']]],
+  ['key_11',['key',['../de/df4/struct_a_s_t_e_r_i_x_1_1_phase_space_union_1_1_header.html#af2f2c0acbd1fa8666c53c86f95237a25',1,'ASTERIX::PhaseSpaceUnion::Header']]],
+  ['kionplasma_12',['kionplasma',['../dc/db0/namespace_dispersion.html#ad1fd5dfca239a6048a4b3912ce04e3d0',1,'Dispersion']]],
+  ['kk_13',['kk',['../d3/d0d/namespacevectorpotentialdipole__verify.html#a9e905eab72ac4cbafc56b523344b6bf4',1,'vectorpotentialdipole_verify.kk'],['../d1/db5/namespacevectorpotentialdipole__verify2.html#ae254ba0b1de02883831c99cfee765327',1,'vectorpotentialdipole_verify2.kk']]],
+  ['klefthf_14',['klefthf',['../dc/db0/namespace_dispersion.html#a1f661d176d33c3ea8f8fbd0c27f5891c',1,'Dispersion']]],
+  ['kleftlf_15',['kleftlf',['../dc/db0/namespace_dispersion.html#ac3fd950101f16ee49ab3ade9cb3de087',1,'Dispersion']]],
+  ['kplasma_16',['kplasma',['../dc/db0/namespace_dispersion.html#ad975238af3318d2a491178c632665088',1,'Dispersion']]],
+  ['krighthf_17',['krighthf',['../dc/db0/namespace_dispersion.html#ad70dc9025839ed1ba47727d8b5a0019f',1,'Dispersion']]],
+  ['krightlf_18',['krightlf',['../dc/db0/namespace_dispersion.html#a717b49c743eda672a748920db6bdad99',1,'Dispersion']]],
+  ['kv_19',['kV',['../dc/db0/namespace_dispersion.html#a0524af95d90a3039f832899369fe4562',1,'Dispersion']]],
+  ['kx_20',['kx',['../dc/db0/namespace_dispersion.html#ae8fdf4da6d42b681071290f32b567326',1,'Dispersion']]]
+];

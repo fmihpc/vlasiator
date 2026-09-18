@@ -1,0 +1,45 @@
+<map id="fclose" name="fclose">
+<area shape="rect" id="Node000001" title=" " alt="" coords="1072,304,1133,329"/>
+<area shape="rect" id="Node000002" href="$da/d83/structip_shock_scenario.html#ad090a6afedf95c5c8ec5b4687f4154a1" title=" " alt="" coords="840,32,1024,57"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="1098,290,1094,243,1083,184,1060,123,1043,95,1022,71,1006,60,1010,55,1026,67,1047,92,1065,120,1088,182,1100,242,1104,290"/>
+<area shape="rect" id="Node000003" href="$da/d08/memory__report_8cpp.html#afff3dbe87a4063dd56c349fb6bf35f86" title=" " alt="" coords="843,81,1021,107"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="1096,290,1089,252,1076,206,1054,159,1040,138,1022,120,1005,109,1008,104,1026,116,1044,135,1059,157,1081,204,1094,251,1101,290"/>
+<area shape="rect" id="Node000009" href="$d4/d3a/fluxfunction_8cpp.html#a3c04138a5bfe5d72780bb7e82a18e627" title=" " alt="" coords="905,131,959,156"/>
+<area shape="poly" id="edge10_Node000001_Node000009" title=" " alt="" coords="1092,292,1068,230,1048,198,1022,171,991,155,959,148,960,143,993,150,1026,167,1052,195,1073,228,1097,290"/>
+<area shape="rect" id="Node000010" href="$d0/df9/amr__reconstruction_2map__test_8cpp.html#a57eae7f73f0de67e93e179b7e089040b" title=" " alt="" coords="856,180,1008,205"/>
+<area shape="poly" id="edge11_Node000001_Node000010" title=" " alt="" coords="1086,294,1060,255,1042,236,1023,220,997,208,1000,203,1025,216,1046,232,1064,252,1090,291"/>
+<area shape="rect" id="Node000012" href="$d1/d9f/acceleration-vlasiator_2map__test_8cpp.html#a5ecd67c56a9621d507886b719ddaaa11" title=" " alt="" coords="856,229,1008,255"/>
+<area shape="poly" id="edge13_Node000001_Node000012" title=" " alt="" coords="1072,298,1023,270,988,257,990,252,1025,265,1075,294"/>
+<area shape="rect" id="Node000014" href="$de/d26/acceleration_2map__test_8cpp.html#a352cbf5c06a27cdb1e0882cc10f839d8" title=" " alt="" coords="881,279,983,304"/>
+<area shape="poly" id="edge15_Node000001_Node000014" title=" " alt="" coords="1058,313,983,302,984,296,1059,308"/>
+<area shape="rect" id="Node000016" href="$d1/d9f/acceleration-vlasiator_2map__test_8cpp.html#a441ce8704ac2a2deae4b92f5c10b2382" title=" " alt="" coords="881,328,983,353"/>
+<area shape="poly" id="edge17_Node000001_Node000016" title=" " alt="" coords="1059,325,984,336,983,331,1058,320"/>
+<area shape="rect" id="Node000017" href="$de/dad/class_linear_histogram3_d.html#a2337bdc5cd18829b398528bc8190033c" title=" " alt="" coords="854,378,1010,418"/>
+<area shape="poly" id="edge18_Node000001_Node000017" title=" " alt="" coords="1074,340,1025,368,997,380,995,376,1023,364,1071,335"/>
+<area shape="rect" id="Node000018" href="$d4/de4/class_histogram1_d.html#a5e1ff765b35ca68905a943c31165e849" title=" " alt="" coords="843,443,1021,468"/>
+<area shape="poly" id="edge19_Node000001_Node000018" title=" " alt="" coords="1093,343,1067,389,1048,412,1026,432,1001,445,999,440,1022,428,1044,409,1062,386,1088,340"/>
+<area shape="rect" id="Node000019" href="$dd/d8b/class_linear_histogram1_d.html#abb0870d5e1f438d2cca1c7b2d5a0ffac" title=" " alt="" coords="854,493,1010,533"/>
+<area shape="poly" id="edge20_Node000001_Node000019" title=" " alt="" coords="1098,343,1089,375,1075,412,1054,450,1026,483,1009,495,1005,490,1022,479,1049,447,1070,410,1084,373,1093,342"/>
+<area shape="rect" id="Node000020" href="$d9/dff/class_linear_histogram2_d.html#af63aafd463d023156264ab0df2274cac" title=" " alt="" coords="854,557,1010,597"/>
+<area shape="poly" id="edge21_Node000001_Node000020" title=" " alt="" coords="1102,344,1096,387,1084,441,1061,497,1045,523,1026,547,1010,559,1007,555,1022,543,1041,520,1056,495,1079,440,1091,386,1097,343"/>
+<area shape="rect" id="Node000021" href="$de/dad/class_linear_histogram3_d.html#a56a596db038d149776b919726c499a31" title=" " alt="" coords="854,621,1010,661"/>
+<area shape="poly" id="edge22_Node000001_Node000021" title=" " alt="" coords="1105,343,1102,398,1092,469,1082,507,1068,544,1050,579,1026,611,1011,623,1008,618,1022,607,1045,576,1063,542,1077,505,1087,468,1097,398,1099,343"/>
+<area shape="rect" id="Node000004" href="$da/d08/memory__report_8cpp.html#ac34fffba37ab0b6d01b28f8e5b6afbf7" title=" " alt="" coords="577,81,792,107"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="829,97,792,97,792,91,829,91"/>
+<area shape="rect" id="Node000005" href="$d7/d70/grid_8cpp.html#a7f1e42e11ccc6dccce8e4b9bd9d2f415" title=" " alt="" coords="395,56,529,81"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="564,83,529,79,530,74,564,78"/>
+<area shape="rect" id="Node000007" href="$d4/d5b/vlasiator_8cpp.html#acfd343080edd07ae79384688a7e48693" title=" " alt="" coords="108,56,187,81"/>
+<area shape="poly" id="edge9_Node000004_Node000007" title=" " alt="" coords="563,99,395,95,281,87,187,76,187,71,282,81,395,90,563,93"/>
+<area shape="rect" id="Node000006" href="$d7/d70/grid_8cpp.html#a9e9166bda148ddef07e30ac56e3b7085" title="Initialize DCCRG and fsgrids." alt="" coords="235,5,347,31"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="404,55,334,33,335,28,406,49"/>
+<area shape="poly" id="edge8_Node000005_Node000007" title=" " alt="" coords="381,71,187,71,187,66,381,66"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="242,38,185,58,183,53,240,33"/>
+<area shape="rect" id="Node000008" href="$d4/d5b/vlasiator_8cpp.html#a54790573f350e250ccca3cbb94733391" title=" " alt="" coords="5,56,60,81"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="94,71,60,71,60,66,94,66"/>
+<area shape="rect" id="Node000011" href="$d0/df9/amr__reconstruction_2map__test_8cpp.html#a840291bc02cba5474a4cb46a9b9566fe" title=" " alt="" coords="657,180,712,205"/>
+<area shape="poly" id="edge12_Node000010_Node000011" title=" " alt="" coords="842,195,712,195,712,190,842,190"/>
+<area shape="rect" id="Node000013" href="$d1/d9f/acceleration-vlasiator_2map__test_8cpp.html#a840291bc02cba5474a4cb46a9b9566fe" title=" " alt="" coords="657,229,712,255"/>
+<area shape="poly" id="edge14_Node000012_Node000013" title=" " alt="" coords="842,245,712,245,712,239,842,239"/>
+<area shape="rect" id="Node000015" href="$de/d26/acceleration_2map__test_8cpp.html#a840291bc02cba5474a4cb46a9b9566fe" title=" " alt="" coords="657,279,712,304"/>
+<area shape="poly" id="edge16_Node000014_Node000015" title=" " alt="" coords="867,294,713,294,713,289,867,289"/>
+</map>

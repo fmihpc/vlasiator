@@ -1,0 +1,25 @@
+var struct_field_tracing_1_1_field_tracing_parameters =
+[
+    [ "doTraceFullBox", "d4/d7e/struct_field_tracing_1_1_field_tracing_parameters.html#aad1d09cb6960ad41cb2c6f3319e884fb", null ],
+    [ "doTraceOpenClosed", "d4/d7e/struct_field_tracing_1_1_field_tracing_parameters.html#aa570cca8a993d76f6c760fc012270a62", null ],
+    [ "fluxrope_max_curvature_radii_extent", "d4/d7e/struct_field_tracing_1_1_field_tracing_parameters.html#a56baf62983a7683babff0c5f8367c012", null ],
+    [ "fluxrope_max_curvature_radii_to_trace", "d4/d7e/struct_field_tracing_1_1_field_tracing_parameters.html#aef66bb9a51e88d1edd831d80dc18a6d9", null ],
+    [ "fluxrope_max_incomplete_cells", "d4/d7e/struct_field_tracing_1_1_field_tracing_parameters.html#a33027100757403c93025a83bce09ffae", null ],
+    [ "fullbox_and_fluxrope_max_distance", "d4/d7e/struct_field_tracing_1_1_field_tracing_parameters.html#a4fac1ea44f453288488be21d07f1b88a", null ],
+    [ "fullbox_max_incomplete_cells", "d4/d7e/struct_field_tracing_1_1_field_tracing_parameters.html#afe69afc60729002bb9487a6fde2a2e2b", null ],
+    [ "innerBoundaryRadius", "d4/d7e/struct_field_tracing_1_1_field_tracing_parameters.html#ac8409429e63716822d9ba3cf1461747a", null ],
+    [ "max_allowed_error", "d4/d7e/struct_field_tracing_1_1_field_tracing_parameters.html#a38e1bba0d0a72769fcd5b7f625cd1bf4", null ],
+    [ "max_field_tracer_attempts", "d4/d7e/struct_field_tracing_1_1_field_tracing_parameters.html#a2517ebcf3756ff8ea3952049b28fac07", null ],
+    [ "max_tracer_dx_ionospere_coupling", "d4/d7e/struct_field_tracing_1_1_field_tracing_parameters.html#aa2ee1ca18c136d469488cc4c02e42c2e", null ],
+    [ "min_tracer_dx_full_box", "d4/d7e/struct_field_tracing_1_1_field_tracing_parameters.html#a545d034041fe7bcebce161a88af82837", null ],
+    [ "min_tracer_dx_ionospere_coupling", "d4/d7e/struct_field_tracing_1_1_field_tracing_parameters.html#aa78a7b4e0981f49f23a10a67ac3e29ba", null ],
+    [ "reconstructionCoefficientsCache", "d4/d7e/struct_field_tracing_1_1_field_tracing_parameters.html#a5e28015b673bc62394476272311c5cb9", null ],
+    [ "tracingMethod", "d4/d7e/struct_field_tracing_1_1_field_tracing_parameters.html#aa46d66787879c8e843cc43e628e79737", null ],
+    [ "useCache", "d4/d7e/struct_field_tracing_1_1_field_tracing_parameters.html#a605de26f9b45b3670705a48f9fb80ebd", null ],
+    [ "x_max", "d4/d7e/struct_field_tracing_1_1_field_tracing_parameters.html#ad91b2f9b30c437c9b71f1612482a9dbd", null ],
+    [ "x_min", "d4/d7e/struct_field_tracing_1_1_field_tracing_parameters.html#a7b35638857d4dcbc5eb98d66923d3e55", null ],
+    [ "y_max", "d4/d7e/struct_field_tracing_1_1_field_tracing_parameters.html#abf0f6f0ed4461f0fe31e07d26f25cbe9", null ],
+    [ "y_min", "d4/d7e/struct_field_tracing_1_1_field_tracing_parameters.html#a85388b03437389d4315cb94a3e1c8091", null ],
+    [ "z_max", "d4/d7e/struct_field_tracing_1_1_field_tracing_parameters.html#ab7f726e97b0cec50a07685e9b74237c1", null ],
+    [ "z_min", "d4/d7e/struct_field_tracing_1_1_field_tracing_parameters.html#a7bea91c6ba19a61324c8eb50f9efdb37", null ]
+];

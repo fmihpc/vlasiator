@@ -1,0 +1,9 @@
+<map id="SBC::SphericalTriGrid::initializeIcosahedron" name="SBC::SphericalTriGrid::initializeIcosahedron">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,37,171,77"/>
+<area shape="rect" id="Node000002" href="$d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#a4f1a56bc71ca682e0ad46981f09cb376" title=" " alt="" coords="219,5,377,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="170,42,205,37,206,42,171,47"/>
+<area shape="rect" id="Node000004" href="$d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#aa26b5bb603b771079dd88d68394ef733" title=" " alt="" coords="219,69,377,109"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="171,67,206,73,205,78,170,73"/>
+<area shape="rect" id="Node000003" href="$de/d31/_dispersion_8m.html#af276a2aede715061015c735080cf65df" title=" " alt="" coords="425,13,472,38"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="378,23,412,23,412,28,378,28"/>
+</map>

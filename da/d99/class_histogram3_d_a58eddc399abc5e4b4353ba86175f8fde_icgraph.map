@@ -1,0 +1,9 @@
+<map id="Histogram3D::Histogram3D" name="Histogram3D::Histogram3D">
+<area shape="rect" id="Node000001" title=" " alt="" coords="413,45,616,70"/>
+<area shape="rect" id="Node000002" href="$de/dad/class_linear_histogram3_d.html#a1af37edc0156e98efbb3b667b2633c61" title=" " alt="" coords="209,37,365,77"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="399,60,365,60,365,55,399,55"/>
+<area shape="rect" id="Node000003" href="$de/dad/class_linear_histogram3_d.html#a65d6267cb6f4729eb9366459dc4dd136" title=" " alt="" coords="5,5,161,45"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="196,46,161,40,162,35,196,40"/>
+<area shape="rect" id="Node000004" href="$de/dad/class_linear_histogram3_d.html#a14da92ca8fd300cd88c15b632b6c032e" title=" " alt="" coords="5,69,161,109"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="196,74,162,80,161,74,196,69"/>
+</map>

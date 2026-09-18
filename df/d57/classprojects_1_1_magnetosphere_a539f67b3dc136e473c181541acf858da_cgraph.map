@@ -1,0 +1,20 @@
+<map id="projects::Magnetosphere::probePhaseSpace" name="projects::Magnetosphere::probePhaseSpace">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,50,188,90"/>
+<area shape="rect" id="Node000002" href="$df/d57/classprojects_1_1_magnetosphere.html#a9acaf047095a308aad9c7cf780a2afe7" title=" " alt="" coords="480,25,663,65"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="136,47,183,28,235,13,290,4,334,3,432,13,477,19,476,25,432,18,334,8,291,10,237,18,185,33,138,52"/>
+<area shape="rect" id="Node000007" href="$d4/d0b/ionosphere_solver_tests_2main_8cpp.html#a9bf4cdc41d466e8710b8aa33a33d32e0" title=" " alt="" coords="264,28,404,53"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="188,56,250,48,251,54,188,61"/>
+<area shape="rect" id="Node000008" href="$df/d57/classprojects_1_1_magnetosphere.html#ac11a05ee6cadabc7f6c638d7033d4269" title="Return a vector containing the velocity coordinate of the centre of each ion population in the distri..." alt="" coords="243,78,425,118"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="188,78,229,83,229,88,188,83"/>
+<area shape="rect" id="Node000009" href="$d9/df1/namespaceprojects.html#a5225e191b92fd7d52b3b30c60f752346" title=" " alt="" coords="236,142,432,182"/>
+<area shape="poly" id="edge9_Node000001_Node000009" title=" " alt="" coords="143,88,237,128,258,135,256,140,235,132,141,93"/>
+<area shape="rect" id="Node000003" href="$d8/dbc/vectorclass__fallback_8h.html#a92b2075c51472d120e4ef0a663e3814b" title=" " alt="" coords="711,7,761,32"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="662,28,696,23,697,28,663,33"/>
+<area shape="rect" id="Node000006" href="$de/d31/_dispersion_8m.html#af276a2aede715061015c735080cf65df" title=" " alt="" coords="713,56,759,81"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="663,55,700,61,699,66,662,61"/>
+<area shape="rect" id="Node000004" href="$d7/d8b/class_vec_simple.html#a145923009b9b82410c5a072b8f8127f0" title=" " alt="" coords="809,7,944,32"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="761,17,795,17,795,22,761,22"/>
+<area shape="rect" id="Node000005" href="$d7/d8b/class_vec_simple.html#ae16798cf2ee14257d0706c60613cd733" title=" " alt="" coords="992,7,1159,32"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="944,17,978,17,978,22,944,22"/>
+<area shape="poly" id="edge8_Node000008_Node000002" title=" " alt="" coords="423,75,468,65,469,70,424,81"/>
+</map>
