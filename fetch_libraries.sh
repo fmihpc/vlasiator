@@ -14,7 +14,6 @@ echo "Fetching library files for platform $PLATFORM"
 PHIPROF_COMMIT="605a7247c85d967fe22fe079c96c817b461c92b1"
 VLSV_COMMIT="95cac1bb4a4a52c2eed5bbfe8c74f0ee22e64a1b"
 PAPI_COMMIT="721ba0013473af6f9b7aa8ce5a2205e8403af2d1"
-JEMALLOC_COMMIT="fe336672309b724764093bff8253276bd600ce27"
 
 TRILINOS_BRANCH="zoltanLBSafeAllreduce-issue15235"
 #TRILINOS_COMMIT="16ceeebdfbe0809a549e0543f2824a79ebc2aa2d"
@@ -66,13 +65,13 @@ fi
 
 # jemalloc (not for GPU versions, on Mahti use system module)
 if [[ $PLATFORM != "-leonardo_booster" && $PLATFORM != "-karolina_cuda" && $PLATFORM != "-ukko_dgx" && $PLATFORM != "-hile_gpu" && $PLATFORM != "-lumi_hipcc" && $PLATFORM != "-mahti_cuda" && $PLATFORM != "-mahti_gcc_build" && $PLATFORM != "-frankenstein_hopper2_cuda" && $PLATFORM != "-roihu_gpu" ]]; then
-    #curl -O -L https://github.com/jemalloc/jemalloc/releases/download/5.3.1/jemalloc-5.3.1.tar.bz2
-    #tar xjf jemalloc-5.3.1.tar.bz2
-    git clone --depth=1 https://github.com/jemalloc/jemalloc
-    cd jemalloc
-    git fetch --tags origin 
-    git_use_commit "$JEMALLOC_COMMIT"
-    cd ..
+    curl -O -L https://github.com/jemalloc/jemalloc/releases/download/5.4.0/jemalloc-5.4.0.tar.bz2
+    tar xjf jemalloc-5.4.0.tar.bz2
+    #git clone --depth=1 https://github.com/jemalloc/jemalloc
+    #cd jemalloc
+    #git fetch --tags origin
+    #git_use_commit "$JEMALLOC_COMMIT"
+    #cd ..
 fi
 
 # Zoltan

@@ -114,7 +114,7 @@ fi
 if [[ $PLATFORM != "-leonardo_booster" && $PLATFORM != "-karolina_cuda" && $PLATFORM != "-ukko_dgx" && $PLATFORM != "-hile_gpu" && $PLATFORM != "-lumi_hipcc" && $PLATFORM != "-mahti_cuda" && $PLATFORM != "-mahti_gcc_build" &&  $PLATFORM != "-frankenstein_hopper2_cuda" &&  $PLATFORM != "-roihu_gpu" ]]; then
     # curl -O -L https://github.com/jemalloc/jemalloc/releases/download/5.3.1/jemalloc-5.3.1.tar.bz2
     # tar xjf jemalloc-5.3.1.tar.bz2
-    cd jemalloc
+    cd jemalloc-5.4.0
     ./autogen.sh
     if [[ $PLATFORM == "-pioneer" ]]; then
         ./configure --prefix=$WORKSPACE/libraries${PLATFORM} --with-jemalloc-prefix=je_
