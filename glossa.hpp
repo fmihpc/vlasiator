@@ -488,6 +488,7 @@ namespace glossa {
       std::ostringstream result;
       std::string section;
       std::string line;
+      std::vector<std::string> scratchVariables;
       while (std::getline(iss, line)) {
          size_t first = line.find_first_not_of(" \t");
          if (first == std::string::npos) {
@@ -497,6 +498,13 @@ namespace glossa {
 
          char c = line[first];
          if (c == '[') {
+            for (const auto& name : scratchVariables) {
+               vars.erase(name);
+               if (!section.empty()) {
+                  vars.erase(section + "." + name);
+               }
+            }
+            scratchVariables.clear();
             size_t end = line.find(']', first);
             if (end != std::string::npos) {
                section = line.substr(first + 1, end - first - 1);
@@ -553,6 +561,7 @@ namespace glossa {
             vars[section + "." + key] = expr;
          }
          if (isLocal) {
+            scratchVariables.push_back(key);
             continue;
          }
          if (!ok) {
@@ -572,6 +581,12 @@ namespace glossa {
             out_line += " " + comment_suffix;
          }
          result << out_line << "\n";
+      }
+      for (const auto& name : scratchVariables) {
+         vars.erase(name);
+         if (!section.empty()) {
+            vars.erase(section + "." + name);
+         }
       }
       return result.str();
    }
