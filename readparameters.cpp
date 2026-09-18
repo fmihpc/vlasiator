@@ -23,6 +23,8 @@
 #include <cstdio>
 #include "readparameters.h"
 #include "common.h"
+#include "glossa.hpp"
+
 using namespace std;
 bool Readparameters::helpRequested = false;
 bool Readparameters::versionRequested = false;
@@ -185,6 +187,8 @@ void Readparameters::applyConfigFile(const std::string& filename, bool extras, s
    if (buffer.empty()) {
       return;
    }
+   //Evaluate config
+   buffer = glossa::evaluate_config(buffer);
 
    std::string section;
    std::set<std::string> touched;
