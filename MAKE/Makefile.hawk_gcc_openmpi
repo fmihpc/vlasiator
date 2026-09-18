@@ -2,21 +2,21 @@ CMP = mpiCC
 LNK = mpiCC
 
 #======== Vectorization ==========
-#Set vector backend type for vlasov solvers, sets precision and length. 
-#Options: 
+#Set vector backend type for vlasov solvers, sets precision and length.
+#Options:
 # AVX:      VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
 # AVX512:   VEC8D_AGNER, VEC16F_AGNER
 # Fallback: VEC_FALLBACK_GENERIC
 
 ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
-#Single-precision        
+#Single-precision
         VECTORCLASS = VEC8F_AGNER
 else
 #Double-precision
         VECTORCLASS = VEC8D_AGNER
 endif
 
-FLAGS = 
+FLAGS =
 
 # NOTES on compiler flags:
 # CXXFLAGS is for compiler flags, they are always used
@@ -27,7 +27,7 @@ FLAGS =
 CC_BRAND = gcc
 CC_BRAND_VERSION = 9.2.0
 CXXFLAGS += -g -O3 -fopenmp -funroll-loops -std=c++20 -W -Wall -Wno-unused -fabi-version=0 -Wall -Wpedantic -mfma -march=native -mavx2
-not_parallel_tools: CXXFLAGS += -march=native -mno-avx2 -mavx 
+not_parallel_tools: CXXFLAGS += -march=native -mno-avx2 -mavx
 testpackage: CXXFLAGS = -g -O2 -fopenmp -funroll-loops -std=c++20 -fabi-version=0
 not_parallel_tools: CC_BRAND_VERSION = 4.9.2-noavx2
 
@@ -36,13 +36,12 @@ testpackage: MATHFLAGS = -fno-unsafe-math-optimizations
 LDFLAGS =
 LIB_MPI = -lgomp
 
-BOOST_VERSION = 
 #MPI_BRAND = mpt
 #MPI_VERSION = 2.22
 MPI_BRAND = openmpi
 MPI_VERSION = 4.0.4
-ZOLTAN_VERSION = 
-SILO_VERSION = 
+ZOLTAN_VERSION =
+SILO_VERSION =
 JEMALLOC_VERSION = 5.2.1
 LIBRARY_PREFIX = /zhome/academic/HLRS/pri/ipryakem/libraries
 

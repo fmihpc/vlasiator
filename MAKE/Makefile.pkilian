@@ -1,0 +1,54 @@
+CMP = mpicxx
+LNK = mpicxx
+
+#======== Vectorization ==========
+#Set vector backend type for vlasov solvers, sets precision and length.
+#NOTE this has to have the same precision as the distribution function define (DISTRIBUTION_FP_PRECISION)
+#Options;
+# AVX:      VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
+# AVX512:   VEC8D_AGNER, VEC16F_AGNER
+# Fallback: VEC_FALLBACK_GENERIC
+
+ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
+#Single-precision
+        VECTORCLASS = VEC8F_AGNER
+else
+#Double-precision
+        VECTORCLASS = VEC4D_AGNER
+endif
+
+FLAGS =
+# note: std was c++11
+# note: testpackage settings missing
+CXXFLAGS = -I${PREFIX}/include -I/usr/include -L${PREFIX}/lib -L/usr/lib -O3 -funroll-loops -std=c++20 -W -Wall -pedantic -Wno-unused -Wno-unused-parameter -Wno-missing-braces  -fopenmp
+#CXXFLAGS = -I${PREFIX}/include -L${PREFIX}/lib -O0 -funroll-loops -std=c++20 -W -Wall -pedantic -Wno-unused -Wno-unused-parameter -Wno-missing-braces -g -fopenmp
+MATHFLAGS = -ffast-math -fno-finite-math-only
+testpackage: MATHFLAGS = -fno-unsafe-math-optimizations
+LDFLAGS = -L ${PREFIX}/lib
+LIB_MPI = -lgomp
+
+PREFIX = /tmp/vlasiator/libraries-pkilian/
+LIBRARY_PREFIX = ${PREFIX}
+LIBRARY_PREFIX_B = ${PREFIX}
+
+#======== PAPI ==========
+#Add PAPI_MEM define to use papi to report memory consumption?
+CXXFLAGS += -DPAPI_MEM
+testpackage: CXXFLAGS += -DPAPI_MEM
+LDFLAGS += -lpapi
+
+INC_ZOLTAN =
+LIB_ZOLTAN = -L${PREFIX}/lib -lzoltan
+
+INC_VLSV =
+LIB_VLSV = -lvlsv
+
+INC_SILO = -I${PREFIX}/include
+LIB_SILO = -L${PREFIX}/lib -lsilo
+
+LIB_PROFILE = -L${PREFIX}/lib -lphiprof -lpapi
+INC_PROFILE = -I${PREFIX}/include
+INC_TOPO =
+
+INC_VECTORCLASS = -isystem ./submodules/vectorclass/ -isystem ./submodules/vectorclass-addon/vector3d/
+INC_EIGEN = -isystem ./submodules/eigen/

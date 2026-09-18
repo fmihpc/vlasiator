@@ -2,7 +2,7 @@
 #
 # Note:
 # o Load modules:
-#   module load boost papi openmpi
+#   module load papi openmpi
 # o Zoltan's configure script requires a "--build=arm-linux-gnu" parameter.
 #   (Yes, this needs to be arm, not riscv!)
 
@@ -10,14 +10,14 @@ CMP = mpic++
 LNK = mpic++
 
 #======== Vectorization ==========
-#Set vector backend type for vlasov solvers, sets precision and length. 
-#Options: 
+#Set vector backend type for vlasov solvers, sets precision and length.
+#Options:
 # AVX:      VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
 # AVX512:   VEC8D_AGNER, VEC16F_AGNER
 # Fallback: VEC_FALLBACK_GENERIC
 
 ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
-#Single-precision        
+#Single-precision
         VECTORCLASS = VEC_FALLBACK_GENERIC
 else
 #Double-precision
@@ -36,7 +36,6 @@ MATHFLAGS = -ffast-math -fno-finite-math-only
 testpackage: MATHFLAGS = -fno-unsafe-math-optimizations
 LDFLAGS = -fopenmp
 LIB_MPI =
-# LIB_MPI = 
 
 LIBRARY_PREFIX = libraries-pioneer
 

@@ -21,11 +21,11 @@
 
 CMP = OMPI_CXX='hipcc' CC
 LNK = OMPI_CXX='hipcc' CC
- 
+
 #======== Vectorization ==========
 #GPU Vlasov solvers no longer use any vectorclass.
 #Options:
-# AVX:	    VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
+# AVX:      VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
 # AVX512:   VEC8D_AGNER, VEC16F_AGNER
 # Fallback: VECTORCLASS = VEC_FALLBACK_GENERIC
 VECTORCLASS = VEC_FALLBACK_GENERIC
@@ -65,12 +65,6 @@ testpackage: CXXFLAGS +=  -DPAPI_MEM
 #======== Libraries ===========
 # Select the base directory based on which project you are using:
 LIBRARY_PREFIX = /turso/group/spacephysics/vlasiator/libraries/libraries-hile_gpu
-
-# System boost
-# LIB_BOOST = -L$(VLASIATOR_LIBRARY_PATH)/lib  -lboost_program_options
-# INC_BOOST = -isystem $(VLASIATOR_LIBRARY_PATH)/include
-
-
 
 # Compiled libraries
 INC_ZOLTAN = -isystem $(LIBRARY_PREFIX)/include

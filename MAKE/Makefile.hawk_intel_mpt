@@ -2,21 +2,21 @@ CMP = mpicxx
 LNK = mpicxx
 
 #======== Vectorization ==========
-#Set vector backend type for vlasov solvers, sets precision and length. 
-#Options: 
+#Set vector backend type for vlasov solvers, sets precision and length.
+#Options:
 # AVX:      VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
 # AVX512:   VEC8D_AGNER, VEC16F_AGNER
 # Fallback: VEC_FALLBACK_GENERIC
 
 ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
-#Single-precision        
+#Single-precision
         VECTORCLASS = VEC8F_AGNER
 else
 #Double-precision
         VECTORCLASS = VEC4D_AGNER
 endif
 
-FLAGS = 
+FLAGS =
 
 # NOTES on compiler flags:
 # CXXFLAGS is for compiler flags, they are always used
@@ -29,19 +29,18 @@ CC_BRAND_VERSION = 19.1.0
 # note: std was not updated to c++20
 CXXFLAGS += -traceback -g -O3 -qopenmp -std=c++14 -W -Wall -Wno-unused -march=core-avx2 -qopt-zmm-usage=high
 testpackage: CXXFLAGS = -g -traceback -O2 -qopenmp -std=c++14 -W -Wno-unused -march=core-avx2
-not_parallel_tools: CXXFLAGS += -march=native -mno-avx2 -mavx 
+not_parallel_tools: CXXFLAGS += -march=native -mno-avx2 -mavx
 not_parallel_tools: CC_BRAND_VERSION = 4.9.2-noavx2
 
 MATHFLAGS = -ffast-math -fno-finite-math-only
 testpackage: MATHFLAGS = -fno-unsafe-math-optimizations
-LDFLAGS = -qopenmp -lifcore -liomp5 -pthread -lboost_program_options -lzoltan -ljemalloc -lvlsv -lphiprof
+LDFLAGS = -qopenmp -lifcore -liomp5 -pthread -lzoltan -ljemalloc -lvlsv -lphiprof
 LIB_MPI = -lgomp
 
-BOOST_VERSION = 
 MPI_BRAND = mpt
 MPI_VERSION = 2.23
-ZOLTAN_VERSION = 
-SILO_VERSION = 
+ZOLTAN_VERSION =
+SILO_VERSION =
 JEMALLOC_VERSION = 5.2.1
 LIBRARY_PREFIX = /zhome/academic/HLRS/pri/ipryakem/libraries
 
@@ -60,9 +59,6 @@ testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 
 
 #compiled libraries
-
-
-
 
 INC_ZOLTAN = -I$(LIBRARY_PREFIX)/$(MPI_BRAND)/$(MPI_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/zoltan/include
 LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/$(MPI_BRAND)/$(MPI_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/zoltan/lib -lzoltan

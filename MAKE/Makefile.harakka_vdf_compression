@@ -39,7 +39,6 @@ LIB_MPI = -lgomp
 # TODO: WIP
 LIB_MPI = -lgomp -lmlp_compress -lmlp_cuda_compress -lzfp -lpapi
 
-BOOST_VERSION =
 #MPI_BRAND = mpt
 #MPI_VERSION = 2.22
 MPI_BRAND = openmpi

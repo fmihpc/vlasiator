@@ -8,7 +8,7 @@ FP_PRECISION = DP
 #Set floating point precision for distribution function to SPF (single) or DPF (double)
 DISTRIBUTION_FP_PRECISION = DPF
 
-#Set vector backend type for vlasov solvers, sets precision and length. 
+#Set vector backend type for vlasov solvers, sets precision and length.
 #This mini-app only supports length 4(!)
 VECTORCLASS = VEC4D_AGNER
 #set vector class
@@ -21,13 +21,13 @@ CXXFLAGS += -DPROFILE
 CXXFLAGS += -DNDEBUG
 
 #Set order of semilag solver in velocity space acceleration
-#  ACC_SEMILAG_PLM 	2nd order	
+#  ACC_SEMILAG_PLM 	2nd order
 #  ACC_SEMILAG_PPM	3rd order (use this one unless you are testing)
 #  ACC_SEMILAG_PQM      5th order (in development)
-CXXFLAGS += -DACC_SEMILAG_PQM 
+CXXFLAGS += -DACC_SEMILAG_PQM
 #define USE_AGNER_VECTORCLASS to use an external vector class that is used in some of the solvers
-#If not defined a slower but portable implementation is used, as the external one only supports 
-#Linux & x86 processors  
+#If not defined a slower but portable implementation is used, as the external one only supports
+#Linux & x86 processors
 CXXFLAGS += -DUSE_AGNER_VECTORCLASS
 
 
@@ -37,7 +37,7 @@ CXXFLAGS += -DUSE_AGNER_VECTORCLASS
 #//////////////////////////////////////////////////////
 
 #will need profiler in most places..
-CXXFLAGS += ${INC_PROFILE} 
+CXXFLAGS += ${INC_PROFILE}
 
 #define precision
 CXXFLAGS += -D${FP_PRECISION} -D${DISTRIBUTION_FP_PRECISION} -D${VECTORCLASS}
@@ -57,7 +57,7 @@ EXE = map_test
 LIBS += ${LIB_PROFILE}
 
 # Define common dependencies
-DEPS_COMMON = ../../common.h ../../definitions.h 
+DEPS_COMMON = ../../common.h ../../definitions.h
 
 #all objects for vlasiator
 
@@ -77,11 +77,9 @@ clean:
 
 # Rules for making each object file needed by the executable
 
-map_test.o: map_test.cpp 
-	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS}  -c map_test.cpp -I../.. ${INC_PROFILE}  ${INC_VECTORCLASS} 
+map_test.o: map_test.cpp
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS}  -c map_test.cpp -I../.. ${INC_PROFILE}  ${INC_VECTORCLASS}
 
 # Make executable
 map_test: $(OBJS)
 	$(LNK) ${LDFLAGS} -o ${EXE} $(OBJS) $(LIBS)
-
-
