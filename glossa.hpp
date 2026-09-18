@@ -515,6 +515,11 @@ namespace glossa {
             continue;
          }
          std::string key = trim(line.substr(0, eq_pos));
+         bool isLocal = false;
+         if (!key.empty() && key.front() == '$') {
+            isLocal = true;
+            key = key.substr(1);
+         }
          std::string after_eq = line.substr(eq_pos + 1);
          size_t hash_pos = after_eq.find('#');
          std::string value_raw = hash_pos == std::string::npos ? after_eq : after_eq.substr(0, hash_pos);
@@ -546,6 +551,9 @@ namespace glossa {
          vars[key] = expr;
          if (!section.empty()) {
             vars[section + "." + key] = expr;
+         }
+         if (isLocal) {
+            continue;
          }
          if (!ok) {
             result << line << "\n";
