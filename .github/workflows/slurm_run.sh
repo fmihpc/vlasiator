@@ -19,7 +19,7 @@ core_flags["lumi_2503"]="-n 1 -c 16"
 
 #Constraints for compiling stuff
 declare -A constraint
-constraint["carrington_gcc_openmpi"]="--constraint=ukko|carrington -p short"
+constraint["carrington_gcc_openmpi"]="--constraint=amd -p short"
 # constraint["ukko_dgx"]="--constraint="v100" -gres="gpu:V100" -p gpu"
 constraint["ukko_dgx"]="--constraint=ukko -p gpu"
 constraint["pioneer"]="-p pioneer -t 01:00:00" #not sure if pty needed for pioneer
@@ -29,7 +29,7 @@ constraint["lumi_2503"]="--partition=standard --account=project_462001599 -t 01:
 
 #Constraints used for smaller jobs like compiling/removing files/catting etc
 declare -A constraint_small
-constraint_small["carrington_gcc_openmpi"]="--constraint=ukko|carrington"
+constraint_small["carrington_gcc_openmpi"]="--constraint=amd"
 constraint_small["ukko_dgx"]="--constraint=ukko"
 constraint_small["pioneer"]="-p pioneer -t 01:00:00"
 constraint_small["hile_gpu"]="-C g"
