@@ -569,7 +569,7 @@ namespace glossa {
    }
 
    inline std::string evaluate_config(const std::string& source) {
-      constexpr std::size_t N = 1025 * 1024;
+      constexpr std::size_t N = 1024 * 1024;
       void* mem = malloc(N);
       if (!mem) {
          abort();
