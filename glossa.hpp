@@ -1,4 +1,4 @@
-//Little sleep, lots of coffee and Vlasiatoring at GH200 Hackathon @CSC
+// Little sleep, lots of coffee and Vlasiatoring at GH200 Hackathon @CSC
 // Glossa means tongue in Greek :)
 #pragma once
 #include <algorithm>
@@ -13,6 +13,9 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+
+static const std::string LOCALKW = "local";
+static const std::string GLOBALKW = "global";
 
 namespace glossa {
 #define GLOSSA_FATAL(msg) throw std::runtime_error(msg)
@@ -474,6 +477,13 @@ namespace glossa {
       return eval(expr, vars);
    }
 
+   inline const std::map<std::string, double>& reserved_constants() {
+      static const std::map<std::string, double> predefined = {
+          {"EPS_0", 8.85418782e-12}, {"MU_0", 1.25663706e-6}, {"K_B", 1.3806503e-23}, {"CHARGE", 1.60217653e-19}, {"MASS_ELECTRON", 9.10938188e-31}, {"MASS_PROTON", 1.67262158e-27}, {"R_E", 6.3712e6},
+      };
+      return predefined;
+   }
+
    inline std::string evaluate_config(const std::string& source, Vars& vars, BumpAllocator& arena) {
       auto trim = [](const std::string& s) {
          size_t b = s.find_first_not_of(" \t\r\n");
@@ -483,6 +493,10 @@ namespace glossa {
          size_t e = s.find_last_not_of(" \t\r\n");
          return s.substr(b, e - b + 1);
       };
+
+      for (const auto& [name, val] : reserved_constants()) {
+         vars[name] = new_number(arena, val);
+      }
 
       std::istringstream iss(source);
       std::ostringstream result;
@@ -524,9 +538,13 @@ namespace glossa {
          }
          std::string key = trim(line.substr(0, eq_pos));
          bool isLocal = false;
-         if (!key.empty() && key.front() == '$') {
+         bool isGlobal = false;
+         if (key.size() > LOCALKW.size() && key.compare(0, LOCALKW.size(), LOCALKW) == 0 && std::isspace((unsigned char)key[LOCALKW.size()])) {
             isLocal = true;
-            key = key.substr(1);
+            key = trim(key.substr(LOCALKW.size()));
+         } else if (key.size() > GLOBALKW.size() && key.compare(0, GLOBALKW.size(), GLOBALKW) == 0 && std::isspace((unsigned char)key[GLOBALKW.size()])) {
+            isGlobal = true;
+            key = trim(key.substr(GLOBALKW.size()));
          }
          std::string after_eq = line.substr(eq_pos + 1);
          size_t hash_pos = after_eq.find('#');
@@ -535,6 +553,10 @@ namespace glossa {
          std::string expr_text = trim(value_raw);
          if (key.empty() || expr_text.empty()) {
             result << line << "\n";
+            continue;
+         }
+         if (reserved_constants().count(key)) {
+            std::cerr << "WARNING: '" << key << "' is a reserved global and you have just redefined it!!! " << line << std::endl;
             continue;
          }
 
@@ -562,6 +584,9 @@ namespace glossa {
          }
          if (isLocal) {
             scratchVariables.push_back(key);
+            continue;
+         }
+         if (isGlobal) {
             continue;
          }
          if (!ok) {
