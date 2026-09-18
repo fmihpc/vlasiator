@@ -16,9 +16,9 @@
 
 static const std::string LOCALKW = "local";
 static const std::string GLOBALKW = "global";
+#define GLOSSA_FATAL(msg) throw std::runtime_error(msg)
 
 namespace glossa {
-#define GLOSSA_FATAL(msg) throw std::runtime_error(msg)
    struct BumpAllocator {
       void* mem = nullptr;
       std::size_t sp = 0;
@@ -620,12 +620,13 @@ namespace glossa {
       constexpr std::size_t N = 1024 * 1024;
       void* mem = malloc(N);
       if (!mem) {
-         abort();
+         throw std::runtime_error("Could not allocate memory for glossa's bump allocator!");
       }
       BumpAllocator arena(mem, N);
       Vars vars;
       std::string result = evaluate_config(source, vars, arena);
       arena.release();
+      free(mem);
       return result;
    }
 } // namespace glossa
