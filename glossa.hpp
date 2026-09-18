@@ -7,7 +7,7 @@
 #include <cstddef>
 #include <iomanip>
 #include <iostream>
-#include <map>
+#include <unordered_map>
 #include <new>
 #include <sstream>
 #include <stdexcept>
@@ -16,6 +16,18 @@
 
 static const std::string LOCALKW = "local";
 static const std::string GLOBALKW = "global";
+static std::unordered_map<std::string, double> predefined_globals = {
+    {"EPS_0", 8.85418782e-12},
+    {"MU_0", 1.25663706e-6},
+    {"K_B", 1.3806503e-23},
+    {"CHARGE", 1.60217653e-19},
+    {"MASS_ELECTRON", 9.10938188e-31},
+    {"MASS_PROTON", 1.67262158e-27},
+    {"R_E", 6.3712e6},
+};
+
+static std::unordered_map<std::string, double> external_globals;
+
 #define GLOSSA_FATAL(msg) throw std::runtime_error(msg)
 
 namespace glossa {
@@ -313,7 +325,7 @@ namespace glossa {
       }
    };
 
-   using Vars = std::map<std::string, Expr*>;
+   using Vars = std::unordered_map<std::string, Expr*>;
 
    inline Value eval(const Expr* expr, const Vars& vars) {
       switch (expr->kind) {
@@ -477,11 +489,8 @@ namespace glossa {
       return eval(expr, vars);
    }
 
-   inline const std::map<std::string, double>& reserved_constants() {
-      static const std::map<std::string, double> predefined = {
-          {"EPS_0", 8.85418782e-12}, {"MU_0", 1.25663706e-6}, {"K_B", 1.3806503e-23}, {"CHARGE", 1.60217653e-19}, {"MASS_ELECTRON", 9.10938188e-31}, {"MASS_PROTON", 1.67262158e-27}, {"R_E", 6.3712e6},
-      };
-      return predefined;
+   inline const std::unordered_map<std::string, double>& reserved_constants() {
+      return predefined_globals;
    }
 
    inline std::string evaluate_config(const std::string& source, Vars& vars, BumpAllocator& arena) {
@@ -616,8 +625,11 @@ namespace glossa {
       return result.str();
    }
 
-   inline std::string evaluate_config(const std::string& source) {
+   inline std::string evaluate_config(const std::string& source, const std::unordered_map<std::string, double> &supplied_globals) {
       constexpr std::size_t N = 1024 * 1024;
+      for (auto [key, val] : supplied_globals) {
+         predefined_globals[key] = val;
+      }
       void* mem = malloc(N);
       if (!mem) {
          throw std::runtime_error("Could not allocate memory for glossa's bump allocator!");
