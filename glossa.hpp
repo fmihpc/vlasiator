@@ -464,6 +464,13 @@ namespace glossa {
          if (name == "clamp") {
             return numeric(std::min(std::max(arg(0), arg(1)), arg(2)));
          }
+         if (name == "print") {
+            for (size_t i = 0; i < values.size(); i++) {
+               std::cout << (i ? " " : "") << to_string(values[i]);
+            }
+            std::cout << std::endl;
+            return values.empty() ? numeric(0) : values[0];
+         }
          throw std::runtime_error("ERROR: unknown function: " + name);
       }
       }
