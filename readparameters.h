@@ -127,7 +127,7 @@ public:
 
    static std::string configInfo();
 
-   static void parse(std::vector<std::string>& invalid, std::vector<std::string>& filenames, bool extras = false);
+   static void parse(std::vector<std::string>& invalid, std::vector<std::string>& filenames, bool extras, const std::unordered_map<std::string, double> &supplied_globals);
 
    static void parseComposing() {}
    static bool helpRequested;
@@ -167,7 +167,7 @@ private:
    static std::vector<std::string> make_tokens(const std::string& buffer);
    static void applyAssignment(Option& opt, const std::string& rawValue, std::set<std::string>& touched);
    static void applyArgTokens(const std::vector<std::string>& tokens, bool extras, std::vector<std::string>& invalid, std::vector<std::string>& filenames);
-   static void applyConfigFile(const std::string& filename, bool extras, std::vector<std::string>& invalid);
+   static void applyConfigFile(const std::string& filename, bool extras, std::vector<std::string>& invalid, const std::unordered_map<std::string, double> &supplied_globals);
 
    template <typename T> static T parseScalar(const std::string& tok) {
       if constexpr (std::is_same_v<T, std::string>) {

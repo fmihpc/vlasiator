@@ -24,6 +24,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <cmath>
+#include <unordered_map>
 #include <vector>
 #include <sstream>
 #include <ctime>
@@ -236,6 +237,10 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mp
    }
 }
 
+std::unordered_map<std::string, double> create_config_globals(){
+   return std::unordered_map<std::string, double>();
+}
+
 int simulate(int argn,char* args[]) {
    int myRank, doBailout=0;
    const creal DT_EPSILON=1e-12;
@@ -280,7 +285,8 @@ int simulate(int argn,char* args[]) {
 
    std::vector<std::string> extras;               // extra options we didn't expect but found
    std::vector<std::string> filenames;            // things that don't start with -- and smell like a filename
-   readparameters.parse(extras, filenames, true); //true to ignore config extras
+   const auto supplied_globals = create_config_globals();
+   readparameters.parse(extras, filenames, true, supplied_globals); // true to ignore config extras
    getObjectWrapper().populationsParsed=true;
    if (Readparameters::helpRequested) {
      getObjectWrapper().addHelp();
@@ -296,12 +302,12 @@ int simulate(int argn,char* args[]) {
    //objectwrapper.AddParameters adds the parameters during parse
    //but the callback works such that those added parameters do not make it to the parse above, so
    //Second parse to get the population specific parameters read.
-   readparameters.parse(extras, filenames, true);
+   readparameters.parse(extras, filenames, true, supplied_globals);
    getObjectWrapper().getPopulationParameters(); //particleSpecies is populated here from particleSpeciesRead
    sysBoundaryContainer.addParameters(); //add the parameters for parsed boundary.boundaries boundaries, including population specific ones
    projects::createProject();
 
-   readparameters.parse(extras, filenames, false); // Final parse
+   readparameters.parse(extras, filenames, false, supplied_globals); // Final parse
    readparameters.helpMessage(); // Call after last parse, exits after printing help if help requested
    Readparameters::parseComposing(); //has to be done afterwards, will do callbacks on the final addComposing values that are parsed here
    P::getParameters();
