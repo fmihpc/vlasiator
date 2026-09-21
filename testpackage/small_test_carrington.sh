@@ -42,7 +42,7 @@ export OMP_NUM_THREADS=$t
 
 #command for running stuff
 run_command="srun --mpi=pmix_v3 -n $SLURM_NTASKS "
-small_run_command="srun --mpi=pmix_v3 -n 1"
+small_run_command="srun --mpi=pmix_v3"
 run_command_tools="mpirun -np 1 "
 
 umask 007
