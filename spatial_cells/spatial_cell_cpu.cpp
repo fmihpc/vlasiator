@@ -97,7 +97,6 @@ namespace spatial_cell {
       sysBoundaryLayer = other.sysBoundaryLayer;
       sysBoundaryLayerNew = other.sysBoundaryLayerNew;
       velocity_block_with_content_list_size = other.velocity_block_with_content_list_size;
-      initialized = other.initialized;
       mpiTransferEnabled = other.mpiTransferEnabled;
       for (unsigned int i=0; i<bvolderivatives::N_BVOL_DERIVATIVES; ++i) {
          derivativesBVOL[i] = other.derivativesBVOL[i];
@@ -134,7 +133,6 @@ namespace spatial_cell {
       sysBoundaryLayer = other.sysBoundaryLayer;
       sysBoundaryLayerNew = other.sysBoundaryLayerNew;
       velocity_block_with_content_list_size = other.velocity_block_with_content_list_size;
-      initialized = other.initialized;
       mpiTransferEnabled = other.mpiTransferEnabled;
       for (unsigned int i=0; i<bvolderivatives::N_BVOL_DERIVATIVES; ++i) {
          derivativesBVOL[i] = other.derivativesBVOL[i];

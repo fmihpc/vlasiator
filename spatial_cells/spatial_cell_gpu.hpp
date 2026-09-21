@@ -711,7 +711,6 @@ __global__ static void resize_and_empty_kernel (
 
    private:
       static int activePopID;
-      bool initialized;
       bool mpiTransferEnabled;
 
       std::vector<spatial_cell::Population> populations;                        /**< Particle population variables.*/

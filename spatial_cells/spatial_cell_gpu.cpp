@@ -218,7 +218,6 @@ namespace spatial_cell {
       sysBoundaryFlag = other.sysBoundaryFlag;
       sysBoundaryLayer = other.sysBoundaryLayer;
       sysBoundaryLayerNew = other.sysBoundaryLayerNew;
-      initialized = other.initialized;
       mpiTransferEnabled = other.mpiTransferEnabled;
       for (unsigned int i=0; i<bvolderivatives::N_BVOL_DERIVATIVES; ++i) {
          derivativesBVOL[i] = other.derivativesBVOL[i];
@@ -298,7 +297,6 @@ namespace spatial_cell {
       sysBoundaryFlag = other.sysBoundaryFlag;
       sysBoundaryLayer = other.sysBoundaryLayer;
       sysBoundaryLayerNew = other.sysBoundaryLayerNew;
-      initialized = other.initialized;
       mpiTransferEnabled = other.mpiTransferEnabled;
       for (unsigned int i=0; i<bvolderivatives::N_BVOL_DERIVATIVES; ++i) {
          derivativesBVOL[i] = other.derivativesBVOL[i]; // Will be re-calculated
