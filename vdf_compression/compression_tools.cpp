@@ -204,7 +204,7 @@ ASTERIX::OrderedVDF ASTERIX::extract_pop_vdf_from_spatial_cell_ordered_min_bbox_
                const Real vy = vlims[1] + (j + 0.5) * dvy;
                const Real vz = vlims[2] + (k + 0.5) * dvz;
                const std::array<Real,3>coords={vx,vy,vz};
-               const auto gid=sc->get_velocity_block(popID, &coords[0]);
+               const auto gid=sc->get_velocity_block(popID, coords.data());
                ignore_list.insert(gid);
          }
       }

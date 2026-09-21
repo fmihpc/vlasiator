@@ -893,7 +893,7 @@ namespace SBC {
          if (mpiGrid[id]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
             continue;
          }
-         creal* const cellParams = &(mpiGrid[id]->parameters[0]);
+         creal* const cellParams = mpiGrid[id]->parameters.data();
          creal dx = cellParams[CellParams::DX];
          creal dy = cellParams[CellParams::DY];
          creal dz = cellParams[CellParams::DZ];

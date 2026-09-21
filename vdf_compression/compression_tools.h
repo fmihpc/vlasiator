@@ -345,7 +345,7 @@ public:
       std::memcpy(&buffer[write_index], &header, sizeof(Header));
       write_index += sizeof(Header);
 
-      std::memcpy(&buffer[write_index], &_cids[0], _cids.size() * sizeof(CellID));
+      std::memcpy(&buffer[write_index], _cids.data(), _cids.size() * sizeof(CellID));
       write_index += _cids.size() * sizeof(CellID);
 
       std::memcpy(&buffer[write_index], &_norms[0], _norms.size() * sizeof(Norms));
