@@ -234,7 +234,7 @@ bool readCellIds(vlsv::ParallelReader& file, vector<CellID>& fileCells, const in
    // broadcast cellId's to everybody
    MPI_Bcast(&arraySize, 1, MPI_UINT64_T, masterRank, comm);
    fileCells.resize(arraySize);
-   MPI_Bcast(&(fileCells[0]), arraySize, MPI_UINT64_T, masterRank, comm);
+   MPI_Bcast(fileCells.data(), arraySize, MPI_UINT64_T, masterRank, comm);
 
    return success;
 }
@@ -1040,7 +1040,7 @@ bool readBlockData(vlsv::ParallelReader& file, const string& meshName, const vec
       list<pair<string, string>> attribs;
       attribs.push_back(make_pair("mesh", popName));
       std::array<unsigned int, 6> fileMeshBBox;
-      unsigned int* bufferpointer = &fileMeshBBox[0];
+      unsigned int* bufferpointer = fileMeshBBox.data();
       if (file.read("MESH_BBOX", attribs, 0, 6, bufferpointer, false) == false) {
          logFile << "(RESTART) ERROR: Failed to read MESH_BBOX at " << __FILE__ << ":" << __LINE__ << endl << write;
          success = false;
@@ -1384,7 +1384,7 @@ bool readFsGridVariable(vlsv::ParallelReader& file, const string& variableName, 
    MPI_Comm_size(MPI_COMM_WORLD, &size);
    MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
 
-   const auto* localSize = &fsgrid.getLocalSize()[0];
+   const auto* localSize = fsgrid.getLocalSize().data();
    const auto& localStart = fsgrid.getLocalStart();
    const auto& globalSize = fsgrid.getGlobalSize();
 
@@ -1993,7 +1993,7 @@ bool readFsgridDecomposition(vlsv::ParallelReader& file, std::array<fsgrid::Task
    attribs.push_back(make_pair("mesh", "fsgrid"));
 
    std::array<fsgrid::FsSize_t, 3> gridSize;
-   fsgrid::FsSize_t* gridSizePtr = &gridSize[0];
+   fsgrid::FsSize_t* gridSizePtr = gridSize.data();
    bool success = file.read("MESH_BBOX", attribs, 0, 3, gridSizePtr, false);
    if (success == false) {
       exitOnError(false, "(RESTART) FSGrid gridsize not found in file.", MPI_COMM_WORLD);
@@ -2001,7 +2001,7 @@ bool readFsgridDecomposition(vlsv::ParallelReader& file, std::array<fsgrid::Task
    }
 
    std::array<fsgrid::Task_t, 3> fsGridDecomposition = {0, 0, 0};
-   fsgrid::Task_t* ptr = &fsGridDecomposition[0];
+   fsgrid::Task_t* ptr = fsGridDecomposition.data();
 
    success = file.read("MESH_DECOMPOSITION", attribs, 0, 3, ptr, false);
    if (success == false) {
@@ -2029,7 +2029,7 @@ bool readFsgridDecomposition(vlsv::ParallelReader& file, std::array<fsgrid::Task
       list<pair<string, string>> mesh_attribs;
       mesh_attribs.push_back(make_pair("name", "fsgrid"));
       std::vector<fsgrid::FsSize_t> rank_first_ids(fsgridInputRanks);
-      fsgrid::FsSize_t* ids_ptr = &rank_first_ids[0];
+      fsgrid::FsSize_t* ids_ptr = rank_first_ids.data();
 
       std::set<fsgrid::FsIndex_t> x_corners, y_corners, z_corners;
 

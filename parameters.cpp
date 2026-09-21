@@ -683,14 +683,14 @@ void Parameters::getParameters() {
   }
 
    const string prefix = string("./");
-   if (access(&(P::restartWritePath[0]), W_OK) != 0) {
+   if (access(P::restartWritePath.data(), W_OK) != 0) {
       if (myRank == MASTER_RANK) {
          cerr << "ERROR restart write path " << P::restartWritePath << " not writeable, defaulting to local directory."
               << endl;
       }
       P::restartWritePath = prefix;
    }
-   if (access(&(P::recoverWritePath[0]), W_OK) != 0) {
+   if (access(P::recoverWritePath.data(), W_OK) != 0) {
       if (myRank == MASTER_RANK) {
          cerr << "ERROR recover write path " << P::recoverWritePath << " not writeable, defaulting to local directory."
               << endl;
@@ -801,7 +801,7 @@ void Parameters::getParameters() {
    } 
    
    for (uint i = 0; i < P::systemWritePath.size(); i++) {
-      if (access(&(P::systemWritePath.at(i)[0]), W_OK) != 0) {
+      if (access(P::systemWritePath.at(i).data(), W_OK) != 0) {
           if (myRank == MASTER_RANK) {
             cerr << "ERROR " << P::systemWriteName.at(i) << " write path " << P::systemWritePath.at(i)
                   << " not writeable. Please create them and remember the correct striping if in HPC environment." << endl;

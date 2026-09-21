@@ -113,7 +113,7 @@ bool propagateFields(fsgrids::perbspan perb,
       exit(1);
    }
 
-   const auto* localSize = &fsgrid.getLocalSize()[0];
+   const auto* localSize = fsgrid.getLocalSize().data();
 
    fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
                        phiprof::initializeTimer("Initialize technical.maxFsDt"), technical,

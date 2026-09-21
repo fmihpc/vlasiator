@@ -1362,9 +1362,9 @@ bool writeVersionInfo(const std::string& version, vlsv::Writer& vlsvWriter, MPI_
 
    bool retval;
    if (myRank == 0) {
-      retval = vlsvWriter.writeArray("VERSION", xmlAttributes, version.size(), 1, &version[0]);
+      retval = vlsvWriter.writeArray("VERSION", xmlAttributes, version.size(), 1, version.data());
    } else {
-      retval = vlsvWriter.writeArray("VERSION", xmlAttributes, 0, 1, &version[0]);
+      retval = vlsvWriter.writeArray("VERSION", xmlAttributes, 0, 1, version.data());
    }
 
    return retval;
@@ -1385,9 +1385,9 @@ bool writeConfigInfo(const std::string& config, vlsv::Writer& vlsvWriter, MPI_Co
 
    bool retval;
    if (myRank == 0) {
-      retval = vlsvWriter.writeArray("CONFIG", xmlAttributes, config.size(), 1, &config[0]);
+      retval = vlsvWriter.writeArray("CONFIG", xmlAttributes, config.size(), 1, config.data());
    } else {
-      retval = vlsvWriter.writeArray("CONFIG", xmlAttributes, 0, 1, &config[0]);
+      retval = vlsvWriter.writeArray("CONFIG", xmlAttributes, 0, 1, config.data());
    }
 
    return retval;
@@ -1411,7 +1411,7 @@ bool writeFsGridMetadata(FieldSolverGrid& fsgrid, fsgrids::consttechnicalspan te
    if (fsgrid.getRank() == 0) {
       const unsigned int arraySize = 6;
       const unsigned int vectorSize = 1;
-      vlsvWriter.writeArray("MESH_BBOX", xmlAttributes, arraySize, vectorSize, &boundaryBox[0]);
+      vlsvWriter.writeArray("MESH_BBOX", xmlAttributes, arraySize, vectorSize, boundaryBox.data());
    } else {
       const unsigned int arraySize = 0;
       const unsigned int vectorSize = 1;
@@ -1454,7 +1454,7 @@ bool writeFsGridMetadata(FieldSolverGrid& fsgrid, fsgrids::consttechnicalspan te
    // writeDomainSizes
    const std::array<fsgrid::FsIndex_t, 3>& localSize = fsgrid.getLocalSize();
    std::array<uint64_t, 2> meshDomainSize({(uint64_t)localSize[0] * (uint64_t)localSize[1] * (uint64_t)localSize[2], 0});
-   vlsvWriter.writeArray("MESH_DOMAIN_SIZES", xmlAttributes, 1, 2, &meshDomainSize[0]);
+   vlsvWriter.writeArray("MESH_DOMAIN_SIZES", xmlAttributes, 1, 2, meshDomainSize.data());
 
    // how many MPI ranks we wrote from
    int size = fsgrid.getNumFsRanks();
@@ -1463,9 +1463,9 @@ bool writeFsGridMetadata(FieldSolverGrid& fsgrid, fsgrids::consttechnicalspan te
    // Save the FSgrid decomposition
    std::array<fsgrid::Task_t, 3> decom = fsgrid.getDecomposition();
    if (fsgrid.getRank() == 0) {
-      vlsvWriter.writeArray("MESH_DECOMPOSITION", xmlAttributes, 3u, 1u, &decom[0]);
+      vlsvWriter.writeArray("MESH_DECOMPOSITION", xmlAttributes, 3u, 1u, decom.data());
    } else {
-      vlsvWriter.writeArray("MESH_DECOMPOSITION", xmlAttributes, 0u, 3u, &decom[0]);
+      vlsvWriter.writeArray("MESH_DECOMPOSITION", xmlAttributes, 0u, 3u, decom.data());
    }
 
    // Finally, write mesh object itself.
@@ -1516,27 +1516,27 @@ bool writeIonosphereGridMetadata(vlsv::Writer& vlsvWriter) {
    if (rank == 0) {
       const unsigned int arraySize = 6;
       const unsigned int vectorSize = 1;
-      vlsvWriter.writeArray("MESH_BBOX", xmlAttributes, arraySize, vectorSize, &boundaryBox[0]);
+      vlsvWriter.writeArray("MESH_BBOX", xmlAttributes, arraySize, vectorSize, boundaryBox.data());
    } else {
       const unsigned int arraySize = 0;
       const unsigned int vectorSize = 1;
-      vlsvWriter.writeArray("MESH_BBOX", xmlAttributes, arraySize, vectorSize, &boundaryBox[0]);
+      vlsvWriter.writeArray("MESH_BBOX", xmlAttributes, arraySize, vectorSize, boundaryBox.data());
    }
 
    // write DomainSizes
    std::array<uint64_t, 4> meshDomainSize({SBC::ionosphereGrid.elements.size(), 0, SBC::ionosphereGrid.nodes.size(), 0});
    if (rank == 0) {
-      vlsvWriter.writeArray("MESH_DOMAIN_SIZES", xmlAttributes, 1, 4, &meshDomainSize[0]);
+      vlsvWriter.writeArray("MESH_DOMAIN_SIZES", xmlAttributes, 1, 4, meshDomainSize.data());
    } else {
-      vlsvWriter.writeArray("MESH_DOMAIN_SIZES", xmlAttributes, 0, 4, &meshDomainSize[0]);
+      vlsvWriter.writeArray("MESH_DOMAIN_SIZES", xmlAttributes, 0, 4, meshDomainSize.data());
    }
 
    // write Offset arrays (no offset here, since we're writing only from a single task)
    std::array<uint64_t, 2> meshOffsets({SBC::ionosphereGrid.elements.size() * 5, SBC::ionosphereGrid.nodes.size()});
    if (rank == 0) {
-      vlsvWriter.writeArray("MESH_OFFSETS", xmlAttributes, 1, 2, &meshOffsets[0]);
+      vlsvWriter.writeArray("MESH_OFFSETS", xmlAttributes, 1, 2, meshOffsets.data());
    } else {
-      vlsvWriter.writeArray("MESH_OFFSETS", xmlAttributes, 0, 2, &meshOffsets[0]);
+      vlsvWriter.writeArray("MESH_OFFSETS", xmlAttributes, 0, 2, meshOffsets.data());
    }
 
    // Write node coordinates
@@ -2250,7 +2250,7 @@ bool writeRestart(
 
    // Fsgrid Reducers
    restartReducer.addOperator(new DRO::DataReductionOperatorFsGrid("fg_E", [](const FieldSolverData& fieldSolverData) -> std::vector<Real> {
-      const auto* localSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+      const auto* localSize = fieldSolverData.fsgrid.getLocalSize().data();
       std::vector<Real> retval(localSize[0] * localSize[1] * localSize[2] * 3);
 
       fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; }, phiprof::initializeTimer("DRO_fg_E"), fieldSolverData.technical,
@@ -2265,7 +2265,7 @@ bool writeRestart(
    }));
 
    restartReducer.addOperator(new DRO::DataReductionOperatorFsGrid("fg_PERB", [](const FieldSolverData& fieldSolverData) -> std::vector<Real> {
-      const auto* localSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+      const auto* localSize = fieldSolverData.fsgrid.getLocalSize().data();
       std::vector<Real> retval(localSize[0] * localSize[1] * localSize[2] * 3);
 
       fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; }, phiprof::initializeTimer("DRO_fg_PERB"), fieldSolverData.technical,
@@ -2477,9 +2477,9 @@ bool writeDiagnostic(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>&
       }
    }
 
-   MPI_Reduce(&localMin[0], &globalMin[0], nOps, MPI_Type<Real>(), MPI_MIN, 0, MPI_COMM_WORLD);
-   MPI_Reduce(&localMax[0], &globalMax[0], nOps, MPI_Type<Real>(), MPI_MAX, 0, MPI_COMM_WORLD);
-   MPI_Reduce(&localSum[0], &globalSum[0], nOps + 1, MPI_Type<Real>(), MPI_SUM, 0, MPI_COMM_WORLD);
+   MPI_Reduce(localMin.data(), globalMin.data(), nOps, MPI_Type<Real>(), MPI_MIN, 0, MPI_COMM_WORLD);
+   MPI_Reduce(localMax.data(), globalMax.data(), nOps, MPI_Type<Real>(), MPI_MAX, 0, MPI_COMM_WORLD);
+   MPI_Reduce(localSum.data(), globalSum.data(), nOps + 1, MPI_Type<Real>(), MPI_SUM, 0, MPI_COMM_WORLD);
 
    diagnostic << setprecision(12);
    diagnostic << Parameters::tstep << "\t";

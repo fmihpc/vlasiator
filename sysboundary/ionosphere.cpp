@@ -2063,10 +2063,10 @@ namespace SBC {
       std::vector<double> FACsum(nodes.size());
       std::vector<double> rhoSum(nodes.size());
       std::vector<double> temperatureSum(nodes.size());
-      MPI_Allreduce(&FACinput[0], &FACsum[0], nodes.size(), MPI_DOUBLE, MPI_SUM, communicator);
-      MPI_Allreduce(&rhoInput[0], &rhoSum[0], nodes.size(), MPI_DOUBLE, MPI_SUM, communicator);
+      MPI_Allreduce(FACinput.data(), FACsum.data(), nodes.size(), MPI_DOUBLE, MPI_SUM, communicator);
+      MPI_Allreduce(rhoInput.data(), rhoSum.data(), nodes.size(), MPI_DOUBLE, MPI_SUM, communicator);
       // TODO: Does it make sense to SUM the temperatures?
-      MPI_Allreduce(&temperatureInput[0], &temperatureSum[0], nodes.size(), MPI_DOUBLE, MPI_SUM, communicator);
+      MPI_Allreduce(temperatureInput.data(), temperatureSum.data(), nodes.size(), MPI_DOUBLE, MPI_SUM, communicator);
 
       for (uint n = 0; n < nodes.size(); n++) {
 
@@ -3295,7 +3295,7 @@ namespace SBC {
             continue;
          }
 
-         creal* const cellParams = &(mpiGrid[cells[i]]->parameters[0]);
+         creal* const cellParams = mpiGrid[cells[i]]->parameters.data();
          creal dx = cellParams[CellParams::DX];
          creal dy = cellParams[CellParams::DY];
          creal dz = cellParams[CellParams::DZ];

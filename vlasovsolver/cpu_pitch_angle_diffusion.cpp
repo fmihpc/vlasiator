@@ -352,7 +352,7 @@ void pitchAngleDiffusion(
                      dfdt[i] = MUSPACE(dfdt_mu,vi,mui); // dfdt_mu was scaled back down by 2pi*v^2 on creation
                   }
                   Vec dfdtUpdate;
-                  dfdtUpdate.load(&dfdt[0]);
+                  dfdtUpdate.load(dfdt.data());
 
                   // Update cell value, ensuring result is non-negative
                   Vec CellValue;
