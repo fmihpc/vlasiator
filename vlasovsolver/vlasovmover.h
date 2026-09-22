@@ -107,10 +107,11 @@ void interpolateMomentsForTimeclasses(
    const int cp_vx,
    const int cp_vy,
    const int cp_vz,
-   const bool dt2
+   const bool dt2,
+   const bool lastUpdateWasTranslation
 );
 
-void updateParticlePopulations(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
+void updateParticlePopulations(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, const bool lastUpdateWasTranslation);
 
 /*!
   \brief Compute 0th, 1st and 2nd velocity moments (RHO,VX,VY,VZ,P_11,P_22,P_33 and *_DT2) for all cells in the grid directly from distribution function. The simulation should be at a true time-step! This is at the moment only called at initialisation.

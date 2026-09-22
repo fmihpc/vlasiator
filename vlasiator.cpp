@@ -929,7 +929,7 @@ int simulate(int argn,char* args[]) {
          CellParams::P_12
       );
       
-      updateParticlePopulations(mpiGrid);
+      updateParticlePopulations(mpiGrid, false);
 
       computeMomentsTimer.stop();
    } else { // if we are restaring, make sure global timeclass settings are set
@@ -1489,19 +1489,21 @@ int simulate(int argn,char* args[]) {
 
          // updateState leaves mpiGrid and fsgrid in mismatching states, interpolated moments need to be recalculated
          // TODO: Check whether updated state is the same as previously so synchronization can be skipped when not needed?
-         calculateInterpolatedVelocityMoments(
+         interpolateMomentsForTimeclasses(
             mpiGrid,
             CellParams::RHOM,
-            CellParams::VX,
-            CellParams::VY,
-            CellParams::VZ,
             CellParams::RHOQ,
             CellParams::P_11,
             CellParams::P_22,
             CellParams::P_33,
             CellParams::P_23,
             CellParams::P_13,
-            CellParams::P_12
+            CellParams::P_12,
+            CellParams::VX,
+            CellParams::VY,
+            CellParams::VZ,
+            false,
+            false
          );
          timer.stop();
          addTimedBarrier("barrier-boundary-conditions");
@@ -1539,7 +1541,8 @@ int simulate(int argn,char* args[]) {
          CellParams::VX,
          CellParams::VY,
          CellParams::VZ,
-         false
+         false,
+         true
       );
 
       interpolateMomentsForTimeclasses(
@@ -1555,10 +1558,11 @@ int simulate(int argn,char* args[]) {
          CellParams::VX_DT2,
          CellParams::VY_DT2,
          CellParams::VZ_DT2,
+         true,
          true
       );
 
-      updateParticlePopulations(mpiGrid);
+      updateParticlePopulations(mpiGrid, true);
 
       momentsTimer.stop();
 
@@ -1672,8 +1676,27 @@ int simulate(int argn,char* args[]) {
          timer.stop();
          addTimedBarrier("barrier-boundary-conditions");
       }
+
+
+      //we interpolate here for output data reasons
+      interpolateMomentsForTimeclasses(
+         mpiGrid,
+         CellParams::RHOM,
+         CellParams::RHOQ,
+         CellParams::P_11,
+         CellParams::P_22,
+         CellParams::P_33,
+         CellParams::P_23,
+         CellParams::P_13,
+         CellParams::P_12,
+         CellParams::VX,
+         CellParams::VY,
+         CellParams::VZ,
+         false,
+         false
+      );
       
-      updateParticlePopulations(mpiGrid);
+      updateParticlePopulations(mpiGrid, false);
 
       // momentsTimer.stop();
 

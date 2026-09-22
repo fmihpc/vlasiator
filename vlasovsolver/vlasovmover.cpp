@@ -1238,7 +1238,11 @@ void calculateInterpolatedVelocityMoments(
 Real linearInterpolation(Real x0, Real y0, Real x1, Real y1, Real x) {
    // https://en.wikipedia.org/wiki/Linear_interpolation
    // this is used in the function below.
-   assert(x >= x0 && x<=x1);
+   if (!(x >= x0 && x<=x1)) {
+      std::cerr << "linearInterpolation: x = " << x << " is out of bounds [" << x0 << ", " << x1 << "]\n";
+      assert(false);
+   }
+
    return (y0 * (x1 - x) + y1 * (x - x0))/(x1 - x0);
 }
 
@@ -1246,7 +1250,11 @@ Real lagrangeInterpolation2order(Real x0, Real y0, Real x1, Real y1, Real x2, Re
    // https://mathworld.wolfram.com/LagrangeInterpolatingPolynomial.html
    // Lagrange polynomial for interpolation between three points.
    
-   assert(x >= x0 && x<=x2);
+   if (!(x >= x0 && x<=x2)) {
+      std::cerr << "lagrangeInterpolation2order: x = " << x << " is out of bounds [" << x0 << ", " << x2 << "]\n";
+      assert(false);
+   }
+
    return (y0 * (x - x1) * (x - x2) / ((x0 - x1) * (x0 - x2)) +
          y1 * (x - x0) * (x - x2) / ((x1 - x0) * (x1 - x2)) +
          y2 * (x - x0) * (x - x1) / ((x2 - x0) * (x2 - x1)));
@@ -1256,7 +1264,11 @@ Real lagrangeInterpolation3order(Real x0, Real y0, Real x1, Real y1, Real x2, Re
    // https://mathworld.wolfram.com/LagrangeInterpolatingPolynomial.html
    // Lagrange polynomial for interpolation between four points.
 
-   assert(x >= x0 && x<=x3);
+   if (!(x >= x0 && x<=x3)) {
+      std::cerr << "lagrangeInterpolation3order: x = " << x << " is out of bounds [" << x0 << ", " << x3 << "]\n";
+      assert(false);
+   }
+
    return (y0 * (x - x1) * (x - x2) * (x - x3) / ((x0 - x1) * (x0 - x2) * (x0 - x3)) +
          y1 * (x - x0) * (x - x2) * (x - x3) / ((x1 - x0) * (x1 - x2) * (x1 - x3)) +
          y2 * (x - x0) * (x - x1) * (x - x3) / ((x2 - x0) * (x2 - x1) * (x2 - x3)) +
@@ -1267,7 +1279,11 @@ Real cubicHermiteSplineInterpolation(Real x0, Real y0, Real x1, Real y1, Real x2
    // https://kluge.in-chemnitz.de/opensource/spline/
    // Cubic Hermite spline interpolation between four points.
 
-   assert(x >= x0 && x<=x3);
+   if (!(x >= x0 && x<=x3)) {
+      std::cerr << "cubicHermiteSplineInterpolation: x = " << x << " is out of bounds [" << x0 << ", " << x3 << "]\n";
+      assert(false);
+   }
+
    vector<Real> xvals = {x0, x1, x2, x3};
    vector<Real> yvals = {y0, y1, y2, y3};
    tk::spline s(xvals,yvals,tk::spline::cspline_hermite);
@@ -1289,7 +1305,8 @@ void interpolateMomentsForTimeclasses(
    const int cp_vx,
    const int cp_vy,
    const int cp_vz,
-   const bool dt2 // true if second moment / dt2
+   const bool dt2, // true if second moment / dt2
+   const bool lastUpdateWasTranslation
 ) {
 
    const vector<CellID>& cells = getLocalCells();
@@ -1299,8 +1316,6 @@ void interpolateMomentsForTimeclasses(
       const CellID cellID = cells[c];
       SpatialCell* SC = mpiGrid[cellID];
       const int timeclass = SC->parameters[CellParams::TIMECLASS];
-      // const Real tr = SC->parameters[CellParams::TIME_R];
-      // const Real tv = SC->parameters[CellParams::TIME_V];
 
       // this function is called in the main loop after translation, but before acceleration.
       // therefore, if SC->get_timeclass_turn_v() is true, it means that the
@@ -1326,14 +1341,6 @@ void interpolateMomentsForTimeclasses(
             SC->parameters[cp_vx]   = 0.5* ( SC->parameters[CellParams::VX_R] + SC->parameters[CellParams::VX_V] );
             SC->parameters[cp_vy] = 0.5* ( SC->parameters[CellParams::VY_R] + SC->parameters[CellParams::VY_V] );
             SC->parameters[cp_vz] = 0.5* ( SC->parameters[CellParams::VZ_R] + SC->parameters[CellParams::VZ_V] );
-            // for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-            //    spatial_cell::Population& pop = SC->get_population(popID);
-            //    pop.RHO = 0.5 * ( pop.RHO_R_PREV + pop.RHO_V );
-            //    for(int i=0; i<3; i++) {
-            //       pop.V[i] = 0.5 * ( pop.V_R_PREV[i] + pop.V_V[i] );
-            //       pop.P[i] = 0.5 * ( pop.P_R_PREV[i] + pop.P_V[i] );
-            //    }
-            // }
 
          } else {
 
@@ -1349,14 +1356,6 @@ void interpolateMomentsForTimeclasses(
             SC->parameters[cp_vy] = 0.5* ( SC->parameters[CellParams::VY_R_PREV] + SC->parameters[CellParams::VY_V] );
             SC->parameters[cp_vz] = 0.5* ( SC->parameters[CellParams::VZ_R_PREV] + SC->parameters[CellParams::VZ_V] );
 
-         //    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-         //       spatial_cell::Population& pop = SC->get_population(popID);
-         //       pop.RHO = 0.5 * ( pop.RHO_R + pop.RHO_V );
-         //       for(int i=0; i<3; i++) {
-         //          pop.V[i] = 0.5 * ( pop.V_R[i] + pop.V_V[i] );
-         //          pop.P[i] = 0.5 * ( pop.P_R[i] + pop.P_V[i] );
-         //       }
-         //    }
             }
 
      } else { // this block if timeclass != maxTC
@@ -1373,36 +1372,6 @@ void interpolateMomentsForTimeclasses(
          // normModul is the point in the interval [0, 1] where the moment is calculated.
 
          // !! if translation and acceleration are changed to not update both on fractimestep 0, this will break
-
-         // if (P::tcVMomentPropagation == true) {
-         //    if (SC->get_timeclass_turn_v()) { // clamping down values as they get updated
-         //       // SC->parameters[cp_vx] = lagrangeInterpolation2order(-0.25, 0.5*(SC->parameters[CellParams::VX_V_PREV]+SC->parameters[CellParams::VX_R_PREV]), 0.25, 0.5*(SC->parameters[CellParams::VX_V]+SC->parameters[CellParams::VX_R_PREV]), 0.75, 0.5*(SC->parameters[CellParams::VX_V]+SC->parameters[CellParams::VX_R]), normModul);
-         //       // SC->parameters[cp_vy] = lagrangeInterpolation2order(-0.25, 0.5*(SC->parameters[CellParams::VY_V_PREV]+SC->parameters[CellParams::VY_R_PREV]), 0.25, 0.5*(SC->parameters[CellParams::VY_V]+SC->parameters[CellParams::VY_R_PREV]), 0.75, 0.5*(SC->parameters[CellParams::VY_V]+SC->parameters[CellParams::VY_R]), normModul);
-         //       // SC->parameters[cp_vz] = lagrangeInterpolation2order(-0.25, 0.5*(SC->parameters[CellParams::VZ_V_PREV]+SC->parameters[CellParams::VZ_R_PREV]), 0.25, 0.5*(SC->parameters[CellParams::VZ_V]+SC->parameters[CellParams::VZ_R_PREV]), 0.75, 0.5*(SC->parameters[CellParams::VZ_V]+SC->parameters[CellParams::VZ_R]), normModul);
-               
-         //       Real true_vx_0 = 0.5*(SC->parameters[CellParams::VX_R_PREV] + SC->parameters[CellParams::VX_V]); // true moment at 0.0
-         //       Real true_vy_0 = 0.5*(SC->parameters[CellParams::VY_R_PREV] + SC->parameters[CellParams::VY_V]); // true moment at 0.0
-         //       Real true_vz_0 = 0.5*(SC->parameters[CellParams::VZ_R_PREV] + SC->parameters[CellParams::VZ_V]); // true moment at 0.0
-
-         //       Real true_vx_1 = 0.5*(SC->parameters[CellParams::VX_R] + SC->parameters[CellParams::VX_V]); // true moment at 0.5
-         //       Real true_vy_1 = 0.5*(SC->parameters[CellParams::VY_R] + SC->parameters[CellParams::VY_V]); // true moment at 0.5
-         //       Real true_vz_1 = 0.5*(SC->parameters[CellParams::VZ_R] + SC->parameters[CellParams::VZ_V]); // true moment at 0.5
-
-         //       SC->parameters[cp_vx] = linearInterpolation(0.0, true_vx_0, 0.5, true_vx_1, normModul);
-         //       SC->parameters[cp_vy] = linearInterpolation(0.0, true_vy_0, 0.5, true_vy_1, normModul);
-         //       SC->parameters[cp_vz] = linearInterpolation(0.0, true_vz_0, 0.5, true_vz_1, normModul);
-         //    } else {
-
-         //    Eigen::Transform<Real,3,Eigen::Affine> vUpdateMatrix = compute_acceleration_transformation(SC, 0, (P::timeclassDt[SC->parameters[CellParams::TIMECLASS]])*(1.0/RTCpow));
-         //    const Eigen::Matrix<Real,3,1> V(SC->parameters[cp_vx], SC->parameters[cp_vy], SC->parameters[cp_vz]);
-         //    Eigen::Matrix<Real,3,1> V_updated = vUpdateMatrix * V;
-
-         //    SC->parameters[cp_vx] = V_updated(0);
-         //    SC->parameters[cp_vy] = V_updated(1);
-         //    SC->parameters[cp_vz] = V_updated(2);
-         //    }
-         // }
-
 
          if ((P::tcMomentInterpolationType != -1 && P::tcMomentInterpolationType != 1 &&
              P::tcMomentInterpolationType != 2 && P::tcMomentInterpolationType != 3)) {
@@ -1426,7 +1395,7 @@ void interpolateMomentsForTimeclasses(
 
          // for type of interpolation (P::tcMomentInterpolationType) -1 is cubic C^1 Hermite spline, 1 is linear, 2 is lagrange 2nd order, 3 is lagrange 3rd order.
 
-         if (SC->get_timeclass_turn_v()) { // aka if translation moments are ahead of acceleration moments
+         if (lastUpdateWasTranslation && SC->get_timeclass_turn_v()) { // aka if translation moments are ahead of acceleration moments
             // here, temporal order from newest to oldest is _R, _V, _R_PREV, _V_PREV, _R_PREV_PREV, _V_PREV_PREV
             for (int i=0; i<nMomentsToInterp; i++) {
                avgMoments1[i] = 0.5*( SC->parameters[CellParams::RHOM_R+i] + SC->parameters[CellParams::RHOM_V+i] ); // at 0.5
@@ -1488,7 +1457,7 @@ void interpolateMomentsForTimeclasses(
    } // for loop over cells
 }
 
-void updateParticlePopulations(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
+void updateParticlePopulations(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, const bool lastUpdateWasTranslation) {
 
    const vector<CellID>& cells = getLocalCells();
    #pragma omp parallel for
@@ -1521,36 +1490,11 @@ void updateParticlePopulations(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometr
          for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
             spatial_cell::Population& pop = SC->get_population(popID);
 
-            // if (P::tcVMomentPropagation == true) {
-            //    if (SC->get_timeclass_turn_v()) { // clamping down values as they get updated
-            //       Real true_vx_0 = 0.5*(pop.V_R_PREV[0] + pop.V_V[0]); // true moment at 0.0
-            //       Real true_vy_0 = 0.5*(pop.V_R_PREV[1] + pop.V_V[1]); // true moment at 0.0
-            //       Real true_vz_0 = 0.5*(pop.V_R_PREV[2] + pop.V_V[2]); // true moment at 0.0
-
-            //       Real true_vx_1 = 0.5*(pop.V_R[0] + pop.V_V[0]); // true moment at 0.5
-            //       Real true_vy_1 = 0.5*(pop.V_R[1] + pop.V_V[1]); // true moment at 0.5
-            //       Real true_vz_1 = 0.5*(pop.V_R[2] + pop.V_V[2]); // true moment at 0.5
-
-            //       pop.V[0] = linearInterpolation(0.0, true_vx_0, 0.5, true_vx_1, normModul);
-            //       pop.V[1] = linearInterpolation(0.0, true_vy_0, 0.5, true_vy_1, normModul);
-            //       pop.V[2] = linearInterpolation(0.0, true_vz_0, 0.5, true_vz_1, normModul);
-            //    } else {
-
-            //    Eigen::Transform<Real,3,Eigen::Affine> vUpdateMatrix = compute_acceleration_transformation(SC, popID, (P::timeclassDt[SC->parameters[CellParams::TIMECLASS]])*(1.0/RTCpow));
-            //    const Eigen::Matrix<Real,3,1> V(pop.V[0], pop.V[1], pop.V[2]);
-            //    Eigen::Matrix<Real,3,1> V_updated = vUpdateMatrix * V;
-
-            //    pop.V[0] = V_updated(0);
-            //    pop.V[1] = V_updated(1);
-            //    pop.V[2] = V_updated(2);
-            //    }
-            // }
-
             std::array<Real, 5> avgMomentsRho; // logic of these lists is flipped in comparison to the other interpolation function
             std::array<std::array<Real, 3>, 5> avgMomentsV; 
             std::array<std::array<Real, 6>, 5> avgMomentsP;
 
-            if (SC->get_timeclass_turn_v()) { // aka if translation moments are ahead of acceleration moments
+            if (lastUpdateWasTranslation && SC->get_timeclass_turn_v()) { // aka if translation moments are ahead of acceleration moments
                // here, temporal order from newest to oldest is _R, _V, _R_PREV, _V_PREV, _R_PREV_PREV, _V_PREV_PREV
 
                avgMomentsRho.at(0) = 0.5 * ( pop.RHO_R + pop.RHO_V ); // 0.5
