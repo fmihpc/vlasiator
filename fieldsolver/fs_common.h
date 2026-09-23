@@ -79,7 +79,7 @@ bool propagateFields(fsgrids::perbspan perb,
                      fsgrids::technicalspan technical, FieldSolverGrid &fsgrid, SysBoundary& sysBoundaries,
                      creal& dt, cuint subcycles);
 
-Real divideIfNonZero(creal rhoV, creal rho);
+ARCH_HOSTDEV Real divideIfNonZero(creal rhoV, creal rho);
 
 /*! Namespace encompassing the enum defining the list of reconstruction coefficients used in field component reconstructions.*/
 namespace Rec {

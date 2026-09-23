@@ -743,7 +743,8 @@ void update_remote_mapping_contribution_amr(
    phiprof::Timer updateRemoteTimerPre {"trans-amr-remotes-setup-getcells"};
    // Initialize remote cells
    #pragma omp parallel for
-   for (auto rc : remote_cells) {
+   for (size_t i = 0; i < remote_cells.size(); ++i) {
+      const CellID rc = remote_cells[i];
       SpatialCell *ccell = mpiGrid[rc];
       // Initialize number of blocks to 0 and block data to a default value.
       // We need the default for 1 to 1 communications
@@ -757,7 +758,8 @@ void update_remote_mapping_contribution_amr(
 
    // Initialize local cells
    #pragma omp parallel for
-   for (auto lc : local_cells) {
+   for (size_t i = 0; i < local_cells.size(); ++i) {
+      const CellID lc = local_cells[i];
       SpatialCell *ccell = mpiGrid[lc];
       if(ccell) {
          // Initialize number of blocks to 0 and neighbor block data pointer to the local block data pointer

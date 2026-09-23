@@ -30,7 +30,7 @@
  * \param numerator Numerator
  * \param denominator Denominator
  */
-Real divideIfNonZero(creal numerator, creal denominator) {
+ARCH_HOSTDEV Real divideIfNonZero(creal numerator, creal denominator) {
    if (denominator <= 0.0) {
       return 0.0;
    } else {

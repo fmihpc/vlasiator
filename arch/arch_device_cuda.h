@@ -7,6 +7,12 @@
 #include <cuda_runtime.h>
 #include <cub/cub.cuh>
 #include <cub/device/device_radix_sort.cuh>
+// cub::Max()/cub::Min() were deprecated aliases for cuda::maximum<>/cuda::minimum<>
+// in CUDA 12.x's CCCL and removed outright in CUDA 13's; use the replacements
+// directly since they are present in both.
+#include <cuda/functional>
+#include <cstdio>
+#include <cstdlib>
 #ifdef _OPENMP
   #include <omp.h>
 #endif
@@ -51,7 +57,21 @@
 #define gpuMemAdviseSetPreferredLocation cudaMemAdviseSetPreferredLocation
 #define gpuMemAttachSingle               cudaMemAttachSingle
 #define gpuMemAttachGlobal               cudaMemAttachGlobal
+
+#if defined(CUDART_VERSION) && (CUDART_VERSION >= 13000)
+/* CUDA 13 dropped the (ptr, count, int device, stream) overload of
+ * cudaMemPrefetchAsync in favor of a cudaMemLocation-based signature.
+ * Keep call sites on the old int-device form and translate here (same
+ * fix as submodules/hashinator/include/splitvector/archMacros.h). */
+static inline cudaError_t gpuMemPrefetchAsync(const void* devPtr, size_t count, int dstDevice, cudaStream_t stream) {
+   cudaMemLocation location;
+   location.type = (dstDevice == cudaCpuDeviceId) ? cudaMemLocationTypeHost : cudaMemLocationTypeDevice;
+   location.id = (dstDevice == cudaCpuDeviceId) ? 0 : dstDevice;
+   return cudaMemPrefetchAsync(devPtr, count, location, 0, stream);
+}
+#else
 #define gpuMemPrefetchAsync              cudaMemPrefetchAsync
+#endif
 
 #define gpuStreamCreate                  cudaStreamCreate
 #define gpuStreamDestroy                 cudaStreamDestroy
@@ -218,11 +238,10 @@ namespace arch{
       }
 
       __host__ __device__ T &operator [] (uint i) const {
-#ifdef __CUDA_ARCH__
-         return d_ptr[i];
-#else
-         return ptr[i];
-#endif
+         VLASIATOR_IF_DEVICE(
+            (return d_ptr[i];),
+            (return ptr[i];)
+         );
       }
    };
 
@@ -417,13 +436,13 @@ namespace arch{
             }
          }
          else if(Op == reduce_op::max){
-            T aggregate = BlockReduce(temp_storage[i]).Reduce(thread_data[i], cub::Max());
+            T aggregate = BlockReduce(temp_storage[i]).Reduce(thread_data[i], cuda::maximum<>());
             if(threadIdx.x == 0) {
                atomicMax(&rslt[i], aggregate);
             }
          }
          else if(Op == reduce_op::min){
-            T aggregate = BlockReduce(temp_storage[i]).Reduce(thread_data[i], cub::Min());
+            T aggregate = BlockReduce(temp_storage[i]).Reduce(thread_data[i], cuda::minimum<>());
             if(threadIdx.x == 0) {
                atomicMin(&rslt[i], aggregate);
             }

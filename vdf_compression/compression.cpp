@@ -407,7 +407,8 @@ float compress_vdfs_zfp(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mp
       Real sparse = getObjectWrapper().particleSpecies[popID].sparseMinValue;
       // Vlasiator boilerplate
 #pragma omp parallel for reduction(+ : local_compression_achieved)
-      for (auto& cid : local_cells) { // loop over spatial cells
+      for (size_t vlasi_i = 0; vlasi_i < local_cells.size(); ++vlasi_i) { // loop over spatial cells
+         const CellID& cid = local_cells[vlasi_i];
          SpatialCell* sc = mpiGrid[cid];
          assert(sc && "Invalid Pointer to Spatial Cell !");
          if (sc->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
@@ -449,7 +450,8 @@ float compress_vdfs_octree(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>&
    for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID) {
       // Vlasiator boilerplate
 #pragma omp parallel for reduction(+ : total_bytes, local_compression_achieved)
-      for (auto& cid : local_cells) { // loop over spatial cells
+      for (size_t vlasi_i = 0; vlasi_i < local_cells.size(); ++vlasi_i) { // loop over spatial cells
+         const CellID& cid = local_cells[vlasi_i];
          SpatialCell* sc = mpiGrid[cid];
          if (sc->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
             continue;
