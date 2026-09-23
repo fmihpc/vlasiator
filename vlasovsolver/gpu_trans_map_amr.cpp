@@ -38,9 +38,9 @@
 #include <mpi.h>
 #include <mpi-ext.h>
 
-#if defined(MPIX_CUDA_AWARE_SUPPORT) && MPIX_CUDA_AWARE_SUPPORT
-#define CUDA_AWARE_MPI
-#endif
+//#if defined(MPIX_CUDA_AWARE_SUPPORT) && MPIX_CUDA_AWARE_SUPPORT
+//#define CUDA_AWARE_MPI
+//#endif
 
 // Skip remapping for this stencil, if no blocks exist
 __device__ inline bool check_skip_blocks(const Realf* __restrict__ const *pencilBlockData, const uint centerOffset) {
