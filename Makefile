@@ -362,7 +362,7 @@ endif
 # for all files in the vdf_compression/ dir
 %.o: vdf_compression/%.cpp
 	@echo [CC] $<
-	$(SILENT)${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c $< ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_NN_COMPRESSOR} ${INC_ZOLTAN} ${INC_EIGEN} ${INC_ZFP} ${INC_OCTREE_COMPRESSOR}
+	$(SILENT)${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c $< ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_NN_COMPRESSOR} ${INC_ZOLTAN} ${INC_EIGEN} ${INC_ZFP} ${INC_OCTREE_COMPRESSOR} ${INC_VECTORCLASS}
 
 # Make executable
 vlasiator: $(OBJS) $(OBJS_FSOLVER)

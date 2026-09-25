@@ -693,12 +693,12 @@ bool writeVelocityDistributionDataAsterix(const uint popID,Writer& vlsvWriter,
    // space, but a purely numerical bounding box.
    uint64_t bbox[6];
    const size_t meshID = getObjectWrapper().particleSpecies[popID].velocityMesh;
-   bbox[0] = vmesh::getMeshWrapper()->velocityMeshes->at(meshID).gridLength[0];
-   bbox[1] = vmesh::getMeshWrapper()->velocityMeshes->at(meshID).gridLength[1];
-   bbox[2] = vmesh::getMeshWrapper()->velocityMeshes->at(meshID).gridLength[2];
-   bbox[3] = vmesh::getMeshWrapper()->velocityMeshes->at(meshID).blockLength[0];
-   bbox[4] = vmesh::getMeshWrapper()->velocityMeshes->at(meshID).blockLength[1];
-   bbox[5] = vmesh::getMeshWrapper()->velocityMeshes->at(meshID).blockLength[2];
+   bbox[0] = vmesh::getMeshWrapper()->at(meshID).gridLength[0];
+   bbox[1] = vmesh::getMeshWrapper()->at(meshID).gridLength[1];
+   bbox[2] = vmesh::getMeshWrapper()->at(meshID).gridLength[2];
+   bbox[3] = vmesh::getMeshWrapper()->at(meshID).blockLength[0];
+   bbox[4] = vmesh::getMeshWrapper()->at(meshID).blockLength[1];
+   bbox[5] = vmesh::getMeshWrapper()->at(meshID).blockLength[2];
 
    attribs.clear();
    attribs["mesh"] = getObjectWrapper().particleSpecies[popID].name;

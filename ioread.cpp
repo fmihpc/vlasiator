@@ -1099,7 +1099,6 @@ bool readBlockData(vlsv::ParallelReader& file, const string& meshName, const vec
          }
 
          const Real dVy = vmesh::getMeshWrapper()->at(meshID).getCellDx(1);
-         const Real dVy = vmesh::getMeshWrapper()->velocityMeshes->at(meshID).cellSize[1];
          for (const auto& c : fileVelCoordsY) {
             Real cellindex = (c - vmesh::getMeshWrapper()->at(meshID).meshMinLimits[1]) / dVy;
             if (fabs(nearbyint(cellindex) - cellindex) > 1. / 10000.) {

@@ -35,7 +35,7 @@ namespace projects {
       vmesh::VelocityMesh *vmesh = cell->get_velocity_mesh(popID);
 
       vmesh::GlobalID *GIDbuffer;
-      const vmesh::LocalID* vblocks_ini = cell->get_velocity_grid_length(popID);
+      const auto& vblocks_ini = cell->get_velocity_grid_length(popID);
       const uint blocksCount = vblocks_ini[0]*vblocks_ini[1]*vblocks_ini[2];
       #ifdef USE_GPU
       // Host-pinned memory buffer, max possible size

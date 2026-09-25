@@ -34,12 +34,10 @@ ASTERIX::UnorderedVDF ASTERIX::extract_pop_vdf_from_spatial_cell(spatial_cell::S
    assert(sc && "Invalid Pointer to Spatial Cell !");
    auto blockContainer = sc->get_velocity_blocks(popID);
    const size_t total_blocks = blockContainer->size();
-   const Real* max_v_lims = sc->get_population(popID).vmesh->getMeshMaxLimits();
-   const Real* min_v_lims = sc->get_population(popID).vmesh->getMeshMinLimits();;
+   const auto& max_v_lims = sc->get_population(popID).vmesh->getMeshMaxLimits();
+   const auto& min_v_lims = sc->get_population(popID).vmesh->getMeshMinLimits();
    const Real* blockParams = sc->get_block_parameters(popID);
    Realf* data = blockContainer->getData();
-   assert(max_v_lims && "Invalid Pointre to max_v_limits");
-   assert(min_v_lims && "Invalid Pointre to min_v_limits");
    assert(data && "Invalid Pointre block container data");
    auto vcoords = std::vector<std::array<Real, 3>>(blockContainer->size() * WID3, {Real(0), Real(0), Real(0)});
    auto vspace = std::vector<Realf>(blockContainer->size() * WID3, Realf(0));
@@ -82,12 +80,10 @@ void ASTERIX::overwrite_pop_spatial_cell_vdf(spatial_cell::SpatialCell* sc, uint
    assert(sc && "Invalid Pointer to Spatial Cell !");
    auto blockContainer = sc->get_velocity_blocks(popID);
    const size_t total_blocks = blockContainer->size();
-   const Real* max_v_lims = sc->get_population(popID).vmesh->getMeshMaxLimits();
-   const Real* min_v_lims = sc->get_population(popID).vmesh->getMeshMinLimits();
+   const auto& max_v_lims = sc->get_population(popID).vmesh->getMeshMaxLimits();
+   const auto& min_v_lims = sc->get_population(popID).vmesh->getMeshMinLimits();
    const Real* blockParams = sc->get_block_parameters(popID);
    Realf* data = blockContainer->getData();
-   assert(max_v_lims && "Invalid Pointre to max_v_limits");
-   assert(min_v_lims && "Invalid Pointre to min_v_limits");
    assert(data && "Invalid Pointre block container data");
 
    std::size_t cnt = 0;
