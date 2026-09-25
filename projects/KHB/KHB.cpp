@@ -35,9 +35,9 @@ namespace projects {
    using namespace std;
    KHB::KHB(): TriAxisSearch() { }
    KHB::~KHB() { }
-   
+
    bool KHB::initialize(void) {return Project::initialize();}
-   
+
    void KHB::addParameters() {
       typedef Readparameters RP;
       RP::add<Real>("KHB.P", "Constant total pressure (thermal+magnetic), used to determine the temperature profile (Pa)",this->P,0.0);
@@ -71,8 +71,8 @@ namespace projects {
       }
 
    }
-   
-   
+
+
    Real KHB::profile(creal top, creal bottom, creal x) const {
       if(top == bottom) {
          return top;
@@ -85,7 +85,7 @@ namespace projects {
          return 0.5 * ((top-bottom) * tanh(x/this->transitionWidth) + top+bottom);
       }
    }
-   
+
    inline vector<std::array<Real, 3> > KHB::getV0(
       creal x,
       creal y,
@@ -98,14 +98,14 @@ namespace projects {
 
       // add an initial velocity perturbation to Vx
       // initialize RNG for calculating random phases for the initial perturbation
-      std::default_random_engine rndState;
+      std::knuth_b rndState;
       setRandomSeed(0,rndState);
       Real phase = 0.0;
 
       // add each mode to the initial perturbation
       for (int i=0; i<=this->harmonics; i++) {
-	 if (this->randomPhase) {
-            phase = 2.0 * M_PI * getRandomNumber(rndState); 
+         if (this->randomPhase) {
+            phase = 2.0 * M_PI * getRandomNumber(rndState);
          }
 
          if (this->offset != 0.0) {

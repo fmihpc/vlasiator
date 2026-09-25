@@ -59,7 +59,7 @@ namespace projects {
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
 
         DispersionSpeciesParameters* sP=new DispersionSpeciesParameters();
-        
+
         speciesParamsRead.push_back(sP);
         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
         RP::add<Real>(pop + "_Dispersion.VX0", "Bulk velocity (m/s)", sP->VX0,0.0);
@@ -190,7 +190,7 @@ namespace projects {
    }
 
    void Dispersion::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
-      std::default_random_engine rndState;
+      std::knuth_b rndState;
       setRandomCellSeed(cell,rndState);
 
       this->rndRho=getRandomNumber(rndState);
@@ -226,7 +226,7 @@ namespace projects {
             auto& cell = perb[stencil.ooo()];
 
             const auto seedmodifier = coordinates.globalIDFromLocalCoordinates(stencil.i, stencil.j, stencil.k);
-            std::default_random_engine rndState_l;
+            std::knuth_b rndState_l;
             rndState_l.seed(seed+seedmodifier);
             Real rndBuffer[3];
             rndBuffer[0] = std::uniform_real_distribution<>(-0.5,0.5)(rndState_l);
