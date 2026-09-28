@@ -385,6 +385,24 @@ jobs:
           mini-apps/ionosphereSolverTests/atmosphere.png
         if-no-files-found: error
 
+  configTests_github:
+    # Build & run the glossa / Readparameters config-parsing tests (mini-apps/configTests)
+    runs-on: ubuntu-latest
+    container: ursg/vlasiator_ci:20260910_1
+    needs: build_libraries_github
+    steps:
+    - *checkoutSource
+    - name: Download libraries
+      uses: actions/download-artifact@v5
+      with:
+        name: libraries-docker
+    - name: Unpack libraries
+      run: tar --zstd -xf libraries-docker.tar.zstd
+    - name: Build and run configTests
+      run: |
+        cd mini-apps/configTests/
+        VLASIATOR_ARCH=github_actions make -j3 test
+
   check_cfg_files:
     runs-on: ubuntu-latest
     container: ursg/vlasiator_ci:20260910_1

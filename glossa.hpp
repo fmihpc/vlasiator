@@ -5,9 +5,11 @@
 #include <cctype>
 #include <cmath>
 #include <cstddef>
+#include <cstdlib>
 #include <iomanip>
 #include <iostream>
 #include <unordered_map>
+#include <unordered_set>
 #include <new>
 #include <sstream>
 #include <stdexcept>
@@ -273,6 +275,9 @@ namespace glossa {
                break;
             }
             advance();
+            if (is_operand_terminator()) {
+               throw std::runtime_error("ERROR: missing operand after " + describe_token(current()));
+            }
             expr = new_binary(arena, expr, op, parse_mul());
          }
          return expr;
@@ -290,9 +295,56 @@ namespace glossa {
                break;
             }
             advance();
+            if (is_operand_terminator()) {
+               throw std::runtime_error("ERROR: missing operand after " + describe_token(current()));
+            }
             expr = new_binary(arena, expr, op, parse_primary());
          }
          return expr;
+      }
+
+      // A binary operator must always be followed by an operand. Without this check a
+      // trailing operator (e.g. "x = 1 +") produces an Expr node with a null child which
+      // segfaults at evaluation time.
+      bool is_operand_terminator() const {
+         switch (current().kind) {
+         case Token::Kind::_EOF:
+            return true;
+         case Token::Kind::RParen:
+            return true;
+         default:
+            return false;
+         }
+      }
+
+      std::string describe_token(const Token& t) const {
+         switch (t.kind) {
+         case Token::Kind::_EOF:
+            return "end of line";
+         case Token::Kind::LParen:
+            return "'('";
+         case Token::Kind::RParen:
+            return "')'";
+         case Token::Kind::Plus:
+            return "'+'";
+         case Token::Kind::Minus:
+            return "'-'";
+         case Token::Kind::Star:
+            return "'*'";
+         case Token::Kind::Slash:
+            return "'/'";
+         case Token::Kind::Equal:
+            return "'='";
+         case Token::Kind::Comma:
+            return "','";
+         case Token::Kind::Number:
+            return std::to_string(t.number);
+         case Token::Kind::Id:
+            return t.text;
+         case Token::Kind::String:
+            return "\"...\"";
+         }
+         return "?";
       }
 
       Expr* parse_primary() {
@@ -350,7 +402,10 @@ namespace glossa {
 
    using Vars = std::unordered_map<std::string, Expr*>;
 
-   inline Value eval(const Expr* expr, const Vars& vars) {
+   // Resolves an expression against vars. inflight tracks the variable names currently being
+   // resolved (by name) so that a cyclic definition like a = b / b = a raises a clean
+   // "circular dependency" error instead of recursing until the stack overflows.
+   inline Value eval(const Expr* expr, const Vars& vars, std::unordered_set<std::string>* inflight = nullptr) {
       switch (expr->kind) {
       case Expr::Kind::Num:
          return numeric(expr->number);
@@ -361,11 +416,19 @@ namespace glossa {
          if (it == vars.end()) {
             throw std::runtime_error("ERROR: invalid var " + expr->text);
          }
+         if (inflight != nullptr) {
+            if (!inflight->insert(expr->text).second) {
+               throw std::runtime_error("ERROR: circular variable dependency involving '" + expr->text + "'");
+            }
+            Value r = eval(it->second, vars, inflight);
+            inflight->erase(expr->text);
+            return r;
+         }
          return eval(it->second, vars);
       }
       case Expr::Kind::Bin: {
-         Value a = eval(expr->lhs, vars);
-         Value b = eval(expr->rhs, vars);
+         Value a = eval(expr->lhs, vars, inflight);
+         Value b = eval(expr->rhs, vars, inflight);
          if (a.kind == Value::Kind::Number && b.kind == Value::Kind::Number) {
             switch (expr->op) {
             case BinaryOp::Add:
@@ -388,7 +451,7 @@ namespace glossa {
       case Expr::Kind::Callable: {
          std::vector<Value> values;
          for (auto& a : expr->args) {
-            values.push_back(eval(a, vars));
+            values.push_back(eval(a, vars, inflight));
          }
          const std::string& name = expr->text;
          auto arg = [&](size_t i) { return values[i].to_number(); };
@@ -518,7 +581,8 @@ namespace glossa {
          }
          GlossaParser parser(rest, arena);
          auto expr = parser.parse_expr();
-         Value value = eval(expr, vars);
+         std::unordered_set<std::string> inflight;
+         Value value = eval(expr, vars, &inflight);
          vars[name] = expr;
          return value;
       }
@@ -568,7 +632,9 @@ namespace glossa {
       std::string section;
       std::string line;
       std::vector<std::string> scratchVariables;
+      size_t lineno = 0;
       while (std::getline(iss, line)) {
+         ++lineno;
          size_t first = line.find_first_not_of(" \t");
          if (first == std::string::npos) {
             result << line << "\n";
@@ -642,24 +708,40 @@ namespace glossa {
          Expr* expr = nullptr;
          Value value;
          bool ok = false;
+         std::string errmsg;
          try {
             auto tokens = lex(expr_text);
             GlossaParser parser(tokens, arena);
             expr = parser.parse_expr();
             if (parser.current().kind == Token::Kind::_EOF) {
-               value = eval(expr, vars);
+               std::unordered_set<std::string> inflight;
+               value = eval(expr, vars, &inflight);
                ok = true;
+            } else {
+               errmsg = "incomplete expression";
             }
-         } catch (const std::exception&) {
-            ok = false;
+         } catch (const std::exception& e) {
+            errmsg = e.what();
          }
          if (!ok) {
-            expr = new_string(arena, expr_text);
+            // Report the failure and pass the line through unchanged so that downstream
+            // option handling sees the original (broken) value instead of us silently
+            // converting a bad expression into an opaque string.
+            std::cerr << "ERROR: glossa: cannot evaluate '" << expr_text << "' for variable '" << key
+                      << "' at line " << lineno << ": " << errmsg << "\n";
+            result << line << "\n";
+            continue;
          }
 
-         vars[key] = expr;
+         // Snapshot: store the evaluated VALUE, not the live expression tree. This keeps
+         // later re-evaluations independent of the variables used to compute this one:
+         // - `a = a + 1` must not commit a self-referential Expr graph (stack overflow on
+         //   any later use of 'a');
+         // - locals removed at section end must not dangle inside other expressions.
+         Expr* stored = (value.kind == Value::Kind::Number) ? new_number(arena, value.number) : new_string(arena, value.text);
+         vars[key] = stored;
          if (!section.empty()) {
-            vars[section + "." + key] = expr;
+            vars[section + "." + key] = stored;
          }
          if (isLocal) {
             scratchVariables.push_back(key);
@@ -676,7 +758,18 @@ namespace glossa {
          std::string out_line = key + " = ";
          if (value.kind == Value::Kind::Number) {
             std::ostringstream oss;
-            oss << std::setprecision(15) << value.number;
+            // Integral values inside the long long range are emitted in plain decimal. The
+            // defaultfloat formatting switches to scientific notation for large magnitudes,
+            // which downstream integer option parsing (stoll) would silently truncate at
+            // the decimal point (e.g. 9007199254740992 -> "9.00719925474099e+15" -> 9).
+            constexpr double LL_MIN_SAFE = -9.223372036854775e18;
+            constexpr double LL_MAX_SAFE = 9.223372036854775e18;
+            if (std::isfinite(value.number) && value.number == std::floor(value.number) &&
+                value.number >= LL_MIN_SAFE && value.number <= LL_MAX_SAFE) {
+               oss << static_cast<long long>(value.number);
+            } else {
+               oss << std::setprecision(15) << value.number;
+            }
             out_line += oss.str();
          } else {
             out_line += value.text;
