@@ -26,14 +26,8 @@ diffbin="$GITHUB_WORKSPACE/vlsvdiff_DP"
 
 #compare agains which revision
 reference_revision="CI_reference"
+source ${GITHUB_WORKSPACE}/modules/$(VLASIATOR_ARCH).sh
 
-source ${GITHUB_WORKSPACE}/modules/carrington_gcc_openmpi.sh
-
-module purge
-module load GCC/13.2.0
-module load OpenMPI/4.1.6-GCC-13.2.0
-module load PMIx/4.2.6-GCCcore-13.2.0
-module load PAPI/7.1.0-GCCcore-13.2.0
 #module load xthi
 # export UCX_NET_DEVICES=eth5,mlx5_0:1 # This is important for multi-node performance!
 

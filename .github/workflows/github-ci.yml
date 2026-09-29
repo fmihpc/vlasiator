@@ -90,7 +90,7 @@ jobs:
 
           - name: testpackage run
             runner: carrington
-            arch: carrington_gcc_openmpi
+            arch: turso-amd_GNU_MPICH
             compile_tp: true
             run_tp: true
             debug: false
