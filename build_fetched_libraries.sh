@@ -19,16 +19,6 @@ rm -rf libraries${PLATFORM}
 mkdir -p libraries${PLATFORM}/include
 mkdir -p libraries${PLATFORM}/lib
 
-CLI11HEADER="https://github.com/CLIUtils/CLI11/releases/download/v2.7.2/CLI11.hpp"
-curl -L -O $CLI11HEADER
-CLI11SHA256="ffa9a30da295c5858fb5f91f9f45771bab09471d7010a34c7c68c857a330dd76"
-CHECKSUM=$(sha256sum CLI11.hpp | grep -Po '^\w+')
-if [[ "$CLI11SHA256" != "$CHECKSUM" ]]; then
-  echo "Warning! the file Downloaded from $CLI11HEADER does not match the known sha256sum of the file. Make sure the file has not been tampered with!"
-  exit 1
-fi
-mv CLI11.hpp libraries${PLATFORM}/include
-
 # Assumes required files are available in this directory
 cd library-build
 
