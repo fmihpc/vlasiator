@@ -514,7 +514,7 @@ bool map_1d(SpatialCell* spatial_cell,
             //identiacal for each set of intersections
             int minGkIndex=0, maxGkIndex=0; // 0 for compiler
             {
-               Real maxV = std::numeric_limits<Real>::min();
+               Real maxV = std::numeric_limits<Real>::lowest();
                Real minV = std::numeric_limits<Real>::max();
                for(int i = 0; i < VECL; i++) {
                   if ( lagrangian_v_r[i] > maxV) {
