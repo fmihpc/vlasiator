@@ -4,7 +4,6 @@
 ##SBATCH -A spacephysics
 #SBATCH --constraint="carrington"
 # test short medium 20min1d 3d
-#SBATCH -p short
 #SBATCH --exclusive
 #SBATCH --nodes=1
 #SBATCH -c 4                 # CPU cores per task
