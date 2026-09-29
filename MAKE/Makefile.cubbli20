@@ -7,13 +7,13 @@
 # Script will create a folder called external_libs to root folder.
 # The dependencies will be installed to this folder
 
-# configure_cubbli20.sh will install follwing libs:
-# 	Zoltan
-# 	VLSV 
-# 	DCCRG
-# 	FSGRID
-# 	PHIPROF
-# 	Eigen
+# configure_cubbli20.sh will install following libs:
+#   Zoltan
+#   VLSV
+#   DCCRG
+#   FSGRID
+#   PHIPROF
+#   Eigen
 #   Vectorclass/version1
 
 # configure_cubbli20.sh is assumed to be located at MAKE/configure_cubbli20.sh
@@ -24,7 +24,6 @@
 # There might be some libefa errors but they are benign.
 # (Benign = pleasant and kind; not harmful or severe. dictionary.cambridge.org)
 
-# Boost is assumend to be installed by the system package manager (e.g. apt)
 # Usually following is correct but this can be modified:
 
 
@@ -32,7 +31,7 @@
 
 
 # In case of there is need for optional Jmalloc
-# you can install it manually and add paths here 
+# you can install it manually and add paths here
 
 # Optional
 INC_JEMALLOC = #-I$(LIBRARY_PREFIX)/include/jemalloc
@@ -44,15 +43,15 @@ LIB_JEMALLOC = #-L$(LIBRARY_PREFIX)/lib -ljemalloc
 
 
 #======== Vectorization ==========
-#Set vector backend type for vlasov solvers, sets precision and length. 
+#Set vector backend type for vlasov solvers, sets precision and length.
 #NOTE this has to have the same precision as the distribution function define (DISTRIBUTION_FP_PRECISION)
-#Options: 
-# AVX:	    VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
+#Options:
+# AVX:      VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
 # AVX512:   VEC8D_AGNER, VEC16F_AGNER
 # Fallback: VEC_FALLBACK_GENERIC
 
 ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
-#Single-precision        
+#Single-precision
 	VECTORCLASS = VEC8F_AGNER
 else
 #Double-precision
@@ -77,7 +76,7 @@ MATHFLAGS = -ffast-math -fno-finite-math-only
 testpackage: MATHFLAGS = -fno-unsafe-math-optimizations
 
 LDFLAGS = -L $(HOME)/lib
-LIB_MPI = -lgomp 
+LIB_MPI = -lgomp
 
 
 #======== Libraries ===========

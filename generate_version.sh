@@ -47,17 +47,16 @@ echo "    cout <<  \"CXXFLAGS:        $2 \"<<endl;" >>$tmpfilename
 echo "    cout <<  \"FLAGS:           $3 \"<<endl;" >>$tmpfilename
 echo "    cout <<  \"INC_MPI:         $4 \"<<endl;" >>$tmpfilename
 echo "    cout <<  \"INC_ZOLTAN:      $5 \"<<endl;" >>$tmpfilename
-echo "    cout <<  \"INC_BOOST:       $6 \"<<endl;" >>$tmpfilename
-echo "    cout <<  \"INC_DCCRG:       $7 \"<<endl;" >>$tmpfilename
-echo "    cout <<  \"                 commit: $8 \"<<endl;" >>$tmpfilename
-echo "    cout <<  \"INC_FSGRID:      $9 \"<<endl;" >>$tmpfilename
-echo "    cout <<  \"                 commit: ${10} \"<<endl;" >>$tmpfilename
-echo "    cout <<  \"INC_VLSV:        ${11} \"<<endl;" >>$tmpfilename
-echo "    cout <<  \"                 commit: ${12} \"<<endl;" >>$tmpfilename
-echo "    cout <<  \"INC_HASHINATOR:  ${13} \"<<endl;" >>$tmpfilename
-echo "    cout <<  \"                 commit: ${14} \"<<endl;" >>$tmpfilename
-echo "    cout <<  \"INC_PHIPROF:     ${15} \"<<endl;" >>$tmpfilename
-echo "    cout <<  \"                 commit: ${16} \"<<endl;" >>$tmpfilename
+echo "    cout <<  \"INC_DCCRG:       $6 \"<<endl;" >>$tmpfilename
+echo "    cout <<  \"                 commit: $7 \"<<endl;" >>$tmpfilename
+echo "    cout <<  \"INC_FSGRID:      $8 \"<<endl;" >>$tmpfilename
+echo "    cout <<  \"                 commit: ${9} \"<<endl;" >>$tmpfilename
+echo "    cout <<  \"INC_VLSV:        ${10} \"<<endl;" >>$tmpfilename
+echo "    cout <<  \"                 commit: ${11} \"<<endl;" >>$tmpfilename
+echo "    cout <<  \"INC_HASHINATOR:  ${12} \"<<endl;" >>$tmpfilename
+echo "    cout <<  \"                 commit: ${13} \"<<endl;" >>$tmpfilename
+echo "    cout <<  \"INC_PHIPROF:     ${14} \"<<endl;" >>$tmpfilename
+echo "    cout <<  \"                 commit: ${15} \"<<endl;" >>$tmpfilename
 
         echo "    cout << endl << \"----------- git branch --------- \"<<endl;" >>$tmpfilename
 git branch  | sed 's/\"/\\"/g' | sed 's/\\\"/\\"/g' | gawk '{printf("%s\"%s\"%s\n","    cout << ",$0," << endl;")}' >> $tmpfilename
@@ -108,17 +107,16 @@ echo "  versionInfo+=\"CXXFLAGS:       $2 \n\";" >>$tmpfilename
 echo "  versionInfo+=\"FLAGS:          $3 \n\";" >>$tmpfilename
 echo "  versionInfo+=\"INC_MPI:        $4 \n\";" >>$tmpfilename
 echo "  versionInfo+=\"INC_ZOLTAN:     $5 \n\";" >>$tmpfilename
-echo "  versionInfo+=\"INC_BOOST:      $6 \n\";" >>$tmpfilename
-echo "  versionInfo+=\"INC_DCCRG:      $7 \n\";" >>$tmpfilename
-echo "  versionInfo+=\"                commit: $8 \n\";" >>$tmpfilename
-echo "  versionInfo+=\"INC_FSGRID:     $9 \n\";" >>$tmpfilename
-echo "  versionInfo+=\"                commit: ${10} \n\";" >>$tmpfilename
-echo "  versionInfo+=\"INC_VLSV:       ${11} \n\";" >>$tmpfilename
-echo "  versionInfo+=\"                commit: ${12} \n\";" >>$tmpfilename
-echo "  versionInfo+=\"INC_HASHINATOR: ${13} \n\";" >>$tmpfilename
-echo "  versionInfo+=\"                commit: ${14} \n\";" >>$tmpfilename
-echo "  versionInfo+=\"INC_PHIPROF:    ${15} \n\";" >>$tmpfilename
-echo "  versionInfo+=\"                commit: ${16} \n\";" >>$tmpfilename
+echo "  versionInfo+=\"INC_DCCRG:      $6 \n\";" >>$tmpfilename
+echo "  versionInfo+=\"                commit: $7 \n\";" >>$tmpfilename
+echo "  versionInfo+=\"INC_FSGRID:     $8 \n\";" >>$tmpfilename
+echo "  versionInfo+=\"                commit: ${9} \n\";" >>$tmpfilename
+echo "  versionInfo+=\"INC_VLSV:       ${10} \n\";" >>$tmpfilename
+echo "  versionInfo+=\"                commit: ${11} \n\";" >>$tmpfilename
+echo "  versionInfo+=\"INC_HASHINATOR: ${12} \n\";" >>$tmpfilename
+echo "  versionInfo+=\"                commit: ${13} \n\";" >>$tmpfilename
+echo "  versionInfo+=\"INC_PHIPROF:    ${14} \n\";" >>$tmpfilename
+echo "  versionInfo+=\"                commit: ${15} \n\";" >>$tmpfilename
 
 
 echo "     versionInfo+= \"----------- git branch ---------n\";" >>$tmpfilename

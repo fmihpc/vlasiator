@@ -10,15 +10,15 @@ LNK = mpicxx
 # Starting Makefile for the general partition of the MareNostrum5 supercomputer located at the BSC.
 
 #======== Vectorization ==========
-# Set vector backend type for vlasov solvers, sets precision and length. 
+# Set vector backend type for vlasov solvers, sets precision and length.
 # NOTE this has to have the same precision as the distribution function define (DISTRIBUTION_FP_PRECISION)
-# Options: 
-# AVX:	    VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
+# Options:
+# AVX:      VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
 # AVX512:   VEC8D_AGNER, VEC16F_AGNER
 # Fallback: VEC_FALLBACK_GENERIC
 
 ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
-	# Single-precision        
+	# Single-precision
 	VECTORCLASS = VEC16F_AGNER
 else
 	# Double-precision
@@ -51,16 +51,15 @@ testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 # MATHFLAGS are for special math etc. flags, these are only applied on solver functions
 # LDFLAGS flags for linker
 
-#-DNO_WRITE_AT_ALL:  Define to disable write at all to 
+#-DNO_WRITE_AT_ALL:  Define to disable write at all to
 #                    avoid memleak (much slower IO)
-#-DMPICH_IGNORE_CXX_SEEK: Ignores some multiple definition 
-#                         errors that come up when using 
+#-DMPICH_IGNORE_CXX_SEEK: Ignores some multiple definition
+#                         errors that come up when using
 #                         mpi.h in c++ on Cray
 
 CXXFLAGS += -DMPICH_IGNORE_CXX_SEEK
 testpackage: CXXFLAGS += -DMPICH_IGNORE_CXX_SEEK
 
-# BOOST_VERSION = current trilinos version
 # ZOLTAN_VERSION = current trilinos verson
 
 #======== Libraries ===========

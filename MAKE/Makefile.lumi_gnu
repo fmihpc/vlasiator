@@ -2,7 +2,7 @@ CMP = CC
 LNK = CC
 
 # Modules loaded
-# module load LUMI/22.08 ; module load cpeGNU ; module load papi; module load Eigen; module load Boost/1.79.0-cpeGNU-22.08
+# module load LUMI/22.08 ; module load cpeGNU ; module load papi; module load Eigen;
 
 #======== Vectorization ==========
 #Set vector backend type for vlasov solvers, sets precision and length.
@@ -54,7 +54,6 @@ testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 #-DNO_WRITE_AT_ALL:  Define to disable write at all to
 #                    avoid memleak (much slower IO)
 
-# BOOST_VERSION = current trilinos version
 # ZOLTAN_VERSION = current trilinos verson
 #
 #======== Libraries ===========

@@ -2,33 +2,33 @@ CMP = mpic++
 LNK = mpic++
 
 #======== Vectorization ==========
-#Set vector backend type for vlasov solvers, sets precision and length. 
-#Options: 
-# AVX:	    VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
+#Set vector backend type for vlasov solvers, sets precision and length.
+#Options:
+# AVX:      VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
 # AVX512:   VEC8D_AGNER, VEC16F_AGNER
 # Fallback: VEC_FALLBACK_GENERIC
 
 ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
-#Single-precision        
+#Single-precision
 	VECTORCLASS = VEC16F_AGNER
 else
 #Double-precision
 	VECTORCLASS = VEC8D_AGNER
 endif
 
-FLAGS = 
+FLAGS =
 
 #GNU flags:
 CC_BRAND = intel
 CC_BRAND_VERSION = 19.0.4
-CXXFLAGS += -traceback -g -O3 -qopenmp -std=c++20 -W -Wall -Wno-unused -xHost -ipo -qopt-zmm-usage=high 
+CXXFLAGS += -traceback -g -O3 -qopenmp -std=c++20 -W -Wall -Wno-unused -xHost -ipo -qopt-zmm-usage=high
 testpackage: CXXFLAGS = -g -traceback -O2 -qopenmp -std=c++20 -W -Wno-unused -xHost -ipo
 
 MATHFLAGS = -ffast-math -fno-finite-math-only
 testpackage: MATHFLAGS = -fno-unsafe-math-optimizations
 
 LDFLAGS = -qopenmp -lifcore -ipo
-LIB_MPI = 
+LIB_MPI =
 
 #======== PAPI ==========
 #Add PAPI_MEM define to use papi to report memory consumption?
@@ -47,16 +47,15 @@ testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 # MATHFLAGS are for special math etc. flags, these are only applied on solver functions
 # LDFLAGS flags for linker
 
-#-DNO_WRITE_AT_ALL:  Define to disable write at all to 
+#-DNO_WRITE_AT_ALL:  Define to disable write at all to
 #                    avoid memleak (much slower IO)
-#-DMPICH_IGNORE_CXX_SEEK: Ignores some multiple definition 
-#                         errors that come up when using 
+#-DMPICH_IGNORE_CXX_SEEK: Ignores some multiple definition
+#                         errors that come up when using
 #                         mpi.h in c++ on Cray
 
 CXXFLAGS += -DMAX_VECTOR_SIZE=512
 testpackage: CXXFLAGS += -DMAX_VECTOR_SIZE=512
 
-# BOOST_VERSION = current trilinos version
 # ZOLTAN_VERSION = current trilinos verson
 #
 #======== Libraries ===========
@@ -68,9 +67,6 @@ LIBRARY_PREFIX = /projappl/project_2000203/libraries
 
 #compiled libraries
 
-
-#LIB_BOOST = -lboost_program_options
-
 INC_ZOLTAN = -I$(LIBRARY_PREFIX)/hpcx-mpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/zoltan/3.8/include
 LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/hpcx-mpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/zoltan/3.8/lib -lzoltan
 
@@ -81,7 +77,7 @@ INC_VLSV = -I$(LIBRARY_PREFIX)/hpcx-mpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VE
 LIB_VLSV = -L$(LIBRARY_PREFIX)/hpcx-mpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/vlsv -lvlsv
 
 LIB_PROFILE = -L$(LIBRARY_PREFIX)/hpcx-mpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/phiprof/lib -lphiprof -lgfortran -Wl,-rpath=$(LIBRARY_PREFIX)/hpcx-mpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/phiprof/lib
-INC_PROFILE = -I$(LIBRARY_PREFIX)/hpcx-mpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/phiprof/include 
+INC_PROFILE = -I$(LIBRARY_PREFIX)/hpcx-mpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/phiprof/include
 
 LIB_PAPI = -L$(LIBRARY_PREFIX)/hpcx-mpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/papi/lib -lpapi -Wl,-rpath=$(LIBRARY_PREFIX)/hpcx-mpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/papi/lib
 INC_PAPI = -I$(LIBRARY_PREFIX)/hpcx-mpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/papi/include

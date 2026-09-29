@@ -1,5 +1,4 @@
 #include "object_wrapper.h"
-#include <CLI11.hpp>
 #include "particle_species.h"
 #include "readparameters.h"
 #include "velocity_mesh_parameters.h"

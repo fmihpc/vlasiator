@@ -1,22 +1,20 @@
 # Makefile for the jetson-tx cluster at BSC
 #
 # Note:
-# o Load modules:
-#   module load boost
 # o Zoltan's configure script requires a "--build=arm-linux-gnu" parameter.
 
 CMP = mpic++
 LNK = mpic++
 
 #======== Vectorization ==========
-#Set vector backend type for vlasov solvers, sets precision and length. 
-#Options: 
+#Set vector backend type for vlasov solvers, sets precision and length.
+#Options:
 # AVX:      VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
 # AVX512:   VEC8D_AGNER, VEC16F_AGNER
 # Fallback: VEC_FALLBACK_GENERIC
 
 ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
-#Single-precision        
+#Single-precision
         VECTORCLASS = VEC_FALLBACK_GENERIC
 else
 #Double-precision
@@ -33,7 +31,6 @@ testpackage: MATHFLAGS = -fno-unsafe-math-optimizations
 
 LDFLAGS = -fopenmp
 LIB_MPI =
-# LIB_MPI = 
 
 LIBRARY_PREFIX = $(HOME)/vlasiator/libraries-jetsontx
 LIBRARY_PREFIX_B = $(HOME)
@@ -47,7 +44,7 @@ LIB_ZOLTAN = -L${LIBRARY_PREFIX}/lib -lzoltan
 INC_VLSV = -I$(LIBRARY_PREFIX)/vlsv
 LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv -lvlsv
 
-LIB_PROFILE = -L${LIBRARY_PREFIX}/phiprof/lib -lphiprof -Wl,-rpath=${LIBRARY_PREFIX}/phiprof/lib 
+LIB_PROFILE = -L${LIBRARY_PREFIX}/phiprof/lib -lphiprof -Wl,-rpath=${LIBRARY_PREFIX}/phiprof/lib
 INC_PROFILE = -I${LIBRARY_PREFIX}/phiprof/include
 INC_TOPO =
 

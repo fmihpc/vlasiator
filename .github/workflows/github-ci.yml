@@ -119,8 +119,6 @@ jobs:
     - &checkoutSource
       name: Checkout source
       uses: actions/checkout@v4
-      with:
-        submodules: true
     - &cleanWorkspace
       name: Clean workspace
       run: |
@@ -283,6 +281,8 @@ jobs:
       VLASIATOR_ARCH: github_actions
     steps:
     - *checkoutSource
+    - name: Fetch submodule libraries
+      run: ./fetch_submodules.sh
     - name: Download libraries
       uses: actions/download-artifact@v5
       with:
@@ -323,6 +323,8 @@ jobs:
     needs: build_libraries_github
     steps:
     - *checkoutSource
+    - name: Fetch submodule libraries
+      run: ./fetch_submodules.sh
     - name: Download libraries
       uses: actions/download-artifact@v5
       with:

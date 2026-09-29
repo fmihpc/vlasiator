@@ -6,25 +6,24 @@ LNK = amdclang++
 # module load partition/G
 # module load cpeAMD
 # module load rocm/6.0.3
-# module load Boost/1.83.0-cpeGNU-24.03
 # module load papi/7.1.0.1
 # one-liner:
-# module load LUMI/24.03; module load partition/G; module load cpeAMD; module load rocm/6.0.3; module load Boost/1.83.0-cpeGNU-24.03; module load papi/7.1.0.1
+# module load LUMI/24.03; module load partition/G; module load cpeAMD; module load rocm/6.0.3; module load papi/7.1.0.1
 # clang++ linking also requires:
 # export PATH=$PATH:/opt/rocm-6.0.3/bin/
- 
+
 #======== Vectorization ==========
-#Set vector backend type for vlasov solvers, sets precision and length. 
-#Options: 
-# AVX:	    VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
+#Set vector backend type for vlasov solvers, sets precision and length.
+#Options:
+# AVX:      VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
 # AVX512:   VEC8D_AGNER, VEC16F_AGNER
 # Fallback: VECTORCLASS = VEC_FALLBACK_GENERIC (Defaults to VECL8)
 VECTORCLASS = VEC_FALLBACK_GENERIC
 
 #===== Vector Lengths ====
-# Default for VEC_FALLBACK_GENERIC is WID=4, VECL=8 
+# Default for VEC_FALLBACK_GENERIC is WID=4, VECL=8
 ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
-#Single-precision        
+#Single-precision
 	VECTORCLASS = VEC8F_AGNER
 else
 #Double-precision
@@ -45,7 +44,7 @@ CXXFLAGS +=-O3 -x hip --offload-arch=gfx90a:xnack- -march=znver3 -std=c++20 -fun
 
 testpackage: CXXFLAGS = -g -ggdb -O2 -x hip --offload-arch=gfx90a:xnack- -march=znver3 -std=c++20 -fopenmp -I. -Ihip -Iomp -I${CRAY_MPICH_DIR}/include -W -Wall -Wno-unused-parameter -Wno-unused-result -Wno-unused-function -Wno-unused-variable -Wno-unknown-pragmas -Wno-deprecated-register -Wno-unused-but-set-variable -Wno-ignored-attributes -Wno-unused-lambda-capture
 
-LDFLAGS =  -fopenmp=libomp -lrt -lpthread -L${CRAY_MPICH_DIR}/lib ${PE_MPICH_GTL_DIR_amd_gfx90a} -L${ROCM_PATH}/lib -lamdhip64 -L/pfs/lustrep4/scratch/project_462000559/kostis/libs/zfp/build/lib64 -lzfp 
+LDFLAGS =  -fopenmp=libomp -lrt -lpthread -L${CRAY_MPICH_DIR}/lib ${PE_MPICH_GTL_DIR_amd_gfx90a} -L${ROCM_PATH}/lib -lamdhip64 -L/pfs/lustrep4/scratch/project_462000559/kostis/libs/zfp/build/lib64 -lzfp
 LIB_MPI =  -lmpi ${PE_MPICH_GTL_LIBS_amd_gfx90a}
 
 
@@ -61,7 +60,7 @@ testpackage: CXXFLAGS +=  -DPAPI_MEM
 #CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 #testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 
-#-DNO_WRITE_AT_ALL:  Define to disable write at all to 
+#-DNO_WRITE_AT_ALL:  Define to disable write at all to
 #                    avoid memleak (much slower IO)
 
 #======== Libraries ===========
@@ -70,9 +69,6 @@ testpackage: CXXFLAGS +=  -DPAPI_MEM
 LIBRARY_PREFIX = /projappl/project_462000358/libraries/24.03
 
 # Compiled libraries
-#INC_BOOST = -isystem $(LIBRARY_PREFIX)/boost/include
-#LIB_BOOST = -L$(LIBRARY_PREFIX)/boost/lib -lboost_program_options -Wl,-rpath=$(LIBRARY_PREFIX)/boost/lib
-
 
 INC_ZOLTAN = -isystem $(LIBRARY_PREFIX)/Zoltan/include
 LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/Zoltan/lib -lzoltan -Wl,-rpath=$(LIBRARY_PREFIX)/Zoltan/lib
@@ -105,5 +101,5 @@ LIB_ZFP = -L/pfs/lustrep4/scratch/project_462000559/kostis/libs/zfp/build/lib
 INC_OCTREE_COMPRESSOR = -I./vdf_compression/include
 LIB_OCTREE_COMPRESSOR=-L./vdf_compression/lib -ltoctree_compressor
 INC_NN_COMPRESSOR = -I./vdf_compression/lib/usr/local/include/tinyAI
-LIB_NN_COMPRESSOR= -L/pfs/lustrep4/scratch/project_462000559/kostis/asterix  -lvlasiator_vdf_compressor_nn 
+LIB_NN_COMPRESSOR= -L/pfs/lustrep4/scratch/project_462000559/kostis/asterix  -lvlasiator_vdf_compressor_nn
 

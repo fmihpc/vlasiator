@@ -11,7 +11,7 @@
 # If 0 then we check the v1
 create_verification_files=0
 
-# Folder for all reference data 
+# Folder for all reference data
 reference_dir="/scratch/project_2017838/mikael/testpackage/dev"
 cd $SLURM_SUBMIT_DIR
 
@@ -25,7 +25,7 @@ export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 # Bind OpenMP threads to hardware threads
 export OMP_PLACES=cores
 export OMP_PROC_BIND=spread
-module load boost papi gcc/13.4.0 cuda/12.6.3
+module load papi gcc/13.4.0 cuda/12.6.3
 export LD_LIBRARY_PATH=/scratch/project_2017838/mikael/vlasiator/libraries-roihu-gpu/lib:$LD_LIBRARY_PATH
 ht=1    #hyper threads per physical core
 t=$OMP_NUM_THREADS     #threads per process

@@ -14,10 +14,9 @@
 # module load OpenMPI/4.1.6-GCC-13.2.0
 # module load PMIx/4.2.6-GCCcore-13.2.0
 # module load PAPI/7.1.0-GCCcore-13.2.0
-# module load Boost/1.83.0-GCC-13.2.0
 
 # Oneliner for command line:
-# module purge; module load GCC/13.2.0; module load OpenMPI/4.1.6-GCC-13.2.0 ; module load PMIx/4.2.6-GCCcore-13.2.0; module load PAPI/7.1.0-GCCcore-13.2.0; module load Boost/1.83.0-GCC-13.2.0
+# module purge; module load GCC/13.2.0; module load OpenMPI/4.1.6-GCC-13.2.0 ; module load PMIx/4.2.6-GCCcore-13.2.0; module load PAPI/7.1.0-GCCcore-13.2.0;
 #
 # There might be some libefa errors but they are benign.
 # (Benign = pleasant and kind; not harmful or severe. dictionary.cambridge.org)
@@ -29,7 +28,7 @@ LNK = mpicxx
 #======== Vectorization ==========
 #Set vector backend type for vlasov solvers, sets precision and length.
 #Options:
-# AVX:	    VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
+# AVX:      VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
 # AVX512:   VEC8D_AGNER, VEC16F_AGNER
 # Fallback: VEC_FALLBACK_GENERIC
 
@@ -82,7 +81,6 @@ CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 
 
-# BOOST_VERSION = current trilinos version
 # ZOLTAN_VERSION = current trilinos verson
 #
 #======== Libraries ===========
