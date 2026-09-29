@@ -22,6 +22,15 @@ if [[ -z ${core_flags[$VLASIATOR_ARCH]} ]]; then
   exit 1
 fi
 
+declare -A lib_flags
+lib_flags["turso-amd_GNU_MPICH"]="-n 1 -c 16 --mem=64G"
+lib_flags["ukko_dgx"]="-n 1 -c 16 --mem=64G"
+lib_flags["pioneer"]="-n 1 -c 16 --mem=64G"
+lib_flags["hile_gpu"]="-n 1 -c 16 --mem=64G"
+lib_flags["hile_cpu"]="-n 1 -c 16 --mem=64G"
+lib_flags["lumi_2503"]="-n 1 -c 16 --mem=64G"
+
+
 #Constraints for compiling stuff
 declare -A constraint
 constraint["turso-amd_GNU_MPICH"]="--constraint=amd"
@@ -86,7 +95,7 @@ fi
 #|         BUILD LIBS           |
 #0++++++++++++++++++++++++++++++0
 if [[ $1 == "BUILD_LIBS" ]]; then
-  srun ${constraint_small[$VLASIATOR_ARCH]} -n 1 -c 1 --mem=8G -J build_libraries_CI bash -lc "$modules ; ./fetch_and_build_libraries.sh $VLASIATOR_ARCH"
+  srun ${constraint_small[$VLASIATOR_ARCH]} ${lib_flags[$VLASIATOR_ARCH]} -J build_libraries_CI bash -lc "$modules ; ./fetch_and_build_libraries.sh $VLASIATOR_ARCH"
   exit $?
 fi
 
