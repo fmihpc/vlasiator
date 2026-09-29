@@ -1036,11 +1036,36 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
          third neighbour a higher one. Iterate through negative distances for VLASOV_STENCIL_WIDTH+1 elements
          starting from the smallest distance. */
       iSrc = VLASOV_STENCIL_WIDTH;
+      distancesminus.clear();
+      nbrPairs  = mpiGrid.get_neighbors_of(celli, getNeighborhood(dimension,VLASOV_STENCIL_WIDTH));
+      std::vector<std::pair<CellID, std::array<int, 3>>> nbrPairs2 = std::vector<std::pair<CellID, std::array<int, 3>>>(nbrPairs->begin(), nbrPairs->end());
+      int maxdistance = 0;
+      CellID maxNbr = INVALID_CELLID;
+      for (const auto& nbrPair : nbrPairs2) {
+         if (nbrPair.second[dimension] < 0) {
+            // gather absolute distance values for correct order
+            distancesminus.insert(-nbrPair.second[dimension]);
+            if (-nbrPair.second[dimension] > maxdistance) {
+               maxdistance = -nbrPair.second[dimension];
+               maxNbr = nbrPair.first;
+            }
+         }
+      }
+      auto* nbrPairs3 = mpiGrid.get_neighbors_of(maxNbr, getNeighborhood(dimension, 1)); // Lookahead without requiring a larger stencil
+      for (const auto& nbrPair : *nbrPairs3) {
+         if (nbrPair.first != INVALID_CELLID && nbrPair.second[dimension] < 0) {
+            if (check_is_active(mpiGrid, nbrPair.first, dimension)) {
+                  distancesminus.insert(-nbrPair.second[dimension]);
+                  nbrPairs2.push_back(nbrPair);
+                  break;
+            }
+         }
+      }
       for (auto it = distancesminus.begin(); it != distancesminus.end(); ++it) {
          if (iSrc < 0) {
             break; // found enough elements
          }
-         for (const auto& nbrPair : *nbrPairs) {
+         for (const auto& nbrPair : nbrPairs2) {
             int distanceInRefinedCells = -nbrPair.second[dimension];
             if (distanceInRefinedCells == *it) {
                // Break search if we are not at the final entry, and have different refinement level
