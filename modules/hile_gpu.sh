@@ -12,6 +12,6 @@ module load cray-pmi
 module load craype-accel-amd-gfx90a
 module load libfabric
 
-module use /appl/hile/modules
-module load CMake/3.27.7
+#module use /appl/hile/modules
+#module load CMake/3.27.7
 
