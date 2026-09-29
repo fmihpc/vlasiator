@@ -38,11 +38,11 @@ testpackage: CXXFLAGS = -g -O2 -x cu -std=c++20 --extended-lambda --expt-relaxed
 
 # Tell mpic++ to use nvcc for all compiling
 # We're setting both the OMPI and the MPICH versions for future-proofness
-CMP = OMPI_CXX='nvcc' OMPI_CXXFLAGS='' MPICH_CXX='nvcc' mpic++
+CMP = OMPI_CXX='nvcc' OMPI_CXXFLAGS='' MPICH_CXX='nvcc -allow-unsupported-compiler' mpic++
 
 # Now tell also the linker to use nvcc. Contents of these were retrieved with "mpic++ --showme:link".
 # Use this same linker command also for building and linking phiprof.  ## The line below indeed uses OMPI_CXX, not OMPI_LD
-LNK = OMPI_CXX='nvcc' OMPI_CXXFLAGS='-arch=sm_70' MPICH_CXX='nvcc' OMPI_LIBS='-L/appl/easybuild/opt/hwloc/2.5.0-GCCcore-11.2.0/lib -L/appl/easybuild/opt/libevent/2.1.12-GCCcore-11.2.0/lib64' OMPI_LDFLAGS=' -Xlinker=-rpath=/appl/easybuild/opt/hwloc/2.5.0-GCCcore-11.2.0/lib -Xlinker=-rpath=/appl/easybuild/opt/libevent/2.1.12-GCCcore-11.2.0/lib64 -Xlinker=-rpath=/appl/easybuild/opt/OpenMPI/4.1.1-GCC-11.2.0/lib -Xlinker=--enable-new-dtags -L/appl/easybuild/opt/OpenMPI/4.1.1-GCC-11.2.0/lib -lmpi ' mpic++
+LNK = OMPI_CXX='nvcc' OMPI_CXXFLAGS='-arch=sm_70' MPICH_CXX='nvcc -allow-unsupported-compiler' OMPI_LIBS='-L/appl/easybuild/opt/hwloc/2.5.0-GCCcore-11.2.0/lib -L/appl/easybuild/opt/libevent/2.1.12-GCCcore-11.2.0/lib64' OMPI_LDFLAGS=' -Xlinker=-rpath=/appl/easybuild/opt/hwloc/2.5.0-GCCcore-11.2.0/lib -Xlinker=-rpath=/appl/easybuild/opt/libevent/2.1.12-GCCcore-11.2.0/lib64 -Xlinker=-rpath=/appl/easybuild/opt/OpenMPI/4.1.1-GCC-11.2.0/lib -Xlinker=--enable-new-dtags -L/appl/easybuild/opt/OpenMPI/4.1.1-GCC-11.2.0/lib -lmpi ' mpic++
 
 MATHFLAGS = --use_fast_math
 # nvcc fast_math does not assume only finite math
