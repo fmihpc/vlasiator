@@ -24,7 +24,7 @@ fi
 
 #Constraints for compiling stuff
 declare -A constraint
-constraint["turso-amd_GNU_MPICH"]="--constraint=amd -p short"
+constraint["turso-amd_GNU_MPICH"]="--constraint=amd"
 constraint["ukko_dgx"]="--constraint=amd -G 1"  # "Give me a GPU, whichever it may be"
 constraint["pioneer"]="-p pioneer -t 01:00:00" #not sure if pty needed for pioneer
 constraint["hile_gpu"]="-C g"
