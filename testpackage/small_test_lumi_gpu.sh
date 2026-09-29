@@ -20,7 +20,7 @@
 # If 0 then we check the v1
 create_verification_files=0
 
-# Folder for all reference data 
+# Folder for all reference data
 reference_dir="/scratch/project_462000358/testpackage_2025/"
 cd $SLURM_SUBMIT_DIR
 
@@ -51,7 +51,6 @@ module load LUMI/24.03
 module load partition/G
 module load cpeAMD
 module load rocm/6.0.3
-module load Boost/1.83.0-cpeGNU-24.03
 module load papi/7.1.0.1
 module list
 

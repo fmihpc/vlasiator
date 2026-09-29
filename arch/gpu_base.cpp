@@ -260,6 +260,32 @@ __host__ uint gpu_getAllocationCount() {
    return allocationCount;
 }
 
+std::size_t get_preloaded_pool_size() {
+   const char* preload = std::getenv("LD_PRELOAD");
+   if (!preload){
+      return 0;
+   }
+
+   std::string preloadString(preload);
+   std::size_t position = preloadString.find("libmpipancake.so");
+   if (position == std::string::npos){
+      return 0;
+   }
+
+   void* handle = dlopen(preloadString.c_str(), RTLD_NOW | RTLD_NOLOAD);
+   if (!handle){
+      return 0;
+   }
+
+   using get_pool_size_function = std::size_t(*)();
+   auto poolSizeFunction = reinterpret_cast<get_pool_size_function>(dlsym(handle, "get_pool_size"));
+   if (!poolSizeFunction){
+      return 0;
+   }
+
+   return poolSizeFunction();
+}
+
 /*
    Memory reporting function
 */
@@ -297,12 +323,13 @@ int gpu_reportMemory(const size_t local_cells_capacity, const size_t ghost_cells
    // Remote neighbor contribution buffers are in unified memory but deallocated after each use
 
    size_t memoryManagerCapacity = gpuMemoryManager.totalGpuAllocation();
+   size_t pancakeCapacity = get_preloaded_pool_size();
 
    size_t free_byte ;
    size_t total_byte ;
    CHK_ERR( gpuMemGetInfo( &free_byte, &total_byte) );
    size_t used_mb = (total_byte-free_byte)/(1024*1024);
-   size_t sum_mb = (miniBuffers+batchBuffers+vlasovBuffers+accBuffers+transBuffers+local_cells_capacity+ghost_cells_capacity+memoryManagerCapacity)/(1024*1024);
+   size_t sum_mb = (miniBuffers+batchBuffers+vlasovBuffers+accBuffers+transBuffers+local_cells_capacity+ghost_cells_capacity+memoryManagerCapacity+pancakeCapacity)/(1024*1024);
    size_t local_req_mb = local_cells_size/(1024*1024);
    size_t ghost_req_mb = ghost_cells_size/(1024*1024);
 
@@ -317,6 +344,7 @@ int gpu_reportMemory(const size_t local_cells_capacity, const size_t ghost_cells
       logFile<<"     Local cells:           "<<local_cells_capacity/(1024*1024)<<" Mbytes"<<std::endl;
       logFile<<"     Ghost cells:           "<<ghost_cells_capacity/(1024*1024)<<" Mbytes"<<std::endl;
       logFile<<"     Memory manager:        "<<memoryManagerCapacity/(1024*1024)<<" Mbytes"<<std::endl;
+      logFile<<"     MPI Pancake:           "<<pancakeCapacity/(1024*1024)<<" Mbytes"<<std::endl;
       if (local_req_mb || ghost_req_mb) {
          logFile<<"     Local cells required:  "<<local_req_mb<<" Mbytes"<<std::endl;
          logFile<<"     Ghost cells required:  "<<ghost_req_mb<<" Mbytes"<<std::endl;

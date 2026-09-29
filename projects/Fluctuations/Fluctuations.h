@@ -46,7 +46,7 @@ namespace projects {
       virtual ~Fluctuations();
 
       virtual bool initialize(void) override;
-      static void addParameters(void);
+      virtual void addParameters(void) override;
       virtual void getParameters(void) override;
       virtual void setProjectBField(
          fsgrids::perbspan perb,
@@ -77,6 +77,7 @@ namespace projects {
       Real magZPertAbsAmp;
       uint seed;
       std::vector<FluctuationsSpeciesParameters> speciesParams;
+      std::vector<FluctuationsSpeciesParameters*> speciesParamsRead;
 
       static Real rndRho, rndVel[3];
       #pragma omp threadprivate(rndRho,rndVel)

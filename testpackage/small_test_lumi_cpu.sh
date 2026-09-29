@@ -14,7 +14,7 @@
 # if 0 then we check the v1
 create_verification_files=0
 
-# folder for all reference data 
+# folder for all reference data
 reference_dir="/scratch/project_462000358/testpackage/"
 cd $SLURM_SUBMIT_DIR
 #cd $reference_dir # don't run on /proj
@@ -28,7 +28,6 @@ reference_revision="current"
 # threads per job (equal to -c )
 t=16
 module load LUMI/24.03
-module load Boost/1.83.0-cpeGNU-24.03
 module load partition/C
 module load papi/7.1.0.1
 

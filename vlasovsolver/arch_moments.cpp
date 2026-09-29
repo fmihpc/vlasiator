@@ -69,7 +69,7 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
       vmesh::VelocityMesh* vmesh    = cell->dev_get_velocity_mesh(popID);
       vmesh::VelocityBlockContainer* blockContainer = cell->dev_get_velocity_blocks(popID);
       #else
-      vmesh::VelocityMesh* vmesh    = cell->get_velocity_mesh(popID);
+      //vmesh::VelocityMesh* vmesh    = cell->get_velocity_mesh(popID);
       vmesh::VelocityBlockContainer* blockContainer = cell->get_velocity_blocks(popID);
       #endif
       const uint nBlocks = cell->get_velocity_mesh(popID)->size();
@@ -127,7 +127,7 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
       vmesh::VelocityMesh* vmesh    = cell->dev_get_velocity_mesh(popID);
       vmesh::VelocityBlockContainer* blockContainer = cell->dev_get_velocity_blocks(popID);
       #else
-      vmesh::VelocityMesh* vmesh    = cell->get_velocity_mesh(popID);
+      //vmesh::VelocityMesh* vmesh    = cell->get_velocity_mesh(popID);
       vmesh::VelocityBlockContainer* blockContainer = cell->get_velocity_blocks(popID);
       #endif
       const uint nBlocks = cell->get_velocity_mesh(popID)->size();
@@ -219,7 +219,7 @@ void calculateMoments_R(
          vmesh::VelocityMesh* vmesh    = cell->dev_get_velocity_mesh(popID);
          vmesh::VelocityBlockContainer* blockContainer = cell->dev_get_velocity_blocks(popID);
          #else
-         vmesh::VelocityMesh* vmesh    = cell->get_velocity_mesh(popID);
+         //vmesh::VelocityMesh* vmesh    = cell->get_velocity_mesh(popID);
          vmesh::VelocityBlockContainer* blockContainer = cell->get_velocity_blocks(popID);
          #endif
          const uint nBlocks = cell->get_velocity_mesh(popID)->size();
@@ -385,7 +385,7 @@ void calculateMoments_V(
          vmesh::VelocityMesh* vmesh    = cell->dev_get_velocity_mesh(popID);
          vmesh::VelocityBlockContainer* blockContainer = cell->dev_get_velocity_blocks(popID);
          #else
-         vmesh::VelocityMesh* vmesh    = cell->get_velocity_mesh(popID);
+         //vmesh::VelocityMesh* vmesh    = cell->get_velocity_mesh(popID);
          vmesh::VelocityBlockContainer* blockContainer = cell->get_velocity_blocks(popID);
          #endif
          const uint nBlocks = cell->get_velocity_mesh(popID)->size();
@@ -461,7 +461,7 @@ void calculateMoments_V(
          vmesh::VelocityMesh* vmesh    = cell->dev_get_velocity_mesh(popID);
          vmesh::VelocityBlockContainer* blockContainer = cell->dev_get_velocity_blocks(popID);
          #else
-         vmesh::VelocityMesh* vmesh    = cell->get_velocity_mesh(popID);
+         //vmesh::VelocityMesh* vmesh    = cell->get_velocity_mesh(popID);
          vmesh::VelocityBlockContainer* blockContainer = cell->get_velocity_blocks(popID);
          #endif
          const uint nBlocks = cell->get_velocity_mesh(popID)->size();
@@ -470,7 +470,7 @@ void calculateMoments_V(
          }
 
          const Real mass = getObjectWrapper().particleSpecies[popID].mass;
-         const Real charge = getObjectWrapper().particleSpecies[popID].charge;
+         //const Real charge = getObjectWrapper().particleSpecies[popID].charge;
 
          // Temporary array where moments are stored
          Real array[nMom2] = {0};

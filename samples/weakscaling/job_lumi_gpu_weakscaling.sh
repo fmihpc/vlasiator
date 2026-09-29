@@ -25,7 +25,7 @@ ulimit -c unlimited
 export PHIPROF_PRINTS=detailed,full
 umask 007
 
-module load LUMI/24.03; module load partition/G; module load cpeAMD; module load rocm/6.2.2; module load Boost/1.83.0-cpeAMD-24.03; module load papi/7.1.0.1
+module load LUMI/24.03; module load partition/G; module load cpeAMD; module load rocm/6.2.2; module load papi/7.1.0.1
 module list
 export OMP_NUM_THREADS=6
 

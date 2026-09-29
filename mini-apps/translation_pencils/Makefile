@@ -5,7 +5,7 @@ INC_FSGRID=-I../../submodules/fsgrid/
 INC_DCCRG=-I../../submodules/dccrg/
 
 FLAGS = -W -Wall -Wextra -pedantic -std=c++11 -O3 -D${VECTORCLASS}
-INCLUDES = ${INC_DCCRG} ${INC_VECTORCLASS} ${INC_PROFILE} ${INC_FSGRID} -L$/usr/lib/x86_64-linux-gnu -lboost_program_options -I$/usr/include/boost -L/home/tkoskela/lib/zoltan/Zoltan_v3.83/build/lib -lzoltan -I/home/tkoskela/lib/zoltan/Zoltan_v3.83/build/include 
+INCLUDES = ${INC_DCCRG} ${INC_VECTORCLASS} ${INC_PROFILE} ${INC_FSGRID} ${INC_ZOLTAN} -L$/usr/lib/x86_64-linux-gnu ${LIB_ZOLTAN}
 
 default: trans_test
 
