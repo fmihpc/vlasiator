@@ -32,6 +32,10 @@ else
    PARALLEL=4
 fi
 
+# If we are in a Slurm job and we know the cores we have, we can just use that many cores
+if [[ -z $SLURM_CPUS_PER_TASK ]]; then
+   PARALLEL=$SLURM_CPUS_PER_TASK
+fi
 
 
 # Build phiprof
