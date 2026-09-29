@@ -1,11 +1,7 @@
-#!/bin/bash
-
 module purge
-module load GCC/13.2.0
-module load OpenMPI/4.1.6-GCC-13.2.0
-module load PMIx/4.2.6-GCCcore-13.2.0
-module load PAPI/7.1.0-GCCcore-13.2.0
-module load CMake/3.27.6-GCCcore-13.2.0
-
-module load git/2.42.0-GCCcore-13.2.0
-
+module load PrgEnv-gnu/15.2.0
+module load MPICH/5.0.1
+module load bzip2
+module load CMake
+module load HY_proxy
+module load Automake
