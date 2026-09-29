@@ -119,7 +119,7 @@ void reduce_vlasov_dt(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
    SESSION_HOST_ALLOCATE(gpuMemoryManager, Real, host_dxdydz, nAllCells*nPOP*3*sizeof(Real));
    SESSION_ALLOCATE(gpuMemoryManager, Real, dev_max_dt, nAllCells*nPOP*sizeof(Real));
    SESSION_ALLOCATE(gpuMemoryManager, Real, dev_dxdydz, nAllCells*nPOP*3*sizeof(Real));
-   
+
    Real* host_max_dt = GET_SESSION_HOST_POINTER(gpuMemoryManager, Real, host_max_dt);
    Real* host_dxdydz = GET_SESSION_HOST_POINTER(gpuMemoryManager, Real, host_dxdydz);
    Real* dev_max_dt = GET_SESSION_POINTER(gpuMemoryManager, Real, dev_max_dt);

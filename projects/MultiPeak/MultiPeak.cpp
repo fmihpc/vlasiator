@@ -41,90 +41,75 @@ using namespace spatial_cell;
 Real projects::MultiPeak::rhoRnd;
 
 namespace projects {
-   MultiPeak::MultiPeak(): TriAxisSearch() { }
+MultiPeak::MultiPeak() : TriAxisSearch() {}
 
-   MultiPeak::~MultiPeak() { }
+MultiPeak::~MultiPeak() {}
 
-   bool MultiPeak::initialize(void) {
-      return Project::initialize();
+bool MultiPeak::initialize(void) { return Project::initialize(); }
+
+void MultiPeak::addParameters() {
+   typedef Readparameters RP;
+
+   RP::add("MultiPeak.Bx", "Magnetic field x component (T)", this->Bx);
+   RP::add("MultiPeak.By", "Magnetic field y component (T)", this->By);
+   RP::add("MultiPeak.Bz", "Magnetic field z component (T)", this->Bz);
+   RP::add<Real>("MultiPeak.dBx", "Magnetic field x component cosine perturbation amplitude (T)", this->dBx, 0.0);
+   RP::add<Real>("MultiPeak.dBy", "Magnetic field y component cosine perturbation amplitude (T)", this->dBy, 0.0);
+   RP::add<Real>("MultiPeak.dBz", "Magnetic field z component cosine perturbation amplitude (T)", this->dBz, 0.0);
+   RP::add<Real>("MultiPeak.magXPertAbsAmp", "Absolute amplitude of the random magnetic perturbation along x (T)",
+                 this->magXPertAbsAmp, 0.0);
+   RP::add<Real>("MultiPeak.magYPertAbsAmp", "Absolute amplitude of the random magnetic perturbation along y (T)",
+                 this->magYPertAbsAmp, 0.0);
+   RP::add<Real>("MultiPeak.magZPertAbsAmp", "Absolute amplitude of the random magnetic perturbation along z (T)",
+                 this->magZPertAbsAmp, 0.0);
+   RP::add<Real>("MultiPeak.lambda", "B cosine perturbation wavelength (m)", this->lambda, 1.0);
+   RP::add<std::string>("MultiPeak.densityModel", "Which spatial density model is used?", this->densModelString,
+                       "uniform");
+
+   // Per-population parameters
+   for (uint i = 0; i < getObjectWrapper().particleSpecies.size(); i++) {
+      const std::string& pop = getObjectWrapper().particleSpecies[i].name;
+      MultiPeakSpeciesParameters* sP = new MultiPeakSpeciesParameters();
+      this->speciesParamsRead.push_back(sP);
+      RP::add<uint>(pop + "_MultiPeak.n", "Number of peaks to create", sP->numberOfPeaks,0);
+      RP::addComposing(pop + "_MultiPeak.rho", "Number density (m^-3)", sP->rho);
+      RP::addComposing(pop + "_MultiPeak.Tx", "Temperature (K)", sP->Tx);
+      RP::addComposing(pop + "_MultiPeak.Ty", "Temperature", sP->Ty);
+      RP::addComposing(pop + "_MultiPeak.Tz", "Temperature", sP->Tz);
+      RP::addComposing(pop + "_MultiPeak.Vx", "Bulk velocity x component (m/s)", sP->Vx);
+      RP::addComposing(pop + "_MultiPeak.Vy", "Bulk velocity y component (m/s)", sP->Vy);
+      RP::addComposing(pop + "_MultiPeak.Vz", "Bulk velocity z component (m/s)", sP->Vz);
+      RP::addComposing(pop + "_MultiPeak.rhoPertAbsAmp", "Absolute amplitude of the density perturbation", sP->rhoPertAbsAmp);
+
    }
+}
 
-   void MultiPeak::addParameters(){
-      typedef Readparameters RP;
+void MultiPeak::getParameters() {
 
-      RP::add("MultiPeak.Bx", "Magnetic field x component (T)", 0.0);
-      RP::add("MultiPeak.By", "Magnetic field y component (T)", 0.0);
-      RP::add("MultiPeak.Bz", "Magnetic field z component (T)", 0.0);
-      RP::add("MultiPeak.dBx", "Magnetic field x component cosine perturbation amplitude (T)", 0.0);
-      RP::add("MultiPeak.dBy", "Magnetic field y component cosine perturbation amplitude (T)", 0.0);
-      RP::add("MultiPeak.dBz", "Magnetic field z component cosine perturbation amplitude (T)", 0.0);
-      RP::add("MultiPeak.magXPertAbsAmp", "Absolute amplitude of the random magnetic perturbation along x (T)", 1.0e-9);
-      RP::add("MultiPeak.magYPertAbsAmp", "Absolute amplitude of the random magnetic perturbation along y (T)", 1.0e-9);
-      RP::add("MultiPeak.magZPertAbsAmp", "Absolute amplitude of the random magnetic perturbation along z (T)", 1.0e-9);
-      RP::add("MultiPeak.lambda", "B cosine perturbation wavelength (m)", 1.0);
-      RP::add("MultiPeak.densityModel","Which spatial density model is used?",string("uniform"));
+   typedef Readparameters RP;
+   if (this->densModelString == "uniform")
+     this->densityModel = Uniform; 
+   else if (this->densModelString == "testcase")
+     this->densityModel = TestCase;
+   for (uint i = 0; i < getObjectWrapper().particleSpecies.size(); i++) {
 
-      // Per-population parameters
-      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
-         RP::add(pop+"_MultiPeak.n", "Number of peaks to create", 0);
-         RP::addComposing(pop+"_MultiPeak.rho", "Number density (m^-3)");
-         RP::addComposing(pop+"_MultiPeak.Tx", "Temperature (K)");
-         RP::addComposing(pop+"_MultiPeak.Ty", "Temperature");
-         RP::addComposing(pop+"_MultiPeak.Tz", "Temperature");
-         RP::addComposing(pop+"_MultiPeak.Vx", "Bulk velocity x component (m/s)");
-         RP::addComposing(pop+"_MultiPeak.Vy", "Bulk velocity y component (m/s)");
-         RP::addComposing(pop+"_MultiPeak.Vz", "Bulk velocity z component (m/s)");
-         RP::addComposing(pop+"_MultiPeak.rhoPertAbsAmp", "Absolute amplitude of the density perturbation");
-      }
-   }
-
-   void MultiPeak::getParameters(){
-
-      typedef Readparameters RP;
-      Project::getParameters();
-      RP::get("MultiPeak.Bx", this->Bx);
-      RP::get("MultiPeak.By", this->By);
-      RP::get("MultiPeak.Bz", this->Bz);
-      RP::get("MultiPeak.magXPertAbsAmp", this->magXPertAbsAmp);
-      RP::get("MultiPeak.magYPertAbsAmp", this->magYPertAbsAmp);
-      RP::get("MultiPeak.magZPertAbsAmp", this->magZPertAbsAmp);
-      RP::get("MultiPeak.dBx", this->dBx);
-      RP::get("MultiPeak.dBy", this->dBy);
-      RP::get("MultiPeak.dBz", this->dBz);
-      RP::get("MultiPeak.lambda", this->lambda);
-
-      // Per-population parameters
-      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
-
-         MultiPeakSpeciesParameters sP;
-         RP::get(pop + "_MultiPeak.n", sP.numberOfPeaks);
-         RP::get(pop + "_MultiPeak.rho",sP.rho);
-         RP::get(pop + "_MultiPeak.Tx", sP.Tx);
-         RP::get(pop + "_MultiPeak.Ty", sP.Ty);
-         RP::get(pop + "_MultiPeak.Tz", sP.Tz);
-         RP::get(pop + "_MultiPeak.Vx", sP.Vx);
-         RP::get(pop + "_MultiPeak.Vy", sP.Vy);
-         RP::get(pop + "_MultiPeak.Vz", sP.Vz);
-
-         RP::get(pop + "_MultiPeak.rhoPertAbsAmp", sP.rhoPertAbsAmp);
-         if(!sP.isConsistent()) {
-            cerr << "You should define all parameters (MultiPeak.rho, MultiPeak.Tx, MultiPeak.Ty, MultiPeak.Tz, MultiPeak.Vx, MultiPeak.Vy, MultiPeak.Vz, MultiPeak.rhoPertAbsAmp) for all " << sP.numberOfPeaks << " peaks of population " << pop << "." << endl;
+      const std::string& pop = getObjectWrapper().particleSpecies[i].name;
+      MultiPeakSpeciesParameters* sP = this->speciesParamsRead.at(i);
+      std::vector<size_t> vecSizes{sP->Tx.size(), sP->Ty.size(),  sP->Tz.size(), sP->Vx.size(), sP->Vy.size(),
+                                   sP->Vz.size(), sP->rho.size(), sP->rhoPertAbsAmp.size()
+      };
+      for (size_t vecSize : vecSizes) {
+         if (sP->numberOfPeaks != vecSize) {
+            std::cerr << "Invalid number of " << pop << "_MultiPeak parameters, n=" << sP->numberOfPeaks
+                      << " but found an input of vector length=" << vecSize << std::endl;
             abort();
          }
-
-         speciesParams.push_back(sP);
       }
-
-      string densModelString;
-      RP::get("MultiPeak.densityModel",densModelString);
-
-      if (densModelString == "uniform") densityModel = Uniform;
-      else if (densModelString == "testcase") densityModel = TestCase;
+      speciesParams.push_back(*sP);
    }
+}
 
-   Realf MultiPeak::fillPhaseSpace(spatial_cell::SpatialCell *cell,
+  Realf MultiPeak::fillPhaseSpace(spatial_cell::SpatialCell *cell,
                                        const uint popID,
                                        const uint nRequested
       ) const {
@@ -271,42 +256,46 @@ namespace projects {
    }
 
    void MultiPeak::setProjectBField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
+      fsgrids::perbspan perb,
+      fsgrids::bgbspan bgb,
+      fsgrids::technicalspan technical, FieldSolverGrid &fsgrid
    ) {
       ConstantField bgField;
       bgField.initialize(this->Bx,
                          this->By,
                          this->Bz);
 
-      setBackgroundField(bgField, BgBGrid);
+      setBackgroundField(bgField, bgb, technical, fsgrid);
 
       if(!P::isRestart) {
-         auto localSize = perBGrid.getLocalSize().data();
+         // local copies for lambda capture
+         const auto dBx_l = this->dBx;
+         const auto dBy_l = this->dBy;
+         const auto dBz_l = this->dBz;
+         const auto lambda_l = this->lambda;
+         const auto magXPertAbsAmp_l = this->magXPertAbsAmp;
+         const auto magYPertAbsAmp_l = this->magYPertAbsAmp;
+         const auto magZPertAbsAmp_l = this->magZPertAbsAmp;
+         const auto seed = this->seed;
 
-#pragma omp parallel for collapse(3)
-         for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
-            for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
-               for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
-                  const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
-                  std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
-                  const int64_t cellid = perBGrid.GlobalIDForCoords(x, y, z);
-                  std::default_random_engine rndState;
-                  setRandomSeed(cellid,rndState);
+         fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                             phiprof::initializeTimer("setProjectBField-loop"), technical,
+                             [=](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+            const std::array<Real, 3> xyz = coordinates.getPhysicalCoords(stencil.i, stencil.j, stencil.k);
+            auto& cell = perb[stencil.ooo()];
 
-                  if (this->lambda != 0.0) {
-                     cell->at(fsgrids::bfield::PERBX) = this->dBx*cos(2.0 * M_PI * xyz[0] / this->lambda);
-                     cell->at(fsgrids::bfield::PERBY) = this->dBy*sin(2.0 * M_PI * xyz[0] / this->lambda);
-                     cell->at(fsgrids::bfield::PERBZ) = this->dBz*cos(2.0 * M_PI * xyz[0] / this->lambda);
-                  }
+            const auto seedmodifier = coordinates.globalIDFromLocalCoordinates(stencil.i, stencil.j, stencil.k);
+            std::default_random_engine rndState_l;
+            rndState_l.seed(seed+seedmodifier);
+            Real rndBuffer[3];
+            rndBuffer[0] = std::uniform_real_distribution<>(-0.5,0.5)(rndState_l);
+            rndBuffer[1] = std::uniform_real_distribution<>(-0.5,0.5)(rndState_l);
+            rndBuffer[2] = std::uniform_real_distribution<>(-0.5,0.5)(rndState_l);
 
-                  cell->at(fsgrids::bfield::PERBX) += this->magXPertAbsAmp * (0.5 - getRandomNumber(rndState));
-                  cell->at(fsgrids::bfield::PERBY) += this->magYPertAbsAmp * (0.5 - getRandomNumber(rndState));
-                  cell->at(fsgrids::bfield::PERBZ) += this->magZPertAbsAmp * (0.5 - getRandomNumber(rndState));
-               }
-            }
-         }
+            cell[fsgrids::bfield::PERBX] = dBx_l * cos(2.0 * M_PI * xyz[0] / lambda_l) + magXPertAbsAmp_l * rndBuffer[0];
+            cell[fsgrids::bfield::PERBY] = dBy_l * sin(2.0 * M_PI * xyz[0] / lambda_l) + magYPertAbsAmp_l * rndBuffer[1];
+            cell[fsgrids::bfield::PERBZ] = dBz_l * cos(2.0 * M_PI * xyz[0] / lambda_l) + magZPertAbsAmp_l * rndBuffer[2];
+         });
       }
    }
 

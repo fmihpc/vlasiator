@@ -46,51 +46,32 @@ namespace projects {
 
    void Fluctuations::addParameters() {
       typedef Readparameters RP;
-      RP::add("Fluctuations.BX0", "Background field value (T)", 1.0e-9);
-      RP::add("Fluctuations.BY0", "Background field value (T)", 2.0e-9);
-      RP::add("Fluctuations.BZ0", "Background field value (T)", 3.0e-9);
-      RP::add("Fluctuations.magXPertAbsAmp", "Amplitude of the magnetic perturbation along x", 1.0e-9);
-      RP::add("Fluctuations.magYPertAbsAmp", "Amplitude of the magnetic perturbation along y", 1.0e-9);
-      RP::add("Fluctuations.magZPertAbsAmp", "Amplitude of the magnetic perturbation along z", 1.0e-9);
+      RP::add<Real>("Fluctuations.BX0", "Background field value (T)", this->BX0,1.0e-9);
+      RP::add<Real>("Fluctuations.BY0", "Background field value (T)", this->BY0,2.0e-9);
+      RP::add<Real>("Fluctuations.BZ0", "Background field value (T)", this->BZ0,3.0e-9);
+      RP::add<Real>("Fluctuations.magXPertAbsAmp", "Amplitude of the magnetic perturbation along x", this->magXPertAbsAmp,1.0e-9);
+      RP::add<Real>("Fluctuations.magYPertAbsAmp", "Amplitude of the magnetic perturbation along y", this->magYPertAbsAmp,1.0e-9);
+      RP::add<Real>("Fluctuations.magZPertAbsAmp", "Amplitude of the magnetic perturbation along z", this->magZPertAbsAmp,1.0e-9);
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
 
-         RP::add(pop + "_Fluctuations.rho", "Number density (m^-3)", 1.0e7);
-         RP::add(pop + "_Fluctuations.TemperatureX", "Temperature (K)", 2.0e6);
-         RP::add(pop + "_Fluctuations.TemperatureY", "Temperature (K)", 2.0e6);
-         RP::add(pop + "_Fluctuations.TemperatureZ", "Temperature (K)", 2.0e6);
-         RP::add(pop + "_Fluctuations.densityPertRelAmp", "Amplitude factor of the density perturbation", 0.1);
-         RP::add(pop + "_Fluctuations.velocityPertAbsAmp", "Amplitude of the velocity perturbation", 1.0e6);
-         RP::add(pop + "_Fluctuations.maxwCutoff", "Cutoff for the maxwellian distribution", 1e-12);
-      }
+         FluctuationsSpeciesParameters* sP=new FluctuationsSpeciesParameters();
+         speciesParamsRead.push_back(sP);
+         RP::add<Real>(pop + "_Fluctuations.rho", "Number density (m^-3)", sP->DENSITY,1.0e7);
+         RP::add<Real>(pop + "_Fluctuations.TemperatureX", "Temperature (K)", sP->TEMPERATUREX,2.0e6);
+         RP::add<Real>(pop + "_Fluctuations.TemperatureY", "Temperature (K)", sP->TEMPERATUREY,2.0e6);
+         RP::add<Real>(pop + "_Fluctuations.TemperatureZ", "Temperature (K)", sP->TEMPERATUREZ,2.0e6);
+         RP::add<Real>(pop + "_Fluctuations.densityPertRelAmp", "Amplitude factor of the density perturbation", sP->densityPertRelAmp,0.1);
+         RP::add<Real>(pop + "_Fluctuations.velocityPertAbsAmp", "Amplitude of the velocity perturbation", sP->velocityPertAbsAmp,1.0e6);
+         RP::add<Real>(pop + "_Fluctuations.maxwCutoff", "Cutoff for the maxwellian distribution", sP->maxwCutoff,1e-12);
+      }          
    }
 
    void Fluctuations::getParameters() {
-      Project::getParameters();
-      typedef Readparameters RP;
-      Project::getParameters();
-      RP::get("Fluctuations.BX0", this->BX0);
-      RP::get("Fluctuations.BY0", this->BY0);
-      RP::get("Fluctuations.BZ0", this->BZ0);
-      RP::get("Fluctuations.magXPertAbsAmp", this->magXPertAbsAmp);
-      RP::get("Fluctuations.magYPertAbsAmp", this->magYPertAbsAmp);
-      RP::get("Fluctuations.magZPertAbsAmp", this->magZPertAbsAmp);
-
-      // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
-         FluctuationsSpeciesParameters sP;
-         RP::get(pop + "_Fluctuations.rho", sP.DENSITY);
-         RP::get(pop + "_Fluctuations.TemperatureX", sP.TEMPERATUREX);
-         RP::get(pop + "_Fluctuations.TemperatureY", sP.TEMPERATUREY);
-         RP::get(pop + "_Fluctuations.TemperatureZ", sP.TEMPERATUREZ);
-         RP::get(pop + "_Fluctuations.densityPertRelAmp", sP.densityPertRelAmp);
-         RP::get(pop + "_Fluctuations.velocityPertAbsAmp", sP.velocityPertAbsAmp);
-         RP::get(pop + "_Fluctuations.maxwCutoff", sP.maxwCutoff);
-
-         speciesParams.push_back(sP);
+        this->speciesParams.push_back(*this->speciesParamsRead.at(i));
       }
    }
 
@@ -184,42 +165,48 @@ namespace projects {
       setRandomCellSeed(cell,rndState);
 
       this->rndRho=getRandomNumber(rndState);
+
       this->rndVel[0]=getRandomNumber(rndState);
       this->rndVel[1]=getRandomNumber(rndState);
       this->rndVel[2]=getRandomNumber(rndState);
    }
 
    void Fluctuations::setProjectBField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
+      fsgrids::perbspan perb,
+      fsgrids::bgbspan bgb,
+      fsgrids::technicalspan technical, FieldSolverGrid &fsgrid
    ) {
       ConstantField bgField;
       bgField.initialize(this->BX0,
                          this->BY0,
                          this->BZ0);
 
-      setBackgroundField(bgField, BgBGrid);
+      setBackgroundField(bgField, bgb, technical, fsgrid);
 
       if(!P::isRestart) {
-         const auto localSize = BgBGrid.getLocalSize().data();
+         // local copies for lambda capture
+         const auto magXPertAbsAmp_l = this->magXPertAbsAmp;
+         const auto magYPertAbsAmp_l = this->magYPertAbsAmp;
+         const auto magZPertAbsAmp_l = this->magZPertAbsAmp;
+         const auto seed = this->seed;
 
-         #pragma omp parallel for collapse(3)
-         for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
-            for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
-               for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
-                  std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
-                  const int64_t cellid = perBGrid.GlobalIDForCoords(x, y, z);
+         fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                             phiprof::initializeTimer("setProjectBField"), technical,
+                             [=](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+            auto& cell = perb[stencil.ooo()];
 
-                  std::default_random_engine rndState;
-                  setRandomSeed(cellid,rndState);
+            const auto seedmodifier = coordinates.globalIDFromLocalCoordinates(stencil.i, stencil.j, stencil.k);
+            std::default_random_engine rndState_l;
+            rndState_l.seed(seed+seedmodifier);
+            Real rndBuffer[3];
+            rndBuffer[0] = std::uniform_real_distribution<>(-0.5,0.5)(rndState_l);
+            rndBuffer[1] = std::uniform_real_distribution<>(-0.5,0.5)(rndState_l);
+            rndBuffer[2] = std::uniform_real_distribution<>(-0.5,0.5)(rndState_l);
 
-                  cell->at(fsgrids::bfield::PERBX) = this->magXPertAbsAmp * (0.5 - getRandomNumber(rndState));
-                  cell->at(fsgrids::bfield::PERBY) = this->magYPertAbsAmp * (0.5 - getRandomNumber(rndState));
-                  cell->at(fsgrids::bfield::PERBZ) = this->magZPertAbsAmp * (0.5 - getRandomNumber(rndState));
-               }
-            }
-         }
+            cell[fsgrids::bfield::PERBX] = magXPertAbsAmp_l * rndBuffer[0];
+            cell[fsgrids::bfield::PERBY] = magYPertAbsAmp_l * rndBuffer[1];
+            cell[fsgrids::bfield::PERBZ] = magZPertAbsAmp_l * rndBuffer[2];
+         });
       }
    }
 
@@ -234,5 +221,5 @@ namespace projects {
       centerPoints.push_back(V0);
       return centerPoints;
    }
-
+   
 } // namespace projects

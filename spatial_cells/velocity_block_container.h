@@ -62,7 +62,9 @@ namespace vmesh {
       VelocityBlockContainer();
       ~VelocityBlockContainer();
       VelocityBlockContainer(const VelocityBlockContainer& other);
+      VelocityBlockContainer(VelocityBlockContainer&& other) = delete;
       const VelocityBlockContainer& operator=(const VelocityBlockContainer& other);
+      VelocityBlockContainer& operator=(VelocityBlockContainer&& other) = delete;
 
       ARCH_HOSTDEV vmesh::LocalID capacity() const;
       ARCH_HOSTDEV size_t capacityInBytes() const;
@@ -71,6 +73,7 @@ namespace vmesh {
       ARCH_HOSTDEV static double getBlockAllocationFactor();
       ARCH_HOSTDEV Realf* getData();
       ARCH_HOSTDEV const Realf* getData() const;
+      ARCH_HOSTDEV std::vector<Realf,aligned_allocator<Realf,WID3> > getDataVector_raw(); // temporary addition for timeclass testing
       ARCH_HOSTDEV Realf* getData(const vmesh::LocalID blockLID);
       ARCH_HOSTDEV const Realf* getData(const vmesh::LocalID blockLID) const;
       ARCH_HOSTDEV Real* getParameters();
@@ -331,6 +334,10 @@ namespace vmesh {
       return block_data.data();
    }
 
+   inline ARCH_HOSTDEV std::vector<Realf,aligned_allocator<Realf,WID3> > VelocityBlockContainer::getDataVector_raw() { // temporary addition for timeclass testing
+      return block_data;
+   }
+
    inline ARCH_HOSTDEV const Realf* VelocityBlockContainer::getData() const {
       return block_data.data();
    }
@@ -569,7 +576,7 @@ namespace vmesh {
       #endif
 #else
       const vmesh::LocalID numberOfBlocks = block_data.size()/WID3;
-      const vmesh::LocalID currentCapacity = block_data.capacity()/WID3;
+      //const vmesh::LocalID currentCapacity = block_data.capacity()/WID3;
 #endif
       const vmesh::LocalID newIndex = numberOfBlocks;
 
@@ -608,7 +615,7 @@ namespace vmesh {
       #endif
 #else
       const vmesh::LocalID numberOfBlocks = block_data.size()/WID3;
-      const vmesh::LocalID currentCapacity = block_data.capacity()/WID3;
+      //const vmesh::LocalID currentCapacity = block_data.capacity()/WID3;
 #endif
       const vmesh::LocalID newIndex = numberOfBlocks;
 

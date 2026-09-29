@@ -65,8 +65,8 @@ LIBRARY_PREFIX = $(HOME)/vlasiator/libraries
 LIBRARY_PREFIX_HEADERS = $(HOME)/vlasiator/libraries
 
 #compiled libraries
-INC_BOOST = -I$(BOOST_HOME)/include
-LIB_BOOST = -L$(BOOST_HOME)/lib -lboost_program_options -Wl,-rpath=$(BOOST_HOME)/lib
+
+
 
 INC_ZOLTAN = -isystem$(LIBRARY_PREFIX)/include
 LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/lib -lzoltan -Wl,-rpath=$(LIBRARY_PREFIX)/lib

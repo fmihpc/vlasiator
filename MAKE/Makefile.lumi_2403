@@ -41,6 +41,9 @@ testpackage: MATHFLAGS = -fno-unsafe-math-optimizations
 LDFLAGS = -lrt -fopenmp -L$(LIBRARY_PREFIX)/lib  -Wl,-rpath=$(LIBRARY_PREFIX)/lib
 LIB_MPI = -fopenmp
 
+#Asterix methods (-DASTERIX_ZFP -DASTERIX_OCTREE -DASTERIX_MLP)
+CXXFLAGS += -DASTERIX_ZFP -DASTERIX_OCTREE
+
 #======== PAPI ==========
 #Add PAPI_MEM define to use papi to report memory consumption?
 CXXFLAGS +=  -DPAPI_MEM
@@ -53,7 +56,7 @@ CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 
 #======== Libraries ===========
-LIB_BOOST = -lboost_program_options
+
 
 INC_PAPI = -isystem /opt/cray/pe/papi/7.1.0.1/include/
 LIB_PAPI = -lpapi -L/opt/cray/pe/papi/7.1.0.1/lib -Wl,-rpath=/opt/cray/pe/papi/7.1.0.1/lib
@@ -70,4 +73,7 @@ LIB_VLSV = -lvlsv
 
 INC_PROFILE = -I$(LIBRARY_PREFIX)/include 
 LIB_PROFILE = -L$(LIBRARY_PREFIX)/lib -lphiprof -Wl,-rpath=$(LIBRARY_PREFIX)/lib
-#LIB_PROFILE = -lphiprof -lgfortran
+
+#ASTERIX
+LIB_ZFP = -lzfp
+LIB_OCTREE_COMPRESSOR = -L$(LIBRARY_PREFIX)/lib64  -Wl,-rpath=$(LIBRARY_PREFIX)/lib64  -ltoctree_compressor

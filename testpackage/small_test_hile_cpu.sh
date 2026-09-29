@@ -31,10 +31,7 @@ reference_revision="current"
 # Would allow oversubscription of cores with hyperthreading, do not use.
 # export OMP_WAIT_POLICY=PASSIVE
 
-module load papi
-module load cray-pmi
-module load libfabric/1.22.0
-#module load gdb4hpc
+source ../modules/hile_cpu.sh
 module list
 
 # threads per job (equal to -c )
@@ -69,5 +66,5 @@ source test_definitions_small.sh
 wait
 # Run tests
 source run_tests.sh
-wait 
+wait
 

@@ -45,82 +45,47 @@ namespace projects {
 
    void Distributions::addParameters(){
       typedef Readparameters RP;
-      RP::add("Distributions.rho1", "Number density, first peak (m^-3)", 0.0);
-      RP::add("Distributions.rho2", "Number density, second peak (m^-3)", 0.0);
-      RP::add("Distributions.Tx1", "Temperature, first peak (K)", 0.0);
-      RP::add("Distributions.Tx2", "Temperature, second peak (K)", 0.0);
-      RP::add("Distributions.Ty1", "Temperature, first peak (K)", 0.0);
-      RP::add("Distributions.Ty2", "Temperature, second peak (K)", 0.0);
-      RP::add("Distributions.Tz1", "Temperature, first peak (K)", 0.0);
-      RP::add("Distributions.Tz2", "Temperature, second peak (K)", 0.0);
-      RP::add("Distributions.Vx1", "Bulk velocity x component, first peak (m/s)", 0.0);
-      RP::add("Distributions.Vx2", "Bulk velocity x component, second peak (m/s)", 0.0);
-      RP::add("Distributions.Vy1", "Bulk velocity y component, first peak (m/s)", 0.0);
-      RP::add("Distributions.Vy2", "Bulk velocity y component, second peak (m/s)", 0.0);
-      RP::add("Distributions.Vz1", "Bulk velocity z component, first peak (m/s)", 0.0);
-      RP::add("Distributions.Vz2", "Bulk velocity z component, second peak (m/s)", 0.0);
-      RP::add("Distributions.Bx", "Magnetic field x component (T)", 0.0);
-      RP::add("Distributions.By", "Magnetic field y component (T)", 0.0);
-      RP::add("Distributions.Bz", "Magnetic field z component (T)", 0.0);
-      RP::add("Distributions.dBx", "Magnetic field x component cosine perturbation amplitude (T)", 0.0);
-      RP::add("Distributions.dBy", "Magnetic field y component cosine perturbation amplitude (T)", 0.0);
-      RP::add("Distributions.dBz", "Magnetic field z component cosine perturbation amplitude (T)", 0.0);
-      RP::add("Distributions.magXPertAbsAmp", "Absolute amplitude of the random magnetic perturbation along x (T)", 1.0e-9);
-      RP::add("Distributions.magYPertAbsAmp", "Absolute amplitude of the random magnetic perturbation along y (T)", 1.0e-9);
-      RP::add("Distributions.magZPertAbsAmp", "Absolute amplitude of the random magnetic perturbation along z (T)", 1.0e-9);
-      RP::add("Distributions.rho1PertAbsAmp", "Absolute amplitude of the density perturbation, first peak", 0.1);
-      RP::add("Distributions.rho2PertAbsAmp", "Absolute amplitude of the density perturbation, second peak", 0.1);
-//       RP::add("Distributions.Vx1PertAbsAmp", "Absolute amplitude of the Vx perturbation, first peak", 1.0e6);
-//       RP::add("Distributions.Vy1PertAbsAmp", "Absolute amplitude of the Vy perturbation, first peak", 1.0e6);
-//       RP::add("Distributions.Vz1PertAbsAmp", "Absolute amplitude of the Vz perturbation, first peak", 1.0e6);
-//       RP::add("Distributions.Vx2PertAbsAmp", "Absolute amplitude of the Vx perturbation, second peak", 1.0e6);
-//       RP::add("Distributions.Vy2PertAbsAmp", "Absolute amplitude of the Vy perturbation, second peak", 1.0e6);
-//       RP::add("Distributions.Vz2PertAbsAmp", "Absolute amplitude of the Vz perturbation, second peak", 1.0e6);
-      RP::add("Distributions.lambda", "B cosine perturbation wavelength (m)", 0.0);
+      RP::add<Real>("Distributions.rho1", "Number density, first peak (m^-3)", this->rho[0],0.0);
+      RP::add<Real>("Distributions.rho2", "Number density, second peak (m^-3)", this->rho[1],0.0);
+      RP::add<Real>("Distributions.Tx1", "Temperature, first peak (K)", this->Tx[0],0.0);
+      RP::add<Real>("Distributions.Tx2", "Temperature, second peak (K)", this->Tx[1],0.0);
+      RP::add<Real>("Distributions.Ty1", "Temperature, first peak (K)", this->Ty[0],0.0);
+      RP::add<Real>("Distributions.Ty2", "Temperature, second peak (K)", this->Ty[1],0.0);
+      RP::add<Real>("Distributions.Tz1", "Temperature, first peak (K)", this->Tz[0],0.0);
+      RP::add<Real>("Distributions.Tz2", "Temperature, second peak (K)", this->Tz[1],0.0);
+      RP::add<Real>("Distributions.Vx1", "Bulk velocity x component, first peak (m/s)", this->Vx[0],0.0);
+      RP::add<Real>("Distributions.Vx2", "Bulk velocity x component, second peak (m/s)", this->Vx[1],0.0);
+      RP::add<Real>("Distributions.Vy1", "Bulk velocity y component, first peak (m/s)", this->Vy[0],0.0);
+      RP::add<Real>("Distributions.Vy2", "Bulk velocity y component, second peak (m/s)", this->Vy[1],0.0);
+      RP::add<Real>("Distributions.Vz1", "Bulk velocity z component, first peak (m/s)", this->Vz[0],0.0);
+      RP::add<Real>("Distributions.Vz2", "Bulk velocity z component, second peak (m/s)", this->Vz[1],0.0);
+      RP::add<Real>("Distributions.Bx", "Magnetic field x component (T)", this->Bx,0.0);
+      RP::add<Real>("Distributions.By", "Magnetic field y component (T)", this->By,0.0);
+      RP::add<Real>("Distributions.Bz", "Magnetic field z component (T)", this->Bz,0.0);
+      RP::add<Real>("Distributions.dBx", "Magnetic field x component cosine perturbation amplitude (T)", this->dBx,0.0);
+      RP::add<Real>("Distributions.dBy", "Magnetic field y component cosine perturbation amplitude (T)", this->dBy,0.0);
+      RP::add<Real>("Distributions.dBz", "Magnetic field z component cosine perturbation amplitude (T)", this->dBz,0.0);
+      RP::add<Real>("Distributions.magXPertAbsAmp", "Absolute amplitude of the random magnetic perturbation along x (T)", this->magXPertAbsAmp,1.0e-9);
+      RP::add<Real>("Distributions.magYPertAbsAmp", "Absolute amplitude of the random magnetic perturbation along y (T)", this->magYPertAbsAmp,1.0e-9);
+      RP::add<Real>("Distributions.magZPertAbsAmp", "Absolute amplitude of the random magnetic perturbation along z (T)", this->magZPertAbsAmp,1.0e-9);
+      RP::add<Real>("Distributions.rho1PertAbsAmp", "Absolute amplitude of the density perturbation, first peak", this->rhoPertAbsAmp[0],0.1);
+      RP::add<Real>("Distributions.rho2PertAbsAmp", "Absolute amplitude of the density perturbation, second peak", this->rhoPertAbsAmp[1],0.1);
+//       RP::add("Distributions.Vx1PertAbsAmp", "Absolute amplitude of the Vx perturbation, first peak", this->Vx1PertAbsAmp\);
+//       RP::add("Distributions.Vy1PertAbsAmp", "Absolute amplitude of the Vy perturbation, first peak", this->Vy1PertAbsAmp\);
+//       RP::add("Distributions.Vz1PertAbsAmp", "Absolute amplitude of the Vz perturbation, first peak", this->Vz1PertAbsAmp\);
+//       RP::add("Distributions.Vx2PertAbsAmp", "Absolute amplitude of the Vx perturbation, second peak", this->Vx2PertAbsAmp\);
+//       RP::add("Distributions.Vy2PertAbsAmp", "Absolute amplitude of the Vy perturbation, second peak", this->Vy2PertAbsAmp\);
+//       RP::add("Distributions.Vz2PertAbsAmp", "Absolute amplitude of the Vz perturbation, second peak", this->Vz2PertAbsAmp\);
+      RP::add<Real>("Distributions.lambda", "B cosine perturbation wavelength (m)", this->lambda,0.0);
    }
 
    void Distributions::getParameters(){
-      Project::getParameters();
-      typedef Readparameters RP;
-      Project::getParameters();
 
       if(getObjectWrapper().particleSpecies.size() > 1) {
          std::cerr << "The selected project does not support multiple particle populations! Aborting in " << __FILE__ << " line " << __LINE__ << std::endl;
          abort();
       }
 
-      RP::get("Distributions.rho1", this->rho[0]);
-      RP::get("Distributions.rho2", this->rho[1]);
-      RP::get("Distributions.Tx1", this->Tx[0]);
-      RP::get("Distributions.Tx2", this->Tx[1]);
-      RP::get("Distributions.Ty1", this->Ty[0]);
-      RP::get("Distributions.Ty2", this->Ty[1]);
-      RP::get("Distributions.Tz1", this->Tz[0]);
-      RP::get("Distributions.Tz2", this->Tz[1]);
-      RP::get("Distributions.Vx1", this->Vx[0]);
-      RP::get("Distributions.Vx2", this->Vx[1]);
-      RP::get("Distributions.Vy1", this->Vy[0]);
-      RP::get("Distributions.Vy2", this->Vy[1]);
-      RP::get("Distributions.Vz1", this->Vz[0]);
-      RP::get("Distributions.Vz2", this->Vz[1]);
-      RP::get("Distributions.Bx", this->Bx);
-      RP::get("Distributions.By", this->By);
-      RP::get("Distributions.Bz", this->Bz);
-      RP::get("Distributions.magXPertAbsAmp", this->magXPertAbsAmp);
-      RP::get("Distributions.magYPertAbsAmp", this->magYPertAbsAmp);
-      RP::get("Distributions.magZPertAbsAmp", this->magZPertAbsAmp);
-      RP::get("Distributions.rho1PertAbsAmp", this->rhoPertAbsAmp[0]);
-      RP::get("Distributions.rho2PertAbsAmp", this->rhoPertAbsAmp[1]);
-//       RP::get("Distributions.Vx1PertAbsAmp", this->Vx1PertAbsAmp);
-//       RP::get("Distributions.Vy1PertAbsAmp", this->Vy1PertAbsAmp);
-//       RP::get("Distributions.Vz1PertAbsAmp", this->Vz1PertAbsAmp);
-//       RP::get("Distributions.Vx2PertAbsAmp", this->Vx2PertAbsAmp);
-//       RP::get("Distributions.Vy2PertAbsAmp", this->Vy2PertAbsAmp);
-//       RP::get("Distributions.Vz2PertAbsAmp", this->Vz2PertAbsAmp);
-      RP::get("Distributions.dBx", this->dBx);
-      RP::get("Distributions.dBy", this->dBy);
-      RP::get("Distributions.dBz", this->dBz);
-      RP::get("Distributions.lambda", this->lambda);
    }
 
    Realf Distributions::fillPhaseSpace(spatial_cell::SpatialCell *cell,
@@ -134,9 +99,9 @@ namespace projects {
       creal relx = x/(Parameters::xmax - Parameters::xmin);
       creal rely = y/(Parameters::ymax - Parameters::ymin);
       creal relz = z/(Parameters::zmax - Parameters::zmin);
-      creal scaledVx1 = this->Vx[1] * relx;
-      creal scaledVy1 = this->Vy[1] * rely;
-      creal scaledVz1 = this->Vz[1] * relz;
+      //creal scaledVx1 = this->Vx[1] * relx;
+      //creal scaledVy1 = this->Vy[1] * rely;
+      //creal scaledVz1 = this->Vz[1] * relz;
 
       const Real mass = getObjectWrapper().particleSpecies[popID].mass;
       const Real initRho0 = this->rhoRnd[0];
@@ -209,9 +174,9 @@ namespace projects {
       creal relx = x/(Parameters::xmax - Parameters::xmin);
       creal rely = y/(Parameters::ymax - Parameters::ymin);
       creal relz = z/(Parameters::zmax - Parameters::zmin);
-      creal scaledVx1 = this->Vx[1] * relx;
-      creal scaledVy1 = this->Vy[1] * rely;
-      creal scaledVz1 = this->Vz[1] * relz;
+      //creal scaledVx1 = this->Vx[1] * relx;
+      //creal scaledVy1 = this->Vy[1] * rely;
+      //creal scaledVz1 = this->Vz[1] * relz;
 
       const Real mass = getObjectWrapper().particleSpecies[popID].mass;
       const Real initRho0 = this->rhoRnd[0];
@@ -250,43 +215,47 @@ namespace projects {
    }
 
    void Distributions::setProjectBField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
+      fsgrids::perbspan perb,
+      fsgrids::bgbspan bgb,
+      fsgrids::technicalspan technical,
+      FieldSolverGrid &fsgrid
    ) {
       ConstantField bgField;
       bgField.initialize(this->Bx,
                          this->By,
                          this->Bz);
 
-      setBackgroundField(bgField, BgBGrid);
+      setBackgroundField(bgField, bgb, technical, fsgrid);
 
-      if(!P::isRestart) {
-         const auto localSize = BgBGrid.getLocalSize().data();
+      if(!P::isRestart && this->lambda != 0.0) {
+         // local copies for lambda capture
+         const auto dBx_l = this->dBx;
+         const auto dBy_l = this->dBy;
+         const auto dBz_l = this->dBz;
+         const auto lambda_l = this->lambda;
+         const auto magXPertAbsAmp_l = this->magXPertAbsAmp;
+         const auto magYPertAbsAmp_l = this->magYPertAbsAmp;
+         const auto magZPertAbsAmp_l = this->magZPertAbsAmp;
+         const auto seed = this->seed;
 
-#pragma omp parallel for collapse(3)
-         for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
-            for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
-               for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
-                  std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
-                  const int64_t cellid = perBGrid.GlobalIDForCoords(x, y, z);
-                  const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
+         fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                             phiprof::initializeTimer("setProjectBField-loop"), technical,
+                             [=](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+            const std::array<Real, 3> xyz = coordinates.getPhysicalCoords(stencil.i, stencil.j, stencil.k);
+            auto& cell = perb[stencil.ooo()];
 
-                  std::default_random_engine rndState;
-                  setRandomSeed(cellid,rndState);
+            const auto seedmodifier = coordinates.globalIDFromLocalCoordinates(stencil.i, stencil.j, stencil.k);
+            std::default_random_engine rndState_l;
+            rndState_l.seed(seed+seedmodifier);
+            Real rndBuffer[3];
+            rndBuffer[0] = std::uniform_real_distribution<>(-0.5,0.5)(rndState_l);
+            rndBuffer[1] = std::uniform_real_distribution<>(-0.5,0.5)(rndState_l);
+            rndBuffer[2] = std::uniform_real_distribution<>(-0.5,0.5)(rndState_l);
 
-                  if (this->lambda != 0.0) {
-                     cell->at(fsgrids::bfield::PERBX) = this->dBx*cos(2.0 * M_PI * xyz[0] / this->lambda);
-                     cell->at(fsgrids::bfield::PERBY) = this->dBy*sin(2.0 * M_PI * xyz[0] / this->lambda);
-                     cell->at(fsgrids::bfield::PERBZ) = this->dBz*cos(2.0 * M_PI * xyz[0] / this->lambda);
-                  }
-
-                  cell->at(fsgrids::bfield::PERBX) += this->magXPertAbsAmp * (0.5 - getRandomNumber(rndState));
-                  cell->at(fsgrids::bfield::PERBY) += this->magYPertAbsAmp * (0.5 - getRandomNumber(rndState));
-                  cell->at(fsgrids::bfield::PERBZ) += this->magZPertAbsAmp * (0.5 - getRandomNumber(rndState));
-               }
-            }
-         }
+            cell[fsgrids::bfield::PERBX] = dBx_l * cos(2.0 * M_PI * xyz[0] / lambda_l) + magXPertAbsAmp_l * rndBuffer[0];
+            cell[fsgrids::bfield::PERBY] = dBy_l * sin(2.0 * M_PI * xyz[0] / lambda_l) + magYPertAbsAmp_l * rndBuffer[1];
+            cell[fsgrids::bfield::PERBZ] = dBz_l * cos(2.0 * M_PI * xyz[0] / lambda_l) + magZPertAbsAmp_l * rndBuffer[2];
+         });
       }
    }
 

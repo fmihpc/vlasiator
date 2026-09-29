@@ -42,48 +42,32 @@ namespace projects {
 
    void Riemann1::addParameters(){
       typedef Readparameters RP;
-      RP::add("Riemann.rho1", "Number density, left state (m^-3)", 0.0);
-      RP::add("Riemann.rho2", "Number density, right state (m^-3)", 0.0);
-      RP::add("Riemann.T1", "Temperature, left state (K)", 0.0);
-      RP::add("Riemann.T2", "Temperature, right state (K)", 0.0);
-      RP::add("Riemann.Vx1", "Bulk velocity x component, left state (m/s)", 0.0);
-      RP::add("Riemann.Vx2", "Bulk velocity x component, right state (m/s)", 0.0);
-      RP::add("Riemann.Vy1", "Bulk velocity y component, left state (m/s)", 0.0);
-      RP::add("Riemann.Vy2", "Bulk velocity y component, right state (m/s)", 0.0);
-      RP::add("Riemann.Vz1", "Bulk velocity z component, left state (m/s)", 0.0);
-      RP::add("Riemann.Vz2", "Bulk velocity z component, right state (m/s)", 0.0);
-      RP::add("Riemann.Bx1", "Magnetic field x component, left state (T)", 0.0);
-      RP::add("Riemann.Bx2", "Magnetic field x component, right state (T)", 0.0);
-      RP::add("Riemann.By1", "Magnetic field y component, left state (T)", 0.0);
-      RP::add("Riemann.By2", "Magnetic field y component, right state (T)", 0.0);
-      RP::add("Riemann.Bz1", "Magnetic field z component, left state (T)", 0.0);
-      RP::add("Riemann.Bz2", "Magnetic field z component, right state (T)", 0.0);
+      RP::add<Real>("Riemann.rho1", "Number density, left state (m^-3)",this->rho[this->LEFT],0.0);
+      RP::add<Real>("Riemann.rho2", "Number density, right state (m^-3)",this->rho[this->RIGHT],0.0);
+      RP::add<Real>("Riemann.T1", "Temperature, left state (K)",this->T[this->LEFT],0.0);
+      RP::add<Real>("Riemann.T2", "Temperature, right state (K)",this->T[this->RIGHT],0.0);
+      RP::add<Real>("Riemann.Vx1", "Bulk velocity x component, left state (m/s)",this->Vx[this->LEFT],0.0);
+      RP::add<Real>("Riemann.Vx2", "Bulk velocity x component, right state (m/s)",this->Vx[this->RIGHT],0.0);
+      RP::add<Real>("Riemann.Vy1", "Bulk velocity y component, left state (m/s)",this->Vy[this->LEFT],0.0);
+      RP::add<Real>("Riemann.Vy2", "Bulk velocity y component, right state (m/s)",this->Vy[this->RIGHT],0.0);
+      RP::add<Real>("Riemann.Vz1", "Bulk velocity z component, left state (m/s)",this->Vz[this->LEFT],0.0);
+      RP::add<Real>("Riemann.Vz2", "Bulk velocity z component, right state (m/s)",this->Vz[this->RIGHT],0.0);
+      RP::add<Real>("Riemann.Bx1", "Magnetic field x component, left state (T)",this->Bx[this->LEFT],0.0);
+      RP::add<Real>("Riemann.Bx2", "Magnetic field x component, right state (T)",this->Bx[this->RIGHT],0.0);
+      RP::add<Real>("Riemann.By1", "Magnetic field y component, left state (T)",this->By[this->LEFT],0.0);
+      RP::add<Real>("Riemann.By2", "Magnetic field y component, right state (T)",this->By[this->RIGHT],0.0);
+      RP::add<Real>("Riemann.Bz1", "Magnetic field z component, left state (T)",this->Bz[this->LEFT],0.0);
+      RP::add<Real>("Riemann.Bz2", "Magnetic field z component, right state (T)",this->Bz[this->RIGHT],0.0);
    }
 
    void Riemann1::getParameters(){
-      Project::getParameters();
+      // Project::getParameters();
       typedef Readparameters RP;
 
       if(getObjectWrapper().particleSpecies.size() > 1) {
          std::cerr << "The selected project does not support multiple particle populations! Aborting in " << __FILE__ << " line " << __LINE__ << std::endl;
          abort();
       }
-      RP::get("Riemann.rho1", this->rho[this->LEFT]);
-      RP::get("Riemann.rho2", this->rho[this->RIGHT]);
-      RP::get("Riemann.T1", this->T[this->LEFT]);
-      RP::get("Riemann.T2", this->T[this->RIGHT]);
-      RP::get("Riemann.Vx1", this->Vx[this->LEFT]);
-      RP::get("Riemann.Vx2", this->Vx[this->RIGHT]);
-      RP::get("Riemann.Vy1", this->Vy[this->LEFT]);
-      RP::get("Riemann.Vy2", this->Vy[this->RIGHT]);
-      RP::get("Riemann.Vz1", this->Vz[this->LEFT]);
-      RP::get("Riemann.Vz2", this->Vz[this->RIGHT]);
-      RP::get("Riemann.Bx1", this->Bx[this->LEFT]);
-      RP::get("Riemann.Bx2", this->Bx[this->RIGHT]);
-      RP::get("Riemann.By1", this->By[this->LEFT]);
-      RP::get("Riemann.By2", this->By[this->RIGHT]);
-      RP::get("Riemann.Bz1", this->Bz[this->LEFT]);
-      RP::get("Riemann.Bz2", this->Bz[this->RIGHT]);
    }
 
    Realf Riemann1::fillPhaseSpace(spatial_cell::SpatialCell *cell,
@@ -141,30 +125,32 @@ namespace projects {
    }
 
    void Riemann1::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
-   
-   void Riemann1::setProjectBField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
-   ) {
-      setBackgroundFieldToZero(BgBGrid);
-      
+
+   void Riemann1::setProjectBField(fsgrids::perbspan perb,
+                                   fsgrids::bgbspan bgb,
+                                   fsgrids::technicalspan technical, FieldSolverGrid &fsgrid) {
+      setBackgroundFieldToZero(fsgrid, technical, bgb);
+
       if(!P::isRestart) {
-         auto localSize = perBGrid.getLocalSize().data();
+         // local copies for lambda capture
+         const auto Bx_l = this->Bx;
+         const auto By_l = this->By;
+         const auto Bz_l = this->Bz;
+         const auto LEFT_l = this->LEFT;
+         const auto RIGHT_l = this->RIGHT;
          
-         #pragma omp parallel for collapse(3)
-         for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
-            for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
-               for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
-                  const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
-                  std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
-                  
-                  cell->at(fsgrids::bfield::PERBX) = (xyz[0] < 0.0) ? this->Bx[this->LEFT] : this->Bx[this->RIGHT];
-                  cell->at(fsgrids::bfield::PERBY) = (xyz[0] < 0.0) ? this->By[this->LEFT] : this->By[this->RIGHT];
-                  cell->at(fsgrids::bfield::PERBZ) = (xyz[0] < 0.0) ? this->Bz[this->LEFT] : this->Bz[this->RIGHT];
-               }
-            }
-         }
+         fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                             phiprof::initializeTimer("setProjectBField-loop"), technical,
+                             [=](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+            const std::array<Real, 3> xyz = coordinates.getPhysicalCoords(stencil.i, stencil.j, stencil.k);
+            auto& cell = perb[stencil.ooo()];
+
+            //Real Bxavg, Byavg, Bzavg;
+            //Bxavg = Byavg = Bzavg = 0.0;
+            cell[fsgrids::bfield::PERBX] = (xyz[0] < 0.0) ? Bx_l[LEFT_l] : Bx_l[RIGHT_l];
+            cell[fsgrids::bfield::PERBY] = (xyz[0] < 0.0) ? By_l[LEFT_l] : By_l[RIGHT_l];
+            cell[fsgrids::bfield::PERBZ] = (xyz[0] < 0.0) ? Bz_l[LEFT_l] : Bz_l[RIGHT_l];
+         });
       }
    }
 }

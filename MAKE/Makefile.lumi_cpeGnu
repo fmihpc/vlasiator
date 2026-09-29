@@ -66,8 +66,8 @@ LIBRARY_PREFIX = /scratch/project_465000287/libraries/PrgEnv-gnu-gcc10
 LIBRARY_PREFIX_HEADERS = /scratch/project_465000287/libraries
 
 #compiled libraries
-INC_BOOST = -I$(LIBRARY_PREFIX)/boost/include
-LIB_BOOST = -L$(LIBRARY_PREFIX)/boost/lib -lboost_program_options -Wl,-rpath=$(LIBRARY_PREFIX)/boost/lib
+
+
 
 INC_ZOLTAN = -I$(LIBRARY_PREFIX)/zoltan/include
 LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/zoltan/lib -lzoltan -Wl,-rpath=$(LIBRARY_PREFIX)/zoltan/lib

@@ -29,6 +29,6 @@ using namespace std;
 species::Species::Species() { }
 
 species::Species::Species(const Species& other) :
-   name {other.name}, charge {other.charge}, mass {other.mass}, sparseMinValue {other.sparseMinValue}, velocityMesh {other.velocityMesh} {}
+   name {other.name}, mass_units {other.mass_units}, charge {other.charge}, mass {other.mass}, sparseMinValue {other.sparseMinValue}, velocityMesh {other.velocityMesh} {}
 
 species::Species::~Species() { }

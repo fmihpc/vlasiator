@@ -38,11 +38,10 @@
 \param mpiGrid Vlasiator's grid
 \param name Name of the restart file e.g. "restart.00052.vlsv"
 */
-bool readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-              const std::string& name);
+bool readGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+              fsgrids::perbspan perb,
+              fsgrids::efieldspan e,
+              fsgrids::technicalspan technical, FieldSolverGrid &fsgrid, const std::string& name);
 
 /*!
 
@@ -60,6 +59,6 @@ void checkExternalCommands();
 bool readIonosphereNodeVariable(
    vlsv::ParallelReader& file, const string& variableName, SBC::SphericalTriGrid& grid, ionosphereParameters index);
 
-bool readFsgridDecomposition(vlsv::ParallelReader& file, std::array<FsGridTools::Task_t,3>& decomposition);
+bool readFsgridDecomposition(vlsv::ParallelReader& file, std::array<fsgrid::Task_t,3>& decomposition);
 
 #endif

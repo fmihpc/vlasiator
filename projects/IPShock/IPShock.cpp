@@ -49,81 +49,48 @@ namespace projects {
    bool IPShock::initialize() {
       return Project::initialize();
    }
-  
    void IPShock::addParameters() {
       typedef Readparameters RP;
       // Common (field / etc.) parameters
-      RP::add("IPShock.BX0u", "Upstream mag. field value (T)", 1.0e-9);
-      RP::add("IPShock.BY0u", "Upstream mag. field value (T)", 2.0e-9);
-      RP::add("IPShock.BZ0u", "Upstream mag. field value (T)", 3.0e-9);
-      RP::add("IPShock.BX0d", "Downstream mag. field value (T)", 1.0e-9);
-      RP::add("IPShock.BY0d", "Downstream mag. field value (T)", 2.0e-9);
-      RP::add("IPShock.BZ0d", "Downstream mag. field value (T)", 3.0e-9);
-      RP::add("IPShock.Width", "Shock Width (m)", 50000);
+      RP::add<Real>("IPShock.BX0u", "Upstream mag. field value (T)",this->B0u[0],1.0e-9);
+      RP::add<Real>("IPShock.BY0u", "Upstream mag. field value (T)",this->B0u[1],2.0e-9);
+      RP::add<Real>("IPShock.BZ0u", "Upstream mag. field value (T)",this->B0u[2],3.0e-9);
+      RP::add<Real>("IPShock.BX0d", "Downstream mag. field value (T)",this->B0d[0],1.0e-9);
+      RP::add<Real>("IPShock.BY0d", "Downstream mag. field value (T)",this->B0d[1],2.0e-9);
+      RP::add<Real>("IPShock.BZ0d", "Downstream mag. field value (T)",this->B0d[2],3.0e-9);
+      RP::add<Real>("IPShock.Width", "Shock Width (m)",this->Shockwidth,50000);
 
-      RP::add("IPShock.AMR_L1width", "L1 AMR region width (m)", 0);
-      RP::add("IPShock.AMR_L2width", "L2 AMR region width (m)", 0);
-      RP::add("IPShock.AMR_L3width", "L3 AMR region width (m)", 0);
-      RP::add("IPShock.AMR_L4width", "L4 AMR region width (m)", 0);
+      RP::add<Real>("IPShock.AMR_L1width", "L1 AMR region width (m)",this->AMR_L1width,0);
+      RP::add<Real>("IPShock.AMR_L2width", "L2 AMR region width (m)",this->AMR_L2width,0);
+      RP::add<Real>("IPShock.AMR_L3width", "L3 AMR region width (m)",this->AMR_L3width,0);
+      RP::add<Real>("IPShock.AMR_L4width", "L4 AMR region width (m)",this->AMR_L4width,0);
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
-         RP::add(pop + "_IPShock.VX0u", "Upstream Bulk velocity in x", 0.0);
-         RP::add(pop + "_IPShock.VY0u", "Upstream Bulk velocity in y", 0.0);
-         RP::add(pop + "_IPShock.VZ0u", "Upstream Bulk velocuty in z", 0.0);
-         RP::add(pop + "_IPShock.rhou", "Upstream Number density (m^-3)", 1.0e7);
-         RP::add(pop + "_IPShock.Temperatureu", "Upstream Temperature (K)", 2.0e6);
+         
+         IPShockSpeciesParameters* sP=new IPShockSpeciesParameters();
+         this->speciesParamsRead.push_back(sP);
 
-         RP::add(pop + "_IPShock.VX0d", "Downstream Bulk velocity in x", 0.0);
-         RP::add(pop + "_IPShock.VY0d", "Downstream Bulk velocity in y", 0.0);
-         RP::add(pop + "_IPShock.VZ0d", "Downstream Bulk velocuty in z", 0.0);
-         RP::add(pop + "_IPShock.rhod", "Downstream Number density (m^-3)", 1.0e7);
-         RP::add(pop + "_IPShock.Temperatured", "Downstream Temperature (K)", 2.0e6);
+         RP::add<Real>(pop + "_IPShock.VX0u", "Upstream Bulk velocity in x",sP->V0u[0],0.0);
+         RP::add<Real>(pop + "_IPShock.VY0u", "Upstream Bulk velocity in y",sP->V0u[1],0.0);
+         RP::add<Real>(pop + "_IPShock.VZ0u", "Upstream Bulk velocuty in z",sP->V0u[2],0.0);
+         RP::add<Real>(pop + "_IPShock.rhou", "Upstream Number density (m^-3)",sP->DENSITYu,1.0e7);
+         RP::add<Real>(pop + "_IPShock.Temperatureu", "Upstream Temperature (K)",sP->TEMPERATUREu,2.0e6);
 
-         RP::add(pop + "_IPShock.maxwCutoff", "Cutoff for the maxwellian distribution", 1e-12);
+         RP::add<Real>(pop + "_IPShock.VX0d", "Downstream Bulk velocity in x",sP->V0d[0],0.0);
+         RP::add<Real>(pop + "_IPShock.VY0d", "Downstream Bulk velocity in y",sP->V0d[1],0.0);
+         RP::add<Real>(pop + "_IPShock.VZ0d", "Downstream Bulk velocuty in z",sP->V0d[2],0.0);
+         RP::add<Real>(pop + "_IPShock.rhod", "Downstream Number density (m^-3)",sP->DENSITYd,1.0e7);
+         RP::add<Real>(pop + "_IPShock.Temperatured", "Downstream Temperature (K)",sP->TEMPERATUREd,2.0e6);
+
+         RP::add<Real>(pop + "_IPShock.maxwCutoff", "Cutoff for the maxwellian distribution",sP->maxwCutoff,1e-12);
       }
 
    }
 
    void IPShock::getParameters() {
-      Project::getParameters();
-
-      typedef Readparameters RP;
-      RP::get("IPShock.BX0u", this->B0u[0]);
-      RP::get("IPShock.BY0u", this->B0u[1]);
-      RP::get("IPShock.BZ0u", this->B0u[2]);
-      RP::get("IPShock.BX0d", this->B0d[0]);
-      RP::get("IPShock.BY0d", this->B0d[1]);
-      RP::get("IPShock.BZ0d", this->B0d[2]);
-      RP::get("IPShock.Width", this->Shockwidth);
-
-      RP::get("IPShock.AMR_L1width", this->AMR_L1width);
-      RP::get("IPShock.AMR_L2width", this->AMR_L2width);
-      RP::get("IPShock.AMR_L3width", this->AMR_L3width);
-      RP::get("IPShock.AMR_L4width", this->AMR_L4width);
-
-      // Per-population parameters
-      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
-         IPShockSpeciesParameters sP;
-
-         RP::get(pop + "_IPShock.VX0u", sP.V0u[0]);
-         RP::get(pop + "_IPShock.VY0u", sP.V0u[1]);
-         RP::get(pop + "_IPShock.VZ0u", sP.V0u[2]);
-         RP::get(pop + "_IPShock.rhou", sP.DENSITYu);
-         RP::get(pop + "_IPShock.Temperatureu", sP.TEMPERATUREu);
-
-         RP::get(pop + "_IPShock.VX0d", sP.V0d[0]);
-         RP::get(pop + "_IPShock.VY0d", sP.V0d[1]);
-         RP::get(pop + "_IPShock.VZ0d", sP.V0d[2]);
-         RP::get(pop + "_IPShock.rhod", sP.DENSITYd);
-         RP::get(pop + "_IPShock.Temperatured", sP.TEMPERATUREd);
-
-         RP::get(pop + "_IPShock.maxwCutoff", sP.maxwCutoff);
-
-         speciesParams.push_back(sP);
-      }
+      // Project::getParameters();
 
       int myRank;
 
@@ -153,11 +120,18 @@ namespace projects {
          //std::cerr << "Width = " << this->Shockwidth << std::endl;
       }
       */
+      //NOTE: This could be refactored but not really worth it when speciesParams is of size ~1-10 usually
 
       /* 
          Now allows flow and field both in z and y -directions. As assuming we're
          in the dHT frame, all flow and magnetic field should be in a single plane.
       */
+      typedef Readparameters RP;
+      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
+         IPShockSpeciesParameters* sP=speciesParamsRead.at(i);
+         speciesParams.push_back(*sP);
+      }
+
 
       /* Magnitude of tangential B-field and flow components */
       this->B0utangential = sqrt(this->B0u[1]*this->B0u[1] + this->B0u[2]*this->B0u[2]);
@@ -419,63 +393,63 @@ namespace projects {
       return a;
    }
 
-   void IPShock::setProjectBField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
-      ) {
-      setBackgroundFieldToZero(BgBGrid);
-      
-      if(!P::isRestart) {
-         auto localSize = perBGrid.getLocalSize().data();
-      
-#pragma omp parallel for collapse(3)
-         for (FsGridTools::FsIndex_t x = 0; x < localSize[0]; ++x) {
-            for (FsGridTools::FsIndex_t y = 0; y < localSize[1]; ++y) {
-               for (FsGridTools::FsIndex_t z = 0; z < localSize[2]; ++z) {
-                  const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
-                  std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
-                  
-                  /* Maintain all values in BPERT for simplicity */
-                  Real mu0 = physicalconstants::MU_0;
-                  
-                  // Interpolate density between upstream and downstream
-                  // All other values are calculated from jump conditions
-                  Real MassDensity = 0.;
-                  Real MassDensityU = 0.;
-                  Real EffectiveVu0 = 0.;
-                  for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-                     const IPShockSpeciesParameters& sP = speciesParams[i];
-                     Real mass = getObjectWrapper().particleSpecies[i].mass;
-                     
-                     MassDensity += mass * interpolate(sP.DENSITYu,sP.DENSITYd, xyz[0]);
-                     MassDensityU += mass * sP.DENSITYu;
-                     EffectiveVu0 += sP.V0u[0] * mass * sP.DENSITYu;
-                  }
-                  EffectiveVu0 /= MassDensityU;
-                  
-                  // Solve tangential components for B and V
-                  Real VX = MassDensityU * EffectiveVu0 / MassDensity;
-                  Real BX = this->B0u[0];
-                  Real MAsq = std::pow((EffectiveVu0/this->B0u[0]), 2) * MassDensityU * mu0;
-                  Real Btang = this->B0utangential * (MAsq - 1.0)/(MAsq*VX/EffectiveVu0 -1.0);
-                  
-                  /* Reconstruct Y and Z components using cos(phi) values and signs. Tangential variables are always positive. */
-                  Real BY = abs(Btang) * this->Bucosphi * this->Byusign;
-                  Real BZ = abs(Btang) * sqrt(1. - this->Bucosphi * this->Bucosphi) * this->Bzusign;
-                  //Real Vtang = VX * Btang / BX;
-                  //Real VY = Vtang * this->Vucosphi * this->Vyusign;
-                  //Real VZ = Vtang * sqrt(1. - this->Vucosphi * this->Vucosphi) * this->Vzusign;
-                  
-                  cell->at(fsgrids::bfield::PERBX) = BX;
-                  cell->at(fsgrids::bfield::PERBY) = BY;
-                  cell->at(fsgrids::bfield::PERBZ) = BZ;
-               }
+  void IPShock::setProjectBField(fsgrids::perbspan perb,
+                                 fsgrids::bgbspan bgb,
+                                 fsgrids::technicalspan technical, FieldSolverGrid &fsgrid) {
+     setBackgroundFieldToZero(fsgrid, technical, bgb);
+
+     if (!P::isRestart) {
+         const auto B0u_l = this->B0u; // copies for lambda capture
+         const auto B0utangential_l = this->B0utangential;
+         const auto Bucosphi_l = this->Bucosphi;
+         const auto Byusign_l = this->Byusign;
+         const auto Bzusign_l = this->Bzusign;
+         const auto speciesParams_l = speciesParams;
+         // needs *this because of interpolate() at least atm.
+         fsgrid.parallel_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
+                             phiprof::initializeTimer("setProjectBField-loop"), technical,
+                             [=, *this](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer) {
+            const std::array<Real, 3> xyz = coordinates.getPhysicalCoords(stencil.i, stencil.j, stencil.k);
+            auto& cell = perb[stencil.ooo()];
+
+            /* Maintain all values in BPERT for simplicity */
+            Real mu0 = physicalconstants::MU_0;
+
+            // Interpolate density between upstream and downstream
+            // All other values are calculated from jump conditions
+            Real MassDensity = 0.;
+            Real MassDensityU = 0.;
+            Real EffectiveVu0 = 0.;
+            for (uint i = 0; i < getObjectWrapper().particleSpecies.size(); i++) {
+               const IPShockSpeciesParameters& sP = speciesParams_l[i];
+               Real mass = getObjectWrapper().particleSpecies[i].mass;
+
+               MassDensity += mass * interpolate(sP.DENSITYu, sP.DENSITYd, xyz[0]);
+               MassDensityU += mass * sP.DENSITYu;
+               EffectiveVu0 += sP.V0u[0] * mass * sP.DENSITYu;
             }
-         }
+            EffectiveVu0 /= MassDensityU;
+
+            // Solve tangential components for B and V
+            Real VX = MassDensityU * EffectiveVu0 / MassDensity;
+            Real BX = B0u_l[0];
+            Real MAsq = std::pow((EffectiveVu0 / B0u_l[0]), 2) * MassDensityU * mu0;
+            Real Btang = B0utangential_l * (MAsq - 1.0) / (MAsq * VX / EffectiveVu0 - 1.0);
+
+            /* Reconstruct Y and Z components using cos(phi) values and signs. Tangential variables are always
+             * positive. */
+            Real BY = abs(Btang) * Bucosphi_l * Byusign_l;
+            Real BZ = abs(Btang) * sqrt(1. - Bucosphi_l * Bucosphi_l) * Bzusign_l;
+            // Real Vtang = VX * Btang / BX;
+            // Real VY = Vtang * this->Vucosphi * this->Vyusign;
+            // Real VZ = Vtang * sqrt(1. - this->Vucosphi * this->Vucosphi) * this->Vzusign;
+
+            cell[fsgrids::bfield::PERBX] = BX;
+            cell[fsgrids::bfield::PERBY] = BY;
+            cell[fsgrids::bfield::PERBZ] = BZ;
+         });
       }
    }
-
 
    bool IPShock::refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
  

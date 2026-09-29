@@ -38,8 +38,8 @@ LIB_MPI =
 LIBRARY_PREFIX = $(HOME)/vlasiator/libraries-jetsontx
 LIBRARY_PREFIX_B = $(HOME)
 
-INC_BOOST =
-LIB_BOOST = ${BOOST_LIBS} -lboost_program_options
+
+
 
 INC_ZOLTAN = -I${LIBRARY_PREFIX}/include
 LIB_ZOLTAN = -L${LIBRARY_PREFIX}/lib -lzoltan

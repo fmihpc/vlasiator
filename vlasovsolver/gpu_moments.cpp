@@ -75,7 +75,7 @@ __global__ void __launch_bounds__(WID3) first_moments_kernel (
       const Real VX = blockParamsZ[BlockParams::VXCRD] + (i+HALF)*paramX;
       const Real VY = blockParamsZ[BlockParams::VYCRD] + (j+HALF)*paramY;
       const Real VZ = blockParamsZ[BlockParams::VZCRD] + (k+HALF)*paramZ;
-      
+
       const Real f = (Real)cellValue;
       const Real fDV3 = f * DV3;
 
@@ -540,7 +540,7 @@ void gpu_calculateMoments_V(
                cell->parameters[CellParams::P_12_V] = 0.0;
             }
          }
-#pragma omp critical
+         #pragma omp critical
          {
             maxVmeshSizes.at(popID) = maxVmeshSizes.at(popID) > threadMaxVmeshSize ? maxVmeshSizes.at(popID) : threadMaxVmeshSize;
          }
