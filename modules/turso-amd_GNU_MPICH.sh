@@ -5,3 +5,4 @@ module load bzip2
 module load CMake
 module load HY_proxy
 module load Automake
+module load git
