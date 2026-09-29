@@ -47,7 +47,7 @@ namespace projects {
       virtual ~Dispersion();
 
       virtual bool initialize(void) override;
-      static void addParameters(void);
+      virtual void addParameters(void) override;
       virtual void getParameters(void) override;
       virtual void setProjectBField(
          fsgrids::perbspan perb, fsgrids::bgbspan bgb,
@@ -72,6 +72,7 @@ namespace projects {
       Real angleXZ;
       Real maxwCutoff;
       std::vector<DispersionSpeciesParameters> speciesParams;
+      std::vector<DispersionSpeciesParameters*> speciesParamsRead;
       uint seed;
 
       static Real rndRho, rndVel[3];

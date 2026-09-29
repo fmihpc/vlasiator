@@ -22,179 +22,212 @@
 
 #ifndef READPARAMETERS_H
 #define READPARAMETERS_H
-
-#include <boost/program_options.hpp>
+#include <algorithm>
+#include <cctype>
 #include <fstream>
+#include <functional>
 #include <iomanip>
 #include <iostream>
 #include <limits>
+#include <map>
 #include <mpi.h>
+#include <optional>
+#include <set>
+#include <sstream>
+#include <stdexcept>
 #include <stdint.h>
 #include <string>
-#include <typeinfo>
+#include <string_view>
+#include <type_traits>
 #include <vector>
-
 #include "common.h"
 #include "version.h"
+#include "qdparser.h"
 
 class Readparameters {
 public:
    Readparameters(int cmdargc, char* cmdargv[]);
    ~Readparameters();
 
-   /** Add a new input parameter.
-    * Note that parse must be called in order for the input file(s) to be re-read.
-    * Only called by the root process.
-    * @param name The name of the parameter, as given in the input file(s).
-    * @param desc Description for the parameter.
-    * @param defValue Default value for variable.
-    */
-   static void add(const std::string& name, const std::string& desc, const std::string& defValue) {
-      int rank;
-      MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-      if (rank == MASTER_RANK) {
-         options[name] = "";
-         isOptionParsed[name] = false;
-         descriptions->add_options()(
-             name.c_str(), boost::program_options::value<std::string>(&(options[name]))->default_value(defValue),
-             desc.c_str());
-      }
-   }
+   template <typename T> struct is_vector : public std::false_type {};
 
-   template <typename T> static void add(const std::string& name, const std::string& desc, const T& defValue) {
-      int rank;
-      MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-      if (rank == MASTER_RANK) {
-         std::stringstream ss;
+   template <typename T, typename A> struct is_vector<std::vector<T, A>> : public std::true_type {};
+   struct Option {
+      Option* expected(long, long) { return this; }
+      Option* required(bool = true) { return this; }
+      std::string name;
+      std::string desc;
+      std::string defaultStr;
+      bool isVector = false;
+      bool isFlag = false;
+      bool wasSet = false;
+      std::function<void()> resetToDefault;
+      std::function<void()> clearValue;
+      std::function<void(const std::string&)> assignOne;
+      std::function<std::string()> serializeValue;
+   };
 
-         static constexpr bool n = (std::is_floating_point<T>::value);
-         if (n) {
-            ss << std::setprecision(std::numeric_limits<double>::digits10 + 1) << defValue;
-         } else {
-            ss << defValue;
-         }
-         options[name] = "";
-         isOptionParsed[name] = false;
-         descriptions->add_options()(
-             name.c_str(), boost::program_options::value<std::string>(&(options[name]))->default_value(ss.str()),
-             desc.c_str());
-      }
-   }
+   template <typename T>
+   static Option* add(const std::string& name, const std::string& desc, T& var,
+                       std::optional<T> defval = std::nullopt) {
+      const std::string key = normalizeName(name);
+      T baseline = defval.has_value() ? *defval : var;
+      var = baseline;
 
-   /** Get the value of the given parameter added with add().
-    * This may be called after having called Parse, and it may be called by any process, in any order.
-    * Aborts if given parameter was not found (a parameter passed to get() wasn't add()ed, defaults are ok).
-    * @param name The name of the parameter.
-    * @param value A variable where the value of the parameter is written.
-    */
-   static void get(const std::string& name, std::string& value) {
-      if (options.find(name) != options.end()) { // check if it exists
-         value = options[name];
+      Option opt;
+      opt.name = key;
+      opt.desc = desc;
+      opt.isVector = is_vector<T>::value;
+      opt.defaultStr = formatValue(baseline);
+      opt.resetToDefault = [&var, baseline]() { var = baseline; };
+      if constexpr (is_vector<T>::value) {
+         using ElemT = typename T::value_type;
+         opt.clearValue = [&var]() { var.clear(); };
+         opt.assignOne = [&var](const std::string& tok) { var.push_back(parseScalar<ElemT>(tok)); };
       } else {
-         int rank;
-         MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-         if (rank == MASTER_RANK) {
-            std::cerr << __FILE__ << ":" << __LINE__ << " " << name + " not declared using the add() function!" << std::endl;
-            MPI_Abort(MPI_COMM_WORLD, 1);
-         }
+         opt.clearValue = [&var]() { var = T{}; };
+         opt.assignOne = [&var](const std::string& tok) { var = parseScalar<T>(tok); };
       }
+      opt.serializeValue = [&var]() { return formatValue(var); };
+      return registerOption(key, std::move(opt));
    }
 
-   static void get(const std::string& name, std::vector<std::string>& value) {
-      if (vectorOptions.find(name) != vectorOptions.end()) { // check if it exists
-         value = vectorOptions[name];
-      } else {
-         int rank;
-         MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-         if (rank == MASTER_RANK) {
-            std::cerr << __FILE__ << ":" << __LINE__ << name + " not declared using the add() function!" << std::endl;
-            MPI_Abort(MPI_COMM_WORLD, 1);
-         }
-      }
+   template <typename T>
+   static Option* addComposing(const std::string& name, const std::string& desc, T& var,
+                                std::optional<T> defval = std::nullopt) {
+      return add(name, desc, var, defval);
    }
 
-   template <typename T> static void get(const std::string& name, T& value) {
-      std::string sval;
-      get(name, sval);
+   static Option* addFlag(const std::string& name, const std::string& desc, bool& var) {
+      const std::string key = normalizeName(name);
+      var = false;
 
-      try {
-         value = boost::lexical_cast<T>(sval);
-      } catch (...) {
-         int myRank;
-         MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
-         if (myRank == MASTER_RANK) {
-            std::cerr << __FILE__ << ":" << __LINE__
-                      << std::string(" Problems casting ") + name + " " + sval + std::string(" to ") + typeid(T).name()
-                      << std::endl;
-
-            MPI_Abort(MPI_COMM_WORLD, 1);
-         }
-      }
+      Option opt;
+      opt.name = key;
+      opt.desc = desc;
+      opt.isFlag = true;
+      opt.defaultStr = "false";
+      opt.resetToDefault = [&var]() { var = false; };
+      opt.clearValue = [&var]() { var = false; };
+      opt.assignOne = [&var](const std::string& tok) { var = tok.empty() ? true : parseScalar<bool>(tok); };
+      opt.serializeValue = [&var]() { return std::string(var ? "true" : "false"); };
+      return registerOption(key, std::move(opt));
    }
 
-   /** Get the value of the given parameter added with addComposing().
-    * This may be called after having called Parse, and it may be called by any process, in any order.
-    * Aborts on failed cast.
-    * @param name The name of the parameter.
-    * @param value A variable where the value of the parameter is written.
-    */
-   template <typename T> static void get(const std::string& name, std::vector<T>& value) {
-      std::vector<std::string> stringValue;
-      get(name, stringValue);
-
-      for (std::vector<std::string>::iterator i = stringValue.begin(); i != stringValue.end(); ++i) {
-         try {
-            value.push_back(boost::lexical_cast<T>(*i));
-         } catch (...) {
-            int myRank;
-            MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
-            if (myRank == MASTER_RANK) {
-               std::cerr << __FILE__ << ":" << __LINE__
-                         << std::string(" Problems casting ") + name + *i + std::string(" to ") + typeid(T).name()
-                         << std::endl;
-
-               MPI_Abort(MPI_COMM_WORLD, 1);
-            }
-         }
-      }
-   }
-
-   // Determine whether a given variable has been set.
    static bool isSet(const std::string& name) {
-      return(options.find(name) != options.end());
+      auto it = registry().find(normalizeName(name));
+      return it != registry().end() && it->second.wasSet;
    }
-
-   static void addComposing(const std::string& name, const std::string& desc);
 
    static void helpMessage();
 
    static bool versionMessage();
 
    static std::string versionInfo();
-   
+
    static std::string configInfo();
 
-   static bool parse(const bool needsRunConfig = true, const bool allowUnknown = true);
+   static void parse(std::vector<std::string>& invalid, std::vector<std::string>& filenames, bool extras = false);
 
+   static void parseComposing() {}
    static bool helpRequested;
+   static bool versionRequested;
+   static bool checkCfg;
+   static std::vector<std::string> populations;
+   static std::map<std::string, std::string> subcommandDescriptions;
 
 private:
-   static int argc;    /**< How many entries argv contains.*/
-   static char** argv; /**< Pointer to char* array containing command line parameters.*/
+   static int argc; 
+   static char** argv;
+   static std::string configFileName;
 
-   static boost::program_options::options_description* descriptions;
-   static boost::program_options::variables_map* variables;
+   static std::string normalizeName(const std::string& name) {
+      std::size_t i = 0;
+      while (i < name.size() && name[i] == '-') {
+         ++i;
+      }
+      return name.substr(i);
+   }
 
-   static std::map<std::string, std::string> options;
-   static std::map<std::string, bool> isOptionParsed;
-   static std::map<std::string, std::vector<std::string>> vectorOptions;
-   static std::map<std::string, bool> isVectorOptionParsed;
-
-   static std::string global_config_file_name;
-   static std::string user_config_file_name;
-   static std::string run_config_file_name;
+   static std::map<std::string, Option>& registry() {
+      static std::map<std::string, Option> reg;
+      return reg;
+   }
+   static std::vector<std::string>& registryOrder() {
+      static std::vector<std::string> order;
+      return order;
+   }
+   static Option* registerOption(const std::string& key, Option&& opt);
 
    static void addDefaultParameters();
+   static void resetAll();
+   static std::string serializeAll();
+   static std::string finalizeFileName(const std::vector<std::string>& tokens);
+   static std::vector<std::string> make_tokens(int argcIn, char** argvIn);
+   static std::vector<std::string> make_tokens(const std::string& buffer);
+   static void applyAssignment(Option& opt, const std::string& rawValue, std::set<std::string>& touched);
+   static void applyArgTokens(const std::vector<std::string>& tokens, bool extras, std::vector<std::string>& invalid, std::vector<std::string>& filenames);
+   static void applyConfigFile(const std::string& filename, bool extras, std::vector<std::string>& invalid);
+
+   template <typename T> static T parseScalar(const std::string& tok) {
+      if constexpr (std::is_same_v<T, std::string>) {
+         return tok;
+      } else if constexpr (std::is_same_v<T, bool>) {
+         std::string low = tok;
+         std::transform(low.begin(), low.end(), low.begin(), [](unsigned char c) { return std::tolower(c); });
+         if (low == "1" || low == "true" || low == "yes" || low == "on") {
+            return true;
+         }
+         if (low == "0" || low == "false" || low == "no" || low == "off") {
+            return false;
+         }
+         throw std::runtime_error("cannot parse '" + tok + "' as a boolean");
+      } else if constexpr (std::is_floating_point_v<T>) {
+         return static_cast<T>(std::stold(tok));
+      } else if constexpr (std::is_integral_v<T>) {
+         if constexpr (std::is_unsigned_v<T>) {
+            return static_cast<T>(std::stoull(tok));
+         } else {
+            return static_cast<T>(std::stoll(tok));
+         }
+      } else if constexpr (std::is_enum_v<T>) {
+         return static_cast<T>(std::stoll(tok));
+      } else {
+         static_assert(!sizeof(T), "Readparameters::what the hell is this type!!!");
+      }
+   }
+
+   template <typename T> static std::string formatScalar(const T& val) {
+      if constexpr (std::is_same_v<T, std::string>) {
+         return val;
+      } else if constexpr (std::is_same_v<T, bool>) {
+         return val ? "true" : "false";
+      } else if constexpr (std::is_floating_point_v<T>) {
+         std::ostringstream ss;
+         ss << std::setprecision(std::numeric_limits<T>::digits10 + 1) << val;
+         return ss.str();
+      } else if constexpr (std::is_enum_v<T>) {
+         return std::to_string(static_cast<std::underlying_type_t<T>>(val));
+      } else {
+         return std::to_string(val);
+      }
+   }
+
+   template <typename T> static std::string formatValue(const T& val) {
+      if constexpr (is_vector<T>::value) {
+         std::string out = "[";
+         for (std::size_t i = 0; i < val.size(); ++i) {
+            if (i) {
+               out += ',';
+            }
+            out += formatScalar(val[i]);
+         }
+         out += ']';
+         return out;
+      } else {
+         return formatScalar(val);
+      }
+   }
 };
 
 #endif

@@ -627,8 +627,8 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       //MLP error per pop
       if(P::systemWriteAllDROs ||  lowercase == "populations_mlp_error") {
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
-            species::Species& species=getObjectWrapper().particleSpecies[i];
-            const std::string& pop = species.name;
+            //species::Species& species=getObjectWrapper().particleSpecies[i];
+            //const std::string& pop = species.name;
             outputReducer->addOperator(new DRO::MLPerror(i));
             outputReducer->addMetadata(outputReducer->size()-1,"","","","");
          }
@@ -639,8 +639,8 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       //MLP epochs per pop
       if(P::systemWriteAllDROs ||  lowercase == "populations_mlp_epochs") {
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
-            species::Species& species=getObjectWrapper().particleSpecies[i];
-            const std::string& pop = species.name;
+            //species::Species& species=getObjectWrapper().particleSpecies[i];
+            //const std::string& pop = species.name;
             outputReducer->addOperator(new DRO::MLPepochs(i));
             outputReducer->addMetadata(outputReducer->size()-1,"","","","");
          }
@@ -793,7 +793,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             const FieldSolverData& fieldSolverData)->std::vector<double> {
                const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
-   
+
                // Iterate through fsgrid cells and extract boundary flag
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
                                                  phiprof::initializeTimer("DRO_fg"), fieldSolverData.technical,
@@ -820,6 +820,42 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             outputReducer->addMetadata(outputReducer->size()-1,"Pa","$\\mathrm{Pa}$","$\\mathcal{P}_\\mathrm{"+pop+"}$","1.0");
             outputReducer->addOperator(new DRO::VariablePTensorOffDiagonal(i));
             outputReducer->addMetadata(outputReducer->size()-1,"Pa","$\\mathrm{Pa}$","$\\mathcal{\\tilde{P}}_\\mathrm{"+pop+"}$","1.0");
+         }
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
+      }
+      if(P::systemWriteAllDROs || lowercase == "populations_entropy" || lowercase == "populations_vg_entropy") {
+         // Per-population Boltzmann H function ~ f log f d3v
+         for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
+            species::Species& species=getObjectWrapper().particleSpecies[i];
+            const std::string& pop = species.name;
+            outputReducer->addOperator(new DRO::VariableEntropy(i));
+            outputReducer->addMetadata(outputReducer->size()-1,"m^-3","\\mathrm{m}^{-1}","$H_\\mathrm{"+pop+"}$","1.0");
+         }
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
+      }
+      if(P::systemWriteAllDROs || lowercase == "populations_relative_entropy" || lowercase == "populations_vg_relative_entropy") {
+         // Per-population relative entropy ~ f log (f/f_M) d3v, where f_M is a Maxwellian with same density n, flow speed U and three component temperature T
+         for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
+            species::Species& species=getObjectWrapper().particleSpecies[i];
+            const std::string& pop = species.name;
+            outputReducer->addOperator(new DRO::VariableRelativeEntropy(i));
+            outputReducer->addMetadata(outputReducer->size()-1,"m^-3","\\mathrm{m}^{-1}","$\\sigma_\\mathrm{"+pop+",rel}$","1.0");
+         }
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
+      }
+      if(P::systemWriteAllDROs || lowercase == "populations_nonmaxwellianess" || lowercase == "populations_vg_nonmaxwellianess") {
+         // Per-population relative entropy per particle ~ f/n log (f/f_M) d3v, where f_M is a Maxwellian with same density n, flow speed U and three component temperature T
+         for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
+            species::Species& species=getObjectWrapper().particleSpecies[i];
+            const std::string& pop = species.name;
+            outputReducer->addOperator(new DRO::VariableNonMaxwellianess(i));
+            outputReducer->addMetadata(outputReducer->size()-1,"","","$\\sigma_\\mathrm{"+pop+",rel} \\,/\\, n_{"+pop+"}$","1.0");
          }
          if(!P::systemWriteAllDROs) {
             continue;

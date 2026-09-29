@@ -30,7 +30,6 @@ export OMP_NUM_THREADS=$t
 
 
 module load gcc
-module load boost
 #export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/proj/vlasiato/libraries/taito/openmpi/1.10.2/gcc/4.9.3/papi/5.5.0/lib/
 
 

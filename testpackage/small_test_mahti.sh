@@ -14,7 +14,7 @@ export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 export OMP_PLACES=cores
 
 module purge
-module load StdEnv gcc openmpi boost papi jemalloc
+module load StdEnv gcc openmpi papi jemalloc
 
 ulimit -c unlimited
 

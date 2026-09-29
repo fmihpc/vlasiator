@@ -34,11 +34,10 @@ module load GCC/13.2.0
 module load OpenMPI/4.1.6-GCC-13.2.0
 module load PMIx/4.2.6-GCCcore-13.2.0
 module load PAPI/7.1.0-GCCcore-13.2.0
-module load Boost/1.83.0-GCC-13.2.0
 #module load xthi
 # export UCX_NET_DEVICES=eth5,mlx5_0:1 # This is important for multi-node performance!
 
-export UCX_TLS=dc_mlx5 
+export UCX_TLS=dc_mlx5
 export UCX_NET_DEVICES=mlx5_0:1
 
 export OMPI_MCA_btl='^uct,ofi'
@@ -239,6 +238,10 @@ for run in ${run_tests[*]}; do
            if [[ "${variables[$i]}" == "fg_"* ]]
            then
                A=$( $run_command_tools $diffbin --meshname=fsgrid  ${reference_result_dir}/${vlsv} ${vlsv_dir}/${vlsv} ${variables[$i]} ${indices[$i]} )
+               if [[ ! $? -eq 0 ]]; then
+                  RUN_ERROR=1
+                  touch $GITHUB_WORKSPACE/testpackage_failed
+               fi
                relativeValue=$(grep "The relative 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
                absoluteValue=$(grep "The absolute 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
                #print the results
@@ -262,6 +265,10 @@ for run in ${run_tests[*]}; do
            elif [[ "${variables[$i]}" == "ig_"* ]]
            then
                B=$( $run_command_tools $diffbin --meshname=ionosphere  ${reference_result_dir}/${vlsv} ${vlsv_dir}/${vlsv} ${variables[$i]} ${indices[$i]} )
+               if [[ ! $? -eq 0 ]]; then
+                  RUN_ERROR=1
+                  touch $GITHUB_WORKSPACE/testpackage_failed
+               fi
                relativeValue=$(grep "The relative 0-distance between both datasets" <<< $B |gawk '{print $8}'  )
                absoluteValue=$(grep "The absolute 0-distance between both datasets" <<< $B |gawk '{print $8}'  )
                # print the results
@@ -285,6 +292,10 @@ for run in ${run_tests[*]}; do
            elif [ ! "${variables[$i]}" == "proton" ]
            then # Regular vg_ variable
                C=$( $run_command_tools $diffbin ${reference_result_dir}/${vlsv} ${vlsv_dir}/${vlsv} ${variables[$i]} ${indices[$i]} )
+               if [[ ! $? -eq 0 ]]; then
+                  RUN_ERROR=1
+                  touch $GITHUB_WORKSPACE/testpackage_failed
+               fi
                relativeValue=$(grep "The relative 0-distance between both datasets" <<< $C |gawk '{print $8}'  )
                absoluteValue=$(grep "The absolute 0-distance between both datasets" <<< $C |gawk '{print $8}'  )
                #print the results
@@ -311,6 +322,10 @@ for run in ${run_tests[*]}; do
                echo "Distribution function diff"
                # Exclude file names from output to keep report size down
                D=$( $run_command_tools $diffbin ${reference_result_dir}/${vlsv} ${vlsv_dir}/${vlsv} proton 0 | grep -v -e "File" -e "INFO" )
+               if [[ ! $? -eq 0 ]]; then
+                  RUN_ERROR=1
+                  touch $GITHUB_WORKSPACE/testpackage_failed
+               fi
                echo -e "$D"
            fi
 

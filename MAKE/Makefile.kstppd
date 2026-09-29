@@ -47,8 +47,8 @@ testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 #======== Libraries ===========
 LIBRARY_PREFIX = /home/kstppd/software/vlasiator_libs
 
-INC_BOOST = -I/usr/include/boost/
-LIB_BOOST = -L/usr/lib/x86_64-linux-gnu/ -lboost_program_options
+
+
 
 INC_ZOLTAN = -I$(LIBRARY_PREFIX)/include
 LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/lib -lzoltan

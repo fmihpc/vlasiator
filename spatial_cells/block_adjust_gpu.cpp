@@ -26,6 +26,8 @@
 #include "../object_wrapper.h"
 #include "../velocity_mesh_parameters.h"
 
+const int maxCellsPerIteration = 65535;
+
 namespace spatial_cell {
 
    /*!\brief spatial_cell::update_velocity_block_content_lists Finds blocks above the sparsity threshold
@@ -42,10 +44,6 @@ void update_velocity_block_content_lists(
    const uint nCells = cells.size();
    if (nCells == 0) {
       return;
-   }
-   if (nCells > 65535) {
-      std::cerr<<"ERROR: too many cells ("<<nCells<<") passed to GPU batch operations! Please use more GPUs / MPI tasks."<<std::endl;
-      abort();
    }
 
    // Consider mass loss evaluation?
@@ -127,15 +125,24 @@ void update_velocity_block_content_lists(
 
    // Batch gather GID-LID-pairs into two maps (one with content, one without)
    phiprof::Timer blockKernelTimer {"update content lists kernel"};
-   const dim3 grid2(largestVelMesh,nCells,1);
-   batch_update_velocity_block_content_lists_kernel<<<grid2, WID3, 0, baseStream>>> (
-      GET_POINTER(gpuMemoryManager, vmesh::VelocityMesh*, dev_vmeshes),
-      GET_POINTER(gpuMemoryManager, vmesh::VelocityBlockContainer*, dev_VBCs),
-      GET_POINTER(gpuMemoryManager, SINGLE_ARG(Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>*), dev_allMaps),
-      GET_POINTER(gpuMemoryManager, Real, dev_minValues),
-      gatherMass, // Also gathers total mass?
-      GET_SESSION_HOST_POINTER(gpuMemoryManager, Real, dev_mass)
+   int kernelIterations = (nCells+maxCellsPerIteration-1)/maxCellsPerIteration;
+   int cellsLeft = nCells;
+   int cellIterationOffset = 0;
+   for(int i = 0; i < kernelIterations; i++){
+      int cellsToCompute = min((nCells+kernelIterations-1)/kernelIterations, cellsLeft);
+      const dim3 grid2(largestVelMesh,cellsToCompute,1);
+      batch_update_velocity_block_content_lists_kernel<<<grid2, WID3, 0, baseStream>>> (
+         GET_POINTER(gpuMemoryManager, vmesh::VelocityMesh*, dev_vmeshes),
+         GET_POINTER(gpuMemoryManager, vmesh::VelocityBlockContainer*, dev_VBCs),
+         GET_POINTER(gpuMemoryManager, SINGLE_ARG(Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>*), dev_allMaps),
+         GET_POINTER(gpuMemoryManager, Real, dev_minValues),
+         gatherMass, // Also gathers total mass?
+         GET_SESSION_HOST_POINTER(gpuMemoryManager, Real, dev_mass),
+         cellIterationOffset
       );
+      cellsLeft -= cellsToCompute;
+      cellIterationOffset += cellsToCompute;
+   }
    CHK_ERR( gpuPeekAtLastError() );
    CHK_ERR( gpuStreamSynchronize(baseStream) );
    blockKernelTimer.stop();
@@ -194,11 +201,6 @@ void adjust_velocity_blocks_in_cells(
    const gpuStream_t baseStream = gpu_getStream();
    const gpuStream_t priorityStream = gpu_getPriorityStream();
    const uint nCells = cellsToAdjust.size();
-
-   if (nCells > 65535) {
-      std::cerr<<"ERROR: too many cells ("<<nCells<<") passed to GPU batch operations! Please use more GPUs / MPI tasks."<<std::endl;
-      abort();
-   }
 
    if(nCells == 0){
       return;
@@ -373,61 +375,81 @@ void adjust_velocity_blocks_in_cells(
    // Halo of 1 in each direction adds up to 26 velocity neighbors.
 
    if (largestContentList > 0) {
-      #ifdef USE_BATCH_WARPACCESSORS
-      // For NVIDIA/CUDA, we can do 26 neighbors and 32 threads per warp in a single block.
-      // For AMD/HIP, we can do 13 neighbors and 64 threads per warp in a single block, meaning two loops per cell.
-      // In either case, we launch blocks equal to largest found velocity_block_with_content_list_size, which was stored
-      // into largestContentList
-      dim3 grid_vel_halo(largestContentList,nCells,1);
-      batch_update_velocity_halo_kernel<<<grid_vel_halo, 26*32, 0, priorityStream>>> (
-         GET_POINTER(gpuMemoryManager, vmesh::VelocityMesh*, dev_vmeshes),
-         GET_POINTER(gpuMemoryManager, split::SplitVector<vmesh::GlobalID>*, dev_vbwcl_vec),
-         GET_POINTER(gpuMemoryManager, SINGLE_ARG(Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>*), dev_allMaps) // Needs both content and no content maps
-         );
-      CHK_ERR( gpuPeekAtLastError() );
-      #else
-      const uint warpsPerBlockBatchHalo = (threadsPerMP/GPUTHREADS + blocksPerMP - 1)/blocksPerMP;
-      dim3 grid_vel_halo((largestContentList + warpsPerBlockBatchHalo - 1)/warpsPerBlockBatchHalo,nCells,1);
-      dim3 block_vel_halo(GPUTHREADS, warpsPerBlockBatchHalo, 1);
-      // We do 26 (launch with GPUTHREADS) neighbors in a single block at a time.
-      batch_update_velocity_halo_kernel<<<grid_vel_halo, block_vel_halo, 0, priorityStream>>> (
-         GET_POINTER(gpuMemoryManager, vmesh::VelocityMesh*, dev_vmeshes),
-         GET_POINTER(gpuMemoryManager, split::SplitVector<vmesh::GlobalID>*, dev_vbwcl_vec),
-         GET_POINTER(gpuMemoryManager, SINGLE_ARG(Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>*), dev_allMaps), // Needs both content and no content maps
-         warpsPerBlockBatchHalo
-         );
-      CHK_ERR( gpuPeekAtLastError() );
-      #endif
+      int kernelIterations = (nCells+maxCellsPerIteration-1)/maxCellsPerIteration;
+      int cellsLeft = nCells;
+      int cellIterationOffset = 0;
+      for(int i = 0; i < kernelIterations; i++){
+         int cellsToCompute = min((nCells+kernelIterations-1)/kernelIterations, cellsLeft);
+         #ifdef USE_BATCH_WARPACCESSORS
+         // For NVIDIA/CUDA, we can do 26 neighbors and 32 threads per warp in a single block.
+         // For AMD/HIP, we can do 13 neighbors and 64 threads per warp in a single block, meaning two loops per cell.
+         // In either case, we launch blocks equal to largest found velocity_block_with_content_list_size, which was stored
+         // into largestContentList
+         dim3 grid_vel_halo(largestContentList,cellsToCompute,1);
+         batch_update_velocity_halo_kernel<<<grid_vel_halo, 26*32, 0, priorityStream>>> (
+            GET_POINTER(gpuMemoryManager, vmesh::VelocityMesh*, dev_vmeshes),
+            GET_POINTER(gpuMemoryManager, split::SplitVector<vmesh::GlobalID>*, dev_vbwcl_vec),
+            GET_POINTER(gpuMemoryManager, SINGLE_ARG(Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>*), dev_allMaps) // Needs both content and no content maps,
+            cellIterationOffset
+            );
+         CHK_ERR( gpuPeekAtLastError() );
+         #else
+         const uint warpsPerBlockBatchHalo = (threadsPerMP/GPUTHREADS + blocksPerMP - 1)/blocksPerMP;
+         dim3 grid_vel_halo((largestContentList + warpsPerBlockBatchHalo - 1)/warpsPerBlockBatchHalo,cellsToCompute,1);
+         dim3 block_vel_halo(GPUTHREADS, warpsPerBlockBatchHalo, 1);
+         // We do 26 (launch with GPUTHREADS) neighbors in a single block at a time.
+         batch_update_velocity_halo_kernel<<<grid_vel_halo, block_vel_halo, 0, priorityStream>>> (
+            GET_POINTER(gpuMemoryManager, vmesh::VelocityMesh*, dev_vmeshes),
+            GET_POINTER(gpuMemoryManager, split::SplitVector<vmesh::GlobalID>*, dev_vbwcl_vec),
+            GET_POINTER(gpuMemoryManager, SINGLE_ARG(Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>*), dev_allMaps), // Needs both content and no content maps
+            warpsPerBlockBatchHalo,
+            cellIterationOffset
+            );
+         CHK_ERR( gpuPeekAtLastError() );
+         #endif
+         cellsLeft -= cellsToCompute;
+         cellIterationOffset += cellsToCompute;
+      }
       // CHK_ERR( gpuStreamSynchronize(priorityStream) );
    }
 
    if (maxNeighbors>0 && largestContentListNeighbors>0) {
       // largestContentListNeighbors accounts for remote (ghost neighbor) content list sizes as well
-      #ifdef USE_BATCH_WARPACCESSORS
-      // ceil int division
-      const size_t blocksNeeded_neigh = 1 + ((largestContentListNeighbors - 1) / (WARPSPERBLOCK));
-      dim3 grid_neigh_halo(blocksNeeded_neigh,nCells,maxNeighbors);
-      // For NVIDIA/CUDA, we can do 32 neighbor GIDs and 32 threads per warp in a single block.
-      // For AMD/HIP, we can do 16 neighbor GIDs and 64 threads per warp in a single block
-      // This is handled in-kernel.
-      batch_update_neighbour_halo_kernel<<<grid_neigh_halo, WARPSPERBLOCK*GPUTHREADS, 0, baseStream>>> (
-         GET_POINTER(gpuMemoryManager, vmesh::VelocityMesh*, dev_vmeshes),
-         GET_POINTER(gpuMemoryManager, SINGLE_ARG(Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>*), dev_allMaps), // Needs both has_content and has_no_content maps
-         GET_SESSION_POINTER(gpuMemoryManager, split::SplitVector<vmesh::GlobalID>*, dev_vbwcl_neigh)
-         );
-      CHK_ERR( gpuPeekAtLastError() );
-      #else
-      // Try smaller launch for more spatial cell -parallelism
-      const size_t blocksNeeded_neigh = 1 + ((largestContentListNeighbors - 1) / (WARPSPERBLOCK*GPUTHREADS));
-      dim3 grid_neigh_halo(blocksNeeded_neigh,nCells,maxNeighbors);
-      // Each threads manages a single GID from the neighbour at hand
-      batch_update_neighbour_halo_kernel<<<grid_neigh_halo, WARPSPERBLOCK*GPUTHREADS, 0, baseStream>>> (
-         GET_POINTER(gpuMemoryManager, vmesh::VelocityMesh*, dev_vmeshes),
-         GET_POINTER(gpuMemoryManager, SINGLE_ARG(Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>*), dev_allMaps), // Needs both has_content and has_no_content maps
-         GET_SESSION_POINTER(gpuMemoryManager, split::SplitVector<vmesh::GlobalID>*, dev_vbwcl_neigh)
-         );
-      CHK_ERR( gpuPeekAtLastError() );
-      #endif
+      int kernelIterations = (nCells+maxCellsPerIteration-1)/maxCellsPerIteration;
+      int cellsLeft = nCells;
+      int cellIterationOffset = 0;
+      for(int i = 0; i < kernelIterations; i++){
+         int cellsToCompute = min((nCells+kernelIterations-1)/kernelIterations, cellsLeft);
+         #ifdef USE_BATCH_WARPACCESSORS
+         // ceil int division
+         const size_t blocksNeeded_neigh = 1 + ((largestContentListNeighbors - 1) / (WARPSPERBLOCK));
+         dim3 grid_neigh_halo(blocksNeeded_neigh,cellsToCompute,maxNeighbors);
+         // For NVIDIA/CUDA, we can do 32 neighbor GIDs and 32 threads per warp in a single block.
+         // For AMD/HIP, we can do 16 neighbor GIDs and 64 threads per warp in a single block
+         // This is handled in-kernel.
+         batch_update_neighbour_halo_kernel<<<grid_neigh_halo, WARPSPERBLOCK*GPUTHREADS, 0, baseStream>>> (
+            GET_POINTER(gpuMemoryManager, vmesh::VelocityMesh*, dev_vmeshes),
+            GET_POINTER(gpuMemoryManager, SINGLE_ARG(Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>*), dev_allMaps), // Needs both has_content and has_no_content maps
+            GET_SESSION_POINTER(gpuMemoryManager, split::SplitVector<vmesh::GlobalID>*, dev_vbwcl_neigh),
+            cellIterationOffset
+            );
+         CHK_ERR( gpuPeekAtLastError() );
+         #else
+         // Try smaller launch for more spatial cell -parallelism
+         const size_t blocksNeeded_neigh = 1 + ((largestContentListNeighbors - 1) / (WARPSPERBLOCK*GPUTHREADS));
+         dim3 grid_neigh_halo(blocksNeeded_neigh,cellsToCompute,maxNeighbors);
+         // Each threads manages a single GID from the neighbour at hand
+         batch_update_neighbour_halo_kernel<<<grid_neigh_halo, WARPSPERBLOCK*GPUTHREADS, 0, baseStream>>> (
+            GET_POINTER(gpuMemoryManager, vmesh::VelocityMesh*, dev_vmeshes),
+            GET_POINTER(gpuMemoryManager, SINGLE_ARG(Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>*), dev_allMaps), // Needs both has_content and has_no_content maps
+            GET_SESSION_POINTER(gpuMemoryManager, split::SplitVector<vmesh::GlobalID>*, dev_vbwcl_neigh),
+            cellIterationOffset
+            );
+         CHK_ERR( gpuPeekAtLastError() );
+         #endif
+         cellsLeft -= cellsToCompute;
+         cellIterationOffset += cellsToCompute;
+      }
    }
    // Sync both streams
    CHK_ERR( gpuStreamSynchronize(priorityStream) );
@@ -604,11 +626,20 @@ void adjust_velocity_blocks_in_cells(
       }
    } // end parallel region
    if (largestOverflow > 0) {
-      dim3 grid_reinsert(largestOverflow,nCells,1);
-      batch_insert_kernel<<<grid_reinsert, GPUTHREADS, 0, baseStream>>>(
-         GET_POINTER(gpuMemoryManager, vmesh::VelocityMesh*, dev_vmeshes), // velocity meshes which include the hash maps to clean
-         GET_POINTER(gpuMemoryManager, SINGLE_ARG(split::SplitVector<Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>>*), dev_lists_with_replace_old) // use this for storing overflown elements
+      int kernelIterations = (nCells+maxCellsPerIteration-1)/maxCellsPerIteration;
+      int cellsLeft = nCells;
+      int cellIterationOffset = 0;
+      for(int i = 0; i < kernelIterations; i++){
+         int cellsToCompute = min((nCells+kernelIterations-1)/kernelIterations, cellsLeft);
+         dim3 grid_reinsert(largestOverflow,cellsToCompute,1);
+         batch_insert_kernel<<<grid_reinsert, GPUTHREADS, 0, baseStream>>>(
+            GET_POINTER(gpuMemoryManager, vmesh::VelocityMesh*, dev_vmeshes), // velocity meshes which include the hash maps to clean
+            GET_POINTER(gpuMemoryManager, SINGLE_ARG(split::SplitVector<Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>>*), dev_lists_with_replace_old), // use this for storing overflown elements
+            cellIterationOffset
          );
+         cellsLeft -= cellsToCompute;
+         cellIterationOffset += cellsToCompute;
+      }
       CHK_ERR( gpuPeekAtLastError() );
       CHK_ERR( gpuStreamSynchronize(baseStream) );
    }
@@ -661,19 +692,28 @@ void adjust_velocity_blocks_in_cells(
    if ( (getObjectWrapper().particleSpecies[popID].sparse_conserve_mass)
         && (largestBlocksToChange > 0) ) {
       phiprof::Timer massConservationTimer {"GPU batch conserve mass"};
-      CHK_ERR( gpuMemcpyAsync(GET_POINTER(gpuMemoryManager, Real, dev_massLoss), GET_POINTER(gpuMemoryManager, Real, host_massLoss), nCells*sizeof(Real), gpuMemcpyHostToDevice, baseStream) );
-      // Launch parameters: Although post-adjustment, some VBCs can have more blocks than when entering
-      // block adjustment, any new blocks will be empty and thus do not need to be scaled. Thus, we can use
-      // The count which is the gathered max value over all cells of a counter which is either blocksBeforeAdjust
-      // or BlocksAfterAdjust, whichever is smaller.
+      int kernelIterations = (nCells+maxCellsPerIteration-1)/maxCellsPerIteration;
+      int cellsLeft = nCells;
+      int cellIterationOffset = 0;
+      for(int i = 0; i < kernelIterations; i++){
+         int cellsToCompute = min((nCells+kernelIterations-1)/kernelIterations, cellsLeft);
+         CHK_ERR( gpuMemcpyAsync(GET_POINTER(gpuMemoryManager, Real, dev_massLoss), GET_POINTER(gpuMemoryManager, Real, host_massLoss), nCells*sizeof(Real), gpuMemcpyHostToDevice, baseStream) );
+         // Launch parameters: Although post-adjustment, some VBCs can have more blocks than when entering
+         // block adjustment, any new blocks will be empty and thus do not need to be scaled. Thus, we can use
+         // The count which is the gathered max value over all cells of a counter which is either blocksBeforeAdjust
+         // or BlocksAfterAdjust, whichever is smaller.
 
-      // Third argument specifies the number of bytes in *shared memory* that is
-      // dynamically allocated per block for this call in addition to the statically allocated memory.
-      dim3 grid_mass_conservation(largestBlocksBeforeOrAfter,nCells,1);
-      batch_population_scale_kernel<<<grid_mass_conservation, WID3, 0, baseStream>>> (
-         GET_POINTER(gpuMemoryManager, vmesh::VelocityBlockContainer*, dev_VBCs),
-         GET_POINTER(gpuMemoryManager, Real, dev_massLoss) // used now for scaling parameter
+         // Third argument specifies the number of bytes in *shared memory* that is
+         // dynamically allocated per block for this call in addition to the statically allocated memory.
+         dim3 grid_mass_conservation(largestBlocksBeforeOrAfter,cellsToCompute,1);
+         batch_population_scale_kernel<<<grid_mass_conservation, WID3, 0, baseStream>>> (
+            GET_POINTER(gpuMemoryManager, vmesh::VelocityBlockContainer*, dev_VBCs),
+            GET_POINTER(gpuMemoryManager, Real, dev_massLoss), // used now for scaling parameter
+            cellIterationOffset
          );
+         cellsLeft -= cellsToCompute;
+         cellIterationOffset += cellsToCompute;
+      }
       CHK_ERR( gpuPeekAtLastError() );
       CHK_ERR( gpuStreamSynchronize(baseStream) );
    }
@@ -684,15 +724,24 @@ void clear_maps_caller(const uint nCells,
                        gpuStream_t stream,
                        const size_t offset
    ) {
-   const size_t largestMapSize = std::pow(2,largestSizePower);
-   // fast ceil for positive ints
-   //const size_t blocksNeeded = 1 + ((largestMapSize - 1) / Hashinator::defaults::MAX_BLOCKSIZE);
-   size_t blocksNeeded = 1 + floor(sqrt(largestMapSize / Hashinator::defaults::MAX_BLOCKSIZE)-1);
-   blocksNeeded = std::max((size_t)1, blocksNeeded);
-   dim3 grid1(blocksNeeded,nCells,2);
-   batch_reset_all_to_empty<<<grid1, Hashinator::defaults::MAX_BLOCKSIZE, 0, stream>>>(
-      GET_POINTER(gpuMemoryManager, SINGLE_ARG(Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>*), dev_allMaps)+2*offset
+   int kernelIterations = (nCells+maxCellsPerIteration-1)/maxCellsPerIteration;
+   int cellsLeft = nCells;
+   int cellIterationOffset = 0;
+   for(int i = 0; i < kernelIterations; i++){
+      int cellsToCompute = min((nCells+kernelIterations-1)/kernelIterations, cellsLeft);
+      const size_t largestMapSize = std::pow(2,largestSizePower);
+      // fast ceil for positive ints
+      //const size_t blocksNeeded = 1 + ((largestMapSize - 1) / Hashinator::defaults::MAX_BLOCKSIZE);
+      size_t blocksNeeded = 1 + floor(sqrt(largestMapSize / Hashinator::defaults::MAX_BLOCKSIZE)-1);
+      blocksNeeded = std::max((size_t)1, blocksNeeded);
+      dim3 grid1(blocksNeeded,cellsToCompute,2);
+      batch_reset_all_to_empty<<<grid1, Hashinator::defaults::MAX_BLOCKSIZE, 0, stream>>>(
+         GET_POINTER(gpuMemoryManager, SINGLE_ARG(Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>*), dev_allMaps)+2*offset,
+         cellIterationOffset
       );
+      cellsLeft -= cellsToCompute;
+      cellIterationOffset += cellsToCompute;
+   }
    CHK_ERR( gpuPeekAtLastError() );
    CHK_ERR( gpuStreamSynchronize(stream) );
 }
@@ -778,21 +827,30 @@ void batch_adjust_blocks_caller(
       phiprof::Timer addRemoveKernelTimer {"GPU batch add and remove blocks kernel"};
       // Third argument specifies the number of bytes in *shared memory* that is
       // dynamically allocated per block for this call in addition to the statically allocated memory.
-      dim3 grid_addremove(largestBlocksToChange,nCells,1);
-      // Launch grid is sized so that for all spatial cells, we launch up to the maximum number of required
-      // operations (add a block, delete a block, replace a block with a new one, replace a block with an existing one)
-      batch_update_velocity_blocks_kernel<<<grid_addremove, WID3, 0, baseStream>>> (
-         GET_POINTER(gpuMemoryManager, vmesh::VelocityMesh*, dev_vmeshes)+cellOffset,
-         GET_POINTER(gpuMemoryManager, vmesh::VelocityBlockContainer*, dev_VBCs)+cellOffset,
-         GET_POINTER(gpuMemoryManager, split::SplitVector<vmesh::GlobalID>*, dev_lists_with_replace_new)+cellOffset,
-         GET_POINTER(gpuMemoryManager, SINGLE_ARG(split::SplitVector<Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>>*), dev_lists_delete)+cellOffset,
-         GET_POINTER(gpuMemoryManager, SINGLE_ARG(split::SplitVector<Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>>*), dev_lists_to_replace)+cellOffset,
-         GET_POINTER(gpuMemoryManager, SINGLE_ARG(split::SplitVector<Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>>*), dev_lists_with_replace_old)+cellOffset,
-         GET_POINTER(gpuMemoryManager, vmesh::LocalID, dev_nBefore)+cellOffset,
-         GET_POINTER(gpuMemoryManager, vmesh::LocalID, dev_nAfter)+cellOffset,
-         GET_POINTER(gpuMemoryManager, vmesh::LocalID, dev_nBlocksToChange)+cellOffset,
-         GET_POINTER(gpuMemoryManager, Real, dev_massLoss)+cellOffset
+      int kernelIterations = (nCells+maxCellsPerIteration-1)/maxCellsPerIteration;
+      int cellsLeft = nCells;
+      int cellIterationOffset = 0;
+      for(int i = 0; i < kernelIterations; i++){
+         int cellsToCompute = min((nCells+kernelIterations-1)/kernelIterations, cellsLeft);
+         dim3 grid_addremove(largestBlocksToChange,cellsToCompute,1);
+         // Launch grid is sized so that for all spatial cells, we launch up to the maximum number of required
+         // operations (add a block, delete a block, replace a block with a new one, replace a block with an existing one)
+         batch_update_velocity_blocks_kernel<<<grid_addremove, WID3, 0, baseStream>>> (
+            GET_POINTER(gpuMemoryManager, vmesh::VelocityMesh*, dev_vmeshes)+cellOffset,
+            GET_POINTER(gpuMemoryManager, vmesh::VelocityBlockContainer*, dev_VBCs)+cellOffset,
+            GET_POINTER(gpuMemoryManager, split::SplitVector<vmesh::GlobalID>*, dev_lists_with_replace_new)+cellOffset,
+            GET_POINTER(gpuMemoryManager, SINGLE_ARG(split::SplitVector<Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>>*), dev_lists_delete)+cellOffset,
+            GET_POINTER(gpuMemoryManager, SINGLE_ARG(split::SplitVector<Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>>*), dev_lists_to_replace)+cellOffset,
+            GET_POINTER(gpuMemoryManager, SINGLE_ARG(split::SplitVector<Hashinator::hash_pair<vmesh::GlobalID,vmesh::LocalID>>*), dev_lists_with_replace_old)+cellOffset,
+            GET_POINTER(gpuMemoryManager, vmesh::LocalID, dev_nBefore)+cellOffset,
+            GET_POINTER(gpuMemoryManager, vmesh::LocalID, dev_nAfter)+cellOffset,
+            GET_POINTER(gpuMemoryManager, vmesh::LocalID, dev_nBlocksToChange)+cellOffset,
+            GET_POINTER(gpuMemoryManager, Real, dev_massLoss)+cellOffset,
+            cellIterationOffset
          );
+         cellsLeft -= cellsToCompute;
+         cellIterationOffset += cellsToCompute;
+      }
       CHK_ERR( gpuPeekAtLastError() );
       // Pull mass loss values to host
       CHK_ERR( gpuMemcpyAsync(GET_POINTER(gpuMemoryManager, Real, host_massLoss)+cellOffset, GET_POINTER(gpuMemoryManager, Real, dev_massLoss)+cellOffset, nCells*sizeof(Real), gpuMemcpyDeviceToHost, baseStream) );

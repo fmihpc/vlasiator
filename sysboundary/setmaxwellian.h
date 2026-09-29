@@ -46,7 +46,7 @@ namespace SBC {
       Maxwellian();
       virtual ~Maxwellian();
 
-      static void addParameters();
+      virtual void addParameters();
       virtual void getParameters() override;
 
       virtual string getName() const override;

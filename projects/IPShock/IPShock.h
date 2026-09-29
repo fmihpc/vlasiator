@@ -57,7 +57,7 @@ namespace projects {
       virtual ~IPShock();
 
       virtual bool initialize(void) override;
-      static void addParameters(void);
+      virtual void addParameters(void) override;
       virtual void getParameters(void) override;
 
       virtual void setProjectBField(fsgrids::perbspan perb,
@@ -98,6 +98,7 @@ namespace projects {
       Real AMR_L4width;
 
       std::vector<IPShockSpeciesParameters> speciesParams;
+      std::vector<IPShockSpeciesParameters*> speciesParamsRead;
 
    } ; //class IPShock
 } // namespace projects
