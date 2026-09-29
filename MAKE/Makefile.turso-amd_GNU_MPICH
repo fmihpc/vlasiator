@@ -11,7 +11,7 @@
 # Required modules:
 #
 # Oneliner for command line:
-# module load PrgEnv-gnu gmpich
+# module load PrgEnv-gnu/PrgEnv-gnu/15.2.0 MPICH/5.0.1
 #
 # There might be some libefa errors but they are benign.
 # (Benign = pleasant and kind; not harmful or severe. dictionary.cambridge.org)
@@ -82,7 +82,7 @@ testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 #======== Libraries ===========
 
 
-LIBRARY_PREFIX = $(CURDIR)/libraries-maahinen
+LIBRARY_PREFIX = $(CURDIR)/libraries-$(VLASIATOR_ARCH)
 
 #compiled libraries mostly in modules
 LIB_PROFILE = -L$(LIBRARY_PREFIX)/lib -lphiprof -lgfortran -Wl,-rpath=$(LIBRARY_PREFIX)/lib
