@@ -91,14 +91,17 @@ cd ..
 
 #ZFP and OCTREE
 echo "################# Fetching ZFP ##########################"
-
 git clone --depth=1 https://github.com/LLNL/zfp.git
 cd zfp
 git_use_commit $ZFP_COMMIT
 cd ..
 
 echo "################# Fetching OCTREE #######################"
+
 git clone --depth=1 https://github.com/cschpc/tucker-octree.git
 cd tucker-octree
 git_use_commit $TUCKER_OCTREE_COMMIT
 cd ..
+
+echo "################# END FETCHES ###########################"
+
