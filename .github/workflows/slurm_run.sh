@@ -10,16 +10,21 @@ fi
 
 #Flags for core/node counts etc for compiling/heavier srun calls
 declare -A core_flags
-core_flags["carrington_gcc_openmpi"]="-n 1 -c 16"
+core_flags["turso-amd_GNU_MPICH"]="-n 1 -c 16"
 core_flags["ukko_dgx"]="-n 1 -c 64"
 core_flags["pioneer"]="-n 1 -c 64"
 core_flags["hile_gpu"]="-n 1 -c 16"
 core_flags["hile_cpu"]="-n 1 -c 16"
 core_flags["lumi_2503"]="-n 1 -c 16"
 
+if [[ -z ${core_flags[$VLASIATOR_ARCH]} ]]; then
+  echo "No matching core_flags (and likely no constraints, etc) for VLASIATOR_ARCH $VLASIATOR_ARCH!"
+  exit 1
+fi
+
 #Constraints for compiling stuff
 declare -A constraint
-constraint["carrington_gcc_openmpi"]="--constraint=amd -p short"
+constraint["turso-amd_GNU_MPICH"]="--constraint=amd -p short"
 constraint["ukko_dgx"]="--constraint=amd -G 1"  # "Give me a GPU, whichever it may be"
 constraint["pioneer"]="-p pioneer -t 01:00:00" #not sure if pty needed for pioneer
 constraint["hile_gpu"]="-C g"
@@ -28,7 +33,7 @@ constraint["lumi_2503"]="--partition=standard --account=project_462001599 -t 01:
 
 #Constraints used for smaller jobs like compiling/removing files/catting etc
 declare -A constraint_small
-constraint_small["carrington_gcc_openmpi"]="--constraint=amd"
+constraint_small["turso-amd_GNU_MPICH"]="--constraint=amd"
 constraint_small["ukko_dgx"]="--constraint=amd"
 constraint_small["pioneer"]="-p pioneer -t 01:00:00"
 constraint_small["hile_gpu"]="-C g"
@@ -39,7 +44,7 @@ constraint_small["lumi_2503"]="--partition=standard --account=project_462001599 
 declare -A mem_flags
 
 #Could be unified with core_flags but it's nice to have them here separately and maybe this separation has a future use
-mem_flags["carrington_gcc_openmpi"]="--mem=40G"
+mem_flags["turso-amd_GNU_MPICH"]="--mem=40G"
 mem_flags["ukko_dgx"]="--mem=64G"
 mem_flags["pioneer"]=""
 mem_flags["hile_gpu"]="--mem=32G"
@@ -116,11 +121,11 @@ fi
 #|         RUN TP               |
 #0++++++++++++++++++++++++++++++0
 if [[ $1 == "RUN_TP" ]]; then
-  if [[ "$VLASIATOR_ARCH" == "carrington_gcc_openmpi" || "$VLASIATOR_ARCH" == "hile_cpu" || "$VLASIATOR_ARCH" == "lumi_2503" ]]; then
+  if [[ "$VLASIATOR_ARCH" == "turso-amd_GNU_MPICH" || "$VLASIATOR_ARCH" == "hile_cpu" || "$VLASIATOR_ARCH" == "lumi_2503" ]]; then
 
     #Platform specific expections can be added here
-    if [[ "$VLASIATOR_ARCH" == "carrington_gcc_openmpi" ]]; then
-      export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/libraries-carrington_gcc_openmpi/lib
+    if [[ "$VLASIATOR_ARCH" == "turso-amd_GNU_MPICH" ]]; then
+      export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/libraries-turso-amd_GNU_MPICH/lib
     fi
 
     chmod +x $GITHUB_WORKSPACE/vlasiator
