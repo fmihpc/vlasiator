@@ -1,6 +1,7 @@
 /*
  * This file is part of Vlasiator.
  * Copyright 2010-2016 Finnish Meteorological Institute
+ * Copyright 2026 CSC - IT Center for Science Ltd. <www.csc.fi>
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
  * at http://www.physics.helsinki.fi/vlasiator/
@@ -30,7 +31,7 @@
  * \param numerator Numerator
  * \param denominator Denominator
  */
-Real divideIfNonZero(creal numerator, creal denominator) {
+ARCH_HOSTDEV Real divideIfNonZero(creal numerator, creal denominator) {
    if (denominator <= 0.0) {
       return 0.0;
    } else {
