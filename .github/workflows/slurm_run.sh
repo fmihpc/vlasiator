@@ -69,7 +69,7 @@ declare -A mem_flags
 #Could be unified with core_flags but it's nice to have them here separately and maybe this separation has a future use
 mem_flags["turso-amd_GNU_MPICH"]="--mem=40G"
 mem_flags["ukko_dgx"]="--mem=64G"
-mem_flags["pioneer"]=""
+mem_flags["pioneer"]=" "
 mem_flags["hile_gpu"]="--mem=32G"
 mem_flags["hile_cpu"]="--mem=32G"
 mem_flags["lumi_2503"]="--mem=220G"
