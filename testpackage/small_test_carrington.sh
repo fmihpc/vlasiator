@@ -1,14 +1,14 @@
 #!/bin/bash
 #SBATCH -t 01:30:00        # Run time (hh:mm:ss)
 #SBATCH --job-name=ctestpackage
-##SBATCH -A spacephysics
-#SBATCH --constraint="carrington"
 # test short medium 20min1d 3d
+#SBATCH -p turso
 #SBATCH --exclusive
 #SBATCH --nodes=1
+#SBATCH --constraint=amd
 #SBATCH -c 4                 # CPU cores per task
 #SBATCH -n 16                  # number of tasks
-#SBATCH --mem-per-cpu=5G
+#SBATCH --mem=64G
 #SBATCH --hint=multithread
 
 # If 1, the reference vlsv files are generated
@@ -19,14 +19,16 @@ create_verification_files=0
 reference_dir="/turso/group/spacephysics/vlasiator/testpackage/"
 cd $SLURM_SUBMIT_DIR
 
-bin="/proj/USERNAME/BINARYNAME"
-diffbin="/turso/group/spacephysics/vlasiator/testpackage/vlsvdiff_DP_carrington"
+#source a set of default modules
+source ../modules/$VLASIATOR_ARCH.sh
+
+bin="../vlasiator"
+diffbin="../vlsvdiff_DP"
 
 #compare agains which revision
 #reference_revision="CI_reference"
 reference_revision="current"
 
-source ../modules/carrington_gcc_openmpi.sh
 # export UCX_NET_DEVICES=eth5,mlx5_0:1 # This is important for multi-node performance!
 export UCX_TLS=dc_mlx5
 export UCX_NET_DEVICES=mlx5_0:1
@@ -40,9 +42,9 @@ t=$SLURM_CPUS_PER_TASK
 export OMP_NUM_THREADS=$t
 
 #command for running stuff
-run_command="srun --mpi=pmix_v3 -n $SLURM_NTASKS "
-small_run_command="srun --mpi=pmix_v3 -n 1"
-run_command_tools="mpirun -np 1 "
+run_command="srun --mpi=pmix -n $SLURM_NTASKS "
+small_run_command="srun --mpi=pmix -n 1"
+run_command_tools="srun -n 1 "
 
 umask 007
 # Launch the OpenMP job to the allocated compute node
