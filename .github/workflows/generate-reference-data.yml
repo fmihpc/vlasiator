@@ -87,9 +87,9 @@ jobs:
         cd testpackage
         export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/libraries-turso-amd_GNU_MPICH/lib
         # Fudge the run script
-        sed -i 's/\/proj\/USERNAME\/BINARYNAME/$GITHUB_WORKSPACE\/vlasiator/' ./small_test_carrington.sh
-        sed -i 's/create_verification_files=0/create_verification_files=1/' ./small_test_carrington.sh
-        sbatch -W -o testpackage_run_output.txt --job-name CI_ref_generate ./small_test_carrington.sh
+        sed -i 's/\.\.\/vlasiator/$GITHUB_WORKSPACE\/vlasiator/' ./small_test_turso-amd_GNU_MPICH.sh
+        sed -i 's/create_verification_files=0/create_verification_files=1/' ./small_test_turso-amd_GNU_MPICH.sh
+        sbatch -W -o testpackage_run_output.txt --job-name CI_ref_generate ./small_test_turso-amd_GNU_MPICH.sh
         cat testpackage_run_output.txt
     - name: Generate reference fluxfunction files
       run: |

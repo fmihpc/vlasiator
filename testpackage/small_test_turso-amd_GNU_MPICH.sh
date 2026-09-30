@@ -5,7 +5,7 @@
 #SBATCH -p turso
 #SBATCH --exclusive
 #SBATCH --nodes=1
-#SBATCH --constraint=amd
+#SBATCH --constraint=carrington
 #SBATCH -c 4                 # CPU cores per task
 #SBATCH -n 16                  # number of tasks
 #SBATCH --mem=64G
