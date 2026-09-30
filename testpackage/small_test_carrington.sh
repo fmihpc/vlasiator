@@ -20,7 +20,7 @@ reference_dir="/turso/group/spacephysics/vlasiator/testpackage/"
 cd $SLURM_SUBMIT_DIR
 
 #source a set of default modules
-source ../modules/$VLASIATOR_ARCH.sh
+source ../modules/turso-amd_GNU_MPICH.sh
 
 bin="../vlasiator"
 diffbin="../vlsvdiff_DP"

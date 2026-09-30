@@ -25,7 +25,7 @@ diffbin="$GITHUB_WORKSPACE/vlsvdiff_DP"
 
 #compare agains which revision
 reference_revision="CI_reference"
-source ${GITHUB_WORKSPACE}/modules/$VLASIATOR_ARCH.sh
+source ${GITHUB_WORKSPACE}/modules/turso-amd_GNU_MPICH.sh
 
 #module load xthi
 # export UCX_NET_DEVICES=eth5,mlx5_0:1 # This is important for multi-node performance!
