@@ -30,6 +30,10 @@ lib_flags["hile_gpu"]="-n 1 -c 16 --mem=64G"
 lib_flags["hile_cpu"]="-n 1 -c 16 --mem=64G"
 lib_flags["lumi_2503"]="-n 1 -c 16 --mem=64G"
 
+if [[ -z ${lib_flags[$VLASIATOR_ARCH]} ]]; then
+  echo "No matching lib_flags for VLASIATOR_ARCH $VLASIATOR_ARCH!"
+  exit 1
+fi
 
 #Constraints for compiling stuff
 declare -A constraint
@@ -40,6 +44,11 @@ constraint["hile_gpu"]="-C g"
 constraint["hile_cpu"]="-C c"
 constraint["lumi_2503"]="--partition=standard --account=project_462001599 -t 01:00:00"
 
+if [[ -z ${constraint[$VLASIATOR_ARCH]} ]]; then
+  echo "No matching constraint for VLASIATOR_ARCH $VLASIATOR_ARCH!"
+  exit 1
+fi
+
 #Constraints used for smaller jobs like compiling/removing files/catting etc
 declare -A constraint_small
 constraint_small["turso-amd_GNU_MPICH"]="--constraint=amd"
@@ -48,6 +57,11 @@ constraint_small["pioneer"]="-p pioneer -t 01:00:00"
 constraint_small["hile_gpu"]="-C g"
 constraint_small["hile_cpu"]="-C c"
 constraint_small["lumi_2503"]="--partition=standard --account=project_462001599 -t 00:15:00"
+
+if [[ -z ${constraint_small[$VLASIATOR_ARCH]} ]]; then
+  echo "No matching constraint_small for VLASIATOR_ARCH $VLASIATOR_ARCH!"
+  exit 1
+fi
 
 #Memory flags for compiling, note that with --exclusive it is better to use --mem since --mem-per-cpu counts the whole node apparently
 declare -A mem_flags
@@ -59,6 +73,11 @@ mem_flags["pioneer"]=""
 mem_flags["hile_gpu"]="--mem=32G"
 mem_flags["hile_cpu"]="--mem=32G"
 mem_flags["lumi_2503"]="--mem=220G"
+
+if [[ -z ${mem_flags[$VLASIATOR_ARCH]} ]]; then
+  echo "No matching mem_flags for VLASIATOR_ARCH $VLASIATOR_ARCH!"
+  exit 1
+fi
 
 #Production compile flags
 declare -A compile_flags_prod
