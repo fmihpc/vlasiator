@@ -37,11 +37,12 @@ CXXFLAGS = -g -O3 -x cu -std=c++20 --extended-lambda --expt-relaxed-constexpr -a
 testpackage: CXXFLAGS = -g -O2 -x cu -std=c++20 --extended-lambda --expt-relaxed-constexpr -arch=sm_70 -gencode arch=compute_70,code=sm_70 --cudart shared --generate-line-info -line-info -Xcompiler="-fopenmp" -Xcompiler="-fpermissive" -maxrregcount 24 -Wno-deprecated-declarations -Xcudafe "--diag_suppress=20012" -Xptxas='-w'
 
 # Tell mpic++ to use nvcc for all compiling
-CMP = OMPI_CXX='nvcc' OMPI_CXXFLAGS='' mpic++
+# We're setting both the OMPI and the MPICH versions for future-proofness
+CMP = OMPI_CXX='nvcc' OMPI_CXXFLAGS='' MPICH_CXX='nvcc -allow-unsupported-compiler' mpic++
 
 # Now tell also the linker to use nvcc. Contents of these were retrieved with "mpic++ --showme:link".
 # Use this same linker command also for building and linking phiprof.  ## The line below indeed uses OMPI_CXX, not OMPI_LD
-LNK = OMPI_CXX='nvcc' OMPI_CXXFLAGS='-arch=sm_70' OMPI_LIBS='-L/appl/easybuild/opt/hwloc/2.5.0-GCCcore-11.2.0/lib -L/appl/easybuild/opt/libevent/2.1.12-GCCcore-11.2.0/lib64' OMPI_LDFLAGS=' -Xlinker=-rpath=/appl/easybuild/opt/hwloc/2.5.0-GCCcore-11.2.0/lib -Xlinker=-rpath=/appl/easybuild/opt/libevent/2.1.12-GCCcore-11.2.0/lib64 -Xlinker=-rpath=/appl/easybuild/opt/OpenMPI/4.1.1-GCC-11.2.0/lib -Xlinker=--enable-new-dtags -L/appl/easybuild/opt/OpenMPI/4.1.1-GCC-11.2.0/lib -lmpi ' mpic++
+LNK = OMPI_CXX='nvcc' OMPI_CXXFLAGS='-arch=sm_70' MPICH_CXX='nvcc -allow-unsupported-compiler' OMPI_LIBS='-L/appl/easybuild/opt/hwloc/2.5.0-GCCcore-11.2.0/lib -L/appl/easybuild/opt/libevent/2.1.12-GCCcore-11.2.0/lib64' OMPI_LDFLAGS=' -Xlinker=-rpath=/appl/easybuild/opt/hwloc/2.5.0-GCCcore-11.2.0/lib -Xlinker=-rpath=/appl/easybuild/opt/libevent/2.1.12-GCCcore-11.2.0/lib64 -Xlinker=-rpath=/appl/easybuild/opt/OpenMPI/4.1.1-GCC-11.2.0/lib -Xlinker=--enable-new-dtags -L/appl/easybuild/opt/OpenMPI/4.1.1-GCC-11.2.0/lib -lmpi ' mpic++
 
 MATHFLAGS = --use_fast_math
 # nvcc fast_math does not assume only finite math
@@ -60,13 +61,7 @@ testpackage: CXXFLAGS += -DPAPI_MEM
 
 #======== Libraries ===========
 
-CC_BRAND = nvcc
-CC_BRAND_VERSION = 12.6-GCC-13.2.0
-MPT_BRAND = OpenMPI
-MPT_VERSION = 4.1.6
-
-
-VLASIATOR_LIBRARY_PATH = $(CURDIR)/libraries-ukko_dgx
+VLASIATOR_LIBRARY_PATH = $(CURDIR)/libraries-$(VLASIATOR_ARCH)
 
 # Both ukko-dgx and ukko-a100 use the same modules and libraries
 

@@ -11,6 +11,7 @@ else
 fi
 echo "Using platform $PLATFORM"
 
+
 # Clean up old libraries for this platform
 rm -rf libraries${PLATFORM}
 
@@ -18,33 +19,28 @@ rm -rf libraries${PLATFORM}
 mkdir -p libraries${PLATFORM}/include
 mkdir -p libraries${PLATFORM}/lib
 
-CLI11HEADER="https://github.com/CLIUtils/CLI11/releases/download/v2.7.2/CLI11.hpp"
-curl -L -O $CLI11HEADER
-CLI11SHA256="ffa9a30da295c5858fb5f91f9f45771bab09471d7010a34c7c68c857a330dd76"
-CHECKSUM=$(sha256sum CLI11.hpp | grep -Po '^\w+')
-if [[ "$CLI11SHA256" != "$CHECKSUM" ]]; then
-  echo "Warning! the file Downloaded from $CLI11HEADER does not match the known sha256sum of the file. Make sure the file has not been tampered with!"
-  exit 1
-fi
-mv CLI11.hpp libraries${PLATFORM}/include
-
 # Assumes required files are available in this directory
 cd library-build
 
 # Some platforms allow for nice parallel builds.
 if [[ $PLATFORM == "-pioneer" ]]; then
    PARALLEL=64
-elif [[ $PLATFORM == "-hile_cpu" || $PLATFORM == "-hile_gpu" || $PLATFORM == "-lumi_2503" || $PLATFORM == "-carrington_gcc_openmpi" || $PLATFORM == "-frankenstein_hopper2_cuda" || $PLATFORM != "-roihu_gpu" ]]; then
+elif [[ $PLATFORM == "-hile_cpu" || $PLATFORM == "-hile_gpu" || $PLATFORM == "-lumi_2503"  || $PLATFORM == "-frankenstein_hopper2_cuda" || $PLATFORM != "-roihu_gpu" || $PLATFORM == "-turso-amd_GNU_MPICH" ]]; then
    PARALLEL=128
 else
    # Otherwise we are friendly to other users and limit our parallelism
    PARALLEL=4
 fi
 
+# If we are in a Slurm job and we know the cores we have, we can just use that many cores
+if [[ -z $SLURM_CPUS_PER_TASK ]]; then
+   PARALLEL=$SLURM_CPUS_PER_TASK
+fi
 
 
 # Build phiprof
 #git clone https://github.com/fmihpc/phiprof/
+echo "################# Building phiprof ######################"
 cd phiprof/src
 make clean
 if [[ $PLATFORM == "-pioneer" ]]; then
@@ -76,6 +72,7 @@ cd ../..
 # else
 #    git clone -b appleM1Build https://github.com/ursg/vlsv.git
 # fi
+echo "################# Building VLSV #########################"
 cd vlsv
 make clean ARCH=arch
 if [[ $PLATFORM == "-leonardo_dcgp_intel" ]]; then
@@ -94,6 +91,7 @@ if [[ $PLATFORM != "-pioneer" && $PLATFORM != "-appleM1" && $PLATFORM != "-ukko_
     # This fails on RISCV and MacOS
     # LUMI, UkkoGPU and HILE use system module
     # git clone https://github.com/icl-utk-edu/papi
+    echo echo "################# Building papi #########################"
     cd papi/src
     if [[ $PLATFORM == "-leonardo_dcgp_intel" ]]; then
         # OneAPI compilers should use CC="mpiicc -cc=iccx" but this fails in configure. Needed to modify few files to pass configure and compilation phases
@@ -114,6 +112,7 @@ fi
 if [[ $PLATFORM != "-leonardo_booster" && $PLATFORM != "-karolina_cuda" && $PLATFORM != "-ukko_dgx" && $PLATFORM != "-hile_gpu" && $PLATFORM != "-lumi_hipcc" && $PLATFORM != "-mahti_cuda" && $PLATFORM != "-mahti_gcc_build" &&  $PLATFORM != "-frankenstein_hopper2_cuda" &&  $PLATFORM != "-roihu_gpu" ]]; then
     # curl -O -L https://github.com/jemalloc/jemalloc/releases/download/5.3.1/jemalloc-5.3.1.tar.bz2
     # tar xjf jemalloc-5.3.1.tar.bz2
+    echo "################# Building jemalloc #####################"
     cd jemalloc
     ./autogen.sh
     if [[ $PLATFORM == "-pioneer" ]]; then
@@ -132,6 +131,7 @@ if [[ $PLATFORM != "-leonardo_booster" && $PLATFORM != "-karolina_cuda" && $PLAT
 fi
 
 # Build Zoltan
+echo "################# Building Zoltan #######################"
 rm -rf zoltan-build
 mkdir zoltan-build
 cd zoltan-build
@@ -165,7 +165,7 @@ make -j $PARALLEL && make install
 cd ..
 
 # Generate cmake for eigen so that zfp and Octree can be built
-echo "### Creating eigen CMakeFiles ###"
+echo "################# Generate Eigen CMakeFiles #############"
 prev="$(pwd)"
 cd "$WORKSPACE/submodules/eigen"
 mkdir -p build
@@ -174,7 +174,7 @@ cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$WORKSPACE/libraries
 cd "$prev"
 
 #Build and test ZFP for ASTERIX
-echo "### Building ZFP. ###"
+echo "################# Building ZFP ##########################"
 cd zfp
 mkdir -p  build
 cd build
@@ -187,6 +187,7 @@ cmake --install .
 cd ../../
 
 #Build OCTREE for ASTERIX
+echo "################# Building OCTREE #######################"
 cd tucker-octree/
 sed -i s/"ColMajor"/"RowMajor"/g toctree.cpp
 rm -rf build

@@ -2,14 +2,13 @@
 #SBATCH -t 01:30:00        # Run time (hh:mm:ss)
 #SBATCH --job-name=CI_testpackage
 #SBATCH --constraint="carrington"
-#SBATCH -p short
 #SBATCH --exclusive
 #SBATCH --nodes=1
 #SBATCH -c 4                 # CPU cores per task
 #SBATCH -n 16                  # number of tasks
 #SBATCH --mail-type=FAIL
 #SBATCH --mail-user=ci-emails.946c413b11d28e58c3a9bfb73173246b.show-sender@streams.zulipchat.com
-#SBATCH --mem-per-cpu=5G
+#SBATCH --mem=320G
 ##SBATCH -x carrington-[801-808]
 
 # If 1, the reference vlsv files are generated
@@ -26,14 +25,8 @@ diffbin="$GITHUB_WORKSPACE/vlsvdiff_DP"
 
 #compare agains which revision
 reference_revision="CI_reference"
+source ${GITHUB_WORKSPACE}/modules/$VLASIATOR_ARCH.sh
 
-source ${GITHUB_WORKSPACE}/modules/carrington_gcc_openmpi.sh
-
-module purge
-module load GCC/13.2.0
-module load OpenMPI/4.1.6-GCC-13.2.0
-module load PMIx/4.2.6-GCCcore-13.2.0
-module load PAPI/7.1.0-GCCcore-13.2.0
 #module load xthi
 # export UCX_NET_DEVICES=eth5,mlx5_0:1 # This is important for multi-node performance!
 
@@ -59,9 +52,9 @@ export OMPI_MCA_io="^ompio"
 export MALLOC_CONF="abort_conf:true"
 
 #command for running stuff
-run_command="srun --mpi=pmix_v3 -n $SLURM_NTASKS "
-small_run_command="srun --mpi=pmix_v3 -n 1"
-run_command_tools="mpirun -np 1 "
+run_command="srun --mpi=pmix -n $SLURM_NTASKS "
+small_run_command="srun --mpi=pmix -n 1"
+run_command_tools="srun -n 1 "
 
 umask 007
 # Launch the OpenMP job to the allocated compute node

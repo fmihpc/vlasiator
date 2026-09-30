@@ -16,8 +16,8 @@ jobs:
     - name: Clean workspace
       run: |
         RUN_STRING=$( cat << MORO
-        rm -rf libraries-carrington_gcc_openmpi library-build testpackage submodules
-        rm -f libraries-binaries-carrington_gcc_openmpi.tar.gz testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
+        rm -rf libraries-turso-amd_GNU_MPICH library-build testpackage submodules
+        rm -f libraries-binaries-turso-amd_GNU_MPICH.tar.gz testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
         rm -f *.xml
         MORO
         )
@@ -25,7 +25,7 @@ jobs:
     - name: Checkout source
       uses: actions/checkout@v4
     - name: Make clean
-      run: VLASIATOR_ARCH=carrington_gcc_openmpi make clean
+      run: VLASIATOR_ARCH=turso-amd_GNU_MPICH make clean
     - uses: ursg/gcc-problem-matcher@master
     - name: Build libraries
       run: |
@@ -33,12 +33,12 @@ jobs:
         rm -rf library-build
         mkdir -p library-build
         BUILDDIR=library-build
-        bash ./fetch_libraries.sh carrington_gcc_openmpi
-        srun --constraint="carrington" --job-name CI_ref_build_lib --interactive --nodes=1 -n 1 -c 16 --mem=40G -p short -t 0:10:0 bash -c 'set -e; export VLASIATOR_ARCH=carrington_gcc_openmpi; source modules/modules.sh ; ./build_fetched_libraries.sh carrington_gcc_openmpi'
+        bash ./fetch_libraries.sh turso-amd_GNU_MPICH
+        srun --constraint="carrington" --job-name CI_ref_build_lib --interactive --nodes=1 -n 1 -c 16 --mem=40G -t 0:10:0 bash -c 'set -e; export VLASIATOR_ARCH=turso-amd_GNU_MPICH; source modules/modules.sh ; ./build_fetched_libraries.sh turso-amd_GNU_MPICH'
         rm -rf $BUILDDIR
     - name: Compile vlasiator (Testpackage build) and fluxfunction
       run: |
-        srun --constraint="carrington" --job-name CI_ref_tp_compile --interactive --nodes=1 -n 1 -c 16 --mem=40G -p short -t 0:10:0 bash -c 'set -e; export VLASIATOR_ARCH=carrington_gcc_openmpi; source modules/modules.sh ; make -j 16 testpackage fluxfunction; sleep 10s'
+        srun --constraint="carrington" --job-name CI_ref_tp_compile --interactive --nodes=1 -n 1 -c 16 --mem=40G -t 0:10:0 bash -c 'set -e; export VLASIATOR_ARCH=turso-amd_GNU_MPICH; source modules/modules.sh ; make -j 16 testpackage fluxfunction; sleep 10s'
     - name: Make sure the output binary is visible in lustre
       uses: nick-fields/retry@v3
       with:
@@ -47,12 +47,12 @@ jobs:
         retry_on: error
         command: ls vlasiator
     - name: Pack libraries and binaries
-      run: tar -zcf libraries-binaries-carrington_gcc_openmpi.tar.gz libraries-carrington_gcc_openmpi/ vlasiator fluxfunction
+      run: tar -zcf libraries-binaries-turso-amd_GNU_MPICH.tar.gz libraries-turso-amd_GNU_MPICH/ vlasiator fluxfunction
     - name: Upload testpackage binary
       uses: actions/upload-artifact@v4
       with:
         name: vlasiator-reference-testpackage
-        path: libraries-binaries-carrington_gcc_openmpi.tar.gz
+        path: libraries-binaries-turso-amd_GNU_MPICH.tar.gz
         if-no-files-found: error
     #- name: Upload build log
     #  uses: actions/upload-artifact@v3
@@ -72,20 +72,20 @@ jobs:
         submodules: false
     - name: Clean libraries
       run: |
-        rm -rf libraries-carrington_gcc_openmpi
-        rm -f libraries-binaries-carrington_gcc_openmpi.tar.gz
+        rm -rf libraries-turso-amd_GNU_MPICH
+        rm -f libraries-binaries-turso-amd_GNU_MPICH.tar.gz
     - name: Download testpackage binary
       uses: actions/download-artifact@v4
       with:
         name: vlasiator-reference-testpackage
     - name: Unpack libraries and binaries
-      run: tar -zxf libraries-binaries-carrington_gcc_openmpi.tar.gz
+      run: tar -zxf libraries-binaries-turso-amd_GNU_MPICH.tar.gz
     - name: Run testpackage
       id: run
       run: |
         chmod +x $GITHUB_WORKSPACE/vlasiator
         cd testpackage
-        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/libraries-carrington_gcc_openmpi/lib
+        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/libraries-turso-amd_GNU_MPICH/lib
         # Fudge the run script
         sed -i 's/\/proj\/USERNAME\/BINARYNAME/$GITHUB_WORKSPACE\/vlasiator/' ./small_test_carrington.sh
         sed -i 's/create_verification_files=0/create_verification_files=1/' ./small_test_carrington.sh
@@ -95,8 +95,8 @@ jobs:
       run: |
         echo "Generating fluxfunction files for revision $REFERENCE_REVISION"
         chmod +x $GITHUB_WORKSPACE/fluxfunction
-        srun --job-name fluxtest --constraint="carrington" -N 1 -c 1 --mem=1G bash -c "source modules/carrington_gcc_openmpi.sh; $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_small/bulk.0000001.vlsv equatorial.bin"
-        srun --job-name fluxtest --constraint="carrington" -N 1 -c 1 --mem=1G bash -c "source modules/carrington_gcc_openmpi.sh; $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_polar_small/bulk.0000001.vlsv polar.bin"
+        srun --job-name fluxtest --constraint="carrington" -N 1 -c 1 --mem=1G bash -c "source modules/turso-amd_GNU_MPICH.sh; $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_small/bulk.0000001.vlsv equatorial.bin"
+        srun --job-name fluxtest --constraint="carrington" -N 1 -c 1 --mem=1G bash -c "source modules/turso-amd_GNU_MPICH.sh; $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_polar_small/bulk.0000001.vlsv polar.bin"
         chmod 775 polar.bin equatorial.bin
         cp equatorial.bin $REFERENCE_REVISION
         cp polar.bin $REFERENCE_REVISION
