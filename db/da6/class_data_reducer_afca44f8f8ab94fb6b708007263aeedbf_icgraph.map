@@ -1,0 +1,17 @@
+<map id="DataReducer::getDataVectorInfo" name="DataReducer::getDataVectorInfo">
+<area shape="rect" id="Node000001" title=" " alt="" coords="572,80,804,105"/>
+<area shape="rect" id="Node000002" href="$da/daf/iowrite_8cpp.html#a74746123787e7a9ddb05d190cc50a00e" title=" " alt="" coords="385,55,524,80"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="558,81,524,77,524,72,559,76"/>
+<area shape="rect" id="Node000007" href="$da/daf/iowrite_8cpp.html#a74aed0c404d5ffe2ac37c3f6a02cffeb" title="Write out simulation diagnostics into diagnostic.txt." alt="" coords="393,104,517,129"/>
+<area shape="poly" id="edge7_Node000001_Node000007" title=" " alt="" coords="559,109,517,113,517,108,558,103"/>
+<area shape="rect" id="Node000003" href="$da/daf/iowrite_8cpp.html#a10cc5a5af4d327af60e9f6c42480b333" title="Write out system into a vlsv file." alt="" coords="245,5,327,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="397,53,327,33,328,27,398,48"/>
+<area shape="rect" id="Node000006" href="$da/daf/iowrite_8cpp.html#a5531f0481d1489a9c4fa85ef54be0b1f" title="Write out a restart of the simulation into a vlsv file. All block data in remote cells will be reset." alt="" coords="235,55,337,80"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="371,70,337,70,337,65,371,65"/>
+<area shape="rect" id="Node000004" href="$d4/d5b/vlasiator_8cpp.html#acfd343080edd07ae79384688a7e48693" title=" " alt="" coords="108,55,187,80"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="238,38,185,57,183,52,236,33"/>
+<area shape="rect" id="Node000005" href="$d4/d5b/vlasiator_8cpp.html#a54790573f350e250ccca3cbb94733391" title=" " alt="" coords="5,55,60,80"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="94,70,60,70,60,65,94,65"/>
+<area shape="poly" id="edge6_Node000006_Node000004" title=" " alt="" coords="221,70,187,70,187,65,221,65"/>
+<area shape="poly" id="edge8_Node000007_Node000004" title=" " alt="" coords="379,114,308,107,234,95,186,83,187,77,235,90,309,102,379,109"/>
+</map>

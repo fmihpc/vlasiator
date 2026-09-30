@@ -1,0 +1,32 @@
+<map id="propagatePencil" name="propagatePencil">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,104,132,129"/>
+<area shape="rect" id="Node000002" href="$da/d92/cpu__trans__map__amr_8cpp.html#aa0d05898828fdb991b87c4b5f7bbfcb5" title=" " alt="" coords="464,5,635,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="123,101,179,89,467,31,468,36,181,94,124,107"/>
+<area shape="rect" id="Node000004" href="$d3/d07/cpu__1d__ppm__nonuniform_8hpp.html#ad4e54c2b543bc3585ca9d3b29c5256ff" title=" " alt="" coords="180,104,416,129"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="133,114,167,114,167,119,133,119"/>
+<area shape="rect" id="Node000007" href="$d8/dbc/vectorclass__fallback_8h.html#a9d51f83173fc2d8e087fbccc672abf92" title=" " alt="" coords="735,171,796,196"/>
+<area shape="poly" id="edge17_Node000001_Node000007" title=" " alt="" coords="119,127,180,139,336,158,489,171,721,180,721,185,489,176,335,164,180,145,118,132"/>
+<area shape="rect" id="Node000003" href="$d8/dbc/vectorclass__fallback_8h.html#a266494b76c0d8a595325fff6fa6855c1" title=" " alt="" coords="712,5,819,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="635,15,698,15,698,21,635,21"/>
+<area shape="rect" id="Node000005" href="$d0/d93/cpu__face__estimates_8hpp.html#af8fe8517b1fe7b6e1cb161c3799bfdf4" title=" " alt="" coords="466,55,633,95"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="375,101,452,89,453,94,376,107"/>
+<area shape="poly" id="edge16_Node000004_Node000007" title=" " alt="" coords="389,127,635,162,721,174,720,180,634,167,388,132"/>
+<area shape="poly" id="edge6_Node000005_Node000003" title=" " alt="" coords="625,53,703,32,704,37,626,58"/>
+<area shape="rect" id="Node000006" href="$d0/d93/cpu__face__estimates_8hpp.html#a2df625c4457d2e672e8f1c8d325538f9" title=" " alt="" coords="683,55,848,95"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="633,73,669,73,669,78,633,78"/>
+<area shape="poly" id="edge7_Node000005_Node000007" title=" " alt="" coords="602,93,636,112,660,135,670,145,684,156,722,171,720,176,681,160,666,149,656,138,633,116,600,98"/>
+<area shape="rect" id="Node000010" href="$d5/d3d/mini-apps_2acceleration_2cpu__slope__limiters_8hpp.html#af5f8cd32ea4efcd598f93f20deaa8959" title=" " alt="" coords="712,120,819,145"/>
+<area shape="poly" id="edge10_Node000005_Node000010" title=" " alt="" coords="626,93,704,114,703,119,625,98"/>
+<area shape="rect" id="Node000008" href="$d7/d8b/class_vec_simple.html#a145923009b9b82410c5a072b8f8127f0" title=" " alt="" coords="993,120,1128,145"/>
+<area shape="poly" id="edge8_Node000007_Node000008" title=" " alt="" coords="796,177,945,155,992,146,993,151,946,161,797,182"/>
+<area shape="rect" id="Node000009" href="$d7/d8b/class_vec_simple.html#ae16798cf2ee14257d0706c60613cd733" title=" " alt="" coords="1176,120,1343,145"/>
+<area shape="poly" id="edge9_Node000008_Node000009" title=" " alt="" coords="1128,130,1162,130,1162,135,1128,135"/>
+<area shape="rect" id="Node000011" href="$d8/dbc/vectorclass__fallback_8h.html#ad1eccb49237393bcbb5b6b97556fa4e2" title=" " alt="" coords="898,71,943,96"/>
+<area shape="poly" id="edge11_Node000010_Node000011" title=" " alt="" coords="807,117,847,105,884,93,886,98,849,110,809,123"/>
+<area shape="rect" id="Node000012" href="$d8/dbc/vectorclass__fallback_8h.html#a1896c5fbdb17de74189d1d18cdd4cf29" title=" " alt="" coords="897,120,944,145"/>
+<area shape="poly" id="edge13_Node000010_Node000012" title=" " alt="" coords="819,130,884,130,884,135,819,135"/>
+<area shape="rect" id="Node000013" href="$dc/d54/common_8h.html#a704bbe0aac85fb7120eb499852241a91" title=" " alt="" coords="896,21,945,47"/>
+<area shape="poly" id="edge15_Node000010_Node000013" title=" " alt="" coords="818,118,846,105,896,55,899,58,850,110,820,123"/>
+<area shape="poly" id="edge12_Node000011_Node000008" title=" " alt="" coords="944,89,1011,113,1010,118,943,94"/>
+<area shape="poly" id="edge14_Node000012_Node000008" title=" " alt="" coords="944,130,979,130,979,135,944,135"/>
+</map>

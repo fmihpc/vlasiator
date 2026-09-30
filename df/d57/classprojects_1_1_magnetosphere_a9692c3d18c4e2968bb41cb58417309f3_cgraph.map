@@ -1,0 +1,34 @@
+<map id="projects::Magnetosphere::setProjectBField" name="projects::Magnetosphere::setProjectBField">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,146,188,186"/>
+<area shape="rect" id="Node000002" href="$de/d55/class_constant_field.html#a7365835b7917968def85ec324e35476f" title=" " alt="" coords="236,5,411,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="113,144,164,92,198,64,235,40,248,33,251,38,237,44,201,68,168,96,117,148"/>
+<area shape="rect" id="Node000003" href="$d6/dfd/class_dipole.html#a3796e6816261445c80c640945e40f8f9" title=" " alt="" coords="259,55,387,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="129,143,178,116,235,89,255,82,257,87,237,94,181,120,132,148"/>
+<area shape="rect" id="Node000004" href="$dc/d11/class_line_dipole.html#a6cf07dde657f775ca40c038c48e66319" title=" " alt="" coords="246,104,401,129"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="188,143,250,130,251,135,189,149"/>
+<area shape="rect" id="Node000005" href="$da/de8/class_vector_dipole.html#a6bcc72bb76892506d8b8851861af260c" title=" " alt="" coords="239,153,408,179"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="188,163,225,163,225,169,188,169"/>
+<area shape="rect" id="Node000006" href="$d0/d58/backgroundfield_8cpp.html#abf92210b0c796171a4765c4728b1f465" title=" " alt="" coords="248,255,399,280"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="137,184,237,233,274,248,272,252,235,238,134,189"/>
+<area shape="rect" id="Node000007" href="$d0/d58/backgroundfield_8cpp.html#a6cd256683e30fe4fc462dd4d76085c0f" title=" " alt="" coords="459,204,653,229"/>
+<area shape="poly" id="edge14_Node000001_Node000007" title=" " alt="" coords="188,180,236,187,445,207,445,213,236,193,188,185"/>
+<area shape="rect" id="Node000014" href="$db/d07/backgroundfield_8h.html#a678242e47af84a7371212ec18352be7c" title=" " alt="" coords="255,304,391,329"/>
+<area shape="poly" id="edge15_Node000001_Node000014" title=" " alt="" coords="117,185,168,237,201,265,237,289,254,297,252,302,235,294,198,269,164,241,113,188"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="382,252,483,230,485,235,383,257"/>
+<area shape="rect" id="Node000008" href="$d1/d37/integratefunction_8cpp.html#af0da45424201ab223e1e902ed6a6d160" title=" " alt="" coords="495,303,617,328"/>
+<area shape="poly" id="edge7_Node000006_Node000008" title=" " alt="" coords="386,277,482,297,481,303,385,283"/>
+<area shape="rect" id="Node000013" href="$d1/d37/integratefunction_8cpp.html#a7e18de830892dfd65c31cdd3563f4a71" title=" " alt="" coords="494,253,618,279"/>
+<area shape="poly" id="edge12_Node000006_Node000013" title=" " alt="" coords="399,264,480,264,480,269,399,270"/>
+<area shape="rect" id="Node000009" href="$d3/da8/quadr_8cpp.html#a54bbf527c4ebeb2484d25660f73fca81" title=" " alt="" coords="701,279,783,304"/>
+<area shape="poly" id="edge8_Node000008_Node000009" title=" " alt="" coords="617,305,687,296,688,301,618,310"/>
+<area shape="rect" id="Node000010" href="$d3/da8/quadr_8cpp.html#adde271c5da57f58e525315c139e1a37d" title=" " alt="" coords="833,229,891,255"/>
+<area shape="poly" id="edge9_Node000009_Node000010" title=" " alt="" coords="773,276,819,257,821,261,775,281"/>
+<area shape="rect" id="Node000011" href="$d3/da8/quadr_8cpp.html#a1fac0542d7675c60cd58b31bc9fb020f" title=" " alt="" coords="833,279,891,304"/>
+<area shape="poly" id="edge10_Node000009_Node000011" title=" " alt="" coords="783,289,820,289,820,294,783,294"/>
+<area shape="rect" id="Node000012" href="$d3/da8/quadr_8cpp.html#ab15a726e703d67fd81e39363e1f815de" title=" " alt="" coords="831,328,893,353"/>
+<area shape="poly" id="edge11_Node000009_Node000012" title=" " alt="" coords="775,302,819,320,817,325,773,306"/>
+<area shape="poly" id="edge13_Node000013_Node000009" title=" " alt="" coords="619,272,688,281,687,287,618,277"/>
+<area shape="poly" id="edge17_Node000014_Node000008" title=" " alt="" coords="392,314,481,313,481,318,392,319"/>
+<area shape="rect" id="Node000015" href="$db/d07/backgroundfield_8h.html#afa93a52beb56d219d54f49da4ff73121" title=" " alt="" coords="466,352,646,377"/>
+<area shape="poly" id="edge16_Node000014_Node000015" title=" " alt="" coords="386,327,481,347,480,352,385,332"/>
+</map>

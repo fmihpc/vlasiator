@@ -1,0 +1,9 @@
+<map id="SBC::SysBoundaryCondition::SysBoundaryCondition" name="SBC::SysBoundaryCondition::SysBoundaryCondition">
+<area shape="rect" id="Node000001" title=" " alt="" coords="272,55,475,95"/>
+<area shape="rect" id="Node000002" href="$dd/d8a/class_s_b_c_1_1_copysphere.html#a3382870964b2d651c9e35a80b6dbb5a6" title=" " alt="" coords="5,5,224,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="268,55,172,33,173,28,270,50"/>
+<area shape="rect" id="Node000003" href="$d4/db3/class_s_b_c_1_1_do_not_compute.html#a8f9a6cc56cf1e74c6ee9ae4f51ee2083" title=" " alt="" coords="33,55,197,95"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="258,78,197,78,197,73,258,73"/>
+<area shape="rect" id="Node000004" href="$da/d6b/class_s_b_c_1_1_ionosphere.html#a736341b8c257eb629cc81b9b691597ed" title=" " alt="" coords="11,120,219,145"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="270,101,173,123,172,117,268,96"/>
+</map>

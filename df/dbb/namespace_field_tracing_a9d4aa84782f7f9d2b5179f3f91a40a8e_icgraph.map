@@ -1,0 +1,17 @@
+<map id="FieldTracing::traceFullFieldFunction" name="FieldTracing::traceFullFieldFunction">
+<area shape="rect" id="Node000001" title=" " alt="" coords="788,63,983,103"/>
+<area shape="rect" id="Node000002" href="$df/dbb/namespace_field_tracing.html#a57968e42ad293046b0de7a02259b9875" title=" " alt="" coords="235,5,473,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="790,62,740,53,602,39,474,31,474,26,602,33,740,48,791,57"/>
+<area shape="rect" id="Node000005" href="$df/dbb/namespace_field_tracing.html#a419c4a8b8cc6f48d5141bd2bae7800d0" title=" " alt="" coords="537,63,725,103"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="774,85,725,85,725,80,774,80"/>
+<area shape="rect" id="Node000007" href="$df/dbb/namespace_field_tracing.html#a3119c1154c9472b6266170fd365ec950" title=" " alt="" coords="521,127,740,167"/>
+<area shape="poly" id="edge7_Node000001_Node000007" title=" " alt="" coords="792,109,711,129,710,124,791,104"/>
+<area shape="rect" id="Node000003" href="$d4/d5b/vlasiator_8cpp.html#acfd343080edd07ae79384688a7e48693" title=" " alt="" coords="108,42,187,67"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="221,47,187,52,186,47,221,42"/>
+<area shape="rect" id="Node000004" href="$d4/d5b/vlasiator_8cpp.html#a54790573f350e250ccca3cbb94733391" title=" " alt="" coords="5,42,60,67"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="94,57,60,57,60,52,94,52"/>
+<area shape="rect" id="Node000006" href="$df/dbb/namespace_field_tracing.html#ac9d41efdb5093cf48aac1e4f0c03f863" title=" " alt="" coords="263,70,445,95"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="523,85,446,85,446,80,523,80"/>
+<area shape="poly" id="edge6_Node000006_Node000003" title=" " alt="" coords="248,71,186,63,187,57,249,66"/>
+<area shape="poly" id="edge8_Node000007_Node000006" title=" " alt="" coords="530,126,409,98,411,93,531,121"/>
+</map>

@@ -1,0 +1,31 @@
+<map id="compute_ppm_coeff" name="compute_ppm_coeff">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,191,160,217"/>
+<area shape="rect" id="Node000002" href="$d0/d93/cpu__face__estimates_8hpp.html#a7c50b581d4053685d9e093b9d2a8a2eb" title=" " alt="" coords="208,184,375,224"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="160,201,195,201,195,207,160,207"/>
+<area shape="rect" id="Node000003" href="$d0/d93/cpu__face__estimates_8hpp.html#a6417b2a3493a5db32db752feccb0b3ec" title=" " alt="" coords="433,5,599,45"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="303,182,350,120,384,85,421,55,431,49,434,54,424,60,387,89,354,124,308,186"/>
+<area shape="rect" id="Node000004" href="$d0/d93/cpu__face__estimates_8hpp.html#a53ecef54fb210ec91a4821393e28d61b" title=" " alt="" coords="423,70,609,95"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="313,182,361,143,421,106,441,97,443,102,424,110,364,148,316,186"/>
+<area shape="rect" id="Node000005" href="$d0/d93/cpu__face__estimates_8hpp.html#a303c9141c677e191fc27fc5c706b28a2" title=" " alt="" coords="433,120,599,160"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="362,181,431,161,433,166,363,186"/>
+<area shape="rect" id="Node000006" href="$d0/d93/cpu__face__estimates_8hpp.html#a8e61830f3fc48670fad1518d6b5b0cc5" title=" " alt="" coords="433,184,599,224"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="375,201,419,201,419,207,375,207"/>
+<area shape="rect" id="Node000007" href="$d8/dbc/vectorclass__fallback_8h.html#a266494b76c0d8a595325fff6fa6855c1" title=" " alt="" coords="463,249,569,274"/>
+<area shape="poly" id="edge6_Node000002_Node000007" title=" " alt="" coords="371,221,453,243,451,248,370,227"/>
+<area shape="rect" id="Node000008" href="$d8/dbc/vectorclass__fallback_8h.html#a9d51f83173fc2d8e087fbccc672abf92" title=" " alt="" coords="657,287,719,313"/>
+<area shape="poly" id="edge7_Node000002_Node000008" title=" " alt="" coords="318,222,365,255,394,271,423,283,482,296,541,302,644,301,644,307,541,308,481,301,422,288,391,276,362,260,315,226"/>
+<area shape="rect" id="Node000011" href="$d5/d3d/mini-apps_2acceleration_2cpu__slope__limiters_8hpp.html#af5f8cd32ea4efcd598f93f20deaa8959" title=" " alt="" coords="463,362,569,387"/>
+<area shape="poly" id="edge10_Node000002_Node000011" title=" " alt="" coords="311,222,360,274,424,328,470,354,468,359,421,333,356,277,308,226"/>
+<area shape="rect" id="Node000009" href="$d7/d8b/class_vec_simple.html#a145923009b9b82410c5a072b8f8127f0" title=" " alt="" coords="767,337,901,362"/>
+<area shape="poly" id="edge8_Node000008_Node000009" title=" " alt="" coords="720,308,784,330,782,335,718,313"/>
+<area shape="rect" id="Node000010" href="$d7/d8b/class_vec_simple.html#ae16798cf2ee14257d0706c60613cd733" title=" " alt="" coords="949,337,1116,362"/>
+<area shape="poly" id="edge9_Node000009_Node000010" title=" " alt="" coords="902,347,936,347,936,352,902,352"/>
+<area shape="rect" id="Node000012" href="$d8/dbc/vectorclass__fallback_8h.html#ad1eccb49237393bcbb5b6b97556fa4e2" title=" " alt="" coords="665,337,711,362"/>
+<area shape="poly" id="edge11_Node000011_Node000012" title=" " alt="" coords="569,364,651,352,652,357,570,369"/>
+<area shape="rect" id="Node000013" href="$d8/dbc/vectorclass__fallback_8h.html#a1896c5fbdb17de74189d1d18cdd4cf29" title=" " alt="" coords="665,386,711,411"/>
+<area shape="poly" id="edge13_Node000011_Node000013" title=" " alt="" coords="570,379,651,391,651,396,569,385"/>
+<area shape="rect" id="Node000014" href="$dc/d54/common_8h.html#a704bbe0aac85fb7120eb499852241a91" title=" " alt="" coords="663,435,713,461"/>
+<area shape="poly" id="edge15_Node000011_Node000014" title=" " alt="" coords="548,385,652,430,650,435,546,390"/>
+<area shape="poly" id="edge12_Node000012_Node000009" title=" " alt="" coords="711,347,753,347,753,352,711,352"/>
+<area shape="poly" id="edge14_Node000013_Node000009" title=" " alt="" coords="711,388,782,364,784,369,713,393"/>
+</map>

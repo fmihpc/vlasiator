@@ -1,0 +1,19 @@
+var searchData=
+[
+  ['session_5fallocate_0',['SESSION_ALLOCATE',['../d3/dc5/gpu__base_8hpp.html#a30c9e5c9a4c5f1a4d4dfb7acbc1bc51c',1,'gpu_base.hpp']]],
+  ['session_5fhost_5fallocate_1',['SESSION_HOST_ALLOCATE',['../d3/dc5/gpu__base_8hpp.html#a0d2597a57a5aaa04c542dade9d53debc',1,'gpu_base.hpp']]],
+  ['set_5fsubpointer_2',['SET_SUBPOINTER',['../d3/dc5/gpu__base_8hpp.html#aebdb79c8d5bd9beb99c037f3c72c5976',1,'gpu_base.hpp']]],
+  ['single_5farg_3',['SINGLE_ARG',['../d3/dc5/gpu__base_8hpp.html#afa8624400132dca5f52f93deec70706b',1,'gpu_base.hpp']]],
+  ['sqr_4',['sqr',['../dc/d54/common_8h.html#adee8c6d2fc20a1194cf64c481e7b6353',1,'common.h']]],
+  ['stb_5fimage_5fwrite_5fimplementation_5',['STB_IMAGE_WRITE_IMPLEMENTATION',['../dc/d49/readfields_8cpp.html#aefe397a94e8feddc652f92ef40ce9597',1,'readfields.cpp']]],
+  ['str_6',['str',['../d6/d86/cpu__pitch__angle__diffusion_8cpp.html#ad8ab729381f270b100f3d05b6c6676fc',1,'cpu_pitch_angle_diffusion.cpp']]],
+  ['subpointer_5fallocate_7',['SUBPOINTER_ALLOCATE',['../d3/dc5/gpu__base_8hpp.html#a7e4f5cb66e94ea20fc46d5fb2e2a6bdb',1,'gpu_base.hpp']]],
+  ['subpointer_5fallocate_5fasync_8',['SUBPOINTER_ALLOCATE_ASYNC',['../d3/dc5/gpu__base_8hpp.html#a98763d8a112e4e54e017835f56aef11c',1,'gpu_base.hpp']]],
+  ['subpointer_5fhost_5fallocate_9',['SUBPOINTER_HOST_ALLOCATE',['../d3/dc5/gpu__base_8hpp.html#a7b7a5ada0071e9d6a522dedf676366e7',1,'gpu_base.hpp']]],
+  ['sve_5fdispatch_5f1arg_10',['SVE_DISPATCH_1ARG',['../d1/d32/vectorclass__sve_8hpp.html#ad0cc974fe980b3c9a84f08c71279e98f',1,'vectorclass_sve.hpp']]],
+  ['sve_5fdispatch_5f1arg_5fpredicated_5fnosfx_11',['SVE_DISPATCH_1ARG_PREDICATED_NOSFX',['../d1/d32/vectorclass__sve_8hpp.html#ab76587dabb5340164c78eb0b37858a6a',1,'vectorclass_sve.hpp']]],
+  ['sve_5fdispatch_5f1arg_5fpredicated_5fsfx_12',['SVE_DISPATCH_1ARG_PREDICATED_SFX',['../d1/d32/vectorclass__sve_8hpp.html#afd647fadf23594d665dc71118653742e',1,'vectorclass_sve.hpp']]],
+  ['sve_5fdispatch_5f2arg_5fpredicated_5fnosfx_13',['SVE_DISPATCH_2ARG_PREDICATED_NOSFX',['../d1/d32/vectorclass__sve_8hpp.html#af0d20c9a500c43c678f5b974486e060b',1,'vectorclass_sve.hpp']]],
+  ['sve_5fdispatch_5f2arg_5fpredicated_5fsfx_14',['SVE_DISPATCH_2ARG_PREDICATED_SFX',['../d1/d32/vectorclass__sve_8hpp.html#a4b2a37a5b5a28dc11acaf594ebfcb1b4',1,'vectorclass_sve.hpp']]],
+  ['sve_5finline_15',['SVE_INLINE',['../d1/d32/vectorclass__sve_8hpp.html#abf7dc903153dff667e80590fe2d04dc7',1,'vectorclass_sve.hpp']]]
+];

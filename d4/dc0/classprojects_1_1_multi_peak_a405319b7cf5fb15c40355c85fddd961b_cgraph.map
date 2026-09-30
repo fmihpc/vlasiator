@@ -1,0 +1,9 @@
+<map id="projects::MultiPeak::calcCellParameters" name="projects::MultiPeak::calcCellParameters">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,37,160,77"/>
+<area shape="rect" id="Node000002" href="$db/d19/classprojects_1_1_project.html#a4edca85a367571de52d58b772c08191b" title=" " alt="" coords="210,5,359,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="160,42,196,37,197,42,161,48"/>
+<area shape="rect" id="Node000003" href="$db/d19/classprojects_1_1_project.html#ab9a03adce38eac8b87af5e07e3b0ebe1" title=" " alt="" coords="208,69,361,109"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="161,67,194,72,193,78,160,72"/>
+<area shape="rect" id="Node000004" href="$db/d19/classprojects_1_1_project.html#a9fa1ae6ea89d3e235f5ad25c5fe87e66" title=" " alt="" coords="409,69,544,109"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="361,87,395,87,395,92,361,92"/>
+</map>

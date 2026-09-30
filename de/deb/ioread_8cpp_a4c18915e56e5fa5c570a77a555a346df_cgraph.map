@@ -1,0 +1,22 @@
+<map id="readBlockData" name="readBlockData">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,119,124,144"/>
+<area shape="rect" id="Node000002" href="$de/deb/ioread_8cpp.html#a8f5c5241d4dd5fc8624b9c930a63a6aa" title=" " alt="" coords="202,68,327,94"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="115,116,200,95,201,100,116,122"/>
+<area shape="rect" id="Node000004" href="$d4/d0b/ionosphere_solver_tests_2main_8cpp.html#a9bf4cdc41d466e8710b8aa33a33d32e0" title=" " alt="" coords="697,94,837,119"/>
+<area shape="poly" id="edge9_Node000001_Node000004" title=" " alt="" coords="124,127,683,107,684,112,125,132"/>
+<area shape="rect" id="Node000005" href="$d3/d30/logger_8cpp.html#a8a4ad0ef8144875dad9a9e46831ed042" title=" " alt="" coords="740,18,795,43"/>
+<area shape="poly" id="edge11_Node000001_Node000005" title=" " alt="" coords="77,117,117,84,143,67,171,53,248,29,327,14,408,5,486,3,627,9,727,21,726,26,626,14,486,8,408,11,328,19,249,34,173,58,146,72,120,88,81,121"/>
+<area shape="rect" id="Node000007" href="$dc/d23/namespacevmesh.html#abf3a911871d99121242c607f6bdc4253" title=" " alt="" coords="172,170,357,195"/>
+<area shape="poly" id="edge7_Node000001_Node000007" title=" " alt="" coords="116,142,201,164,200,169,115,147"/>
+<area shape="rect" id="Node000009" href="$d0/d39/mpiconversion_8h.html#a7bb6c81ecf0e6dbe5e5c1c8583a81944" title=" " alt="" coords="223,219,306,244"/>
+<area shape="poly" id="edge10_Node000001_Node000009" title=" " alt="" coords="82,143,122,174,173,205,211,219,209,224,171,210,118,178,79,147"/>
+<area shape="rect" id="Node000003" href="$de/deb/ioread_8cpp.html#a76f2d16c5de051e155da67b06b6f66ab" title=" " alt="" coords="405,68,649,94"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="328,78,391,78,391,84,328,84"/>
+<area shape="poly" id="edge6_Node000002_Node000005" title=" " alt="" coords="327,66,405,53,584,37,726,29,726,34,584,42,406,58,328,71"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="648,91,684,95,683,100,647,96"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="588,66,726,36,727,42,589,71"/>
+<area shape="rect" id="Node000006" href="$d3/d42/class_logger.html#ab45d7f3a73f2ddbb92c27752f688be68" title=" " alt="" coords="885,18,991,43"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="795,28,872,28,872,33,795,33"/>
+<area shape="rect" id="Node000008" href="$dc/d23/namespacevmesh.html#a2000ececad000956f8fb38fec9c65eed" title=" " alt="" coords="417,170,637,195"/>
+<area shape="poly" id="edge8_Node000007_Node000008" title=" " alt="" coords="358,180,403,180,403,185,358,185"/>
+</map>

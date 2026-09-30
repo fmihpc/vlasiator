@@ -1,0 +1,15 @@
+<map id="projects::Project::rescaleDensity" name="projects::Project::rescaleDensity">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,101,140,141"/>
+<area shape="rect" id="Node000002" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a12396b706cfbfbef0a336d936238b867" title=" " alt="" coords="219,5,393,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="104,99,143,76,187,55,208,47,210,52,189,60,145,81,106,104"/>
+<area shape="rect" id="Node000004" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#ac04b3c2b12e5179f8b8800381575f379" title=" " alt="" coords="219,69,393,109"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="140,110,204,101,205,106,140,115"/>
+<area shape="rect" id="Node000005" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a0a70ad5e1571d0fec973183d1b236682" title=" " alt="" coords="188,133,424,173"/>
+<area shape="poly" id="edge5_Node000001_Node000005" title=" " alt="" coords="140,128,175,133,174,138,140,133"/>
+<area shape="rect" id="Node000006" href="$db/d19/classprojects_1_1_project.html#a50e9acd42a519e826cbc21d615a5355b" title=" " alt="" coords="210,197,402,237"/>
+<area shape="poly" id="edge7_Node000001_Node000006" title=" " alt="" coords="106,139,145,162,189,183,210,191,208,196,187,188,143,166,104,144"/>
+<area shape="rect" id="Node000003" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a0b5ae6d60c03a10b43a732a20bf20625" title=" " alt="" coords="472,69,663,109"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="389,43,473,63,471,69,388,48"/>
+<area shape="poly" id="edge4_Node000004_Node000003" title=" " alt="" coords="393,87,458,87,458,92,393,92"/>
+<area shape="poly" id="edge6_Node000005_Node000003" title=" " alt="" coords="388,131,471,110,473,115,389,136"/>
+</map>
