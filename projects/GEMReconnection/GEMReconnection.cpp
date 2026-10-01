@@ -130,7 +130,7 @@ namespace projects {
       // Fetch spatial cell center coordinates
       const Real x  = cell->parameters[CellParams::XCRD] + 0.5*cell->parameters[CellParams::DX];
       // const Real y  = cell->parameters[CellParams::YCRD] + 0.5*cell->parameters[CellParams::DY];
-      // const Real z  = cell->parameters[CellParams::ZCRD] + 0.5*cell->parameters[CellParams::DZ];
+      const Real z  = cell->parameters[CellParams::ZCRD] + 0.5*cell->parameters[CellParams::DZ];
 
       const Real mass = getObjectWrapper().particleSpecies[popID].mass;
       Real initRho = sP.DENSITY / pow(cosh(z / (this->SCA_LAMBDA)), 2.0) + sP.DENSITY * 0.2;
@@ -191,10 +191,10 @@ namespace projects {
 
             Real Bx_island, By_island, Bz_island;
 
-            Bx_island = -M_PI * di * BX0_l * 0.1 * cos(2.0 * M_PI * (xyz[0] + 0.5 * perb.DX) / Lx) * sin(M_PI * (xyz[2] + 0.5 * perb.DZ) / Lz) / Lz;
-            Bz_island = 2.0 * M_PI * di * BX0_l * 0.1 * sin(2.0 * M_PI * (xyz[0] + 0.5 * perb.DX) / Lx) * cos(M_PI * (xyz[2] + 0.5 * perb.DZ) / Lz) / Lx;
+            Bx_island = -M_PI * di * BX0_l * 0.1 * cos(2.0 * M_PI * (xyz[0] + 0.5 * gridSpacing[0]) / Lx) * sin(M_PI * (xyz[2] + 0.5 * gridSpacing[2]) / Lz) / Lz;
+            Bz_island = 2.0 * M_PI * di * BX0_l * 0.1 * sin(2.0 * M_PI * (xyz[0] + 0.5 * gridSpacing[0]) / Lx) * cos(M_PI * (xyz[2] + 0.5 * gridSpacing[2]) / Lz) / Lx;
 
-            cell[fsgrids::bfield::PERBX] = BX0_l * tanh((xyz[2] + 0.5 * perb.DZ) / SCA_LAMBDA_l) + Bx_island;
+            cell[fsgrids::bfield::PERBX] = BX0_l * tanh((xyz[2] + 0.5 * gridSpacing[2]) / SCA_LAMBDA_l) + Bx_island;
             cell[fsgrids::bfield::PERBY] = 0.0;
             cell[fsgrids::bfield::PERBZ] = Bz_island;
          });
