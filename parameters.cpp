@@ -70,6 +70,24 @@ Real P::t_min = 0;
 Real P::t_max = LARGE_REAL;
 Real P::dt_ceil = -1.0; 
 Real P::dt = 0;
+Real P::dt0 = NAN;
+int P::initialMaxTimeclass = 0;
+//int P::timeclassBuffer = 0;
+Real P::timeclassDomainModifier = 1.0;
+Real P::dtUpdateModifier = 0.96;
+int P::currentMaxTimeclass = 0;
+//bool P::tcRankwise = false;
+bool P::forcedConvection = false;
+Real P::tcStaticSphereRadiusLvl1 = 0.0;
+Real P::tcStaticSphereRadiusLvl2 = 0.0;
+Real P::tcStaticSphereRadiusLvl3 = 0.0;
+bool P::timeclassesInitialized = false;
+
+vector<Real> P::timeclassDt;
+vector<Real> P::timeclassTime;
+int P::fractionalTimestep = 0;
+
+
 Real P::vlasovSolverMaxCFL = 0.99;
 Real P::vlasovSolverMinCFL = 0.8;
 bool P::vlasovSolverGhostTranslate = false;
@@ -78,6 +96,7 @@ Real P::fieldSolverMaxCFL = 0.5;
 Real P::fieldSolverMinCFL = 0.4;
 uint P::fieldSolverSubcycles = 1;
 
+bool P::amrTransShortPencils = false; // TEMPORARY
 
 uint P::tstep = 0;
 uint P::tstep_min = 0;
@@ -85,6 +104,23 @@ uint P::tstep_max = numeric_limits<uint>::max();
 uint P::diagnosticInterval = numeric_limits<uint>::max();
 bool P::writeInitialState = false;
 bool P::writeFullBGB = false;
+bool P::tc_leapfrog_init = false;
+
+bool P::tcDebugBox = false;
+int P::tcOverrideTimeclass = -1;
+int P::tc_test_type = 0;
+int P::tcMomentInterpolationType = 1;
+bool P::tcVMomentPropagation = false;
+int P::timeclassExactHaloExtent = 2;
+int P::timeclassOuterHaloExtent = 1;
+int P::timeclassFullHaloExtent = P::timeclassExactHaloExtent + P::timeclassOuterHaloExtent;
+
+Realf P::tcBoxHalfWidthX = 2e7;
+Realf P::tcBoxHalfWidthY = 2e7;
+Realf P::tcBoxHalfWidthZ = 2e7;
+Realf P::tcBoxCenterX = 0.0;
+Realf P::tcBoxCenterY = 0.0;
+Realf P::tcBoxCenterZ = 0.0;
 
 bool P::meshRepartitioned = true;
 bool P::prepareForRebalance = false;
@@ -158,6 +194,7 @@ vector<std::string> P::loadBalanceKeys;
 vector<std::string> P::loadBalanceValues;
 std::map<std::string, std::string> P::loadBalanceOptions {{"IMBALANCE_TOL","1.05"}};
 uint P::rebalanceInterval = 10;
+int P::timeclassLBmantissa = 2;
 
 vector<string> P::outputVariableList;
 vector<string> P::diagnosticVariableList;
@@ -175,7 +212,11 @@ Real P::bailout_min_dt = 1e-6;
 Real P::bailout_max_memory = 1073741824.;
 uint P::bailout_velocity_space_wall_margin = 1;
 
-bool P::amrTransShortPencils = false;
+// uint P::vamrMaxVelocityRefLevel = 0;
+// Realf P::vamrRefineLimit = 1.0;
+// Realf P::vamrCoarsenLimit = 0.5;
+// string P::vamrVelRefCriterion = string("");
+
 int P::amrMaxSpatialRefLevel = 0;
 int P::amrMaxAllowedSpatialRefLevel = -1;
 bool P::adaptRefinement = false;
@@ -341,8 +382,8 @@ bool P::addParameters() {
            hallRho);
 
    RP::add("project",
-           "Specify the name of the project to use. Supported to date (20150610): Alfven Diffusion Dispersion "
-           "Distributions Firehose Flowthrough Fluctuations Harris KHB Larmor Magnetosphere Multipeak Riemann1 Shock "
+           "Specify the name of the project to use. Supported to date (20261001): Alfven AlfvenCascade Diffusion Dispersion "
+           "Distributions Flowthrough Fluctuations Harris KHB Larmor Magnetosphere Multipeak Riemann1 Shock "
            "Shocktest Template test_fp testHall test_trans verificationLarmor",
            P::projectName);
 
@@ -370,6 +411,32 @@ bool P::addParameters() {
    RP::add("gridbuilder.z_length", "Number of cells in z-direction in initial grid.", P::zcells_ini);
 
    RP::add("gridbuilder.dt", "Initial timestep in seconds.", P::dt);
+   RP::add("timeclasses.initial_timeclass_max", "Maximum number of timeclasses.", P::initialMaxTimeclass);
+   //RP::add("timeclasses.tcRankwise", "Use timeclasses at MPI rank level insted of cell-wise timeclasses.", false);
+   //RP::add("timeclasses.timeclass_buffer", "Number of buffer timeclasses.", 0);
+   RP::add("timeclasses.dtUpdatingModifier", "modifier to updating dt lengths", P::dtUpdateModifier);
+   RP::add("timeclasses.timeclass_domain_modifier", "modifier to tc domain sizes", P::timeclassDomainModifier);
+   RP::add("timeclasses.tcStaticSphereRadiusLvl1", "Static timeclass sphere radius for timeclass level 1, meters", P::tcStaticSphereRadiusLvl1);
+   RP::add("timeclasses.tcStaticSphereRadiusLvl2", "Static timeclass sphere radius for timeclass level 2, meters", P::tcStaticSphereRadiusLvl2);
+   RP::add("timeclasses.tcStaticSphereRadiusLvl3", "Static timeclass sphere radius for timeclass level 3, meters", P::tcStaticSphereRadiusLvl3);
+   RP::add("gridbuilder.forcedConvection", "Force a convection velocity of 200 km/s along +x [false]", P::forcedConvection);
+
+   RP::add("timeclasses.tc_test_type", "Enumerated tc test", P::tc_test_type);
+   RP::add(
+      "timeclasses.tcMomentInterpolationType",
+      "What interpolation method is used in moment Interpolation. -1 is cubic C^1 Hermite spline, 1 is linear, 2 is lagrange 2nd order, 3 is lagrange 3rd order.", 
+      P::tcMomentInterpolationType);
+   RP::add("timeclasses.tcVMomentPropagation", "If Vx, Vy, Vz moments are propagated, instead of being interpolated", P::tcVMomentPropagation);
+   RP::add("timeclasses.timeclassExactHaloExtent", "Exact halo extent for timeclass halos", P::timeclassExactHaloExtent);
+   RP::add("timeclasses.timeclassOuterHaloExtent", "Outer halo extent for timeclass halos", P::timeclassOuterHaloExtent);
+   RP::add("timeclasses.tcDebugBox", "Use a forced timeclass box.", P::tcDebugBox);
+   RP::add("timeclasses.tcOverrideTimeclass", "Use a forced timeclass everywhere.", P::tcDebugBox);
+   RP::add("timeclasses.tcBoxHalfWidthX", "Forced timeclass box half-width, X, meters", P::tcBoxHalfWidthX);
+   RP::add("timeclasses.tcBoxHalfWidthY", "Forced timeclass box half-width, Y, meters", P::tcBoxHalfWidthY);
+   RP::add("timeclasses.tcBoxHalfWidthZ", "Forced timeclass box half-width, Z, meters", P::tcBoxHalfWidthZ);
+   RP::add("timeclasses.tcBoxCenterX", "Forced timeclass box center, X, meters", P::tcBoxCenterX);
+   RP::add("timeclasses.tcBoxCenterY", "Forced timeclass box center, Y, meters", P::tcBoxCenterY);
+   RP::add("timeclasses.tcBoxCenterZ", "Forced timeclass box center, Z, meters", P::tcBoxCenterZ);
 
    RP::add("gridbuilder.t_max",
            "Maximum simulation time, in seconds. If timestep_max limit is hit first this time will never be reached",
@@ -442,6 +509,7 @@ bool P::addParameters() {
    RP::add("loadBalance.algorithm", "Load balancing algorithm to be used", P::loadBalanceAlgorithm);
    RP::add("loadBalance.tolerance", "Load imbalance tolerance", P::loadBalanceOptions["IMBALANCE_TOL"]);
    RP::add("loadBalance.rebalanceInterval", "Load rebalance interval (steps)", P::rebalanceInterval);
+   RP::add("loadBalance.timeclassLBmantissa", "Effect of timeclass to load balance weight of a cell. LB_w = LW_w*loadBalance.timeclassLBmantissa^timeclass", P::timeclassLBmantissa);
 
    RP::add("loadBalance.optionKey", "Zoltan option key. Has to be matched by loadBalance.optionValue.",P::loadBalanceKeys);
    RP::add("loadBalance.optionValue", "Zoltan option value. Has to be matched by loadBalance.optionKey.",P::loadBalanceValues);
@@ -1064,6 +1132,37 @@ void Parameters::getParameters() {
    P::dy_ini = (P::ymax - P::ymin) / P::ycells_ini;
    P::dz_ini = (P::zmax - P::zmin) / P::zcells_ini;
 
+   //set current max timeclass to initial timeclass max, do initializer functions know we are using timeclasses
+   P::currentMaxTimeclass = P::initialMaxTimeclass;
+
+   if (P::tcOverrideTimeclass > -1 && P::initialMaxTimeclass < P::tcOverrideTimeclass) {
+      std::cout << "Adjusting P::InitialMaxTimeclass ("<< P::initialMaxTimeclass << ") to include tcOverrideTimeclass (" << P::tcOverrideTimeclass << ")" << std::endl;
+      P::initialMaxTimeclass = P::tcOverrideTimeclass;
+   }
+
+   if (P::currentMaxTimeclass == 0) {
+      //if we are not using timeclasses, set dtUpdateModifier to 1.0, so it doesnt affect the simulation.
+      P::dtUpdateModifier = 1.0;
+   } else {
+      if (P::dtUpdateModifier > 1.0 || P::dtUpdateModifier < 0.0) {
+         std::cerr << "ERROR: Your dtUpdateModifier should be 0 < dtUpdateModifier <= 1! The simulation will now abort!\n";
+         MPI_Abort(MPI_COMM_WORLD, -1);
+      }
+
+      if (P::dtUpdateModifier >= P::vlasovSolverMaxCFL) {
+         std::cerr << "ERROR: Your dtUpdateModifier is greater of equal than vlasovSolverMaxCFL! The simulation will now abort!\n";
+         MPI_Abort(MPI_COMM_WORLD, -1);
+      }
+
+      if (P::dtUpdateModifier <= 0.5 * (P::vlasovSolverMaxCFL + P::vlasovSolverMinCFL)) {
+         std::cerr << "ERROR: Your dtUpdateModifier less or equal than 0.5 * (vlasovSolverMaxCFL + vlasovSolverMinCFL)! The simulation will now abort!\n";
+         MPI_Abort(MPI_COMM_WORLD, -1);      
+      }
+   }
+
+   P::timeclassDt = std::vector<Real>(P::initialMaxTimeclass+1);
+   P::timeclassTime = std::vector<Real>(P::initialMaxTimeclass+1);
+   
    constexpr Real uniformTolerance = 1e-3;
    const std::array gridSpacing{P::dx_ini / pow(2, P::amrMaxSpatialRefLevel),
                                 P::dy_ini / pow(2, P::amrMaxSpatialRefLevel),
@@ -1084,6 +1183,8 @@ void Parameters::getParameters() {
    P::t = P::t_min;
    P::tstep_min = 0;
    P::tstep = P::tstep_min;
+
+   P::tc_leapfrog_init = false;
 
    // Get field solver parameters
    // manual FsGrid decomposition should be complete with three values. If at least one is set but all are not set, abort
@@ -1117,6 +1218,9 @@ void Parameters::getParameters() {
       }
       if (P::vlasovSolverGhostTranslateExtent == 0) {
          P::vlasovSolverGhostTranslateExtent = VLASOV_STENCIL_WIDTH+1;
+         if (myRank == MASTER_RANK) {
+            logFile<<"Ghost translating full stencil of size "<<P::vlasovSolverGhostTranslateExtent<<" around local domain."<<endl;
+         }
       } else {
          if (P::vlasovSolverGhostTranslateExtent == VLASOV_STENCIL_WIDTH+1) {
             if (myRank == MASTER_RANK) {
@@ -1134,7 +1238,6 @@ void Parameters::getParameters() {
          }
       }
    }
-   // Get load balance parameters
 
    if (P::loadBalanceKeys.size() != P::loadBalanceValues.size()) {
       if (myRank == MASTER_RANK) {
@@ -1203,5 +1306,3 @@ void Parameters::getParameters() {
       abort();
    }
 }
-
-

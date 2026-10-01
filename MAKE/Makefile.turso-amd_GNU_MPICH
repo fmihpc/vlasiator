@@ -98,4 +98,3 @@ INC_ZOLTAN = -isystem $(LIBRARY_PREFIX)/include
 
 LIB_PAPI = -L$(LIBRARY_PREFIX)/lib -lpapi
 INC_PAPI = -isystem $(LIBRARY_PREFIX)/include
-
