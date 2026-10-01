@@ -43,7 +43,6 @@ namespace projects {
    void GEMReconnection::addParameters(){
       typedef Readparameters RP;
       RP::add<Real>("GEMReconnection.Scale_size", "GEM reconnection challenge current sheet scale size (m)", this->SCA_LAMBDA,150000.0);
-      RP::add<Real>("GEMReconnection.VX0", "Initial velocity in x-direction", this->VX0,0.0);
       RP::add<Real>("GEMReconnection.BX0", "Magnetic field at infinity (T)", this->BX0,1e-8);
       RP::add<Real>("GEMReconnection.BY0", "Magnetic field at infinity (T)", this->BY0,0.0);
       RP::add<Real>("GEMReconnection.BZ0", "Magnetic field at infinity (T)", this->BZ0,0.0);
@@ -73,7 +72,7 @@ namespace projects {
       // Fetch spatial cell center coordinates
       const Real x  = cell->parameters[CellParams::XCRD] + 0.5*cell->parameters[CellParams::DX];
       // const Real y  = cell->parameters[CellParams::YCRD] + 0.5*cell->parameters[CellParams::DY];
-      // const Real z  = cell->parameters[CellParams::ZCRD] + 0.5*cell->parameters[CellParams::DZ];
+      const Real z  = cell->parameters[CellParams::ZCRD] + 0.5*cell->parameters[CellParams::DZ];
 
       const Real mass = getObjectWrapper().particleSpecies[popID].mass;
       Real initRho = sP.DENSITY / pow(cosh(z / (this->SCA_LAMBDA)), 2.0) + sP.DENSITY * 0.2;
@@ -192,10 +191,10 @@ namespace projects {
 
             Real Bx_island, By_island, Bz_island;
 
-            Bx_island = -M_PI * di * BX0_l * 0.1 * cos(2.0 * M_PI * (xyz[0] + 0.5 * perBGrid.DX) / Lx) * sin(M_PI * (xyz[2] + 0.5 * perBGrid.DZ) / Lz) / Lz;
-            Bz_island = 2.0 * M_PI * di * BX0_l * 0.1 * sin(2.0 * M_PI * (xyz[0] + 0.5 * perBGrid.DX) / Lx) * cos(M_PI * (xyz[2] + 0.5 * perBGrid.DZ) / Lz) / Lx;
+            Bx_island = -M_PI * di * BX0_l * 0.1 * cos(2.0 * M_PI * (xyz[0] + 0.5 * perb.DX) / Lx) * sin(M_PI * (xyz[2] + 0.5 * perb.DZ) / Lz) / Lz;
+            Bz_island = 2.0 * M_PI * di * BX0_l * 0.1 * sin(2.0 * M_PI * (xyz[0] + 0.5 * perb.DX) / Lx) * cos(M_PI * (xyz[2] + 0.5 * perb.DZ) / Lz) / Lx;
 
-            cell[fsgrids::bfield::PERBX] = BX0_l * tanh((xyz[2] + 0.5 * perBGrid.DZ) / SCA_LAMBDA_l) + Bx_island;
+            cell[fsgrids::bfield::PERBX] = BX0_l * tanh((xyz[2] + 0.5 * perb.DZ) / SCA_LAMBDA_l) + Bx_island;
             cell[fsgrids::bfield::PERBY] = 0.0;
             cell[fsgrids::bfield::PERBZ] = Bz_island;
          });
