@@ -944,21 +944,25 @@ bool writeCommonGridData(
       return false;
    }
 
-   // Write parameters:
-   if (vlsvWriter.writeParameter("time", &P::t) == false) { return false; }
-   if (vlsvWriter.writeParameter("dt", &P::dt) == false) { return false; }
-   if (vlsvWriter.writeParameter("timestep", &P::tstep) == false) { return false; }
-   if (vlsvWriter.writeParameter("fieldSolverSubcycles", &P::fieldSolverSubcycles) == false) { return false; }
-   if (vlsvWriter.writeParameter("fileIndex", &fileIndex) == false) { return false; }
-   if (vlsvWriter.writeParameter("xmin", &P::xmin) == false) { return false; }
-   if (vlsvWriter.writeParameter("xmax", &P::xmax) == false) { return false; }
-   if (vlsvWriter.writeParameter("ymin", &P::ymin) == false) { return false; }
-   if (vlsvWriter.writeParameter("ymax", &P::ymax) == false) { return false; }
-   if (vlsvWriter.writeParameter("zmin", &P::zmin) == false) { return false; }
-   if (vlsvWriter.writeParameter("zmax", &P::zmax) == false) { return false; }
-   if (vlsvWriter.writeParameter("xcells_ini", &P::xcells_ini) == false) { return false; }
-   if (vlsvWriter.writeParameter("ycells_ini", &P::ycells_ini) == false) { return false; }
-   if (vlsvWriter.writeParameter("zcells_ini", &P::zcells_ini) == false) { return false; }
+   //Write parameters:
+   if( vlsvWriter.writeParameter("time", &P::t) == false ) { return false; }
+   if( vlsvWriter.writeParameter("dt", &P::dt) == false ) { return false; }
+   if( vlsvWriter.writeParameter("timestep", &P::tstep) == false ) { return false; }
+   if( vlsvWriter.writeParameter("fieldSolverSubcycles", &P::fieldSolverSubcycles) == false ) { return false; }
+   if( vlsvWriter.writeParameter("fileIndex", &fileIndex) == false ) { return false; }
+   if( vlsvWriter.writeParameter("xmin", &P::xmin) == false ) { return false; }
+   if( vlsvWriter.writeParameter("xmax", &P::xmax) == false ) { return false; }
+   if( vlsvWriter.writeParameter("ymin", &P::ymin) == false ) { return false; }
+   if( vlsvWriter.writeParameter("ymax", &P::ymax) == false ) { return false; }
+   if( vlsvWriter.writeParameter("zmin", &P::zmin) == false ) { return false; }
+   if( vlsvWriter.writeParameter("zmax", &P::zmax) == false ) { return false; }
+   if( vlsvWriter.writeParameter("xcells_ini", &P::xcells_ini) == false ) { return false; }
+   if( vlsvWriter.writeParameter("ycells_ini", &P::ycells_ini) == false ) { return false; }
+   if( vlsvWriter.writeParameter("zcells_ini", &P::zcells_ini) == false ) { return false; }
+
+   if( vlsvWriter.writeParameter("currentmaxtimeclass", &P::currentMaxTimeclass) == false ) { return false; }
+
+
    // Although the stored velocity meshes already include block size information, the parameter WID
    // is also stored for ease of reading in post-processing.
    const int writewid = WID;
@@ -2224,21 +2228,48 @@ bool writeRestart(
    phiprof::Timer reducedTimer{"reduceddataIO"};
    // write out DROs we need for restarts
    DataReducer restartReducer;
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("moments", CellParams::RHOM, 5));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("moments_dt2", CellParams::RHOM_DT2, 5));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("moments_r", CellParams::RHOM_R, 5));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("moments_v", CellParams::RHOM_V, 5));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("pressure", CellParams::P_11, 3));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("pressure_dt2", CellParams::P_11_DT2, 3));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("pressure_r", CellParams::P_11_R, 3));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("pressure_v", CellParams::P_11_V, 3));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("LB_weight", CellParams::LBWEIGHTCOUNTER, 1));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("max_v_dt", CellParams::MAXVDT, 1));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("max_r_dt", CellParams::MAXRDT, 1));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("max_fields_dt", CellParams::MAXFDT, 1));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("vg_drift", CellParams::BULKV_FORCING_X, 3));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_alpha1", CellParams::AMR_ALPHA1, 1));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_alpha2", CellParams::AMR_ALPHA2, 1));
+
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("densities",CellParams::RHOM,2));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("pressure",CellParams::P_11,6));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("bulkvelocities",CellParams::VX,3));
+
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("densities_dt2",CellParams::RHOM_DT2,2));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("pressure_dt2",CellParams::P_11_DT2,6));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("bulkvelocities_dt2",CellParams::VX_DT2,3));
+
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("densities_r",CellParams::RHOM_R,2));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("pressure_r",CellParams::P_11_R,6));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("bulkvelocities_r",CellParams::VX_R,3));
+
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("densities_v",CellParams::RHOM_V,2));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("pressure_v",CellParams::P_11_V,6));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("bulkvelocities_v",CellParams::VX_V,3));
+
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("densities_r_prev",CellParams::RHOM_R_PREV,2));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("pressure_r_prev",CellParams::P_11_R_PREV,6));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("bulkvelocities_r_prev",CellParams::VX_R_PREV,3));
+
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("densities_v_prev",CellParams::RHOM_V_PREV,2));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("pressure_v_prev",CellParams::P_11_V_PREV,6));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("bulkvelocities_v_prev",CellParams::VX_V_PREV,3));
+
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("densities_r_prev_prev",CellParams::RHOM_R_PREV_PREV,2));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("pressure_r_prev_prev",CellParams::P_11_R_PREV_PREV,6));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("bulkvelocities_r_prev_prev",CellParams::VX_R_PREV_PREV,3));
+
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("densities_v_prev_prev",CellParams::RHOM_V_PREV,2));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("pressure_v_prev_prev",CellParams::P_11_V_PREV_PREV,6));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("bulkvelocities_v_prev_prev",CellParams::VX_V_PREV_PREV,3));
+
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("timeclass",CellParams::TIMECLASS,1));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("timeclass_dt",CellParams::TIMECLASSDT,1));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("LB_weight",CellParams::LBWEIGHTCOUNTER,1));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("max_v_dt",CellParams::MAXVDT,1));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("max_r_dt",CellParams::MAXRDT,1));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("max_fields_dt",CellParams::MAXFDT,1));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("vg_drift",CellParams::BULKV_FORCING_X,3));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_alpha1",CellParams::AMR_ALPHA1,1));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_alpha2",CellParams::AMR_ALPHA2,1));
    restartReducer.addOperator(new DRO::VariableBVol);
    restartReducer.addMetadata(restartReducer.size() - 1, "T", "$\\mathrm{T}$", "$B_\\mathrm{vol,vg}$", "1.0");
    restartReducer.addOperator(new DRO::MPIrank);
@@ -2384,11 +2415,16 @@ bool writeRestart(
    }
 #endif
 
-   phiprof::Timer updateRemoteTimer{"updateRemoteBlocks"};
-   // Updated newly adjusted velocity block lists on remote cells, and
-   // prepare to receive block data
-   for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID)
-      updateRemoteVelocityBlockLists(mpiGrid, popID);
+   phiprof::Timer updateRemoteTimer {"updateRemoteBlocks"};
+   //Updated newly adjusted velocity block lists on remote cells, and
+   //prepare to receive block data
+   for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID){
+      for(int timeclass = 0; timeclass <= P::currentMaxTimeclass; ++timeclass){
+         //std::cerr<<__FILE__<<":"<<__LINE__<<"\n";
+        updateRemoteVelocityBlockLists(mpiGrid,popID,Neighborhoods::DIST_FUNC,timeclass);
+      }
+   }
+   //std::cerr<<__FILE__<<":"<<__LINE__<<"\n";
    updateRemoteTimer.stop();
 
    const uint64_t bytesWritten = vlsvWriter.getBytesWritten();

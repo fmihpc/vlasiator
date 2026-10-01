@@ -21,15 +21,24 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #include "common.h"
+#include "mpi.h"
+#include "spatial_cells/spatial_cell_cpu.hpp"
+#include "vlasovsolver/cpu_acc_transform.hpp"
+#include <cstdint>
 #include <cstdlib>
 #include <iostream>
 #include <cmath>
+#include <limits>
+#include <type_traits>
 #include <vector>
 #include <sstream>
 #include <ctime>
 #include <cstdlib>
 #include <iostream>
 #include <chrono>
+
+#include <unistd.h>
+
 
 #ifdef _OPENMP
    #include <omp.h>
@@ -50,6 +59,7 @@
 #include "readparameters.h"
 #include "spatial_cells/spatial_cell_wrapper.hpp"
 #include "datareduction/datareducer.h"
+#include "timeclasses.hpp"
 
 #include "sysboundary/sysboundary.h"
 #include "vlasovsolver/common_pitch_angle_diffusion.hpp"
@@ -130,29 +140,20 @@ void addTimedBarrier(string name){
    MPI_Barrier(MPI_COMM_WORLD);
 }
 
-void computeNewTimeStep(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                        fsgrids::technicalspan technical, FieldSolverGrid &fsgrid, Real& newDt,
-                        bool& isChanged) {
+// returns vector of timestep values
+std::vector<Real> computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+			fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
+         std::vector<Real>& dtMaxLocal, std::vector<Real>& dtMaxGlobal, 
+         std::vector<Real>& dtMinMaxLocal, std::vector<Real>& dtMinMaxGlobal) {
+
    phiprof::Timer computeTimestepTimer {"compute-timestep"};
    // Compute maximum time step. This cannot be done at the first step as the solvers compute the limits for each cell.
 
-   isChanged = false;
-
    const vector<CellID>& cells = getLocalCells();
-   /* Arrays for storing local (per process) and global max dt
-      0th position stores ordinary space propagation dt
-      1st position stores velocity space propagation dt
-      2nd position stores field propagation dt
-   */
-   Real dtMaxLocal[3];
-   Real dtMaxGlobal[3];
-
-   dtMaxLocal[0] = numeric_limits<Real>::max();
-   dtMaxLocal[1] = numeric_limits<Real>::max();
-   dtMaxLocal[2] = numeric_limits<Real>::max();
+   // newTimeclassDts = std::vector<Real>(P::maxTimeclass+1);
 
    // Compute max dt for Vlasov solver
-   reduce_vlasov_dt(mpiGrid, cells, dtMaxLocal);
+   reduce_vlasov_dt(mpiGrid, cells, dtMaxLocal, dtMinMaxLocal);
 
    // compute max dt for fieldsolver
    dtMaxLocal[2] = fsgrid.parallel_reduction([](int timerId) ->  phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -168,7 +169,23 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mp
       }
    });
 
-   MPI_Allreduce(&(dtMaxLocal[0]), &(dtMaxGlobal[0]), 3, MPI_Type<Real>(), MPI_MIN, MPI_COMM_WORLD);
+   dtMinMaxLocal[2] = fsgrid.parallel_reduction([](int timerId) ->  phiprof::Timer { return phiprof::Timer{timerId}; },
+                      phiprof::initializeTimer("compute-dt-reduction-loop"), technical,
+                      [](Real a, Real b) { return std::max<Real>(a, b); },
+                      std::numeric_limits<Real>::min(),
+                      [=](const fsgrid::Coordinates &coordinates, const fsgrid::FsStencil& stencil, cuint sysBoundaryFlag, cuint sysBoundaryLayer, creal maximum) {
+      if (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
+         (sysBoundaryLayer == 1 && sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY)) {
+         return technical[stencil.ooo()].maxFsDt;
+      } else {
+         return maximum;
+      }
+   });
+
+   MPI_Allreduce(dtMaxLocal.data(), dtMaxGlobal.data(), 3, MPI_Type<Real>(), MPI_MIN, MPI_COMM_WORLD);
+   //if(P::currentMaxTimeclass==0){
+   MPI_Allreduce(dtMinMaxLocal.data(), dtMinMaxGlobal.data(), 3, MPI_Type<Real>(), MPI_MAX, MPI_COMM_WORLD);
+   //}
 
    // If any of the solvers are disabled there should be no limits in timespace from it
    if (!P::propagateVlasovTranslation)
@@ -180,15 +197,50 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mp
 
    creal meanVlasovCFL = 0.5 * (P::vlasovSolverMaxCFL + P::vlasovSolverMinCFL);
    creal meanFieldsCFL = 0.5 * (P::fieldSolverMaxCFL + P::fieldSolverMinCFL);
+
+   Real localDt, baseDt, fsdt;
+
+   int myRank;
+   MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+
+   // localDt: max dt in the local MPI domain
+   localDt = meanVlasovCFL * dtMaxLocal[0];
+   localDt = min(localDt,meanVlasovCFL * dtMaxLocal[1] * P::maxSlAccelerationSubcycles);
+   localDt = min(localDt,meanFieldsCFL * dtMaxLocal[2] * P::maxFieldSolverSubcycles);
+   if (myRank == MASTER_RANK && P::currentMaxTimeclass > 0) cout << "localDt " << localDt <<"\n";
+   // newDt: max dt globally, at the highest timeclass
+   fsdt = meanVlasovCFL * dtMaxGlobal[0];
+   fsdt = min(fsdt,meanVlasovCFL * dtMaxGlobal[1] * P::maxSlAccelerationSubcycles);
+   fsdt = min(fsdt,meanFieldsCFL * dtMaxGlobal[2] * P::maxFieldSolverSubcycles);
+   if (myRank == MASTER_RANK && P::currentMaxTimeclass > 0) cout << "fsdt " << fsdt <<"\n";
+   // baseDt: longest max dt of any rank
+   baseDt = meanVlasovCFL * dtMinMaxGlobal[0];
+   baseDt = min(baseDt,meanVlasovCFL * dtMinMaxGlobal[1] * P::maxSlAccelerationSubcycles);
+   baseDt = min(baseDt,meanFieldsCFL * dtMinMaxGlobal[2] * P::maxFieldSolverSubcycles);   
+   if (myRank == MASTER_RANK && P::currentMaxTimeclass > 0) cout << "baseDt " << baseDt <<"\n";
+
+   std::vector<Real> retVec = {localDt, fsdt, baseDt};
+
+   return retVec;
+}
+
+
+// check goodness of current used fsdt, if it isnt good, changes newDt to good one and sets isChanged to true. Also sets subcycling number.
+// if the base dt was minimized to keep timeclasses happy, it might go so low that "isDtTooSmall" might fail. In this case, we skip the check.
+void handleChangingofDt(const std::vector<Real>& dtMaxGlobal, bool& isChanged, Real& newDt, const bool dtWasMinimizedToKeepTimeclassesHappy = false) {
+
+   int myRank;MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+
+   creal meanVlasovCFL = 0.5 * (P::vlasovSolverMaxCFL + P::vlasovSolverMinCFL);
+   creal meanFieldsCFL = 0.5 * (P::fieldSolverMaxCFL + P::fieldSolverMinCFL);
+
    Real subcycleDt;
 
-   // reduce/increase dt if it is too high for any of the three propagators or too low for all propagators
-   if ((P::dt > dtMaxGlobal[0] * P::vlasovSolverMaxCFL ||
-        P::dt > dtMaxGlobal[1] * P::vlasovSolverMaxCFL * P::maxSlAccelerationSubcycles ||
-        P::dt > dtMaxGlobal[2] * P::fieldSolverMaxCFL * P::maxFieldSolverSubcycles) ||
-       (P::dt < dtMaxGlobal[0] * P::vlasovSolverMinCFL &&
-        P::dt < dtMaxGlobal[1] * P::vlasovSolverMinCFL * P::maxSlAccelerationSubcycles &&
-        P::dt < dtMaxGlobal[2] * P::fieldSolverMinCFL * P::maxFieldSolverSubcycles)) {
+   isChanged = false;
+
+      // reduce/increase dt if it is too high for any of the three propagators or too low for all propagators
+   if (isDtTooLarge(P::timeclassDt[P::currentMaxTimeclass], dtMaxGlobal[0],dtMaxGlobal[1],dtMaxGlobal[2]) ||
+      (isDtTooSmall(P::timeclassDt[P::currentMaxTimeclass], dtMaxGlobal[0],dtMaxGlobal[1],dtMaxGlobal[2]) && dtWasMinimizedToKeepTimeclassesHappy == false)) {
 
       // new dt computed
       isChanged = true;
@@ -242,6 +294,33 @@ int simulate(int argn,char* args[]) {
    typedef Parameters P;
    Real newDt;
    bool dtIsChanged {false};
+   bool dtWasMinimizedToKeepTimeclassesHappy {false};
+
+   /* Arrays for storing local (per process) and global max dt
+   0th position stores ordinary space propagation dt
+   1st position stores velocity space propagation dt
+   2nd position stores field propagation dt
+   */
+   std::vector<Real> dtMaxLocal(3);
+   std::vector<Real> dtMaxGlobal(3);
+   std::vector<Real> dtMinMaxLocal(3);
+   std::vector<Real> dtMinMaxGlobal(3);
+   
+   dtMaxLocal[0] = numeric_limits<Real>::max();
+   dtMaxLocal[1] = numeric_limits<Real>::max();
+   dtMaxLocal[2] = numeric_limits<Real>::max();
+
+   dtMaxGlobal[0] = numeric_limits<Real>::max();
+   dtMaxGlobal[1] = numeric_limits<Real>::max();
+   dtMaxGlobal[2] = numeric_limits<Real>::max();
+
+   dtMinMaxLocal[0] = numeric_limits<Real>::min();
+   dtMinMaxLocal[1] = numeric_limits<Real>::min();
+   dtMinMaxLocal[2] = numeric_limits<Real>::min();
+
+   dtMinMaxGlobal[0] = numeric_limits<Real>::min();
+   dtMinMaxGlobal[1] = numeric_limits<Real>::min();
+   dtMinMaxGlobal[2] = numeric_limits<Real>::min();
 
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
 
@@ -338,6 +417,13 @@ int simulate(int argn,char* args[]) {
          cerr << "(MAIN) ERROR: Vectorclass definition mismatch!" << endl;
          cerr << "VECL " << VECL <<" VEC_PER_PLANE " << VEC_PER_PLANE <<" WID " << WID <<" VEC_PER_BLOCK " << VEC_PER_BLOCK << " VPREC "<< VPREC<<endl;
       }
+      exit(1);
+   }
+
+   if (P::initialMaxTimeclass > 0 && P::vlasovSolverGhostTranslate == false) {
+      // if we are using timeclasses, we need to use ghost translation
+      cerr << "(MAIN) Warning: Using timeclasses requires ghost translation, please turn GT on. exiting..." << endl;
+      logFile << "(MAIN) Warning: Using timeclasses requires ghost translation, please turn GT on. exiting..." << endl;
       exit(1);
    }
 
@@ -682,7 +768,7 @@ int simulate(int argn,char* args[]) {
    phiprof::Timer dttimer {"compute-dt"};
    // Run Vlasov solver once with zero dt to initialize
    // per-cell dt limits. Also compute initial _R and _V moments at restart.
-   calculateSpatialTranslation(mpiGrid,0.0);
+   calculateSpatialTranslation(mpiGrid,0.0,true);
    calculateAcceleration(mpiGrid,0.0);
 
    sysBoundaryContainer.setupL2OutflowAtRestart(mpiGrid);
@@ -738,28 +824,82 @@ int simulate(int argn,char* args[]) {
       P::systemWriteFsGrid.pop_back();
    }
 
+   //std::cerr << "calculating timesteps" << std::endl;
+
+   P::tc_leapfrog_init = false; // not used
    if (P::isRestart == false) {
       //compute new dt
-      phiprof::Timer computeDtTimer {"compute-dt"};
-      computeNewTimeStep(mpiGrid, technical.view(), fsgrid, newDt, dtIsChanged);
-      if (P::dynamicTimestep == true && dtIsChanged == true) {
+      phiprof::Timer computeDtimer {"compute-dt"};
+
+      auto timeStepVector = computeNewTimeStep(mpiGrid, technical.view(), fsgrid, dtMaxLocal, dtMaxGlobal, dtMinMaxLocal, dtMinMaxGlobal);
+
+      calculateGlobalTcVariables(timeStepVector.at(1), timeStepVector.at(2));
+
+      // this is called, because the next function checks against the smallest tcdt
+      updateTimeclassDts(timeStepVector.at(1));
+
+      // checks if smallest tcdt is good
+      handleChangingofDt(dtMaxGlobal, dtIsChanged, newDt);
+
+      if (P::dynamicTimestep == true && dtIsChanged) {
          // Only actually update the timestep if dynamicTimestep is on
-         P::dt=newDt;
+         updateTimeclassDts(newDt);
+         P::dt=P::timeclassDt[P::currentMaxTimeclass];
+      } else if (P::dynamicTimestep == true && !dtIsChanged) {
+         //updateTimeclassDts(timeStepVector.at(1));
+         P::dt=P::timeclassDt[P::currentMaxTimeclass];
       } else {
          dtIsChanged = false;
+         updateTimeclassDts(P::dt);
       }
-      computeDtTimer.stop();
 
+      initiateAllCellTimeclasses(mpiGrid);
+
+      std::vector<CellID> badTcCells = checkCellTimeclasses(mpiGrid);
+      MPI_Barrier(MPI_COMM_WORLD);
+      uint64_t localBadCells = badTcCells.size();
+      uint64_t globalBadCells = 0;
+      MPI_Allreduce(&localBadCells, &globalBadCells, 1, MPI_UINT64_T, MPI_SUM, MPI_COMM_WORLD);
+
+      if (globalBadCells != 0) {
+         // find out the smallest possible value to modify the base dt with, to make all timeclasses happy
+         Real globalSmallestDt = getNewSmallestDtToKeepTimeclassesHappy(mpiGrid, badTcCells);
+         dtWasMinimizedToKeepTimeclassesHappy = true;
+
+         updateTimeclassDts(globalSmallestDt * 0.5 * (P::vlasovSolverMaxCFL + P::vlasovSolverMinCFL));
+         P::dt = P::timeclassDt[P::currentMaxTimeclass];
+
+         if (isDtTooSmall(P::timeclassDt[P::currentMaxTimeclass], dtMaxGlobal[0],dtMaxGlobal[1],dtMaxGlobal[2])) {
+            dtWasMinimizedToKeepTimeclassesHappy = true;
+            logFile << "(TIMECLASSES) The base timestep is now so small, that it fails the check isDtTooSmall. However, from now on we ignore it. The simulation will continue, but maybe consider different timeclass domains?\n";
+         }
+
+         // the dt should not change here by this function; it is only called to calculate the correct subcycling number for FS
+         handleChangingofDt(dtMaxGlobal, dtIsChanged, newDt, dtWasMinimizedToKeepTimeclassesHappy);
+
+         logFile <<"(TIMECLASSES) Dt changed to "<<P::dt <<"s to keep timeclass domains correct"<<endl<<writeVerbose;
+
+      }
+
+      computeDtimer.stop();
+
+      balanceLoad(mpiGrid, sysBoundaryContainer, technical.view(), fsgrid);
+      
       //go forward by dt/2 in V, initializes leapfrog split. In restarts the
       //the distribution function is already propagated forward in time by dt/2
       phiprof::Timer propagateHalfTimer {"propagate-velocity-space-dt/2"};
       if (P::propagateVlasovAcceleration) {
-         calculateAcceleration(mpiGrid, 0.5*P::dt);
+         calculateAcceleration(mpiGrid, 0.5);
       } else {
          //zero step to set up moments _v
          calculateAcceleration(mpiGrid, 0.0);
       }
+      P::tc_leapfrog_init = true;
+
+
       propagateHalfTimer.stop();
+
+      updatePreviousVMoments(mpiGrid, true);
 
       // Apply boundary conditions
       if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration ) {
@@ -770,6 +910,7 @@ int simulate(int argn,char* args[]) {
       }
       // Also update all moments. They won't be transmitted to FSgrid until the field solver is called, though.
       phiprof::Timer computeMomentsTimer {"Compute interp moments"};
+      //std::cout << "for initial interpolated moments\n";
       calculateInterpolatedVelocityMoments(
          mpiGrid,
          CellParams::RHOM,
@@ -784,9 +925,15 @@ int simulate(int argn,char* args[]) {
          CellParams::P_13,
          CellParams::P_12
       );
-      computeMomentsTimer.stop();
-   }
+      
+      updateParticlePopulations(mpiGrid, false);
 
+      computeMomentsTimer.stop();
+   } else { // if we are restaring, make sure global timeclass settings are set
+      //restart files dont contain P::timeclassDts, so we set that 
+      updateTimeclassDts(P::dt);
+
+   }
    initTimer.stop();
 
    // ***********************************
@@ -851,7 +998,7 @@ int simulate(int argn,char* args[]) {
    while(P::tstep <= P::tstep_max  &&
          P::t-P::dt <= P::t_max+DT_EPSILON &&
          wallTimeRestartCounter <= P::exitAfterRestarts) {
-
+      
       addTimedBarrier("barrier-loop-start");
 
       phiprof::Timer ioTimer {"IO"};
@@ -866,9 +1013,9 @@ int simulate(int argn,char* args[]) {
       //write out phiprof profiles and logs with a lower interval than normal
       //diagnostic (every 10 diagnostic intervals).
       phiprof::Timer loggingTimer {"logfile-io"};
-      logFile << "---------- tstep = " << P::tstep << " t = " << P::t <<" dt = " << P::dt << " FS cycles = " << P::fieldSolverSubcycles << " ----------" << endl;
-      if (P::diagnosticInterval != 0 &&
-          P::tstep % (P::diagnosticInterval*10) == 0 &&
+      logFile << "---------- tstep = " << P::tstep << " (" <<P::fractionalTimestep+1<<"/"<<(2 << (P::currentMaxTimeclass-1)) <<") t = " << P::t <<" dt = " << P::dt << " FS cycles = " << P::fieldSolverSubcycles << " ----------" << endl;
+      if (/*P::diagnosticInterval != 0 &&
+          P::tstep % (P::diagnosticInterval*10) == 0 &&*/
           P::tstep-P::tstep_min >0) {
 
          phiprof::print(MPI_COMM_WORLD,"phiprof");
@@ -896,7 +1043,7 @@ int simulate(int argn,char* args[]) {
       loggingTimer.stop();
 
       // Check whether diagnostic output has to be produced
-      if (P::diagnosticInterval != 0 && P::tstep % P::diagnosticInterval == 0) {
+      if (P::diagnosticInterval != 0 && (P::tstep % P::diagnosticInterval == 0) && P::fractionalTimestep == 0) {
          phiprof::Timer memTimer {"memory-report"};
          memTimer.start();
          report_memory_consumption(mpiGrid);
@@ -913,10 +1060,24 @@ int simulate(int argn,char* args[]) {
          }
       }
 
+      logFile << "(TIMECLASS) P::currentMaxTimeclass: " << P::currentMaxTimeclass << ", P::initialMaxTimeclass: " << P::initialMaxTimeclass << ", P::timeclassDt.at(0): " << P::timeclassDt.at(0) << ", P::dt: " << P::dt << "\n";
+
+      timeclassDebugAssertions(mpiGrid);
+
+      //std::cout << "start of main simulation loop, below dt, timeclassDts, currentmaxtimeclass" << std::endl;
+      //std::cout << P::dt << std::endl;
+      // for (auto i: P::timeclassDt) {
+         //std::cout << i << " ";
+      // }
+      //std::cout << endl;
+      //std::cout << P::currentMaxTimeclass << std::endl;
+
       // write system, loop through write classes
       for (uint i = 0; i < P::systemWriteTimeInterval.size(); i++) {
-         if (P::systemWriteTimeInterval[i] >= 0.0 &&
-             P::t >= P::systemWrites[i] * P::systemWriteTimeInterval[i] - DT_EPSILON) {
+         // if (true || (P::systemWriteTimeInterval[i] >= 0.0 &&
+         //     P::t >= P::systemWrites[i] * P::systemWriteTimeInterval[i] - DT_EPSILON)) {
+            if (P::systemWriteTimeInterval[i] >= 0.0 &&
+                P::t >= P::systemWrites[i] * P::systemWriteTimeInterval[i] - DT_EPSILON) {
             // If we have only just restarted, the bulk file should already exist from the previous slot.
             if ((P::tstep == P::tstep_min) && (P::tstep>0)) {
                P::systemWrites[i]++;
@@ -971,9 +1132,9 @@ int simulate(int argn,char* args[]) {
          doNow[donow::SAVE] = 0;
          doNow[donow::DORC] = 0;
          if (  (P::saveRestartWalltimeInterval >= 0.0
-            && (P::saveRestartWalltimeInterval*wallTimeRestartCounter <=  MPI_Wtime()-initialWtime
-               || P::tstep == P::tstep_max
-               || P::t >= P::t_max))
+            && ((P::saveRestartWalltimeInterval*wallTimeRestartCounter <=  MPI_Wtime()-initialWtime && P::fractionalTimestep == 0)
+               || (P::tstep == P::tstep_max)
+               || (P::t >= P::t_max)))
             || (doBailout > 0 && P::bailout_write_restart)
             || globalflags::writeRestart
          ) {
@@ -1021,7 +1182,7 @@ int simulate(int argn,char* args[]) {
          calculateScaledDeltasSimple(mpiGrid);
 
          if (myRank == MASTER_RANK)
-            logFile << "(IO): Writing restart data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
+            logFile << "(IO): Writing restart data to disk, tstep = " << P::tstep << " fractional timestep = " << P::fractionalTimestep << " t = " << P::t << endl << writeVerbose;
          //Write the restart:
          if (writeRestart(
                 mpiGrid,
@@ -1044,7 +1205,6 @@ int simulate(int argn,char* args[]) {
          }
          timer.stop();
       }
-
       if (doNow[donow::DORC] == 1){ // write recover
          phiprof::Timer timer {"write-recover"};
 
@@ -1093,7 +1253,7 @@ int simulate(int argn,char* args[]) {
 
       //Re-loadbalance if needed
       //TODO - add LB measure and do LB if it exceeds threshold
-      if(((P::tstep % P::rebalanceInterval == 0 && P::tstep > P::tstep_min) || overrideRebalanceNow)) {
+      if(((P::tstep % P::rebalanceInterval == 0 && P::tstep > P::tstep_min && P::fractionalTimestep == 0) || overrideRebalanceNow)) {
          logFile << "(LB): Start load balance, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
 
          phiprof::Timer shrinkTimer {"Shrink_to_fit"};
@@ -1133,7 +1293,7 @@ int simulate(int argn,char* args[]) {
 
             // Calculate new dt limits since we might break CFL when refining
             phiprof::Timer computeDtimer {"compute-dt-amr"};
-            calculateSpatialTranslation(mpiGrid,0.0);
+            calculateSpatialTranslation(mpiGrid,0.0,true);
             calculateAcceleration(mpiGrid,0.0);
          }
          // This now uses the block-based count just copied between the two refinement calls above.
@@ -1148,46 +1308,162 @@ int simulate(int argn,char* args[]) {
          // moved.
          SBC::ionosphereGrid.updateIonosphereCommunicator(mpiGrid, technical.view(), fsgrid);
       }
-
+   
       //get local cells
       const vector<CellID>& cells = getLocalCells();
 
       //compute how many spatial cells we solve for this step
       computedCells=0;
       for(size_t i=0; i<cells.size(); i++) {
-         for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
-            computedCells += (uint64_t)mpiGrid[cells[i]]->get_number_of_velocity_blocks(popID)*WID3;
-      }
-
-      //Check if dt needs to be changed, and propagate V back a half-step to change dt and set up new situation
-      //do not compute new dt on first step (in restarts dt comes from file, otherwise it was initialized before we entered
-      //simulation loop
-      // FIXME what if dt changes at a restart??
-      if(P::dynamicTimestep  && P::tstep > P::tstep_min) {
-         computeNewTimeStep(mpiGrid, technical.view(), fsgrid, newDt, dtIsChanged);
-         addTimedBarrier("barrier-check-dt");
-         if(dtIsChanged) {
-            phiprof::Timer updateDtimer {"update-dt"};
-            //propagate velocity space back to real-time
-            if( P::propagateVlasovAcceleration ) {
-               // Back half dt to real time, forward by new half dt
-               calculateAcceleration(mpiGrid,-0.5*P::dt + 0.5*newDt);
+         for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+            for (int tc =0; tc <= P::currentMaxTimeclass; ++tc){
+               if(mpiGrid[cells[i]]->get_timeclass_turn_v(tc) ){ // TODO filter properly
+                  computedCells += (uint64_t)mpiGrid[cells[i]]->get_number_of_velocity_blocks(popID, tc)*WID3;
+               }
             }
-            else {
-               //zero step to set up moments _v
-               calculateAcceleration(mpiGrid, 0.0);
-            }
-
-            P::dt=newDt;
-
-            logFile <<" dt changed to "<<P::dt <<"s, distribution function was half-stepped to real-time and back"<<endl<<writeVerbose;
-            updateDtimer.stop();
-            continue; //
-            //addTimedBarrier("barrier-new-dt-set");
          }
       }
 
-      if (P::tstep % P::rebalanceInterval == P::rebalanceInterval-1 || P::prepareForRebalance == true) {
+      // we want the check to be skipped if is the first tstep AND if fractimestep != 0
+      if (P::tstep > P::tstep_min && P::fractionalTimestep == 0 && (P::dynamicTimestep || P::currentMaxTimeclass > 0)) {
+
+         //check if global base dt is fine, and update cell dt limits
+         auto timestepvector = computeNewTimeStep(mpiGrid, technical.view(), fsgrid, dtMaxLocal, dtMaxGlobal, dtMinMaxLocal, dtMinMaxGlobal);
+         // this calls tooLarge and tooSmall both for the smallest tc timestep
+         handleChangingofDt(dtMaxGlobal, dtIsChanged, newDt, dtWasMinimizedToKeepTimeclassesHappy);
+         // checks if dt is good
+         std::vector<Real> placeholder1(3), placeholder2(3);
+         // update maxrdt
+         reduce_vlasov_dt(mpiGrid, cells, placeholder1, placeholder2);
+         // update maxvdt
+         // this is done when calculateAcceleration is called and is redundant here, but for testing
+         for (CellID c: cells) {
+            for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+               updateAccelerationMaxdt(mpiGrid[c], popID);
+               mpiGrid[c]->parameters[CellParams::MAXVDT] = min(mpiGrid[c]->parameters[CellParams::MAXVDT], mpiGrid[c]->get_max_v_dt(popID));
+            }
+         }
+
+         if (P::currentMaxTimeclass > 0) {
+
+            if (P::dynamicTimestep) { // yes timeclasses, yes dynamic dt
+
+               // check if the base timestep wants to change
+               if (dtIsChanged) {
+                  phiprof::Timer updateDtimer {"update-dt"};
+                  //propagate velocity space back to real-time
+                  if( P::propagateVlasovAcceleration ) {
+                     // Back half dt to real time, forward by new half dt
+                     calculateAcceleration(mpiGrid,-0.5);
+                  }
+                  updateTimeclassDts(newDt);
+                  P::dt=P::timeclassDt[P::currentMaxTimeclass];
+
+                  if( P::propagateVlasovAcceleration ) {
+                     // Back half dt to real time, forward by new half dt
+                     calculateAcceleration(mpiGrid,0.5);
+                  } else {
+                     calculateAcceleration(mpiGrid,0.0);
+                  }
+
+                  logFile <<" dt changed to "<<P::dt <<"s, distribution function was half-stepped to real-time and back"<<endl<<writeVerbose;
+                  updateDtimer.stop();
+                  continue;
+                  //addTimedBarrier("barrier-new-dt-set");
+               }
+
+               // check for bad cells
+               // if any are found, adjust global timestep to be smaller
+
+               std::vector<CellID> badTcCells = checkCellTimeclasses(mpiGrid);
+               MPI_Barrier(MPI_COMM_WORLD);
+               uint64_t localBadCells = badTcCells.size();
+               uint64_t globalBadCells = 0;
+               MPI_Allreduce(&localBadCells, &globalBadCells, 1, MPI_UINT64_T, MPI_SUM, MPI_COMM_WORLD);
+
+               if (globalBadCells != 0) {
+
+                  if( P::propagateVlasovAcceleration ) {
+                     // Back half dt to real time, forward by new half dt
+                     calculateAcceleration(mpiGrid,-0.5);
+                  }
+
+                  // find out the smallest possible value to modify the base dt with, to make all timeclasses happy
+
+                  Real globalSmallestDt = getNewSmallestDtToKeepTimeclassesHappy(mpiGrid, badTcCells);
+
+
+                  updateTimeclassDts(globalSmallestDt * 0.5 * (P::vlasovSolverMaxCFL + P::vlasovSolverMinCFL));
+                  P::dt = P::timeclassDt[P::currentMaxTimeclass];
+
+                  if (isDtTooSmall(P::timeclassDt[P::currentMaxTimeclass], dtMaxGlobal[0],dtMaxGlobal[1],dtMaxGlobal[2])) {
+                     dtWasMinimizedToKeepTimeclassesHappy = true;
+                     logFile << "(TIMECLASSES) The base timestep is now so small, that it fails the check isDtTooSmall. However, from now on we ignore it. The simulation will continue, but maybe consider different timeclass domains?\n";
+                  }
+
+                  // the dt should not change here by this function; it is only called to calculate the correct subcycling number for FS
+                  handleChangingofDt(dtMaxGlobal, dtIsChanged, newDt, dtWasMinimizedToKeepTimeclassesHappy);
+
+                  logFile <<"(TIMECLASSES) Dt changed to "<<P::dt <<"s to keep timeclass domains correct, distribution function was half-stepped to real-time and back"<<endl<<writeVerbose;
+
+                  if( P::propagateVlasovAcceleration ) {
+                     // Back half dt to real time, forward by new half dt
+                     calculateAcceleration(mpiGrid,0.5);
+                  } else {
+                     calculateAcceleration(mpiGrid,0.0);
+                  }
+
+               }
+
+
+            } else { // yes timeclasses, no dynamic dt 
+
+
+               std::vector<CellID> badTcCells = checkCellTimeclasses(mpiGrid);
+               MPI_Barrier(MPI_COMM_WORLD);
+               uint64_t localBadCells = badTcCells.size();
+               uint64_t globalBadCells = 0;
+               MPI_Allreduce(&localBadCells, &globalBadCells, 1, MPI_UINT64_T, MPI_SUM, MPI_COMM_WORLD);
+
+               if (globalBadCells != 0) {
+                  logFile << "your timeclass domains do not fulfill the CFL condition! However, since dynamic timestep is not enabled, nothing can be done, stopping the simulation...\n";
+                  abort();
+               }
+            }
+         } else { // no timeclasses
+            if (P::dynamicTimestep) { // no timeclasses, yes dynamic timestep
+
+                  if (dtIsChanged) {
+                     phiprof::Timer updateDtimer {"update-dt"};
+                     //propagate velocity space back to real-time
+                     if( P::propagateVlasovAcceleration ) {
+                        // Back half dt to real time, forward by new half dt
+                        calculateAcceleration(mpiGrid,-0.5);
+                     }
+                     updateTimeclassDts(newDt);
+                     P::dt=P::timeclassDt[P::currentMaxTimeclass];
+
+                     if( P::propagateVlasovAcceleration ) {
+                        // Back half dt to real time, forward by new half dt
+                        calculateAcceleration(mpiGrid,0.5);
+                     } else {
+                        calculateAcceleration(mpiGrid,0.0);
+                     }
+
+                     logFile <<" dt changed to "<<P::dt <<"s, distribution function was half-stepped to real-time and back"<<endl<<writeVerbose;
+                     updateDtimer.stop();
+                     continue;
+                     //addTimedBarrier("barrier-new-dt-set");
+                  }
+
+            } else { // no timeclasses, no dynamic timestep
+               // do nothing
+            }
+
+         }
+      }
+      
+      if (((P::tstep % P::rebalanceInterval == P::rebalanceInterval-1) && (P::fractionalTimestep == ((int)(1u << (P::currentMaxTimeclass))-1))) || P::prepareForRebalance == true) {
          if(P::prepareForRebalance == true) {
             overrideRebalanceNow = true;
          } else {
@@ -1210,19 +1486,21 @@ int simulate(int argn,char* args[]) {
 
          // updateState leaves mpiGrid and fsgrid in mismatching states, interpolated moments need to be recalculated
          // TODO: Check whether updated state is the same as previously so synchronization can be skipped when not needed?
-         calculateInterpolatedVelocityMoments(
+         interpolateMomentsForTimeclasses(
             mpiGrid,
             CellParams::RHOM,
-            CellParams::VX,
-            CellParams::VY,
-            CellParams::VZ,
             CellParams::RHOQ,
             CellParams::P_11,
             CellParams::P_22,
             CellParams::P_33,
             CellParams::P_23,
             CellParams::P_13,
-            CellParams::P_12
+            CellParams::P_12,
+            CellParams::VX,
+            CellParams::VY,
+            CellParams::VZ,
+            false,
+            false
          );
          timer.stop();
          addTimedBarrier("barrier-boundary-conditions");
@@ -1230,9 +1508,9 @@ int simulate(int argn,char* args[]) {
 
       phiprof::Timer spatialSpaceTimer {"Spatial-space"};
       if( P::propagateVlasovTranslation) {
-         calculateSpatialTranslation(mpiGrid,P::dt);
+         calculateSpatialTranslation(mpiGrid,1.0,false);
       } else {
-         calculateSpatialTranslation(mpiGrid,0.0);
+         calculateSpatialTranslation(mpiGrid,0.0,false);
       }
       spatialSpaceTimer.stop(computedCells, "Cells");
 
@@ -1245,20 +1523,44 @@ int simulate(int argn,char* args[]) {
       }
 
       phiprof::Timer momentsTimer {"Compute interp moments"};
-      calculateInterpolatedVelocityMoments(
+      //std::cout << "for dt2 in main loop at t="<<P::t<<"\n";
+
+      interpolateMomentsForTimeclasses(
+         mpiGrid,
+         CellParams::RHOM,
+         CellParams::RHOQ,
+         CellParams::P_11,
+         CellParams::P_22,
+         CellParams::P_33,
+         CellParams::P_23,
+         CellParams::P_13,
+         CellParams::P_12,
+         CellParams::VX,
+         CellParams::VY,
+         CellParams::VZ,
+         false,
+         true
+      );
+
+      interpolateMomentsForTimeclasses(
          mpiGrid,
          CellParams::RHOM_DT2,
-         CellParams::VX_DT2,
-         CellParams::VY_DT2,
-         CellParams::VZ_DT2,
          CellParams::RHOQ_DT2,
          CellParams::P_11_DT2,
          CellParams::P_22_DT2,
          CellParams::P_33_DT2,
          CellParams::P_23_DT2,
          CellParams::P_13_DT2,
-         CellParams::P_12_DT2
+         CellParams::P_12_DT2,
+         CellParams::VX_DT2,
+         CellParams::VY_DT2,
+         CellParams::VZ_DT2,
+         true,
+         true
       );
+
+      updateParticlePopulations(mpiGrid, true);
+
       momentsTimer.stop();
 
       // Propagate fields forward in time by dt. This needs to be done before the
@@ -1326,7 +1628,7 @@ int simulate(int argn,char* args[]) {
          int nIterations, nRestarts;
          Real residual, minPotentialN, maxPotentialN, minPotentialS, maxPotentialS;
          SBC::ionosphereGrid.solve(nIterations, nRestarts, residual, minPotentialN, maxPotentialN, minPotentialS, maxPotentialS);
-         logFile << "tstep = " << P::tstep
+         logFile << "tstep = " << P::tstep << "("<<P::fractionalTimestep+1<<"/"<< (1u << (P::currentMaxTimeclass)) << ")"
          << " t = " << P::t
          << " ionosphere iterations = " << nIterations
          << " restarts = " << nRestarts
@@ -1342,9 +1644,13 @@ int simulate(int argn,char* args[]) {
          globalflags::ionosphereJustSolved = true;
       }
 
+      // updating _V_PREV moments here, before _V moments are updated 
+      updatePreviousVMoments(mpiGrid, false);
+      
       phiprof::Timer vspaceTimer {"Velocity-space"};
       if ( P::propagateVlasovAcceleration ) {
-         calculateAcceleration(mpiGrid,P::dt);
+      // calculateAcceleration(mpiGrid,P::dt);
+         calculateAcceleration(mpiGrid,1.0);
          addTimedBarrier("barrier-after-ad just-blocks");
       } else {
          //zero step to set up moments _v
@@ -1368,24 +1674,28 @@ int simulate(int argn,char* args[]) {
          addTimedBarrier("barrier-boundary-conditions");
       }
 
-      momentsTimer.start();
-      // *here we compute rho and rho_v for timestep t + dt, so next
-      // timestep * //
-      calculateInterpolatedVelocityMoments(
+
+      //we interpolate here for output data reasons
+      interpolateMomentsForTimeclasses(
          mpiGrid,
          CellParams::RHOM,
-         CellParams::VX,
-         CellParams::VY,
-         CellParams::VZ,
          CellParams::RHOQ,
          CellParams::P_11,
          CellParams::P_22,
          CellParams::P_33,
          CellParams::P_23,
          CellParams::P_13,
-         CellParams::P_12
+         CellParams::P_12,
+         CellParams::VX,
+         CellParams::VY,
+         CellParams::VZ,
+         false,
+         false
       );
-      momentsTimer.stop();
+      
+      updateParticlePopulations(mpiGrid, false);
+
+      // momentsTimer.stop();
 
       propagateTimer.stop(computedCells,"Cells");
 
@@ -1403,10 +1713,15 @@ int simulate(int argn,char* args[]) {
       //Move forward in time
       P::meshRepartitioned = false;
       globalflags::ionosphereJustSolved = false;
-      ++P::tstep;
-      P::t += P::dt;
-      compress_time+=P::dt;
-   }//main while loop
+      ++P::fractionalTimestep;
+      if(P::fractionalTimestep % (1u << (P::currentMaxTimeclass)) == 0){
+         ++P::tstep;
+         P::fractionalTimestep = 0;
+      }
+      P::t += P::timeclassDt[P::currentMaxTimeclass];
+      compress_time += P::timeclassDt[P::currentMaxTimeclass];
+      
+   } // End main loop ----------------------------------------------------------
 
    double after = MPI_Wtime();
 
@@ -1512,6 +1827,10 @@ int main(int argn, char* args[]) {
          }
       }
    }
+
+   pid_t pid = getpid();
+   std::cerr << "My rank = " << myRank << " PID = " << pid << std::endl;
+
 
    int ret {simulate(argn, args)};
 
