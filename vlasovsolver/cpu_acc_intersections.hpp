@@ -61,6 +61,7 @@ void compute_cell_intersections(
         const uint popID,
         const uint map_order,
         const Real& dt,
-        int intersections_id);
+        int intersections_id,
+        int timeclass);
 
 #endif

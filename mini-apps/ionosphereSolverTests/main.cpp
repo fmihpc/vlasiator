@@ -38,7 +38,7 @@ ObjectWrapper& getObjectWrapper() {
 std::vector<CellID> localCellDummy;
 const std::vector<CellID>& getLocalCells() { return localCellDummy; }
 void deallocateRemoteCellBlocks(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry, std::tuple<>, std::tuple<> >&) {};
-void updateRemoteVelocityBlockLists(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry, std::tuple<>, std::tuple<> >&, unsigned int, unsigned int) {};
+void updateRemoteVelocityBlockLists(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry, std::tuple<>, std::tuple<> >&, const unsigned int, const unsigned int, const int) {};
 void recalculateLocalCellsCache(const dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry, std::tuple<>, std::tuple<> >&) {};
 SysBoundary::SysBoundary() {}
 SysBoundary::~SysBoundary() {}
