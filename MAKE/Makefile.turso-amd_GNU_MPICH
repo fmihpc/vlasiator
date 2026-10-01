@@ -11,7 +11,7 @@
 # Required modules:
 #
 # Oneliner for command line:
-# module load PrgEnv-gnu/15.2.0 MPICH/5.0.1 Autoconf/2.72 CMake/4.2.1
+# module load PrgEnv-gnu/15.2.0 MPICH/5.0.1 Autoconf/2.72 CMake/4.2.1 PAPI/7.2.0
 #
 # There might be some libefa errors but they are benign.
 # (Benign = pleasant and kind; not harmful or severe. dictionary.cambridge.org)
