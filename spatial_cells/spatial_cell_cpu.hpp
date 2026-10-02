@@ -113,6 +113,12 @@ namespace spatial_cell {
       Real intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk;
       Real subcycleDt;
 
+      std::vector<vmesh::GlobalID> *velocity_block_with_content_list;         /**< List of existing cells with content, only up-to-date after
+                                                                               * call to update_has_content().*/
+      vmesh::LocalID velocity_block_with_content_list_size;                   /**< Size of vector. Needed for MPI communication of size before actual list transfer.*/
+      std::vector<vmesh::GlobalID> *velocity_block_with_no_content_list;      /**< List of existing cells with no content, only up-to-date after
+                                                                               * call to update_has_content. This is also never transferred
+                                                                               * over MPI, so is invalid on remote cells.*/
       // Constructor, destructor
       Population() {
          vmesh = new vmesh::VelocityMesh();
@@ -131,10 +137,17 @@ namespace spatial_cell {
             P[i] = P_R[i] = P_V[i] = 0;
             P_R_PREV[i] = P_V_PREV[i] = P_R_PREV_PREV[i] = P_V_PREV_PREV[i] = 0;
          }
+         velocity_block_with_content_list = new std::vector<vmesh::GlobalID>(1);
+         velocity_block_with_no_content_list = new std::vector<vmesh::GlobalID>(1);
+         velocity_block_with_content_list->clear();
+         velocity_block_with_no_content_list->clear();
+         velocity_block_with_content_list_size = 0;
       }
       ~Population() {
          delete vmesh;
          delete blockContainer;
+	      delete velocity_block_with_content_list;
+         delete velocity_block_with_no_content_list;
       }
       // Copy constructor
       Population(const Population& other) {
@@ -173,6 +186,11 @@ namespace spatial_cell {
             P_R_PREV_PREV[i] = other.P_R_PREV_PREV[i];
             P_V_PREV_PREV[i] = other.P_V_PREV_PREV[i];
          }
+
+         // velocity_block_contents lists to be owned by pops
+         velocity_block_with_content_list = new std::vector<vmesh::GlobalID>(*(other.velocity_block_with_no_content_list));
+         velocity_block_with_no_content_list = new std::vector<vmesh::GlobalID>(*(other.velocity_block_with_no_content_list));
+         velocity_block_with_content_list_size = other.velocity_block_with_content_list_size;
       }
 
       Population(Population&& other) = delete; // Move constructor not implemented
@@ -215,6 +233,10 @@ namespace spatial_cell {
             P_R_PREV_PREV[i] = other.P_R_PREV_PREV[i];
             P_V_PREV_PREV[i] = other.P_V_PREV_PREV[i];
          }
+         velocity_block_with_content_list = new std::vector<vmesh::GlobalID>(*(other.velocity_block_with_content_list));
+         velocity_block_with_no_content_list = new std::vector<vmesh::GlobalID>(*(other.velocity_block_with_no_content_list));
+         velocity_block_with_content_list_size = other.velocity_block_with_content_list_size;
+
          return *this;
       }
 
@@ -282,6 +304,8 @@ namespace spatial_cell {
             }
          } // for-loop over velocity blocks
       }
+
+
    };
 
    typedef std::array<unsigned int, 3> velocity_cell_indices_t;   /**< Defines the indices of a velocity cell in a velocity block.
@@ -390,6 +414,7 @@ namespace spatial_cell {
 
       void printMeshSizes();
       static bool setCommunicatedSpecies(const uint popID, const int timeclass = -1);
+      static bool setCommunicatedSpecies(std::vector<std::pair<uint, int>> population_indexes);
 
       // Following functions adjust velocity blocks stored on the cell //
       bool add_velocity_block(const vmesh::GlobalID& block,const uint popID, const int timeclass);
@@ -483,6 +508,7 @@ namespace spatial_cell {
 
       static int activePopID;
       static int activeTimeclass;
+      static std::vector<std::pair<uint, int>> activePopIndices;
       bool initialized;
       bool mpiTransferEnabled;
 
@@ -951,8 +977,8 @@ namespace spatial_cell {
    inline uint64_t SpatialCell::get_cell_memory_size() {
       uint64_t size = 0;
       size += 2 * WID3 * sizeof(Realf);
-      size += velocity_block_with_content_list->size() * sizeof(vmesh::GlobalID);
-      size += velocity_block_with_no_content_list->size() * sizeof(vmesh::GlobalID);
+      //size += velocity_block_with_content_list->size() * sizeof(vmesh::GlobalID);
+      //size += velocity_block_with_no_content_list->size() * sizeof(vmesh::GlobalID);
       size += CellParams::N_SPATIAL_CELL_PARAMS * sizeof(Real);
       size += bvolderivatives::N_BVOL_DERIVATIVES * sizeof(Real);
 
@@ -980,8 +1006,8 @@ namespace spatial_cell {
       uint64_t capacity = 0;
 
       capacity += 2 * WID3 * sizeof(Realf);
-      capacity += velocity_block_with_content_list->capacity()  * sizeof(vmesh::GlobalID);
-      capacity += velocity_block_with_no_content_list->capacity()  * sizeof(vmesh::GlobalID);
+      //capacity += velocity_block_with_content_list->capacity()  * sizeof(vmesh::GlobalID);
+      //capacity += velocity_block_with_no_content_list->capacity()  * sizeof(vmesh::GlobalID);
       capacity += CellParams::N_SPATIAL_CELL_PARAMS * sizeof(Real);
       capacity += bvolderivatives::N_BVOL_DERIVATIVES * sizeof(Real);
 

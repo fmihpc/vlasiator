@@ -108,7 +108,7 @@ void calculateSpatialTranslation(
 
       t1 = MPI_Wtime();
       phiprof::Timer computeTimer {"compute-mapping-z"};
-      trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsz, nPencils, 2, dt, 0, popID); // map along z//
+      trans_map_1d_amr(mpiGrid, DimensionPencils, local_propagated_cells, remoteTargetCellsz, nPencils, 2, dt, 0, popID); // map along z//
       computeTimer.stop();
       time += MPI_Wtime() - t1;
 
@@ -143,7 +143,7 @@ void calculateSpatialTranslation(
 
       t1 = MPI_Wtime();
       phiprof::Timer computeTimer {"compute-mapping-x"};
-      trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsx, nPencils, 0, dt, 0, popID); // map along x//
+      trans_map_1d_amr(mpiGrid, DimensionPencils, local_propagated_cells, remoteTargetCellsx, nPencils, 0, dt, 0, popID); // map along x//
       computeTimer.stop();
       time += MPI_Wtime() - t1;
 
@@ -178,7 +178,7 @@ void calculateSpatialTranslation(
 
       t1 = MPI_Wtime();
       phiprof::Timer computeTimer {"compute-mapping-y"};
-      trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsy, nPencils, 1, dt, 0, popID); // map along y//
+      trans_map_1d_amr(mpiGrid, DimensionPencils, local_propagated_cells, remoteTargetCellsy, nPencils, 1, dt, 0, popID); // map along y//
       computeTimer.stop();
       time += MPI_Wtime() - t1;
 
@@ -207,23 +207,20 @@ void calculateSpatialTranslation(
    // bailout(true, "", __FILE__, __LINE__);
 }
 
-/** Propagates the distribution function in spatial space.
+/** Communicate the distribution function from necessary remote neighbors
+ *  before ghost translation.
     Now does all required calculations on ghost cells,
     coalescing all interim MPI communication into one call..
-
-    Based on SLICE-3D algorithm: Zerroukat, M., and T. Allen. "A
-    three-dimensional monotone and conservative semi-Lagrangian scheme
-    (SLICE-3D) for transport problems." Quarterly Journal of the Royal
-    Meteorological Society 138.667 (2012): 1640-1651.
-
  */
-void calculateSpatialGhostTranslation(
+
+void communicatePreSpatialGhostTranslation(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const vector<CellID>& local_propagated_cells,
    vector<uint>& nPencils,
    const creal dt,
    const uint popID,
    Real &time,
+   const uint tictoc,
    int tc
    ) {
 
@@ -231,16 +228,23 @@ void calculateSpatialGhostTranslation(
    // No need for remote target cells; pass a dummy list.
    const vector<CellID> dummy_cells;
    uint neighborhood;
-   std::array<setOfPencils,3>* pencilSet = &DimensionPencils;
+
+   // Select the pencil set and the required neighborhood based on the tictoc value
+   std::array<setOfPencils,3>* pencilSet;
    if (P::currentMaxTimeclass == 0) {
       neighborhood = Neighborhoods::VLASOV_SOLVER_GHOST;
-      // std::cerr << __FILE__<<":"<<__LINE__<< ", pencilSet->Nx = " << (*pencilSet)[0].N << ", pencilSet->Ny = " << (*pencilSet)[1].N << ", pencilSet->Nz = " << (*pencilSet)[2].N << std::endl;
+   }
+   else if (tictoc == Timeclasses::TIC) {
+      neighborhood = Neighborhoods::VLASOV_SOLVER_TIMEGHOST_OUTER_HALO;
+   }
+   else if (tictoc == Timeclasses::TOC) {
+      neighborhood = Neighborhoods::VLASOV_SOLVER_GHOST;
    }
    else {
-      neighborhood = Neighborhoods::VLASOV_SOLVER_TIMEGHOST_REQ;
-      // std::cerr << __FILE__<<":"<<__LINE__<< ", pencilSet->Nx = " << (*pencilSet)[0].N << ", pencilSet->Ny = " << (*pencilSet)[1].N << ", pencilSet->Nz = " << (*pencilSet)[2].N << std::endl;
+      std::cerr << __FILE__<<":"<<__LINE__<< " Unknown state: Current maxtimeclass=" << P::currentMaxTimeclass << ", tictoc = " << tictoc << std::endl;
+      abort();
    }
-   
+
    updateRemoteVelocityBlockLists(mpiGrid,popID,neighborhood, tc);
    // Need to re-do in case block lists of boundary cells change after
    // the block adjustment just after ACC.
@@ -254,35 +258,185 @@ void calculateSpatialGhostTranslation(
    mpiGrid.update_copies_of_remote_neighbors(neighborhood);
    transferTimer.stop();
 
-   phiprof::Timer preBarrierTimer {"MPI barrier-pre-trans"};
+   phiprof::Timer preBarrierTimer {"MPI barrier-post-comm-pre-trans"};
    MPI_Barrier(MPI_COMM_WORLD);
    preBarrierTimer.stop();
+}
+
+
+/** Communicate the distribution function from necessary remote neighbors
+ *  before ghost translation.
+    Now does all required calculations on ghost cells,
+    coalescing all interim MPI communication into one call..
+ */
+
+void communicatePreSpatialGhostTranslationCoalesced(
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   std::vector<std::pair<uint, int>>& population_indexes,
+   const uint tictoc,
+   int tc
+   ) {
+
+   // Ghost translation, need all cell information, not just for a single direction.
+   // No need for remote target cells; pass a dummy list.
+   const vector<CellID> dummy_cells;
+   uint neighborhood;
+
+   // Select the pencil set and the required neighborhood based on the tictoc value
+   std::array<setOfPencils,3>* pencilSet;
+   if (P::currentMaxTimeclass == 0) {
+      neighborhood = Neighborhoods::VLASOV_SOLVER_GHOST;
+   }
+   else if (tictoc == Timeclasses::TIC) {
+      neighborhood = Neighborhoods::VLASOV_SOLVER_TIMEGHOST_OUTER_HALO;
+   }
+   else if (tictoc == Timeclasses::TOC) {
+      neighborhood = Neighborhoods::VLASOV_SOLVER_TIMEGHOST_EXACT_HALO;
+   }
+   else {
+      std::cerr << __FILE__<<":"<<__LINE__<< " Unknown state: Current maxtimeclass=" << P::currentMaxTimeclass << ", tictoc = " << tictoc << std::endl;
+      abort();
+   }
+
+   // updateRemoteVelocityBlockListsCoalesced(mpiGrid,population_indexes,neighborhood);
+   P::coalesceGhostComms = false;
+   for (auto& index : population_indexes) {
+      updateRemoteVelocityBlockLists(mpiGrid, index.first, neighborhood, index.second);
+   }
+   P::coalesceGhostComms = true;
+   // std::cerr << __FILE__<<":"<<__LINE__<< " Done updateing remote velocity block lists" << std::endl;
+   // Need to re-do in case block lists of boundary cells change after
+   // the block adjustment just after ACC.
+
+   phiprof::Timer prepreBarrierTimer {"MPI barrier-pre-trans-comm"};
+   MPI_Barrier(MPI_COMM_WORLD);
+   prepreBarrierTimer.stop();
+   SpatialCell::setCommunicatedSpecies(population_indexes);
+
+   phiprof::Timer transferTimer {"transfer-stencil-data-all",{"MPI"}};
+   SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA,false);
+   mpiGrid.update_copies_of_remote_neighbors(neighborhood);
+   transferTimer.stop();
+
+   //phiprof::Timer preBarrierTimer {"MPI barrier-post-comm-pre-trans"};
+   //MPI_Barrier(MPI_COMM_WORLD);
+   //preBarrierTimer.stop();
+}
+
+
+
+/** Propagates the distribution function in spatial space.
+    Now does all required calculations on ghost cells,
+    coalescing all interim MPI communication into one call..
+
+    Based on SLICE-3D algorithm: Zerroukat, M., and T. Allen. "A
+    three-dimensional monotone and conservative semi-Lagrangian scheme
+    (SLICE-3D) for transport problems." Quarterly Journal of the Royal
+    Meteorological Society 138.667 (2012): 1640-1651.
+ */
+
+void calculateSpatialGhostTranslation(
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   const vector<CellID>& local_propagated_cells,
+   vector<uint>& nPencils,
+   const creal dt,
+   const uint popID,
+   Real &time,
+   const uint tictoc,
+   int tc
+   ) {
+
+   // Ghost translation, need all cell information, not just for a single direction.
+   // No need for remote target cells; pass a dummy list.
+   const vector<CellID> dummy_cells;
+   
+   //uint neighborhood;
+
+   // Select the pencil set and the required neighborhood based on the tictoc value
+   std::array<setOfPencils,3>* pencilSet;
+   if (P::currentMaxTimeclass == 0) {
+     // neighborhood = Neighborhoods::VLASOV_SOLVER_GHOST;
+      pencilSet = &DimensionPencils;
+      // std::cerr << __FILE__<<":"<<__LINE__<< " tictoc = " << tictoc<< ", pencilSet->Nx = " << (*pencilSet)[0].N << ", pencilSet->Ny = " << (*pencilSet)[1].N << ", pencilSet->Nz = " << (*pencilSet)[2].N << std::endl;
+   }
+   else if (tictoc == Timeclasses::TIC) {
+      //neighborhood = Neighborhoods::VLASOV_SOLVER_TIMEGHOST_OUTER_HALO;
+      pencilSet = &DimensionPencils;
+      // std::cerr << __FILE__<<":"<<__LINE__<< "tc " << tc << (tictoc==Timeclasses::TIC?" tic":" toc")<< ", pencilSet->Nx = " << (*pencilSet)[0].N << ", pencilSet->Ny = " << (*pencilSet)[1].N << ", pencilSet->Nz = " << (*pencilSet)[2].N << std::endl;
+   }
+   else if (tictoc == Timeclasses::TOC) {
+      //neighborhood = Neighborhoods::VLASOV_SOLVER_TIMEGHOST_EXACT_HALO;
+      pencilSet = &DimensionPencils_toc;
+      // std::cerr << __FILE__<<":"<<__LINE__<< "tc " << tc<< (tictoc==Timeclasses::TIC?" tic":" toc")<< ", pencilSet->Nx = " << (*pencilSet)[0].N << ", pencilSet->Ny = " << (*pencilSet)[1].N << ", pencilSet->Nz = " << (*pencilSet)[2].N << std::endl;
+   }
+   else {
+      std::cerr << __FILE__<<":"<<__LINE__<< " Unknown state: Current maxtimeclass=" << P::currentMaxTimeclass << ", tictoc = " << tictoc << std::endl;
+      abort();
+   }
+/* --- this is now done ahead of this function
+   updateRemoteVelocityBlockLists(mpiGrid,popID,neighborhood, tc);
+   // Need to re-do in case block lists of boundary cells change after
+   // the block adjustment just after ACC.
+
+   phiprof::Timer prepreBarrierTimer {"MPI barrier-pre-trans-comm"};
+   MPI_Barrier(MPI_COMM_WORLD);
+   prepreBarrierTimer.stop();
+
+   phiprof::Timer transferTimer {"transfer-stencil-data-all",{"MPI"}};
+   SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA,false);
+   mpiGrid.update_copies_of_remote_neighbors(neighborhood);
+   transferTimer.stop();
+*/
+//   phiprof::Timer preBarrierTimer {"MPI barrier-pre-trans"}; // TODO is this even needed?
+//   MPI_Barrier(MPI_COMM_WORLD);
+//   preBarrierTimer.stop();
+
+   // Create temporary copies of copy-timeghosts so they are not overwritten and invalidated by the mapping
+   // on the fringes. This placement tries to minimize the temporary memory footprint.
+
+
+   std::map<CellID, Population> copy_ghosts;
+   if (P::currentMaxTimeclass > 0){
+      phiprof::Timer copyghostOuter {"copy-ghost temporaries"};
+      phiprof::Timer copyghostInner {"gather copies"};
+      for (auto c : local_propagated_cells) {
+         if(mpiGrid[c]->requested_timeclass_copy_ghosts.count(tc)> 0){
+            copy_ghosts[c] = mpiGrid[c]->get_population(popID, tc);
+         }
+      }
+   }
 
    //#warning TODO: Implement also 2D / non-AMR ghost translation?
    // ------------- SLICE - map dist function in Z --------------- //
    phiprof::Timer mappingZTimer {"compute-mapping-z"};
-   trans_map_1d_amr(mpiGrid,local_propagated_cells, dummy_cells, nPencils, 2, dt, tc, popID); // map along z//
+   trans_map_1d_amr(mpiGrid, *pencilSet, local_propagated_cells, dummy_cells, nPencils, 2, dt, tc, popID); // map along z//
    mappingZTimer.stop();
 
    // ------------- SLICE - map dist function in X --------------- //
    phiprof::Timer mappingXTimer {"compute-mapping-x"};
-   trans_map_1d_amr(mpiGrid,local_propagated_cells, dummy_cells, nPencils, 0,dt, tc, popID); // map along x//
+   trans_map_1d_amr(mpiGrid, *pencilSet, local_propagated_cells, dummy_cells, nPencils, 0,dt, tc, popID); // map along x//
    mappingXTimer.stop();
 
    // ------------- SLICE - map dist function in Y --------------- //
    phiprof::Timer mappingYTimer {"compute-mapping-y"};
-   trans_map_1d_amr(mpiGrid,local_propagated_cells, dummy_cells, nPencils, 1,dt, tc, popID); // map along y//
+   trans_map_1d_amr(mpiGrid, *pencilSet, local_propagated_cells, dummy_cells, nPencils, 1,dt, tc, popID); // map along y//
    mappingYTimer.stop();
 
-   phiprof::Timer postBarrierTimer {"MPI barrier-post-trans"};
-   MPI_Barrier(MPI_COMM_WORLD);
-   postBarrierTimer.stop();
+//   phiprof::Timer postBarrierTimer {"MPI barrier-post-trans"};
+//   MPI_Barrier(MPI_COMM_WORLD);
+//   postBarrierTimer.stop();
 
    for(CellID c : local_propagated_cells)
    {
-      // if (c == 16) std::cout << c << " at TIME_R " << mpiGrid[c]->parameters[CellParams::TIME_R] << " + " << dt <<"\n";
-      if (mpiGrid[c]->get_timeclass_turn_r())
-         mpiGrid[c]->parameters[CellParams::TIME_R] += dt;
+         mpiGrid[c]->get_population(popID, tc).T_R += dt;
+   }
+
+   if(P::currentMaxTimeclass > 0 ){
+      phiprof::Timer copyghostOuter {"copy-ghost temporaries"};
+      phiprof::Timer copyghostInner {"restore copies"};
+      for (auto c : copy_ghosts) {
+         mpiGrid[c.first]->get_population(popID, tc) = c.second;
+      }
    }
 
    return;
@@ -452,6 +606,69 @@ void calculateSpatialTranslation(
 
    int myRank;
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+   P::coalesceGhostComms = true;
+   if (P::vlasovSolverGhostTranslate){
+      phiprof::Timer pretrans {"Pre-ghostTranslate comms"};
+      std::vector<std::pair<uint, int>> population_indexes;
+      for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+      // if ghost translating, do the comms ahead of translations, which are now local ops
+         for(int tc = 0; tc <= P::currentMaxTimeclass; tc++){
+            SpatialCell::setCommunicatedSpecies(popID,tc);
+            int mod = 1 << (P::currentMaxTimeclass - tc);
+            int mod2 = 2 << (P::currentMaxTimeclass - tc);
+            if((P::fractionalTimestep % mod) == 0){
+               // std::cout << "rank " << myRank << ": " << tc_propagated_cells[tc].size() << " cells: calculateSpatialTranslation tc " << tc << " by dt " << P::timeclassDt[tc] <<"\n";
+               // Local translation without interim communication
+               uint tictoc = Timeclasses::TIC;
+               if (tc == 0) { // we are the coarsest timeclass, so we always have fine timeclass data to fetch and sync
+                  tictoc = Timeclasses::TOC;
+               }
+               else { // Other timeclasses need to get time ghost halo layers from the coarser timeclasses
+                     // to have the intermediate translation step (TIC)
+                  if ((P::fractionalTimestep % mod2) == 0){
+                     // Initial timeghost halo layer needs to have a larger source region
+                     tictoc = Timeclasses::TIC;
+                  }
+                  else{
+                     // Subsequent timeghost halo layers can do with a smaller layer, using the translation
+                     // targets from the TIC
+                     tictoc = Timeclasses::TOC;
+                  }
+               }
+               string tictocstr = (tictoc == Timeclasses::TIC ? "tic" : "toc");
+               //string profName = "pre-translate comm "+getObjectWrapper().particleSpecies[popID].name+" tc "+std::to_string(tc) + tictocstr;
+               //phiprof::Timer timer {profName};
+               population_indexes.push_back(std::make_pair(popID, tc));
+/*               if (!P::coalesceGhostComms) {
+                  communicatePreSpatialGhostTranslation(
+                     mpiGrid,
+                     tc_propagated_cells[tc], // Used for LB
+                     nPencils,
+                     P::timeclassDt[tc],
+                     popID,
+                     time,
+                     tictoc,
+                     tc
+                     );
+               }*/
+            }
+         }
+      }
+      pretrans.stop();
+      phiprof::Timer ccomms {"Coalesced comms"};
+      if (P::coalesceGhostComms) {
+         communicatePreSpatialGhostTranslationCoalesced(
+            mpiGrid,
+            population_indexes,
+            Timeclasses::TIC,
+            0
+            );
+      }
+      P::coalesceGhostComms = false;
+      ccomms.stop();
+   }
+
+
    // Translate all particle species
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
       string profName = "translate "+getObjectWrapper().particleSpecies[popID].name;
@@ -460,10 +677,33 @@ void calculateSpatialTranslation(
       for(int tc = 0; tc <= P::currentMaxTimeclass; tc++){
          SpatialCell::setCommunicatedSpecies(popID,tc);
          int mod = 1 << (P::currentMaxTimeclass - tc);
+         int mod2 = 2 << (P::currentMaxTimeclass - tc);
          if((P::fractionalTimestep % mod) == 0){
             // std::cout << "rank " << myRank << ": " << tc_propagated_cells[tc].size() << " cells: calculateSpatialTranslation tc " << tc << " by dt " << P::timeclassDt[tc] <<"\n";
             if (P::vlasovSolverGhostTranslate) {
                // Local translation without interim communication
+               uint tictoc = Timeclasses::TIC;
+               if(P::timeclassTictoc){
+                  if (tc == 0) { // we are the coarsest timeclass, so we always have fine timeclass data to fetch and sync
+                     tictoc = Timeclasses::TOC;
+                  }
+                  else { // Other timeclasses need to get time ghost halo layers from the coarser timeclasses
+                        // to have the intermediate translation step (TIC)
+                     if ((P::fractionalTimestep % mod2) == 0){
+                        // Initial timeghost halo layer needs to have a larger source region
+                        tictoc = Timeclasses::TIC;
+                     }
+                     else{
+                        // Subsequent timeghost halo layers can do with a smaller layer, using the translation
+                        // targets from the TIC
+                        tictoc = Timeclasses::TOC;
+                     }
+                  }
+               }
+               string tictocstr = (tictoc == Timeclasses::TIC ? " tic" : " toc");
+               string profNamet = profName + tictocstr;
+               phiprof::Timer timer {profNamet}; 
+               // std::cerr << "rank " << myRank << ", time " << P::t << " " << tc_propagated_cells[tc].size() << " cells: calculateSpatialTranslation tc " << tc << tictocstr << " by dt " << P::timeclassDt[tc] <<"\n";
                calculateSpatialGhostTranslation(
                   mpiGrid,
                   tc_propagated_cells[tc], // Used for LB
@@ -471,6 +711,7 @@ void calculateSpatialTranslation(
                   P::timeclassDt[tc],
                   popID,
                   time,
+                  tictoc,
                   tc
                   );
             } else {
@@ -501,7 +742,9 @@ void calculateSpatialTranslation(
          SpatialCell* SC = mpiGrid[local_propagated_cells[c]];
          Real counter = 0;
          for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-            counter += SC->get_number_of_velocity_blocks(popID);
+            for(int timeclass = 0; timeclass <= P::currentMaxTimeclass; ++timeclass){
+              counter += pow(P::timeclassLBmantissa,timeclass)*SC->get_number_of_velocity_blocks(popID, timeclass);
+            }
          }
 
          // int accelerationsteps = 0; // Account for time spent in acceleration as well
@@ -567,6 +810,11 @@ void calculateSpatialTranslation(
       if ((P::fractionalTimestep % mod) == 0) {
          calculateMoments_R(mpiGrid,tc_propagated_cells.at(tc),true);
       }
+   }
+   if (P::vlasovSolverGhostTranslate){
+      phiprof::Timer postBarrierTimer {"MPI barrier-post-trans"};
+      MPI_Barrier(MPI_COMM_WORLD);
+      postBarrierTimer.stop();
    }
 }
 
@@ -752,6 +1000,9 @@ void setAccelerationTimeGhosts(vector<AccelerationPayload>& outvec, SpatialCell*
 
    if(spatial_cell->get_timeclass_turn_v()){
       outvec.push_back(AccelerationPayload(spatial_cell->get_tc(),spatial_cell,dt));
+   }
+   if (dt == 0.0){
+      return;
    }
 
    // std::cout << "outvec size: " << outvec.size() << "\n";
