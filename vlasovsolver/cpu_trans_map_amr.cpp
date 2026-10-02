@@ -212,6 +212,7 @@ bool copy_trans_block_data_amr(
  * @param [in] popId Particle population ID
  */
 bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                      std::array<setOfPencils,3>& DimensionPencils,
                       const vector<CellID>& localPropagatedCells,
                       const vector<CellID>& remoteTargetCells,
                       std::vector<uint>& nPencils,

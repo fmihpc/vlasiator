@@ -531,6 +531,7 @@ int simulate(int argn,char* args[]) {
 
    // Initialize simplified Fieldsolver grids.
    // Needs to be done here already ad the background field will be set right away, before going to initializeGrid even
+   phiprof::Timer initGridsTimer {"Init grids"};
    phiprof::Timer initFsTimer {"Init fieldsolver grids"};
 
    const std::array<fsgrid::FsSize_t, 3> fsGridDimensions = {
@@ -576,7 +577,7 @@ int simulate(int argn,char* args[]) {
    fsgrid::FsData<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmomentsdt2(fsgridNumElements);
    fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb(fsgridNumElements);
    fsgrid::FsData<std::array<Real, fsgrids::volfields::N_VOL>> vol(fsgridNumElements);
-
+   initFsTimer.stop();
 
    // Initialize grid.  After initializeGrid local cells have dist
    // functions, and B fields set. Cells have also been classified for
@@ -584,7 +585,6 @@ int simulate(int argn,char* args[]) {
    // created. All spatial date computed this far is up to date for
    // FULL_NEIGHBORHOOD. Block lists up to date for
    // VLASOV_SOLVER_NEIGHBORHOOD (but dist function has not been communicated)
-   phiprof::Timer initGridsTimer {"Init grids"};
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> mpiGrid;
 
    initializeGrids(
@@ -619,6 +619,8 @@ int simulate(int argn,char* args[]) {
    // because we need a copy of the value from initialization in both perBGrid and perBDt2Grid and it isn't
    // touched as we are in boundary cells for components that aren't solved. We do a straight full copy instead
    // of looping and detecting boundary types here.
+   initFsTimer.start();
+
    fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>> perbdt2(perb.view());
    // fieldSolverData not const as we need to update the spans for moments and momentsdt2 when filtering
    FieldSolverData fieldSolverData(
@@ -989,8 +991,10 @@ int simulate(int argn,char* args[]) {
    addTimedBarrier("barrier-end-initialization");
 
    phiprof::Timer simulationTimer {"Simulation"};
-   double startTime=  MPI_Wtime();
-   double beforeTime = MPI_Wtime();
+   double startTime = MPI_Wtime();
+   double beforeTime = startTime;
+   double beforeTime_stepwise = startTime;
+   double beforeTime_fstepwise = startTime;
    double beforeSimulationTime=P::t_min;
    double beforeStep=P::tstep_min;
    Real compress_time=0.0;
@@ -1013,10 +1017,25 @@ int simulate(int argn,char* args[]) {
       //write out phiprof profiles and logs with a lower interval than normal
       //diagnostic (every 10 diagnostic intervals).
       phiprof::Timer loggingTimer {"logfile-io"};
-      logFile << "---------- tstep = " << P::tstep << " (" <<P::fractionalTimestep+1<<"/"<<(2 << (P::currentMaxTimeclass-1)) <<") t = " << P::t <<" dt = " << P::dt << " FS cycles = " << P::fieldSolverSubcycles << " ----------" << endl;
-      if (/*P::diagnosticInterval != 0 &&
-          P::tstep % (P::diagnosticInterval*10) == 0 &&*/
-          P::tstep-P::tstep_min >0) {
+      stringstream fstepcounter;
+      if(P::currentMaxTimeclass > 0){
+         fstepcounter << " (" <<P::fractionalTimestep+1<<"/"<<(2 << (P::currentMaxTimeclass-1))<<")";
+      }
+      logFile << "---------- tstep = " << P::tstep << fstepcounter.str() <<
+          " t = " << P::t <<" dt = " << P::dt << " FS cycles = " << P::fieldSolverSubcycles << " ----------" << endl;
+      if (P::fractionalTimestep == 0){
+         double currentTime=MPI_Wtime();
+         logFile << "           walltime elapsed since prev. step = " << double(currentTime - beforeTime_stepwise) << " s" << endl;
+         beforeTime_stepwise = MPI_Wtime();
+      } else if (P::currentMaxTimeclass > 0) {
+         double currentTime=MPI_Wtime();
+         logFile << "           walltime elapsed since prev. step = " << double(currentTime - beforeTime_stepwise) << " s, " <<
+            "since prev. fract. step = " << double(currentTime - beforeTime_fstepwise) << " s" << endl;
+         beforeTime_fstepwise = MPI_Wtime();
+      }
+      if (P::diagnosticInterval != 0 &&
+          P::tstep % (P::diagnosticInterval*10) == 0 &&
+          P::tstep-P::tstep_min >0 && P::fractionalTimestep == 0) {
 
          phiprof::print(MPI_COMM_WORLD,"phiprof");
 

@@ -23,11 +23,13 @@
 #define CPU_TRANS_MAP_AMR_H
 
 #include <vector>
+#include "cpu_trans_pencils.hpp"
 #include "vec.h"
 #include "../common.h"
 #include "../spatial_cells/spatial_cell_wrapper.hpp"
 
 bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                  std::array<setOfPencils,3>& pencilSet,
                   const std::vector<CellID>& localPropagatedCells,
                   const std::vector<CellID>& remoteTargetCells,
                   std::vector<uint>& nPencils,

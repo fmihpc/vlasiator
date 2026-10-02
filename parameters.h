@@ -78,7 +78,7 @@ struct Parameters {
    static int timeclassExactHaloExtent;
    static int timeclassOuterHaloExtent;
    static int timeclassFullHaloExtent; // The full halo extent for timeclasses, calculated from the Exact and Outer halo extents.
-
+   static bool timeclassTictoc; //use tic-toc translation for timeclasses
    static bool timeclassesInitialized;
    static bool tcDebugBox;          // Force timeclass 1 with the box
    static int tcOverrideTimeclass;  // Set fixed timeclass everywhere [debugging, default -1 i.e. off]
@@ -99,6 +99,7 @@ struct Parameters {
                                         timestep if useCFLlimit is true. */
    static bool vlasovSolverGhostTranslate;   /*!< Flag for activating all-local ghost translation. */
    static uint vlasovSolverGhostTranslateExtent;   /*!< Define extent of ghost-translated region in all-local ghost translation. */
+   static bool coalesceGhostComms; /*!< Coalesce ghost communications over populations, before translating */
    static Real fieldSolverMinCFL;    /*!< The minimum CFL limit for propagation of fields. Used to set timestep if
                                         useCFLlimit is true.*/
    static Real fieldSolverMaxCFL;    /*!< The maximum CFL limit for propagation of fields. Used to set timestep if

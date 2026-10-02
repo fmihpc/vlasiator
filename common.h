@@ -108,6 +108,13 @@ namespace Neighborhoods {
    };
 }
 
+namespace Timeclasses {
+   enum {
+      TIC, // Flag indicating the start of a timeclass propagation - larger halos
+      TOC, // Flag indicating the second phase of a timeclass propagation - smaller halos
+   };
+}
+
 
 /*! A namespace for storing indices into an array which contains
  * the physical parameters of each velocity block.*/
