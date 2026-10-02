@@ -993,8 +993,10 @@ int simulate(int argn,char* args[]) {
    addTimedBarrier("barrier-end-initialization");
 
    phiprof::Timer simulationTimer {"Simulation"};
-   double startTime=  MPI_Wtime();
-   double beforeTime = MPI_Wtime();
+   double startTime = MPI_Wtime();
+   double beforeTime = startTime;
+   double beforeTime_stepwise = startTime;
+   double beforeTime_fstepwise = startTime;
    double beforeSimulationTime=P::t_min;
    double beforeStep=P::tstep_min;
    Real compress_time=0.0;
@@ -1017,10 +1019,25 @@ int simulate(int argn,char* args[]) {
       //write out phiprof profiles and logs with a lower interval than normal
       //diagnostic (every 10 diagnostic intervals).
       phiprof::Timer loggingTimer {"logfile-io"};
-      logFile << "---------- tstep = " << P::tstep << " (" <<P::fractionalTimestep+1<<"/"<<(2 << (P::currentMaxTimeclass-1)) <<") t = " << P::t <<" dt = " << P::dt << " FS cycles = " << P::fieldSolverSubcycles << " ----------" << endl;
-      if (/*P::diagnosticInterval != 0 &&
-          P::tstep % (P::diagnosticInterval*10) == 0 &&*/
-          P::tstep-P::tstep_min >0) {
+      stringstream fstepcounter;
+      if(P::currentMaxTimeclass > 0){
+         fstepcounter << " (" <<P::fractionalTimestep+1<<"/"<<(2 << (P::currentMaxTimeclass-1))<<")";
+      }
+      logFile << "---------- tstep = " << P::tstep << fstepcounter.str() <<
+          " t = " << P::t <<" dt = " << P::dt << " FS cycles = " << P::fieldSolverSubcycles << " ----------" << endl;
+      if (P::fractionalTimestep == 0){
+         double currentTime=MPI_Wtime();
+         logFile << "           walltime elapsed since prev. step = " << double(currentTime - beforeTime_stepwise) << " s" << endl;
+         beforeTime_stepwise = MPI_Wtime();
+      } else if (P::currentMaxTimeclass > 0) {
+         double currentTime=MPI_Wtime();
+         logFile << "           walltime elapsed since prev. step = " << double(currentTime - beforeTime_stepwise) << " s, " <<
+            "since prev. fract. step = " << double(currentTime - beforeTime_fstepwise) << " s" << endl;
+         beforeTime_fstepwise = MPI_Wtime();
+      }
+      if (P::diagnosticInterval != 0 &&
+          P::tstep % (P::diagnosticInterval*10) == 0 &&
+          P::tstep-P::tstep_min >0 && P::fractionalTimestep == 0) {
 
          phiprof::print(MPI_COMM_WORLD,"phiprof");
 
