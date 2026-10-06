@@ -58,8 +58,6 @@ AlfvenCascade::~AlfvenCascade() {}
       // Calculate Alfvén speed
       VA = B / sqrt(mu0 * rho0);
 
-      std::cout << nWaves << ", " << this->wavesParams.size() << "\n";
-
       if (verbose) {
          int myRank;
          MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
