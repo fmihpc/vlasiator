@@ -1,0 +1,17 @@
+<map id="JXBY_101_111" name="JXBY_101_111">
+<area shape="rect" id="Node000001" title="Low&#45;level Hall component computation." alt="" coords="1221,5,1335,31"/>
+<area shape="rect" id="Node000002" href="$d0/dd7/ldz__hall_8cpp.html#a05ffb380e8ecfc6d0f254e297611b664" title=" " alt="" coords="1129,5,1173,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="1208,21,1173,21,1173,15,1208,15"/>
+<area shape="rect" id="Node000003" href="$d0/dd7/ldz__hall_8cpp.html#ae9ba125ff0e97e29713d33eece8fcda9" title="Low&#45;level function computing the Hall term numerator x components." alt="" coords="828,5,1081,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="1116,21,1081,21,1081,15,1116,15"/>
+<area shape="rect" id="Node000004" href="$d0/dd7/ldz__hall_8cpp.html#a0ef9d3ceaa52afc57eb49aef8a3033f0" title="Calculate the numerator of the Hall term on all given cells." alt="" coords="641,5,780,31"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="814,21,780,21,780,15,814,15"/>
+<area shape="rect" id="Node000005" href="$d0/dd7/ldz__hall_8cpp.html#aca3144caf971779489d7f3ad1469595a" title="High&#45;level function computing the Hall term." alt="" coords="409,5,593,31"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="628,21,594,21,594,15,628,15"/>
+<area shape="rect" id="Node000006" href="$de/dff/ldz__main_8cpp.html#ac91e0dc80c9375ba517e2f263308c64f" title="Top&#45;level field propagation function." alt="" coords="235,5,361,31"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="396,21,362,21,362,15,396,15"/>
+<area shape="rect" id="Node000007" href="$d4/d5b/vlasiator_8cpp.html#acfd343080edd07ae79384688a7e48693" title=" " alt="" coords="108,5,187,31"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="221,21,187,21,187,15,221,15"/>
+<area shape="rect" id="Node000008" href="$d4/d5b/vlasiator_8cpp.html#a54790573f350e250ccca3cbb94733391" title=" " alt="" coords="5,5,60,31"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="94,21,60,21,60,15,94,15"/>
+</map>

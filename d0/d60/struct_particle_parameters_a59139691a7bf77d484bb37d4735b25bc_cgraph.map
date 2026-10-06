@@ -1,0 +1,19 @@
+<map id="ParticleParameters::addParameters" name="ParticleParameters::addParameters">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,73,149,113"/>
+<area shape="rect" id="Node000002" href="$de/d5d/class_readparameters.html#aabf583d00f6ac5c01290021201a9a3a2" title=" " alt="" coords="197,80,360,105"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="150,90,184,90,184,95,150,95"/>
+<area shape="rect" id="Node000003" href="$de/d5d/class_readparameters.html#a9f9455d203d0185b3fb13c978592bc72" title=" " alt="" coords="420,5,639,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="307,77,353,58,407,39,439,31,441,36,409,45,355,63,309,82"/>
+<area shape="rect" id="Node000005" href="$de/d5d/class_readparameters.html#af3ccff549a4084a41edc7373323ddbb6" title=" " alt="" coords="408,55,651,80"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="360,82,394,78,395,84,360,87"/>
+<area shape="rect" id="Node000006" href="$de/d5d/class_readparameters.html#a9ff60199b788b486a7589fee28add8b3" title=" " alt="" coords="422,104,637,129"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="360,98,408,102,408,108,360,103"/>
+<area shape="rect" id="Node000007" href="$de/d5d/class_readparameters.html#aabf36c234803838c60e72b78e22e9867" title=" " alt="" coords="435,154,623,194"/>
+<area shape="poly" id="edge6_Node000002_Node000007" title=" " alt="" coords="311,103,409,139,435,148,434,153,407,145,309,108"/>
+<area shape="rect" id="Node000004" href="$de/d5d/class_readparameters.html#a02ee1b8af17aba0073d8c682e365ca73" title=" " alt="" coords="699,5,921,31"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="639,15,685,15,685,21,639,21"/>
+<area shape="rect" id="Node000008" href="$de/d5d/class_readparameters.html#a82e9a80e512ea25b45212587ceca5759" title=" " alt="" coords="716,132,904,157"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="623,162,702,153,703,159,624,167"/>
+<area shape="rect" id="Node000009" href="$de/d5d/class_readparameters.html#a4de6c25680490730332d7557157fcd15" title=" " alt="" coords="716,182,904,222"/>
+<area shape="poly" id="edge8_Node000007_Node000009" title=" " alt="" coords="624,181,703,189,702,194,623,186"/>
+</map>

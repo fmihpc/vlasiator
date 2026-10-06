@@ -1,0 +1,7 @@
+<map id="compute_h4_left_face_value_nonuniform" name="compute_h4_left_face_value_nonuniform">
+<area shape="rect" id="Node000001" title=" " alt="" coords="285,37,451,77"/>
+<area shape="rect" id="Node000002" href="$d3/d94/gpu__face__estimates_8hpp.html#a56d8d7fedc8462d08ea6fb927453712b" title=" " alt="" coords="38,5,205,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="271,48,205,39,205,33,272,42"/>
+<area shape="rect" id="Node000003" href="$d3/d94/gpu__face__estimates_8hpp.html#a736810e306bbedbfd81806cb6cd6218b" title=" " alt="" coords="5,69,237,109"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="272,72,238,77,237,72,271,67"/>
+</map>

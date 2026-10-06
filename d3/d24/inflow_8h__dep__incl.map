@@ -1,0 +1,12 @@
+<map id="sysboundary/inflow.h" name="sysboundary/inflow.h">
+<area shape="rect" id="Node000001" title=" " alt="" coords="139,5,297,31"/>
+<area shape="rect" id="Node000002" href="$d3/d2c/inflow_8cpp.html" title="Implementation of the class SysBoundaryCondition::Inflow. This serves as the base class for inherited..." alt="" coords="5,79,180,104"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="187,40,114,81,112,76,185,35"/>
+<area shape="rect" id="Node000003" href="$d8/db4/setmaxwellian_8cpp.html" title="Implementation of the class SysBoundaryCondition::Maxwellian to handle cells classified as sysboundar..." alt="" coords="102,152,334,177"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="221,45,221,152,215,152,215,45"/>
+<area shape="rect" id="Node000004" href="$d5/de0/setmaxwellian_8h.html" title=" " alt="" coords="256,79,473,104"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="255,34,342,76,340,81,252,39"/>
+<area shape="poly" id="edge4_Node000004_Node000003" title=" " alt="" coords="330,112,243,154,241,149,328,107"/>
+<area shape="rect" id="Node000005" href="$d9/dd6/sysboundary_8cpp.html" title="Implementation of the class SysBoundary." alt="" coords="359,152,576,177"/>
+<area shape="poly" id="edge5_Node000004_Node000005" title=" " alt="" coords="394,110,452,150,449,154,391,114"/>
+</map>

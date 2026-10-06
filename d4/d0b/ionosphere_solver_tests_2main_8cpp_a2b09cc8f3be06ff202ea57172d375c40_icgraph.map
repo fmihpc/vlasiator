@@ -1,0 +1,11 @@
+<map id="getCommonEdgeMidpoint" name="getCommonEdgeMidpoint">
+<area shape="rect" id="Node000001" title=" " alt="" coords="323,56,513,81"/>
+<area shape="rect" id="Node000002" href="$d4/d0b/ionosphere_solver_tests_2main_8cpp.html#a6bf2604683f6cdaebffb89832d531016" title=" " alt="" coords="108,5,275,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="346,56,248,33,249,28,348,50"/>
+<area shape="rect" id="Node000003" href="$d4/d0b/ionosphere_solver_tests_2main_8cpp.html#a3c04138a5bfe5d72780bb7e82a18e627" title=" " alt="" coords="5,56,60,81"/>
+<area shape="poly" id="edge5_Node000001_Node000003" title=" " alt="" coords="309,71,60,71,60,66,309,66"/>
+<area shape="rect" id="Node000004" href="$d4/d0b/ionosphere_solver_tests_2main_8cpp.html#ae47d4fea7f2d68ac35c193a752a8cacd" title=" " alt="" coords="114,107,269,132"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="348,87,249,109,248,104,346,82"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="139,37,61,63,59,58,137,32"/>
+<area shape="poly" id="edge4_Node000004_Node000003" title=" " alt="" coords="137,105,59,80,61,75,139,100"/>
+</map>

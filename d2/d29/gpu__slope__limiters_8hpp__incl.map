@@ -1,0 +1,9 @@
+<map id="vlasovsolver/gpu_slope_limiters.hpp" name="vlasovsolver/gpu_slope_limiters.hpp">
+<area shape="rect" id="Node000001" title=" " alt="" coords="20,5,195,45"/>
+<area shape="rect" id="Node000002" href="$dc/d9d/arch__device__api_8h.html" title=" " alt="" coords="35,93,179,133"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="110,46,110,79,105,79,105,46"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="5,181,76,207"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="93,135,61,172,57,169,89,132"/>
+<area shape="rect" id="Node000004" href="$d9/d13/arch__device__host_8h.html" title=" " alt="" coords="101,181,247,207"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="125,132,157,169,153,172,121,135"/>
+</map>

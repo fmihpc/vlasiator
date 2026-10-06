@@ -1,0 +1,20 @@
+<map id="sve::instructions::svsel" name="sve::instructions::svsel">
+<area shape="rect" id="Node000001" title=" " alt="" coords="348,97,485,137"/>
+<area shape="poly" id="edge6_Node000001_Node000001" title=" " alt="" coords="452,85,439,78,417,75,397,77,385,82,380,88,383,96,378,97,375,87,381,78,395,72,417,70,441,73,454,80"/>
+<area shape="rect" id="Node000002" href="$d5/d9b/class_vec_s_v_e_mask.html#a755f2c46bda1446b86720d9d6cbc5173" title=" " alt="" coords="121,5,294,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="377,91,340,66,299,44,267,33,269,28,301,40,343,62,380,86"/>
+<area shape="rect" id="Node000003" href="$dc/d6a/class_vec_s_v_e.html#a6971f2dcc3ae19a6d8396e33ce604595" title=" " alt="" coords="149,55,266,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="334,100,261,83,263,77,335,95"/>
+<area shape="rect" id="Node000007" href="$da/d9f/namespacesve_1_1functions.html#a5079c34e7e84afa6a0d3e5ddca92d437" title=" " alt="" coords="115,104,300,129"/>
+<area shape="poly" id="edge7_Node000001_Node000007" title=" " alt="" coords="334,119,300,119,300,114,334,114"/>
+<area shape="rect" id="Node000008" href="$da/d9f/namespacesve_1_1functions.html#a5b29cac5ed65771c681f04bbcac24993" title=" " alt="" coords="115,153,300,179"/>
+<area shape="poly" id="edge8_Node000001_Node000008" title=" " alt="" coords="335,139,263,156,261,151,334,133"/>
+<area shape="rect" id="Node000009" href="$da/d9f/namespacesve_1_1functions.html#acc63f4408031def7dc3e150181012a39" title=" " alt="" coords="115,203,300,228"/>
+<area shape="poly" id="edge9_Node000001_Node000009" title=" " alt="" coords="380,147,343,172,301,194,269,205,267,200,299,189,340,167,377,143"/>
+<area shape="rect" id="Node000004" href="$d1/d32/vectorclass__sve_8hpp.html#a94fc48d59b4afb29b6fc161a42ecf490" title=" " alt="" coords="5,5,67,31"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="145,54,114,45,66,30,68,25,115,39,147,48"/>
+<area shape="rect" id="Node000005" href="$d1/d32/vectorclass__sve_8hpp.html#a80fb69582948d9572c784f69a87ac4e7" title=" " alt="" coords="5,55,67,80"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="135,70,67,70,67,65,135,65"/>
+<area shape="rect" id="Node000006" href="$d1/d32/vectorclass__sve_8hpp.html#a50181dd960a5741e26448e778a7f8d98" title=" " alt="" coords="5,104,67,129"/>
+<area shape="poly" id="edge5_Node000003_Node000006" title=" " alt="" coords="143,86,115,94,68,109,66,104,114,89,141,81"/>
+</map>

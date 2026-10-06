@@ -1,0 +1,8 @@
+<map id="test" name="test">
+<area shape="rect" id="Node000001" title=" " alt="" coords="323,29,369,55"/>
+<area shape="rect" id="Node000002" href="$d0/d5d/structtest__instatiator.html#a56be36d689d0cf3b36a42d887d6312a0" title=" " alt="" coords="108,29,275,55"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="309,45,275,45,275,39,309,39"/>
+<area shape="poly" id="edge2_Node000002_Node000002" title=" " alt="" coords="218,19,210,11,191,8,175,10,167,15,165,20,170,28,165,31,160,21,163,11,174,5,191,3,213,6,222,15"/>
+<area shape="rect" id="Node000003" href="$d9/d50/unit__testing_8cpp.html#ae66f6b31b5ad750f1fe042a706a4e3d4" title=" " alt="" coords="5,29,60,55"/>
+<area shape="poly" id="edge3_Node000002_Node000003" title=" " alt="" coords="94,45,60,45,60,39,94,39"/>
+</map>

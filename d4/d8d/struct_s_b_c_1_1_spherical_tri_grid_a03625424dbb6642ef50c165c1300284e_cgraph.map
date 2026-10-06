@@ -1,0 +1,9 @@
+<map id="SBC::SphericalTriGrid::connectingSegmentLengths" name="SBC::SphericalTriGrid::connectingSegmentLengths">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,37,216,77"/>
+<area shape="rect" id="Node000002" href="$d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#ad52392c2cdfc3d4b26365f315ea7e3d3" title=" " alt="" coords="264,5,423,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="216,40,250,35,251,41,217,45"/>
+<area shape="rect" id="Node000003" href="$d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#a9f31f890273d8e6508330a6571db2d9d" title=" " alt="" coords="264,69,423,109"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="217,69,251,74,250,79,216,74"/>
+<area shape="rect" id="Node000004" href="$d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#ab3e31cffabd0b8012c6051328dfcf362" title=" " alt="" coords="471,69,641,109"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="423,87,457,87,457,92,423,92"/>
+</map>

@@ -1,0 +1,13 @@
+<map id="SBC::SysBoundaryCondition::generateTemplateCell" name="SBC::SysBoundaryCondition::generateTemplateCell">
+<area shape="rect" id="Node000001" title=" " alt="" coords="529,101,732,141"/>
+<area shape="rect" id="Node000002" href="$de/d6a/class_s_b_c_1_1_inflow.html#a50f1c94a64073a2333fa0389dfcf8ba1" title=" " alt="" coords="261,5,481,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="573,98,480,60,445,48,446,43,482,55,575,93"/>
+<area shape="rect" id="Node000004" href="$dd/d8a/class_s_b_c_1_1_copysphere.html#ab4651d3096619878a02f39f1dce1b97f" title=" " alt="" coords="279,69,464,109"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="515,110,464,103,464,98,516,104"/>
+<area shape="rect" id="Node000005" href="$da/d6b/class_s_b_c_1_1_ionosphere.html#a0693f4fad25c7739a9189f9c25162e1f" title=" " alt="" coords="281,133,461,173"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="516,138,462,145,461,140,515,133"/>
+<area shape="rect" id="Node000006" href="$de/d6a/class_s_b_c_1_1_inflow.html#a7ce6d442fd348c4d3acf7c91abb60095" title=" " alt="" coords="281,198,462,223"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="577,150,482,188,437,201,435,195,480,183,575,145"/>
+<area shape="rect" id="Node000003" href="$de/d6a/class_s_b_c_1_1_inflow.html#a7f9666d4dfcb16c9a5bff75ca8c8c5a7" title=" " alt="" coords="5,13,213,38"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="248,28,213,28,213,23,248,23"/>
+</map>

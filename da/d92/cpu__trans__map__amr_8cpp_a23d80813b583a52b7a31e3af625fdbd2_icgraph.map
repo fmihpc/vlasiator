@@ -1,0 +1,16 @@
+<map id="propagatePencil" name="propagatePencil">
+<area shape="rect" id="Node000001" title=" " alt="" coords="831,31,957,56"/>
+<area shape="rect" id="Node000002" href="$da/d92/cpu__trans__map__amr_8cpp.html#a6f5bc1b63513193062e69487bb1fef80" title=" " alt="" coords="636,31,783,56"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="817,46,783,46,783,41,817,41"/>
+<area shape="rect" id="Node000003" href="$d5/d5d/vlasovmover_8cpp.html#abd17456fd1479e26bc468ec9f84f89ab" title=" " alt="" coords="353,5,588,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="622,37,588,33,588,28,623,32"/>
+<area shape="rect" id="Node000005" href="$d5/d5d/vlasovmover_8cpp.html#afbb2eb92643919d19733d48bada33359" title=" " alt="" coords="372,55,569,80"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="623,55,570,60,569,55,622,49"/>
+<area shape="rect" id="Node000004" href="$d5/d5d/vlasovmover_8cpp.html#aacc4f1870b12e805320d6b001af33133" title=" " alt="" coords="108,5,305,31"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="340,21,305,21,305,15,340,15"/>
+<area shape="poly" id="edge5_Node000005_Node000004" title=" " alt="" coords="388,55,275,33,276,28,389,49"/>
+<area shape="rect" id="Node000006" href="$d4/d5b/vlasiator_8cpp.html#acfd343080edd07ae79384688a7e48693" title=" " alt="" coords="167,55,246,80"/>
+<area shape="poly" id="edge6_Node000005_Node000006" title=" " alt="" coords="358,70,247,70,247,65,358,65"/>
+<area shape="rect" id="Node000007" href="$d4/d5b/vlasiator_8cpp.html#a54790573f350e250ccca3cbb94733391" title=" " alt="" coords="5,55,60,80"/>
+<area shape="poly" id="edge7_Node000006_Node000007" title=" " alt="" coords="154,70,60,70,60,65,154,65"/>
+</map>

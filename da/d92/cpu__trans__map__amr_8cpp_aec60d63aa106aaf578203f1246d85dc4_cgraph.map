@@ -1,0 +1,26 @@
+<map id="update_remote_mapping_contribution_amr" name="update_remote_mapping_contribution_amr">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,218,191,258"/>
+<area shape="rect" id="Node000002" href="$d1/d63/memoryallocation_8h.html#afdafaac40e82e10775a2838747bbe5c4" title=" " alt="" coords="305,5,408,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="105,216,124,178,152,130,190,81,212,59,237,40,263,27,291,20,292,25,265,32,240,44,216,63,194,84,156,133,128,180,110,219"/>
+<area shape="rect" id="Node000003" href="$d1/d63/memoryallocation_8h.html#a89070c85bab5f1f43aef257577bc9d03" title=" " alt="" coords="296,55,417,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="110,216,161,152,196,118,237,89,282,73,284,78,240,94,200,122,164,156,115,219"/>
+<area shape="rect" id="Node000004" href="$d0/d80/cpu__trans__pencils_8cpp.html#af7cedfcb70e3716f1b20f55057a33c15" title=" " alt="" coords="290,104,423,129"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="121,216,172,177,238,140,276,127,277,132,240,144,175,181,124,220"/>
+<area shape="rect" id="Node000005" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#ac04b3c2b12e5179f8b8800381575f379" title=" " alt="" coords="269,154,444,194"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="179,215,262,195,263,200,180,221"/>
+<area shape="rect" id="Node000007" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a0a70ad5e1571d0fec973183d1b236682" title=" " alt="" coords="239,218,475,258"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="191,235,225,235,225,241,191,241"/>
+<area shape="rect" id="Node000008" href="$da/d92/cpu__trans__map__amr_8cpp.html#a8319fc87b3e788f279fb8763683f5412" title=" " alt="" coords="289,283,425,308"/>
+<area shape="poly" id="edge8_Node000001_Node000008" title=" " alt="" coords="186,255,239,267,283,277,282,282,238,273,185,261"/>
+<area shape="rect" id="Node000009" href="$de/d31/_dispersion_8m.html#abc3775709fb5c6b8c5f7eb10b0119540" title=" " alt="" coords="335,332,378,357"/>
+<area shape="poly" id="edge9_Node000001_Node000009" title=" " alt="" coords="129,256,180,287,240,317,282,330,322,338,321,343,281,335,238,322,177,292,126,261"/>
+<area shape="rect" id="Node000010" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#ab3b5bf63a685b711ee0fbfb093fd971b" title=" " alt="" coords="269,382,445,422"/>
+<area shape="poly" id="edge10_Node000001_Node000010" title=" " alt="" coords="118,257,169,311,203,341,240,366,256,375,254,379,237,371,199,345,165,315,114,260"/>
+<area shape="rect" id="Node000011" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a5971e9f669bcbf085734bdc050ded724" title=" " alt="" coords="257,446,456,486"/>
+<area shape="poly" id="edge11_Node000001_Node000011" title=" " alt="" coords="110,257,129,295,157,342,195,391,240,432,249,437,246,442,237,436,191,394,153,345,124,297,106,259"/>
+<area shape="rect" id="Node000006" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a0b5ae6d60c03a10b43a732a20bf20625" title=" " alt="" coords="523,186,713,226"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="444,182,509,190,509,195,444,187"/>
+<area shape="poly" id="edge7_Node000007_Node000006" title=" " alt="" coords="475,221,509,217,509,222,475,226"/>
+<area shape="rect" id="Node000012" href="$d4/d0b/ionosphere_solver_tests_2main_8cpp.html#a9bf4cdc41d466e8710b8aa33a33d32e0" title=" " alt="" coords="548,453,688,479"/>
+<area shape="poly" id="edge12_Node000011_Node000012" title=" " alt="" coords="456,463,534,463,534,469,456,469"/>
+</map>

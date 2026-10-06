@@ -1,0 +1,15 @@
+<map id="vlasovsolver/vectorclass_fallback.h" name="vlasovsolver/vectorclass_fallback.h">
+<area shape="rect" id="Node000001" title=" " alt="" coords="192,5,375,45"/>
+<area shape="rect" id="Node000002" href="$dc/d9d/arch__device__api_8h.html" title=" " alt="" coords="35,93,179,133"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="246,48,159,90,157,85,244,43"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="204,101,272,126"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="276,47,253,89,248,87,271,44"/>
+<area shape="rect" id="Node000006" title=" " alt="" coords="297,101,363,126"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="296,44,319,87,315,90,291,47"/>
+<area shape="rect" id="Node000007" title=" " alt="" coords="388,101,499,126"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="320,43,411,92,409,97,317,48"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="5,181,76,207"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="93,135,61,172,57,169,89,132"/>
+<area shape="rect" id="Node000004" href="$d9/d13/arch__device__host_8h.html" title=" " alt="" coords="101,181,247,207"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="125,132,157,169,153,172,121,135"/>
+</map>
