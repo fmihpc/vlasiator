@@ -362,9 +362,9 @@ void prepareGhostTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cart
          // Cells to be translated so local end result is good (find neighborhood contains do_translate check)
          findNeighborhoodCells(mpiGrid, c, dimension, activeSearchLength, foundCells, tc);
          for (const CellID cid: foundCells) {
-            if(tc == -1 || mpiGrid[cid]->has_active_timeclass(tc)){
+         //   if(tc == -1 || mpiGrid[cid]->has_active_timeclass(tc)){
                activey.insert(cid);
-            }
+               //   }
          }
          
       } // end loop over local propagated cells
@@ -405,9 +405,9 @@ void prepareGhostTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cart
          // Cells to be translated so local end result is good
          findNeighborhoodCells(mpiGrid, c, dimension, activeSearchLength, foundCells, tc);
          for (const CellID cid: foundCells) {
-            if(tc == -1 || mpiGrid[cid]->has_active_timeclass(tc)){
+            // if(tc == -1 || mpiGrid[cid]->has_active_timeclass(tc)){
                activex.insert(cid);
-            }
+            // }
             // std::cout << "timeclass " << tc << " has sourcex " << " " << c <<"\n";
          }
       } // end loop over y-translation sources
@@ -452,9 +452,9 @@ void prepareGhostTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cart
          // Cells to be translated so local end result is good
          findNeighborhoodCells(mpiGrid, c, dimension, activeSearchLength, foundCells, tc);
          for (const CellID cid: foundCells) {
-            if(tc == -1 || mpiGrid[cid]->has_active_timeclass(tc)){
+            // if(tc == -1 || mpiGrid[cid]->has_active_timeclass(tc)){
                activez.insert(cid);
-            }
+            // }
          }
                   // std::cerr << __FILE__<<":"<<__LINE__<<" "<< myRank<< " c"<<c <<"\n";
       } // end loop over y-translation sources
@@ -1884,9 +1884,11 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
       // result independent of particle species.
       if (P::vlasovSolverGhostTranslate) {
          // Sets already include check for do_translate_cell
-         propagatedCells.assign(ghostTranslate_active[dimension].begin(),ghostTranslate_active[dimension].end());
-         // std::cerr<< __FILE__<<":"<<__LINE__<<"\n";
-         if (P::currentMaxTimeclass > 0) {
+         if(P::currentMaxTimeclass==0){
+            propagatedCells.assign(ghostTranslate_active[dimension].begin(),ghostTranslate_active[dimension].end());
+            // std::cerr<< __FILE__<<":"<<__LINE__<<"\n";
+         }
+         else if (P::currentMaxTimeclass > 0) {
             // std::cerr<< __FILE__<<":"<<__LINE__<<"\n";
             for (int i = 0; i <= P::currentMaxTimeclass; ++i){
                tc_propagatedCells.push_back(vector<CellID>());
