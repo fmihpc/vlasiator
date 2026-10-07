@@ -53,7 +53,44 @@ struct Parameters {
    static Real t_min; /*!< Initial simulation time. */
    static Real t_max; /*!< Maximum simulation time. */
    static Real dt;    /*!< The value of the timestep to use in propagation. If CflLimit defined then it is dynamically
-                         updated during simulation*/
+                         updated during simulation
+                         Choosing this now to be the shortest TC timestep
+                         */
+   static Real dt0;   /*! Initial input of dt, for debugging */
+                         
+   static std::vector<Real> timeclassDt; /* Contains the timesteps for each timeclass, use only this for getting them to avoid multiple points of entry*/
+   static std::vector<Real> timeclassTime;
+   static int fractionalTimestep; /* Each timestep is divided into 2^n fractional timesteps, where n is the current max timeclass*/
+   //static int myTimeclass; // hrm. The timeclass of this rank - not a great place for this.
+   static int currentMaxTimeclass;
+   static int initialMaxTimeclass; 
+   //static int timeclassBuffer; /* Buffer timeclasses that are not initialized but exist, better not to use */
+   static Real timeclassDomainModifier; /* If using CFL-based timeclasses, this adjusts the TC domain initialization. Example, if the parameter is 0.5, the timeclass domains are set as if the CFL limit was half of its actual value in each cell */
+   static Real dtUpdateModifier; /* If using CFL-based timeclasses, this adjusts the timestep updates to happen by a certain factor before the limit. Somewhat redundant to the other CFL limit parameters. */
+   static int timeclassLBmantissa;
+   static bool tc_leapfrog_init;
+   static int tc_test_type; /* Allows for different test scenarios for timeclass initialization. 0 (default) is CFL-based timeclasses, 3 is static spheres given by the next 3 parameters */
+   static Real tcStaticSphereRadiusLvl1;
+   static Real tcStaticSphereRadiusLvl2;
+   static Real tcStaticSphereRadiusLvl3;
+   static int tcMomentInterpolationType; // type of interpolation used for timeclass field solver moment interpolation.
+   static bool tcVMomentPropagation; // whether to propagate bulk velocities for timeclass field solver moment interpolation.
+   static int timeclassExactHaloExtent;
+   static int timeclassOuterHaloExtent;
+   static int timeclassFullHaloExtent; // The full halo extent for timeclasses, calculated from the Exact and Outer halo extents.
+
+   static bool timeclassesInitialized;
+   static bool tcDebugBox;          // Force timeclass 1 with the box
+   static int tcOverrideTimeclass;  // Set fixed timeclass everywhere [debugging, default -1 i.e. off]
+   //static bool tcRankwise;          // are cell timeclasses chosen by MPI rank? 
+   static bool forcedConvection;
+
+   static Realf tcBoxHalfWidthX;
+   static Realf tcBoxHalfWidthY;
+   static Realf tcBoxHalfWidthZ;
+   static Realf tcBoxCenterX;
+   static Realf tcBoxCenterY;
+   static Realf tcBoxCenterZ;
    static Real dt_ceil; /*!< The maximum value of the timestep to use in propagation. */
 
    static Real vlasovSolverMaxCFL;   /*!< The maximum CFL limit for propagation of distribution function. Used to set

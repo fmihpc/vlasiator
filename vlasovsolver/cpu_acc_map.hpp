@@ -27,7 +27,8 @@
 
 using namespace spatial_cell;
 
-bool map_1d(SpatialCell* spatial_cell, const uint popID,
+bool map_1d(SpatialCell* spatial_cell, const uint popID, vmesh::VelocityMesh* vmesh,
+            vmesh::VelocityBlockContainer* blockContainer,
             Real intersection, Real intersection_di, Real intersection_dj, Real intersection_dk,
-            const uint dimension);
+            const uint dimension, int timeclass);
 #endif

@@ -31,6 +31,7 @@
 #include "../velocity_mesh_parameters.h"
 
 #include "Alfven/Alfven.h"
+#include "AlfvenCascade/AlfvenCascade.h"
 #include "Dispersion/Dispersion.h"
 #include "Distributions/Distributions.h"
 #include "Flowthrough/Flowthrough.h"
@@ -502,7 +503,6 @@ namespace projects {
 
       const std::vector<CellID> cells {getLocalCells()};
       Real r_max2 {pow(P::refineRadius, 2)};
-
       #pragma omp parallel for
       for (uint cid = 0; cid < cells.size(); ++cid) {
          CellID id = cells[cid];
@@ -629,6 +629,7 @@ Project* createProject() {
     if (Readparameters::helpRequested && P::projectName=="") {
         projects::MultiPeak* _Multipeak=new projects::MultiPeak();
         projects::Alfven* _Alfven = new projects::Alfven();
+        projects::AlfvenCascade * _AlfvenCascade = new projects::AlfvenCascade();
         projects::Flowthrough* _Flowthrough=new projects::Flowthrough();
         projects::Magnetosphere* _Magnetosphere=new projects::Magnetosphere();
         projects::LossCone* _Losscone=new projects::LossCone();
@@ -652,6 +653,8 @@ Project* createProject() {
         _Magnetosphere->addParameters();
         _Flowthrough->addParameters();
         _test_fp->addParameters();
+        _Alfven->addParameters();
+        _AlfvenCascade->addParameters();
         _Distributions->addParameters();
         _Harris->addParameters();
         _Riemann1->addParameters();
@@ -685,6 +688,9 @@ Project* createProject() {
 
     } else if (Parameters::projectName=="Alfven") {
         project=new projects::Alfven();
+
+    } else if (Parameters::projectName=="AlfvenCascade") {
+        project=new projects::AlfvenCascade();
 
     } else if (Parameters::projectName=="test_fp") {
         project=new projects::test_fp();
