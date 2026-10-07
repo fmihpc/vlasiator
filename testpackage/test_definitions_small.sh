@@ -260,6 +260,16 @@ variable_components[${index}]="0 0 1 2 0 1 2"
 single_cell[${index}]=1
 ((index+=1))
 
+## More global testing
+# 26 Magnetosphere 3D, very small, 40 timesteps
+test_name[${index}]="Magnetosphere_3D_small_GT"
+comparison_vlsv[${index}]="bulk.0000001.vlsv bulk.0000002.vlsv"
+comparison_phiprof[${index}]="phiprof_0.txt"
+variable_names[${index}]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v fg_b fg_b fg_b fg_e fg_e fg_e vg_connection vg_connection_coordinates_fw vg_connection_coordinates_fw vg_connection_coordinates_fw  vg_connection_coordinates_bw vg_connection_coordinates_bw vg_connection_coordinates_bw"
+variable_components[${index}]="0 0 1 2 0 1 2 0 1 2 0 0 1 2 0 1 2"
+((index+=1))
+
+
 # choose tests to run (default: all tests)
 run_tests=( )
 for (( c=1; c<$index; c++ ))
