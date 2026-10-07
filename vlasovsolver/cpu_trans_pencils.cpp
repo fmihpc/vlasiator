@@ -28,8 +28,8 @@ ghostmaptype ghostTranslate_source = {{0,ghostTranslate_sources_x},{1,ghostTrans
 ghostmaptype ghostTranslate_active = {{0,ghostTranslate_active_x},{1,ghostTranslate_active_y},{2,ghostTranslate_active_z}};
 
 // Map timeclass and dimension to sources/active CellID sets
-std::map<uint, std::map<uint,std::unordered_set<CellID>>> timeghost_source_tic, timeghost_active_tic;
-std::map<uint, std::map<uint,std::unordered_set<CellID>>> timeghost_source_toc, timeghost_active_toc;
+std::map<int, std::map<uint,std::unordered_set<CellID>>> timeghost_source_tic, timeghost_active_tic;
+std::map<int, std::map<uint,std::unordered_set<CellID>>> timeghost_source_toc, timeghost_active_toc;
 
 // Cell lists for propagation targets for timeclass phases (tic/toc; correspond to localCells for GhostTranslate)
 vector<vector<CellID>> tc_propagationTargets_tic;
@@ -968,7 +968,7 @@ CellID selectPositiveNeighbor(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
          #endif
       }
    } else {
-      std::map<uint,std::map<uint,std::unordered_set<CellID>>>* active_list;
+      std::map<int,std::map<uint,std::unordered_set<CellID>>>* active_list;
       if (tictoc == Timeclasses::TIC) {
          active_list = &timeghost_active_tic;
       }
@@ -1275,7 +1275,7 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
    int myRank;
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
 // #endif
-   std::map<uint,std::map<uint,std::unordered_set<CellID>>>* active_list;
+   std::map<int,std::map<uint,std::unordered_set<CellID>>>* active_list;
    if (tictoc == Timeclasses::TIC) {
       active_list = &timeghost_active_tic;
    }
