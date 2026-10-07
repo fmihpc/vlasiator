@@ -110,8 +110,8 @@ namespace Neighborhoods {
 
 namespace Timeclasses {
    enum {
-      TIC, // Flag indicating the start of a timeclass propagation - larger halos
-      TOC, // Flag indicating the second phase of a timeclass propagation - smaller halos
+      TIC, // Flag indicating the start of a timeclass propagation - targets larger halos, separately-tuned ghost translation
+      TOC, // Flag indicating the second phase of a timeclass propagation - target regular cells, regular ghost translation
    };
 }
 
