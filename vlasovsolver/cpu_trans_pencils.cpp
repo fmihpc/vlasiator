@@ -1932,16 +1932,14 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
    
       phiprof::Timer getSeedIdsTimer {"getSeedIds"};
       vector<std::pair<int,CellID>> seedIds; // <timeclass, CellID> pairs
+      seedIds.clear();
       if(P::vlasovSolverGhostTranslate){
          if (P::currentMaxTimeclass > 0) {
-            int maxt = 0;
             for (int timeclass = 0; timeclass <= P::currentMaxTimeclass; ++timeclass){
                // std::cout << "getting seedids for timeclass " << timeclass <<", cells prop:\n";
                // for(auto c : tc_propagatedCells[timeclass]) std::cout << c << " ";
                // std::cout << "\n";
-               getSeedIds(mpiGrid, tc_propagatedCells[timeclass], dimension, seedIds, timeclass, tictoc);
-   
-               maxt = timeclass;
+               getSeedIds(mpiGrid, tc_propagatedCells.at(timeclass), dimension, seedIds, timeclass, tictoc);
             }
          }
          else{
