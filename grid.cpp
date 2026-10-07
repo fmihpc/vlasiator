@@ -641,9 +641,7 @@ void transferInParts(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGr
                      // Make sure cell contents aren't garbage
                      *mpiGrid[parent] = *mpiGrid[id];
 
-                     for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID) {
-                        SBC::averageCellData(mpiGrid, children, mpiGrid[parent], popID, 1);
-                     }
+                     SBC::averageCellData(mpiGrid, children, mpiGrid[parent], popID, 1);
 
                      // Averaging moments
                      calculateCellMoments(mpiGrid[parent], true, false);
