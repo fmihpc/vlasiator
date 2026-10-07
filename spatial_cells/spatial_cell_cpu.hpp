@@ -498,6 +498,10 @@ namespace spatial_cell {
       std::set<int> requested_timeclass_copy_ghosts = {};                       /**< See Pencil construction. Translation stencil neighbours may want v-space values at
       *   varying timeclass synchronizations. This keeps track which levels are requested of this
       *   cell. Populations struct contains mappings of these timeclasses to ghost vmeshes. */
+      std::set<int> requested_timeclass_outer_ghosts = {};                       /**< See Pencil construction. Translation stencil neighbours may want v-space values at
+      *   varying timeclass synchronizations. This keeps track which levels are requested of this
+      *   cell. Populations struct contains mappings of these timeclasses to ghost vmeshes. */
+
 
       inline std::set<int> get_all_ghosts();
       //SpatialCell& operator=(const SpatialCell& other);
@@ -1156,6 +1160,7 @@ namespace spatial_cell {
    inline std::set<int> SpatialCell::get_all_ghosts(){
       std::set<int> allghosts = this->requested_timeclass_ghosts;
       allghosts.insert(this->requested_timeclass_copy_ghosts.begin(),this->requested_timeclass_copy_ghosts.end());
+      allghosts.insert(this->requested_timeclass_outer_ghosts.begin(),this->requested_timeclass_outer_ghosts.end());
       return allghosts;
    }
 
