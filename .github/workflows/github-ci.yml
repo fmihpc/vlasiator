@@ -123,7 +123,6 @@ jobs:
       name: Clean workspace
       run: |
         ./.github/workflows/slurm_run.sh "CLEANUP"
-        git reset --hard HEAD #cleanup nukes testpackage folder, resetting here so things work again
     - &makeClean
       name: Make clean
       run: make clean
