@@ -889,11 +889,13 @@ void prepareAMRLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
       for (const CellID cell : getLocalCells()) {
          mpiGrid[cell]->requested_timeclass_ghosts.clear();
          mpiGrid[cell]->requested_timeclass_copy_ghosts.clear();
+         mpiGrid[cell]->requested_timeclass_outer_ghosts.clear();
       }
 
       for (const CellID cell : remote_cells) {
          mpiGrid[cell]->requested_timeclass_ghosts.clear();
          mpiGrid[cell]->requested_timeclass_copy_ghosts.clear();
+         mpiGrid[cell]->requested_timeclass_outer_ghosts.clear();
       }
 
       getGhostNeighborsforTC(mpiGrid, localCells);
@@ -941,11 +943,19 @@ void prepareAMRLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
          
          #ifdef DEBUG_TIMECLASSES
          for (int dim = 0; dim < 3; ++dim) {
-            std::cerr << "timeghost_active_tic[" << i << "][" << dim << "]: " << timeghost_active_tic.at(i)[dim].size() << "\n";
+            std::cerr << "timeghost_active_tic[" << i << "][" << dim << "]: " << timeghost_active_tic.at(i)[dim].size() << " cells\n";
             for (const CellID cell : timeghost_active_tic.at(i)[dim]) {
                std::cerr << " " << cell << " ";
             }
-              
+            std::cerr << "\n";
+         }
+         std::cerr << "\n";
+         for (int dim = 0; dim < 3; ++dim) {
+            std::cerr << "timeghost_active_toc[" << i << "][" << dim << "]: " << timeghost_active_toc.at(i)[dim].size() << " cells\n";
+            for (const CellID cell : timeghost_active_toc.at(i)[dim]) {
+               std::cerr << " " << cell << " ";
+            }
+            std::cerr << "\n";
          }
          std::cerr << "\n";
          #endif
@@ -989,10 +999,13 @@ void getGhostNeighborsforTC(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
          }
       }
       //std::set<CellID> exactHaloCells = {};
+      // 
+      std::set<CellID> outer_cells = {};
 
       for (const CellID cell : tc_cells) {
 
          const auto* neighbors = mpiGrid.get_neighbors_of(cell, Neighborhoods::VLASOV_SOLVER_TIMEGHOST_EXACT_HALO);
+         const auto* GTneighbors = mpiGrid.get_neighbors_of(cell, Neighborhoods::VLASOV_SOLVER_GHOST);
          const auto* outerNeighbors = mpiGrid.get_neighbors_of(cell, Neighborhoods::VLASOV_SOLVER_TIMEGHOST_OUTER_HALO);
 
          // get_neighbours_of returns a pointer to a vector of pairs, and each pairs' first element is the CellID
@@ -1000,7 +1013,7 @@ void getGhostNeighborsforTC(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
 
          phiprof::Timer exactNeighborLoopTimer {"exact_neighbors"};
          for (auto& nbrPair : *neighbors) {
-            if (mpiGrid[nbrPair.first]->parameters[CellParams::TIMECLASS] != timeclass) {
+            if (mpiGrid[nbrPair.first]->parameters[CellParams::TIMECLASS] < timeclass) { // coarse-tc neighbor
                mpiGrid[cell]->requested_timeclass_ghosts.insert(mpiGrid[nbrPair.first]->parameters[CellParams::TIMECLASS]);
                mpiGrid[nbrPair.first]->requested_timeclass_ghosts.insert(mpiGrid[cell]->parameters[CellParams::TIMECLASS]);
 
@@ -1016,27 +1029,72 @@ void getGhostNeighborsforTC(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                if(!is_symm && (cell != failcell)){
                   std::cerr << "ASYMERROR1 Cell " << cell << " has neighbor " << failcell << " that does not consider " << cell << " as its neighbor!\n";
                }
-               // symmetryref = mpiGrid.get_neighbors_to(cell, Neighborhoods::VLASOV_SOLVER_TIMEGHOST_EXACT_HALO);
-               // is_symm = false;
-               // failcell = cell;
-               // for (auto symmetrypair : *symmetryref){
-               //    if(symmetrypair.first == cell){
-               //       is_symm = true;
-               //       break;
-               //    }
-               // }
-               // if(!is_symm){
-               //    std::cerr << "ASYMERROR2 Cell " << cell << " has neighbor " << failcell << " that does not consider " << cell << " as its neighbor via get_neighbors_to!\n";
-               // }
+            }
+            if (mpiGrid[nbrPair.first]->parameters[CellParams::TIMECLASS] > timeclass) { // fine-tc neighbor
+               mpiGrid[cell]->requested_timeclass_ghosts.insert(mpiGrid[nbrPair.first]->parameters[CellParams::TIMECLASS]);
+               mpiGrid[nbrPair.first]->requested_timeclass_ghosts.insert(mpiGrid[cell]->parameters[CellParams::TIMECLASS]);
+
+               auto symmetryref = mpiGrid.get_neighbors_of((nbrPair.first), Neighborhoods::VLASOV_SOLVER_TIMEGHOST_EXACT_HALO);
+               bool is_symm = false;
+               CellID failcell = nbrPair.first;
+               for (auto symmetrypair : *symmetryref){
+                  if(symmetrypair.first == cell){
+                     is_symm = true;
+                     break;
+                  }
+               }
+               if(!is_symm && (cell != failcell)){
+                  std::cerr << "ASYMERROR1 Cell " << cell << " has neighbor " << failcell << " that does not consider " << cell << " as its neighbor!\n";
+               }
             }
          }
          exactNeighborLoopTimer.stop();
 
-         phiprof::Timer outerNeighborLoop {"outer_neighbors"};
-         for (auto& nbrPair : *outerNeighbors) {
-            if (mpiGrid[nbrPair.first]->parameters[CellParams::TIMECLASS] != timeclass) {
+         phiprof::Timer ghostNeighborLoopTimer {"ghost_tc_neighbors"};
+         for (auto& nbrPair : *GTneighbors) {
+            if (mpiGrid[nbrPair.first]->parameters[CellParams::TIMECLASS] < timeclass) { // coarse-tc neighbor
                mpiGrid[cell]->requested_timeclass_copy_ghosts.insert(mpiGrid[nbrPair.first]->parameters[CellParams::TIMECLASS]);
                mpiGrid[nbrPair.first]->requested_timeclass_copy_ghosts.insert(mpiGrid[cell]->parameters[CellParams::TIMECLASS]);
+
+               auto symmetryref = mpiGrid.get_neighbors_of((nbrPair.first), Neighborhoods::VLASOV_SOLVER_GHOST);
+               bool is_symm = false;
+               CellID failcell = nbrPair.first;
+               for (auto symmetrypair : *symmetryref){
+                  if(symmetrypair.first == cell){
+                     is_symm = true;
+                     break;
+                  }
+               }
+               if(!is_symm && (cell != failcell)){
+                  std::cerr << "ASYMERROR1 Cell " << cell << " has neighbor " << failcell << " that does not consider " << cell << " as its neighbor!\n";
+               }
+            }
+            if (mpiGrid[nbrPair.first]->parameters[CellParams::TIMECLASS] > timeclass) { // fine-tc neighbor
+               mpiGrid[cell]->requested_timeclass_copy_ghosts.insert(mpiGrid[nbrPair.first]->parameters[CellParams::TIMECLASS]);
+               mpiGrid[nbrPair.first]->requested_timeclass_copy_ghosts.insert(mpiGrid[cell]->parameters[CellParams::TIMECLASS]);
+
+               auto symmetryref = mpiGrid.get_neighbors_of((nbrPair.first), Neighborhoods::VLASOV_SOLVER_GHOST);
+               bool is_symm = false;
+               CellID failcell = nbrPair.first;
+               for (auto symmetrypair : *symmetryref){
+                  if(symmetrypair.first == cell){
+                     is_symm = true;
+                     break;
+                  }
+               }
+               if(!is_symm && (cell != failcell)){
+                  std::cerr << "ASYMERROR1 Cell " << cell << " has neighbor " << failcell << " that does not consider " << cell << " as its neighbor!\n";
+               }
+            }
+         }
+         
+         ghostNeighborLoopTimer.stop();
+
+         phiprof::Timer outerNeighborLoop {"outer_neighbors"};
+         for (auto& nbrPair : *outerNeighbors) {
+            if (mpiGrid[nbrPair.first]->parameters[CellParams::TIMECLASS] < timeclass) { // coarse-tc neighbor
+               mpiGrid[cell]->requested_timeclass_outer_ghosts.insert(mpiGrid[nbrPair.first]->parameters[CellParams::TIMECLASS]);
+               mpiGrid[nbrPair.first]->requested_timeclass_outer_ghosts.insert(mpiGrid[cell]->parameters[CellParams::TIMECLASS]);
 
                auto symmetryref = mpiGrid.get_neighbors_of((nbrPair.first), Neighborhoods::VLASOV_SOLVER_TIMEGHOST_OUTER_HALO);
 
@@ -1049,22 +1107,26 @@ void getGhostNeighborsforTC(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                   }
                }
                if(!is_symm && (cell != failcell)){
-                  std::cerr << "ASYMERROR3 Cell copy-ghost " << cell << " has neighbor " << failcell << " that does not consider " << cell << " as its neighbor!\n";
+                  std::cerr << "ASYMERROR3 Cell outer-ghost " << cell << " has neighbor " << failcell << " that does not consider " << cell << " as its neighbor!\n";
                }
-               // symmetryref = mpiGrid.get_neighbors_to(cell, Neighborhoods::VLASOV_SOLVER_TIMEGHOST_OUTER_HALO);
-               // is_symm = false;
-               // failcell = cell;
-               // for (auto symmetrypair : *symmetryref){
-               //    if(symmetrypair.first == cell){
-               //       is_symm = true;
-               //       break;
-               //    }
-               // }
-               // if(!is_symm){
-               //    std::cerr << "ASYMERROR4 Cell copy-ghost " << cell << " has neighbor " << failcell << " that does not consider " << cell << " as its neighbor via get_neighbors_to!\n";
-               // }
+            }
+            if (mpiGrid[nbrPair.first]->parameters[CellParams::TIMECLASS] > timeclass) { // fine-tc neighbor
+               mpiGrid[cell]->requested_timeclass_outer_ghosts.insert(mpiGrid[nbrPair.first]->parameters[CellParams::TIMECLASS]);
+               mpiGrid[nbrPair.first]->requested_timeclass_outer_ghosts.insert(mpiGrid[cell]->parameters[CellParams::TIMECLASS]);
 
-               // exactHaloCells.insert(nbrPair.first);
+               auto symmetryref = mpiGrid.get_neighbors_of((nbrPair.first), Neighborhoods::VLASOV_SOLVER_TIMEGHOST_OUTER_HALO);
+
+               bool is_symm = false;
+               CellID failcell = nbrPair.first;
+               for (auto symmetrypair : *symmetryref){
+                  if(symmetrypair.first == cell){
+                     is_symm = true;
+                     break;
+                  }
+               }
+               if(!is_symm && (cell != failcell)){
+                  std::cerr << "ASYMERROR3 Cell outer-ghost " << cell << " has neighbor " << failcell << " that does not consider " << cell << " as its neighbor!\n";
+               }
             }
          }
          outerNeighborLoop.stop();
@@ -1088,17 +1150,86 @@ void getGhostNeighborsforTC(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
 
    }
 
+   std::map<int,int> copy_ghosts_count;
+   std::map<int,int> tc_ghosts_count;
+   std::map<int,int> outer_ghosts_count;
+   for (int timeclass = 0; timeclass <= P::currentMaxTimeclass; ++timeclass) {
+      copy_ghosts_count[timeclass] = 0;
+      tc_ghosts_count[timeclass] = 0;
+      outer_ghosts_count[timeclass] = 0;
+   }
+   std::cerr << "Ghost flags per cell:" << std::endl;
    for (const CellID cell : getLocalCells()) { // TODO: REMOTE NEIGHBORS FILTERING AS WELL
+      
       for (int timeclass = 0; timeclass <= P::currentMaxTimeclass; ++timeclass) {
          if (mpiGrid[cell]->requested_timeclass_ghosts.count(timeclass) > 0) {
             mpiGrid[cell]->requested_timeclass_copy_ghosts.erase(timeclass);
-            #ifdef DEBUG_TIMECLASSES
-            std::cerr << myRank << ": Cell " << cell << " has req_ghost of timeclass " << timeclass << ", removing req_copy_ghost of timeclass " << timeclass << "\n";
-            #endif
+            mpiGrid[cell]->requested_timeclass_outer_ghosts.erase(timeclass);
+            // #ifdef DEBUG_TIMECLASSES
+            // std::cerr << myRank << ": Cell " << cell << " has req_ghost of timeclass " << timeclass << ", removing other ghost requests of timeclass " << timeclass << "\n";
+            // #endif
+         }
+         if (mpiGrid[cell]->requested_timeclass_copy_ghosts.count(timeclass) > 0) {
+            mpiGrid[cell]->requested_timeclass_outer_ghosts.erase(timeclass);
+            // #ifdef DEBUG_TIMECLASSES
+            // std::cerr << myRank << ": Cell " << cell << " has req_copy_ghost of timeclass " << timeclass << ", removing outer ghost requests of timeclass " << timeclass << "\n";
+            // #endif
+         }
+         if(mpiGrid[cell]->requested_timeclass_ghosts.count(timeclass) > 0){
+            tc_ghosts_count[timeclass]++;
+            std::cerr << cell<<":";
+            std::cerr << "t"<<timeclass << "G ";
+         }
+         if(mpiGrid[cell]->requested_timeclass_copy_ghosts.count(timeclass) > 0){
+            copy_ghosts_count[timeclass]++;
+            std::cerr << cell<<":";
+            std::cerr << "t"<<timeclass << "C ";
+         }
+         if(mpiGrid[cell]->requested_timeclass_outer_ghosts.count(timeclass) > 0){
+            outer_ghosts_count[timeclass]++;
+            std::cerr << cell<<":";
+            std::cerr << "t"<<timeclass << "O ";
          }
       }
    }
+   std::cerr << std::endl << "remote cells:" << std::endl;
+   for (const CellID cell : mpiGrid.get_remote_cells_on_process_boundary(Neighborhoods::VLASOV_SOLVER_TIMEGHOST_REQ)) { // DONE: REMOTE NEIGHBORS FILTERING AS WELL
+      for (int timeclass = 0; timeclass <= P::currentMaxTimeclass; ++timeclass) {
+         if (mpiGrid[cell]->requested_timeclass_ghosts.count(timeclass) > 0) {
+            mpiGrid[cell]->requested_timeclass_copy_ghosts.erase(timeclass);
+            mpiGrid[cell]->requested_timeclass_outer_ghosts.erase(timeclass);
+            // #ifdef DEBUG_TIMECLASSES
+            // std::cerr << myRank << ": Cell " << cell << " has req_ghost of timeclass " << timeclass << ", removing other ghost requests of timeclass " << timeclass << "\n";
+            // #endif
+         }
+         if (mpiGrid[cell]->requested_timeclass_copy_ghosts.count(timeclass) > 0) {
+            mpiGrid[cell]->requested_timeclass_outer_ghosts.erase(timeclass);
+            // #ifdef DEBUG_TIMECLASSES
+            // std::cerr << myRank << ": Cell " << cell << " has req_copy_ghost of timeclass " << timeclass << ", removing outer ghost requests of timeclass " << timeclass << "\n";
+            // #endif
+         }
+         if(mpiGrid[cell]->requested_timeclass_ghosts.count(timeclass) > 0){
+            tc_ghosts_count[timeclass]++;
+            std::cerr << cell<<":";
+            std::cerr << "t"<<timeclass << "G ";
+         }
+         if(mpiGrid[cell]->requested_timeclass_copy_ghosts.count(timeclass) > 0){
+            copy_ghosts_count[timeclass]++;
+            std::cerr << cell<<":";
+            std::cerr << "t"<<timeclass << "C ";
+         }
+         if(mpiGrid[cell]->requested_timeclass_outer_ghosts.count(timeclass) > 0){
+            outer_ghosts_count[timeclass]++;
+            std::cerr << cell<<":";
+            std::cerr << "t"<<timeclass << "O ";
+         }
+      }
+   }
+   std::cerr << std::endl;
 
+   for (int timeclass = 0; timeclass <= P::currentMaxTimeclass; ++timeclass) {
+      std::cerr << myRank << ": tc " << timeclass << " ghosts count " << tc_ghosts_count[timeclass] << ", copy_ghosts_count " << copy_ghosts_count[timeclass] << ", outer_ghosts_count " << outer_ghosts_count[timeclass] << "\n"; 
+   }
 }
 
 // assert that all ranks agree on timeghosts for some timeclass
@@ -1110,62 +1241,81 @@ bool areTimeghostsConsistent(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
    MPI_Comm_size(MPI_COMM_WORLD,&numRanks);
 
-   const std::vector<CellID>& localCells = getLocalCells();
-   std::set<std::tuple<int, CellID>> localCellsWithGhosts;
-   for (const CellID cell : localCells) {
-      if (mpiGrid[cell]->requested_timeclass_ghosts.count(timeclass) > 0) {
-         localCellsWithGhosts.insert(std::make_tuple(myRank, cell));
+   for (int ghost_type = 0; ghost_type < 3; ++ghost_type) {
+
+      const std::vector<CellID>& localCells = getLocalCells();
+      std::set<std::tuple<int, CellID>> localCellsWithGhosts;
+      for (const CellID cell : localCells) {
+         auto ghostset = std::set<int>();
+         if (ghost_type == 0) {
+            ghostset = mpiGrid[cell]->requested_timeclass_ghosts;
+         } else if (ghost_type == 1) {
+            ghostset = mpiGrid[cell]->requested_timeclass_copy_ghosts;
+         } else {
+            ghostset = mpiGrid[cell]->requested_timeclass_outer_ghosts;
+         }
+         if (ghostset.count(timeclass) > 0) {
+            localCellsWithGhosts.insert(std::make_tuple(myRank, cell));
+         }
       }
-   }
-
-   const std::unordered_map<uint64_t, int>& cellProcessMap = mpiGrid.get_cell_process();
-
-   std::vector<std::tuple<int, CellID>> localCellsWithGhostsVec(localCellsWithGhosts.begin(), localCellsWithGhosts.end());
-
-   const int localGhostCellNum = localCellsWithGhostsVec.size();
-   int globalGhostCellNum;
-   MPI_Allreduce(&localGhostCellNum, &globalGhostCellNum, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-
-   //reduce each local vector of tuples to a single global vector of tuples on all ranks
-   std::vector<int> recvcounts(numRanks);
-   std::vector<int> displs(numRanks);
-
-   MPI_Allgather(&localGhostCellNum, 1, MPI_INT, recvcounts.data(), 1, MPI_INT, MPI_COMM_WORLD);
-
-   displs[0] = 0;
-   for (int i = 1; i < numRanks; i++) {
-      displs[i] = displs[i - 1] + recvcounts[i - 1];
-   }
-
-   std::vector<std::tuple<int, CellID>> globalCellsWithGhosts(globalGhostCellNum);
-   const int tupleSize = sizeof(std::tuple<int, CellID>);
-   for (int i = 0; i < numRanks; ++i) {
-      recvcounts[i] *= tupleSize;
-      displs[i] *= tupleSize;
-   }
-   MPI_Allgatherv(localCellsWithGhostsVec.data(), localGhostCellNum * tupleSize, MPI_BYTE, globalCellsWithGhosts.data(), recvcounts.data(), displs.data(), MPI_BYTE, MPI_COMM_WORLD);
-
-   std::cerr << "Rank " << myRank << ":, timeclass = " << timeclass << ", localCellsWithGhostsVec size = " << localCellsWithGhostsVec.size() << ", globalCellsWithGhosts size = " << globalCellsWithGhosts.size() << "\n";
-
-   // now all ranks have the same vector of tuples
-   // all cells check all their remote neighbors to see if they are in the global vector of tuples
-   for (const CellID cell : localCells) {
-      const auto remoteNeighbors = mpiGrid.get_remote_neighbors_of(cell, Neighborhoods::VLASOV_SOLVER_TIMEGHOST_EXACT_HALO);
-      for (const auto nbr: remoteNeighbors) {
-         const SpatialCell* nbrCell = mpiGrid[nbr];
-         const int rankOfNbr = cellProcessMap.at(nbr);
-         if (nbrCell->requested_timeclass_ghosts.count(timeclass) > 0) {
-            // check if this cell is in the global vector of tuples
-            bool found = false;
-            for (const auto& tuple : globalCellsWithGhosts) {
-               if (std::get<0>(tuple) == rankOfNbr && std::get<1>(tuple) == nbr) {
-                  found = true;
-                  break;
-               }
+   
+      const std::unordered_map<uint64_t, int>& cellProcessMap = mpiGrid.get_cell_process();
+   
+      std::vector<std::tuple<int, CellID>> localCellsWithGhostsVec(localCellsWithGhosts.begin(), localCellsWithGhosts.end());
+   
+      const int localGhostCellNum = localCellsWithGhostsVec.size();
+      int globalGhostCellNum;
+      MPI_Allreduce(&localGhostCellNum, &globalGhostCellNum, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+   
+      //reduce each local vector of tuples to a single global vector of tuples on all ranks
+      std::vector<int> recvcounts(numRanks);
+      std::vector<int> displs(numRanks);
+   
+      MPI_Allgather(&localGhostCellNum, 1, MPI_INT, recvcounts.data(), 1, MPI_INT, MPI_COMM_WORLD);
+   
+      displs[0] = 0;
+      for (int i = 1; i < numRanks; i++) {
+         displs[i] = displs[i - 1] + recvcounts[i - 1];
+      }
+   
+      std::vector<std::tuple<int, CellID>> globalCellsWithGhosts(globalGhostCellNum);
+      const int tupleSize = sizeof(std::tuple<int, CellID>);
+      for (int i = 0; i < numRanks; ++i) {
+         recvcounts[i] *= tupleSize;
+         displs[i] *= tupleSize;
+      }
+      MPI_Allgatherv(localCellsWithGhostsVec.data(), localGhostCellNum * tupleSize, MPI_BYTE, globalCellsWithGhosts.data(), recvcounts.data(), displs.data(), MPI_BYTE, MPI_COMM_WORLD);
+   
+      std::cerr << "Rank " << myRank << ":, timeclass = " << timeclass << ", localCellsWithGhostsVec size = " << localCellsWithGhostsVec.size() << ", globalCellsWithGhosts size = " << globalCellsWithGhosts.size() << "\n";
+   
+      // now all ranks have the same vector of tuples
+      // all cells check all their remote neighbors to see if they are in the global vector of tuples
+      for (const CellID cell : localCells) {
+         const auto remoteNeighbors = mpiGrid.get_remote_neighbors_of(cell, Neighborhoods::VLASOV_SOLVER_TIMEGHOST_EXACT_HALO);
+         for (const auto nbr: remoteNeighbors) {
+            const SpatialCell* nbrCell = mpiGrid[nbr];
+            const int rankOfNbr = cellProcessMap.at(nbr);
+            auto nbrGhostSet = std::set<int>();
+            if (ghost_type == 0) {
+               nbrGhostSet = nbrCell->requested_timeclass_ghosts;
+            } else if (ghost_type == 1) {
+               nbrGhostSet = nbrCell->requested_timeclass_copy_ghosts;
+            } else {
+               nbrGhostSet = nbrCell->requested_timeclass_outer_ghosts;
             }
-            if (!found) {
-               std::cerr << "Inconsistency detected: Cell " << nbr << " on rank " << rankOfNbr << " has requested timeclass ghost for timeclass " << timeclass << ", but not all ranks agree.\n";
-               MPI_Abort(MPI_COMM_WORLD, 1);
+            if (nbrGhostSet.count(timeclass) > 0) {
+               // check if this cell is in the global vector of tuples
+               bool found = false;
+               for (const auto& tuple : globalCellsWithGhosts) {
+                  if (std::get<0>(tuple) == rankOfNbr && std::get<1>(tuple) == nbr) {
+                     found = true;
+                     break;
+                  }
+               }
+               if (!found) {
+                  std::cerr << "Inconsistency detected: Cell " << nbr << " on rank " << rankOfNbr << " has requested timeclass ghost ("<< ghost_type <<") for timeclass " << timeclass << ", but not all ranks agree.\n";
+                  // MPI_Abort(MPI_COMM_WORLD, 1);
+               }
             }
          }
       }

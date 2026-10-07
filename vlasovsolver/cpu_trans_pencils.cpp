@@ -929,7 +929,7 @@ void computeSpatialTargetCellsForPencilsWithFaces(const dccrg::Dccrg<SpatialCell
  * @return neighbor DCCRG cell id of the neighbor
  */
 CellID selectPositiveNeighbor(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> &grid,
-                      const CellID id, const int dimension = 0, const uint path = 0, const int timeclass = -1, const uint tictoc = 0) {
+                      const CellID id, const int dimension = 0, const uint path = 0, const int timeclass = -1, const uint tictoc = Timeclasses::TOC) {
    // If face neighbours are at a higher refinement level, only returns the one which
    // which has a neighbor index matching the input path
 
@@ -1008,7 +1008,7 @@ CellID selectPositiveNeighbor(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
 void buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> &grid,
 					setOfPencils &pencils, const pair<int,CellID> seedId,
 					vector<CellID> ids, const uint dimension,
-					vector<uint> path, const vector<pair<int,CellID>> &endIds, const uint tictoc = 0) {
+					vector<uint> path, const vector<pair<int,CellID>> &endIds, const uint tictoc = Timeclasses::TOC) {
 
    int myRank;
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
@@ -1283,6 +1283,19 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
       active_list = &timeghost_active_toc;
    }
 
+   #ifdef DEBUG_TIMECLASSES 
+   std::cerr << "getSeedIds: active_list[" << timeclass << "/" << tictoc << "][" << dimension << "]: " << active_list->at(timeclass).at(dimension).size() << " cells, count 7633=" << std::count(active_list->at(timeclass).at(dimension).begin(), active_list->at(timeclass).at(dimension).end(), 7633) << "\n";
+   std::cerr << "propagatedCells: "<< propagatedCells.size() << " cells, count 7633=" << std::count(propagatedCells.begin(), propagatedCells.end(), 7633) << "\n contents: ";
+   for (const CellID& celli : propagatedCells) {
+      std::cerr << "  " << celli;
+   }
+   std::cerr << "\n";
+   std::cerr << "seedIds: " << seedIds.size() << "\n contents: ";
+   for (const std::pair<int,CellID>& seedId : seedIds) {
+      std::cerr << "  " << seedId.first << ":" << seedId.second;
+   }
+   std::cerr << "\n";
+   #endif
    // These neighborhoods no longer include the AMR addition beyond the regular vlasov stencil
    const int neighborhood = getNeighborhood(dimension, VLASOV_STENCIL_WIDTH);
 
@@ -1469,8 +1482,11 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
    }
 
    #ifdef DEBUG_PENCILS
-      std::cerr << "Rank " << myRank << ", dimension " << dimension << ", Seed ids are: ";
+      std::cerr << "Rank " << myRank << ", dimension " << dimension << ", incremental Seed ids for timeclass " << timeclass << " are: ";
       for (const auto& seedId : seedIds) {
+         if (seedId.first != timeclass){
+            continue;
+         }
          std::cerr << seedId.first << ": " << seedId.second << "; ";
       }
       std::cerr << endl;
@@ -1487,7 +1503,7 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
 void check_ghost_cells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                        setOfPencils& pencils,
                        const uint dimension,
-                       const uint tictoc = 0) {
+                       const uint tictoc = Timeclasses::TOC) {
 
    const int neighborhood = getNeighborhood(dimension, getNeigborhoodStencilLength());
 
@@ -1548,8 +1564,15 @@ void check_ghost_cells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>
             }
          }
          if (P::initialMaxTimeclass > 0){
-            if (foundcells >= P::timeclassExactHaloExtent+P::timeclassOuterHaloExtent) {
-               break; // checked enough distances
+            if (tictoc == Timeclasses::TIC) {
+               if (foundcells >= P::timeclassOuterHaloExtent) {
+                  break; // checked enough distances
+               }   
+            }
+            else{ // Timeclasses::TOC
+               if (foundcells >= P::vlasovSolverGhostTranslateExtent) {
+                  break; // checked enough distances
+               }
             }
          }else{
             if (foundcells >= P::vlasovSolverGhostTranslateExtent) {
@@ -1587,7 +1610,7 @@ void check_ghost_cells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>
                }   
             }
             else{ // Timeclasses::TOC
-               if (foundcells >= P::timeclassExactHaloExtent) {
+               if (foundcells >= P::vlasovSolverGhostTranslateExtent) {
                   break; // checked enough distances
                }
             }
@@ -1652,17 +1675,18 @@ void check_ghost_cells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>
  * @param dimension Spatial dimension
  * @param myRank MPI rank
  */
-void printPencilsFunc(const setOfPencils& pencils, const uint dimension, const int myRank,const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
+void printPencilsFunc(const setOfPencils& pencils, const uint dimension, const int myRank,const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, const int tictoc) {
 
 // Print out ids of pencils (if needed for debugging)
    uint ibeg = 0;
    uint iend = 0;
    stringstream ss;
-   ss << "I am rank " << myRank << ", I have " << pencils.N << " pencils along dimension " << dimension << ":\n";
+   string tictocstr = tictoc == Timeclasses::TOC ? "toc" : "tic";
+   ss << "I am rank " << myRank << ", I have " << pencils.N << " pencils along dimension " << dimension << " in tictoc set " << tictocstr << ":\n";
    MPI_Barrier(MPI_COMM_WORLD);
    if (myRank == MASTER_RANK) {
-      ss << "(D=DO_NOT_COMPUTE, S=Sysboundary L2, L=Sysboundary L1, N=Non-sysboundary L2, G=Ghost cell)" << std::endl;
-      ss << "t, N, mpirank, dimension, timeclass, length (x, y): indices {path} DZs AreaRatios" << std::endl;
+      ss << "(D=DO_NOT_COMPUTE, S=Sysboundary L2, L=Sysboundary L1, N=Non-sysboundary L2, G=Ghost cell, T=Timeclass ghost type)" << std::endl;
+      ss << "t, N, mpirank, dimension, timeclass, tictoc, length (x, y): indices {path} DZs AreaRatios" << std::endl;
       ss << "----------------------------------------------------------------------" << std::endl;
    }
    MPI_Barrier(MPI_COMM_WORLD);
@@ -1675,6 +1699,7 @@ void printPencilsFunc(const setOfPencils& pencils, const uint dimension, const i
       ss << myRank << ", ";
       ss << dimension << ", ";
       ss << pencils.timeclasses[i] << ", ";
+      ss << tictocstr << ", ";
       ss << L << ", ";
       ss << "(" << pencils.x[i] << ", " << pencils.y[i] << "): ";
       for (auto j = pencils.ids.begin() + ibeg; j != pencils.ids.begin() + iend; ++j) {
@@ -1686,6 +1711,10 @@ void printPencilsFunc(const setOfPencils& pencils, const uint dimension, const i
             if (c->sysBoundaryLayer == 1 && c->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) ss<<"L";
             if (c->sysBoundaryLayer == 2 && c->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) ss<<"N";
             if (!mpiGrid.is_local(*j)) ss<<"G";
+            if(P::currentMaxTimeclass > 0) ss << "tc" << c->parameters[CellParams::TIMECLASS];
+            if (c->requested_timeclass_ghosts.count(pencils.timeclasses[i]) > 0) ss<<"T0";
+            if (c->requested_timeclass_copy_ghosts.count(pencils.timeclasses[i]) > 0) ss<<"T1";
+            if (c->requested_timeclass_outer_ghosts.count(pencils.timeclasses[i]) > 0) ss<<"T2";
          }
          ss<< " ";
       }
@@ -1867,7 +1896,9 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
                   tc_propagatedCells[i].assign(timeghost_active_toc[i][dimension].begin(),timeghost_active_toc[i][dimension].end());
                }
             }
-
+         } else {
+            std::cerr << "You somehow ended with P::currentMaxTimeclass = " << P::currentMaxTimeclass << ", it should be >= 0" << std::endl;
+            abort();
          }
       } else {
          for (size_t c=0; c<localCells.size(); ++c) {
@@ -1881,8 +1912,16 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
             for (int i = 0; i <= P::currentMaxTimeclass; ++i){
                tc_propagatedCells.push_back(vector<CellID>());
                for (size_t c=0; c<localCells.size(); ++c) {
-                  if (do_translate_cell(mpiGrid[localCells[c]]) && mpiGrid[localCells[c]]->has_active_timeclass(i)) {
-                     tc_propagatedCells[i].push_back(localCells[c]);
+                  if (do_translate_cell(mpiGrid[localCells[c]])) {
+                     if (tictoc == Timeclasses::TIC && (
+                           mpiGrid[localCells[c]]->parameters[CellParams::TIMECLASS] == i ||
+                           mpiGrid[localCells[c]]->requested_timeclass_ghosts.count(i)>0)
+                     ) {
+                        tc_propagatedCells[i].push_back(localCells[c]);
+                     }
+                     else if (tictoc == Timeclasses::TOC && mpiGrid[localCells[c]]->parameters[CellParams::TIMECLASS] == i) {
+                        tc_propagatedCells[i].push_back(localCells[c]);
+                     }
                   }
                }
             }
@@ -1919,22 +1958,26 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
                continue;
             }
          }
-         stringstream ss;
-         ss<<"Task "<<myRank<<" Dimension "<<dimension << " Tic/toc: " << tictoc << " Seed Ids (D=DO_NOT_COMPUTE, S=Sysboundary L2, L=Sysboundary L1, N=Non-sysboundary L2, G=Ghost cell)"<<std::endl<<std::endl;
-         for (uint i = 0; i < seedIds.size(); i++) {
-            ss << seedIds.at(i).first << ": " << seedIds.at(i).second << "; ";
-            if (seedIds.at(i).second && mpiGrid[seedIds.at(i).second]) {
-               SpatialCell* c = mpiGrid[seedIds.at(i).second];
-               if (c->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) ss<<"D";
-               if (c->sysBoundaryLayer != 1 && c->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) ss<<"S";
-               if (c->sysBoundaryLayer == 1 && c->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) ss<<"L";
-               if (c->sysBoundaryLayer == 2 && c->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) ss<<"N";
-               if (!mpiGrid.is_local(seedIds.at(i).second)) ss<<"G";
+         for (int timeclass = 0; timeclass <= P::currentMaxTimeclass; ++timeclass) {
+            stringstream ss;
+            ss<<"Task "<<myRank<<" Dimension "<<dimension << " Timeclass: " << timeclass << " Tic/toc: " << tictoc << " Seed Ids (D=DO_NOT_COMPUTE, S=Sysboundary L2, L=Sysboundary L1, N=Non-sysboundary L2, G=Ghost cell)"<<std::endl<<std::endl;
+            for (uint i = 0; i < seedIds.size(); i++) {
+               if (seedIds.at(i).first != timeclass) continue;
+               
+               ss << seedIds.at(i).first << ": " << seedIds.at(i).second << "; ";
+               if (seedIds.at(i).second && mpiGrid[seedIds.at(i).second]) {
+                  SpatialCell* c = mpiGrid[seedIds.at(i).second];
+                  if (c->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) ss<<"D";
+                  if (c->sysBoundaryLayer != 1 && c->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) ss<<"S";
+                  if (c->sysBoundaryLayer == 1 && c->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) ss<<"L";
+                  if (c->sysBoundaryLayer == 2 && c->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) ss<<"N";
+                  if (!mpiGrid.is_local(seedIds.at(i).second)) ss<<"G";
+               }
+               ss<<" ";
             }
-            ss<<" ";
+            ss<<std::endl<<std::endl;
+            std::cerr<<ss.str();
          }
-         ss<<std::endl<<std::endl;
-         std::cerr<<ss.str();
       }
    
    // if(maxt > 0 ) throw 123;
@@ -1957,8 +2000,6 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
    
          #pragma omp for schedule(guided,8)
          for (uint i=0; i<seedIds.size(); i++) {
-            cuint seedId = seedIds[i].second;
-            // if (seedIds[i].first == 1) exit = true;
             // Construct pencils from the seedIds into a set of pencils.
             buildPencilsWithNeighbors(mpiGrid, thread_pencils, seedIds[i], ids, dimension, path, seedIds, tictoc);
          }
@@ -2018,7 +2059,7 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
             if (rank!=myRank) {
                continue;
             }
-            printPencilsFunc((*pencilSet)[dimension],dimension,myRank,mpiGrid);
+            printPencilsFunc((*pencilSet)[dimension],dimension,myRank,mpiGrid, tictoc);
          }
       }
       buildPencilsTimer.stop();
