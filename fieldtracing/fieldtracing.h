@@ -25,6 +25,7 @@
 
 #include <cstdlib>
 #include <array>
+#include "step_size.h"
 #include "../common.h"
 #include "../fieldsolver/fs_common.h"
 #include "../fieldsolver/derivatives.hpp"
@@ -541,6 +542,7 @@ template <typename REAL>
 void stepFieldLine(std::array<REAL, 3>& x, std::array<REAL, 3>& v, REAL& stepsize, const REAL minStepSize,
                    const REAL maxStepSize, TracingMethod method, TracingFieldFunction<REAL>& BFieldFunction,
                    const bool outwards) {
+   stepsize = checkedStepSize(stepsize, minStepSize, maxStepSize, method != Euler);
    bool reTrace;
    uint32_t attempts = 0;
    switch (method) {
