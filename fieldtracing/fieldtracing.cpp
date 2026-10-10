@@ -70,7 +70,9 @@ namespace FieldTracing {
 
       phiprof::Timer timer {"fieldtracing-ionosphere-fsgridCoupling"};
       // Pick an initial stepsize
-      creal stepSize = min(100e3, fsgrid.getGridSpacing()[0] / 2.);
+      creal stepSize = checkedStepSize<Real>(
+         100e3, fieldTracingParameters.min_tracer_dx_full_box, fsgrid.getGridSpacing()[0] / 2.,
+         fieldTracingParameters.tracingMethod != Euler);
       std::vector<Real> nodeTracingStepSize(nodes.size(), stepSize); // In-flight storage of step size, needed when crossing into next MPI domain
       std::vector<Real> reducedNodeTracingStepSize(nodes.size());
 
@@ -301,7 +303,9 @@ namespace FieldTracing {
 
       std::array<std::pair<int, Real>, 3> coupling;
 
-      Real stepSize = 100e3;
+      Real stepSize = checkedStepSize<Real>(
+         100e3, fieldTracingParameters.min_tracer_dx_ionospere_coupling,
+         fieldTracingParameters.max_tracer_dx_ionospere_coupling, fieldTracingParameters.tracingMethod != Euler);
       std::array<Real,3> v;
       // For tracing towards the vlasov boundary, we only require the dipole field.
       TracingFieldFunction<Real> dipoleFieldOnly = [](std::array<Real, 3>& r, const bool outwards, std::array<Real, 3>& b) -> bool {
@@ -480,7 +484,9 @@ namespace FieldTracing {
 
       phiprof::Timer tracingTimer{"fieldtracing-ionosphere-openclosedTracing"};
       // Pick an initial stepsize
-      const TReal stepSize = min(1000e3, fsgrid.getGridSpacing()[0] / 2.);
+      const TReal stepSize = checkedStepSize<TReal>(
+         1000e3, fieldTracingParameters.min_tracer_dx_full_box, fsgrid.getGridSpacing()[0] / 2.,
+         fieldTracingParameters.tracingMethod != Euler);
       std::vector<TReal> nodeTracingStepSize(
           nodes.size(), stepSize); // In-flight storage of step size, needed when crossing into next MPI domain
       std::vector<TReal> reducedNodeTracingStepSize(nodes.size());
@@ -662,7 +668,7 @@ namespace FieldTracing {
 
          // Make one step along the fieldline
          // Forward tracing means true for last argument
-         stepFieldLine(x, v, cellTracingStepSize[n], (TReal)100e3, (TReal)fsgrid.getGridSpacing()[0] / 2, fieldTracingParameters.tracingMethod, tracingFullField, (DIRECTION == Direction::FORWARD));
+         stepFieldLine(x, v, cellTracingStepSize[n], (TReal)fieldTracingParameters.min_tracer_dx_full_box, (TReal)fsgrid.getGridSpacing()[0] / 2, fieldTracingParameters.tracingMethod, tracingFullField, (DIRECTION == Direction::FORWARD));
          cellRunningDistance[n] += cellTracingStepSize[n];
 
          // Look up the fsgrid cell belonging to these coordinates
@@ -823,7 +829,9 @@ namespace FieldTracing {
       MPI_Allgatherv(localDccrgCells.data(), localDccrgSize, MPI_UINT64_T, allDccrgCells.data(), amounts.data(), displacements.data(), MPI_UINT64_T, MPI_COMM_WORLD);
 
       // Pick an initial stepsize
-      const TReal stepSize = min(1000e3, fsgrid.getGridSpacing()[0] / 2.);
+      const TReal stepSize = checkedStepSize<TReal>(
+         1000e3, fieldTracingParameters.min_tracer_dx_full_box, fsgrid.getGridSpacing()[0] / 2.,
+         fieldTracingParameters.tracingMethod != Euler);
       std::vector<TReal> cellFWTracingStepSize(globalDccrgSize, stepSize); // In-flight storage of step size, needed when crossing into next MPI domain
       std::vector<TReal> cellBWTracingStepSize(globalDccrgSize, stepSize); // In-flight storage of step size, needed when crossing into next MPI domain
 
