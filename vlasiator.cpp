@@ -1525,6 +1525,12 @@ int simulate(int argn,char* args[]) {
          addTimedBarrier("barrier-boundary-conditions");
       }
 
+      for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+         for (CellID c : getLocalCells()){
+            setAccelerationTimeGhosts(mpiGrid[c], popID);
+         }
+      }
+
       phiprof::Timer spatialSpaceTimer {"Spatial-space"};
       if( P::propagateVlasovTranslation) {
          calculateSpatialTranslation(mpiGrid,1.0,false);

@@ -63,6 +63,8 @@ void communicatePreSpatialGhostTranslationCoalesced(
    int tc
    );
 
+void setAccelerationTimeGhosts( SpatialCell* spatial_cell, const uint popID);
+
 // Vlasov timestep reduction
 // found in either arch_dt.cpp or gpu_dt.cpp
 void reduce_vlasov_dt(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
