@@ -56,6 +56,16 @@ Spatial cell class for Vlasiator that supports a variable number of velocity blo
    #endif
 #endif
 
+enum LastPropagationState {
+   UNINITIALIZED,
+   ACCELERATED,
+   TRANSLATED_X,
+   TRANSLATED_Y,
+   TRANSLATED_Z,
+   TRANSLATED,
+   N_PROPAGATIONSTATES
+};
+
 namespace spatial_cell {
 
    /** Wrapper for variables needed for each particle species.
@@ -93,8 +103,8 @@ namespace spatial_cell {
       Real max_dt[2];                                                /**< Element[0] is max_r_dt, element[1] max_v_dt.*/
       Real velocityBlockMinValue;
 
-      // enum PropagationState = {UNINITIALIZED, TRANSLATED, ACCELERATED};
-      Real T, T_R, T_V;
+      uint state = LastPropagationState::UNINITIALIZED; // Treat last bit (::ACCELERATED=1u as initialized, used to reset after translation)
+      Real T, T_R, T_V, T_R_PREV, T_V_PREV, T_R_PREV_PREV, T_V_PREV_PREV; // Moment (and latter also VDF) timestamps
 
       uint ACCSUBCYCLES;          /*!< number of subcyles for each cell*/
       vmesh::LocalID N_blocks;    /**< Number of velocity blocks, used when receiving velocity
@@ -137,6 +147,8 @@ namespace spatial_cell {
             P[i] = P_R[i] = P_V[i] = 0;
             P_R_PREV[i] = P_V_PREV[i] = P_R_PREV_PREV[i] = P_V_PREV_PREV[i] = 0;
          }
+         state = LastPropagationState::UNINITIALIZED;
+         T = T_R = T_V = T_R_PREV = T_V_PREV = T_R_PREV_PREV = T_V_PREV_PREV = 0.0;
          velocity_block_with_content_list = new std::vector<vmesh::GlobalID>(1);
          velocity_block_with_no_content_list = new std::vector<vmesh::GlobalID>(1);
          velocity_block_with_content_list->clear();
@@ -187,6 +199,16 @@ namespace spatial_cell {
             P_V_PREV_PREV[i] = other.P_V_PREV_PREV[i];
          }
 
+         state = other.state;
+         T = other.T;
+         T_R = other.T_R;
+         T_V = other.T_V;
+         T_R_PREV = other.T_R_PREV;
+         T_V_PREV = other.T_V_PREV;
+         T_R_PREV_PREV = other.T_R_PREV_PREV;
+         T_V_PREV_PREV = other.T_V_PREV_PREV;
+
+
          // velocity_block_contents lists to be owned by pops
          velocity_block_with_content_list = new std::vector<vmesh::GlobalID>(*(other.velocity_block_with_no_content_list));
          velocity_block_with_no_content_list = new std::vector<vmesh::GlobalID>(*(other.velocity_block_with_no_content_list));
@@ -233,6 +255,16 @@ namespace spatial_cell {
             P_R_PREV_PREV[i] = other.P_R_PREV_PREV[i];
             P_V_PREV_PREV[i] = other.P_V_PREV_PREV[i];
          }
+
+         state = other.state;
+         T = other.T;
+         T_R = other.T_R;
+         T_V = other.T_V;
+         T_R_PREV = other.T_R_PREV;
+         T_V_PREV = other.T_V_PREV;
+         T_R_PREV_PREV = other.T_R_PREV_PREV;
+         T_V_PREV_PREV = other.T_V_PREV_PREV;
+         
          velocity_block_with_content_list = new std::vector<vmesh::GlobalID>(*(other.velocity_block_with_content_list));
          velocity_block_with_no_content_list = new std::vector<vmesh::GlobalID>(*(other.velocity_block_with_no_content_list));
          velocity_block_with_content_list_size = other.velocity_block_with_content_list_size;
