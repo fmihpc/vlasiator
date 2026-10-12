@@ -130,6 +130,7 @@ void initializeGrids(
    if (P::initialMaxTimeclass > 0) {
       P::timeclassFullHaloExtent = P::timeclassExactHaloExtent + P::timeclassOuterHaloExtent;
       neighborhood_size = max(neighborhood_size, P::timeclassExactHaloExtent+VLASOV_STENCIL_WIDTH+1); // the GT+1 will cover Outer halo extent; VLASOV_STENCIL_WIDTH+1 should do it?
+      neighborhood_size = max(neighborhood_size, P::timeclassFullHaloExtent+1); // the GT+1 will cover Outer halo extent; VLASOV_STENCIL_WIDTH+1 should do it?
       if (myRank == 0) {std::cerr << "neighborhood_size after timeclasses " << neighborhood_size << "\n";}
    }
  
