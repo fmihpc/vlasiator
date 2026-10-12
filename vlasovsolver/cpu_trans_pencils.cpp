@@ -259,9 +259,9 @@ void findNeighborhoodCells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
          if (!do_translate_cell(ncell)) {
             continue;
          }
-         if (ncell->has_timeclass(timeclass)) {
+         // if (ncell->has_timeclass(timeclass)) {
             foundCells.push_back(nbrPair.first);
-         }
+         // }
       }
    }
 }
