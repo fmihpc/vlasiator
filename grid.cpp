@@ -881,7 +881,8 @@ void prepareAMRLists(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
       phiprof::Timer timeclassGetRemoteCellsTimer {"update_remote_tc_cells"};
 
       const vector<CellID>& localCells = getLocalCells();
-      const vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(Neighborhoods::VLASOV_SOLVER_TIMEGHOST_REQ);
+      const vector<CellID> remote_cells = P::timeclassFullHaloExtent > 1 ? // if tc halo extent is small enough, regular ghost translation requires a larger known neighborhood
+         mpiGrid.get_remote_cells_on_process_boundary(Neighborhoods::VLASOV_SOLVER_TIMEGHOST_REQ) : mpiGrid.get_remote_cells_on_process_boundary(Neighborhoods::VLASOV_SOLVER_GHOST_REQNEIGH);
       
       mpiGrid.force_update_cell_neighborhoods(remote_cells);
 
