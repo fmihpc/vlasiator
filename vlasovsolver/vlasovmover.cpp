@@ -1854,176 +1854,205 @@ void updateParticlePopulations(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometr
 
       const CellID cellID = cells[c];
       SpatialCell* SC = mpiGrid[cellID];
-      const int timeclass = SC->parameters[CellParams::TIMECLASS];
-
-      if (P::currentMaxTimeclass == 0 || timeclass == P::currentMaxTimeclass) {
-
-         for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-            spatial_cell::Population& pop = SC->get_population(popID);
-            pop.RHO = 0.5 * ( pop.RHO_R + pop.RHO_V );
-            for(int i=0; i<3; i++) {
-               pop.V[i] = 0.5 * ( pop.V_R[i] + pop.V_V[i] );
-            }
-            for(int i=0; i<6; i++) {
-               pop.P[i] = 0.5 * ( pop.P_R[i] + pop.P_V[i] );
-            }
-         }
-
-      } else {
-
-         //interpolate output data
-         Real RTCpow = pow(2, P::currentMaxTimeclass - timeclass);
-         Real modul = P::fractionalTimestep % (int)RTCpow;
-         Real normModul = modul/RTCpow; // point at which to interpolate to, between [0, 1]
-
-         for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-            spatial_cell::Population& pop = SC->get_population(popID);
-
-            std::array<Real, 5> avgMomentsRho; // logic of these lists is flipped in comparison to the other interpolation function
-            std::array<std::array<Real, 3>, 5> avgMomentsV; 
-            std::array<std::array<Real, 6>, 5> avgMomentsP;
-
-            if (lastUpdateWasTranslation && SC->get_timeclass_turn_v()) { // aka if translation moments are ahead of acceleration moments
-               // here, temporal order from newest to oldest is _R, _V, _R_PREV, _V_PREV, _R_PREV_PREV, _V_PREV_PREV
-
-               avgMomentsRho.at(0) = 0.5 * ( pop.RHO_R + pop.RHO_V ); // 0.5
-               avgMomentsRho.at(1) = 0.5 * ( pop.RHO_V + pop.RHO_R_PREV ); // 0.0
-               avgMomentsRho.at(2) = 0.5 * ( pop.RHO_R_PREV + pop.RHO_V_PREV ); // -0.5
-               avgMomentsRho.at(3) = 0.5 * ( pop.RHO_V_PREV + pop.RHO_R_PREV_PREV ); // -1.0
-               avgMomentsRho.at(4) = 0.5 * ( pop.RHO_R_PREV_PREV + pop.RHO_V_PREV_PREV ); // -1.5
-
-               for(int i=0; i<3; i++) {
-                  avgMomentsV.at(0).at(i) = 0.5 * (pop.V_R[i] + pop.V_V[i]);
-                  avgMomentsV.at(1).at(i) = 0.5 * (pop.V_V[i] + pop.V_R_PREV[i]);
-                  avgMomentsV.at(2).at(i) = 0.5 * (pop.V_R_PREV[i] + pop.V_V_PREV[i]);
-                  avgMomentsV.at(3).at(i) = 0.5 * (pop.V_V_PREV[i] + pop.V_R_PREV_PREV[i]);
-                  avgMomentsV.at(4).at(i) = 0.5 * (pop.V_R_PREV_PREV[i] + pop.V_V_PREV_PREV[i]);
-               }
-               for(int i=0; i<6; i++) {
-                  avgMomentsP.at(0).at(i) = 0.5 * (pop.P_R[i] + pop.P_V[i]);
-                  avgMomentsP.at(1).at(i) = 0.5 * (pop.P_V[i] + pop.P_R_PREV[i]);
-                  avgMomentsP.at(2).at(i) = 0.5 * (pop.P_R_PREV[i] + pop.P_V_PREV[i]);
-                  avgMomentsP.at(3).at(i) = 0.5 * (pop.P_V_PREV[i] + pop.P_R_PREV_PREV[i]);
-                  avgMomentsP.at(4).at(i) = 0.5 * (pop.P_R_PREV_PREV[i] + pop.P_V_PREV_PREV[i]);               
-               }
-
-               switch(P::tcMomentInterpolationType) {
-                  case 1:
-                     pop.RHO = linearInterpolation(0.0, avgMomentsRho.at(1), 0.5, avgMomentsRho.at(0), normModul);
-                     for(int i=0; i<3; i++) {
-                        pop.V[i] = linearInterpolation(0.0, avgMomentsV.at(1).at(i), 0.5, avgMomentsV.at(0).at(i), normModul);
-                     }
-                     for(int i=0; i<6; i++) {
-                        pop.P[i] = linearInterpolation(0.0, avgMomentsP.at(1).at(i), 0.5, avgMomentsP.at(0).at(i), normModul);
-                     }
-                     break;
-                  case 2:
-                     pop.RHO = lagrangeInterpolation2order(-0.5, avgMomentsRho.at(2), 0.0, avgMomentsRho.at(1), 0.5, avgMomentsRho.at(0), normModul);
-                     for(int i=0; i<3; i++) {
-                        pop.V[i] = lagrangeInterpolation2order(-0.5, avgMomentsV.at(2).at(i), 0.0, avgMomentsV.at(1).at(i), 0.5, avgMomentsV.at(0).at(i), normModul);
-                     }
-                     for(int i=0; i<6; i++) {
-                        pop.P[i] = lagrangeInterpolation2order(-0.5, avgMomentsP.at(2).at(i), 0.0, avgMomentsP.at(1).at(i), 0.5, avgMomentsP.at(0).at(i), normModul);
-                     }
-                     break;
-                  case 3:
-                     pop.RHO = lagrangeInterpolation3order(-1.0, avgMomentsRho.at(3), -0.5, avgMomentsRho.at(2), 0.0, avgMomentsRho.at(1), 0.5, avgMomentsRho.at(0), normModul);
-                     for(int i=0; i<3; i++) {
-                        pop.V[i] = lagrangeInterpolation3order(-1.0, avgMomentsV.at(3).at(i), -0.5, avgMomentsV.at(2).at(i), 0.0, avgMomentsV.at(1).at(i), 0.5, avgMomentsV.at(0).at(i), normModul);
-                     }
-                     for(int i=0; i<6; i++) {
-                        pop.P[i] = lagrangeInterpolation3order(-1.0, avgMomentsP.at(3).at(i), -0.5, avgMomentsP.at(2).at(i), 0.0, avgMomentsP.at(1).at(i), 0.5, avgMomentsP.at(0).at(i), normModul);
-                     }
-                     break;
-                  case -1:
-                     pop.RHO = cubicHermiteSplineInterpolation(-1.0, avgMomentsRho.at(3), -0.5, avgMomentsRho.at(2), 0.0, avgMomentsRho.at(1), 0.5, avgMomentsRho.at(0), normModul);
-                     for(int i=0; i<3; i++) {
-                        pop.V[i] = cubicHermiteSplineInterpolation(-1.0, avgMomentsV.at(3).at(i), -0.5, avgMomentsV.at(2).at(i), 0.0, avgMomentsV.at(1).at(i), 0.5, avgMomentsV.at(0).at(i), normModul);
-                     }
-                     for(int i=0; i<6; i++) {
-                        pop.P[i] = cubicHermiteSplineInterpolation(-1.0, avgMomentsP.at(3).at(i), -0.5, avgMomentsP.at(2).at(i), 0.0, avgMomentsP.at(1).at(i), 0.5, avgMomentsP.at(0).at(i), normModul);
-                     }  
-                     break;
-               } 
+      // const int timeclass = SC->parameters[CellParams::TIMECLASS];
+      for (int timeclass = 0; timeclass <=P::currentMaxTimeclass; timeclass++){
    
-
-            } else { // aka if acceleration moments are ahead of translation moments
-               // here, temporal order from newest to oldest is _V, _R, _V_PREV, _R_PREV, _V_PREV_PREV, _R_PREV_PREV
-               
-               avgMomentsRho.at(0) = 0.5 * ( pop.RHO_V + pop.RHO_R ); // 1.0
-               avgMomentsRho.at(1) = 0.5 * ( pop.RHO_R + pop.RHO_V_PREV ); // 0.5
-               avgMomentsRho.at(2) = 0.5 * ( pop.RHO_V_PREV + pop.RHO_R_PREV ); // 0.0
-               avgMomentsRho.at(3) = 0.5 * ( pop.RHO_R_PREV + pop.RHO_V_PREV_PREV ); // -0.5
-               avgMomentsRho.at(4) = 0.5 * ( pop.RHO_V_PREV_PREV + pop.RHO_R_PREV_PREV ); // -1.0
-
+         if (P::currentMaxTimeclass == 0 || timeclass == P::currentMaxTimeclass) {
+   
+            for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+               spatial_cell::Population& pop = SC->get_population(popID, timeclass);
+               pop.RHO = 0.5 * ( pop.RHO_R + pop.RHO_V );
+               pop.T = 0.5 * ( pop.T_R + pop.T_V );
                for(int i=0; i<3; i++) {
-                  avgMomentsV.at(0).at(i) = 0.5 * (pop.V_V[i] + pop.V_R[i]);
-                  avgMomentsV.at(1).at(i) = 0.5 * (pop.V_R[i] + pop.V_V_PREV[i]);
-                  avgMomentsV.at(2).at(i) = 0.5 * (pop.V_V_PREV[i] + pop.V_R_PREV[i]);
-                  avgMomentsV.at(3).at(i) = 0.5 * (pop.V_R_PREV[i] + pop.V_V_PREV_PREV[i]);
-                  avgMomentsV.at(4).at(i) = 0.5 * (pop.V_V_PREV_PREV[i] + pop.V_R_PREV_PREV[i]);
+                  pop.V[i] = 0.5 * ( pop.V_R[i] + pop.V_V[i] );
                }
                for(int i=0; i<6; i++) {
-                  avgMomentsP.at(0).at(i) = 0.5 * (pop.P_V[i] + pop.P_R[i]);
-                  avgMomentsP.at(1).at(i) = 0.5 * (pop.P_R[i] + pop.P_V_PREV[i]);
-                  avgMomentsP.at(2).at(i) = 0.5 * (pop.P_V_PREV[i] + pop.P_R_PREV[i]);
-                  avgMomentsP.at(3).at(i) = 0.5 * (pop.P_R_PREV[i] + pop.P_V_PREV_PREV[i]);
-                  avgMomentsP.at(4).at(i) = 0.5 * (pop.P_V_PREV_PREV[i] + pop.P_R_PREV_PREV[i]);
+                  pop.P[i] = 0.5 * ( pop.P_R[i] + pop.P_V[i] );
                }
+            }
+   
+         } else {
+   
+            //interpolate output data
+            Real RTCpow = pow(2, P::currentMaxTimeclass - timeclass);
+            Real modul = P::fractionalTimestep % (int)RTCpow;
+            Real normModul = modul/RTCpow; // point at which to interpolate to, between [0, 1]
+   
+            for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+               spatial_cell::Population& pop = SC->get_population(popID);
+   
+               std::array<Real, 5> avgMomentsRho; // logic of these lists is flipped in comparison to the other interpolation function
+               std::array<Real, 5> avgTs;
+               std::array<std::array<Real, 3>, 5> avgMomentsV; 
+               std::array<std::array<Real, 6>, 5> avgMomentsP;
+   
+               if (lastUpdateWasTranslation && SC->get_timeclass_turn_v()) { // aka if translation moments are ahead of acceleration moments
+                  // here, temporal order from newest to oldest is _R, _V, _R_PREV, _V_PREV, _R_PREV_PREV, _V_PREV_PREV
 
-               switch(P::tcMomentInterpolationType) {
-                  case 1:
-                     if (normModul < 0.5) {
-                        pop.RHO = linearInterpolation(0.0, avgMomentsRho.at(2), 0.5, avgMomentsRho.at(1), normModul);
-                     } else {
-                        pop.RHO = linearInterpolation(0.5, avgMomentsRho.at(1), 1.0, avgMomentsRho.at(0), normModul);
-                     }
-                     for(int i=0; i<3; i++) {
-                        if (normModul < 0.5) {
-                           pop.V[i] = linearInterpolation(0.0, avgMomentsV.at(2).at(i), 0.5, avgMomentsV.at(1).at(i), normModul);
-                        } else {
-                           pop.V[i] = linearInterpolation(0.5, avgMomentsV.at(1).at(i), 1.0, avgMomentsV.at(0).at(i), normModul);
+                  avgMomentsRho.at(0) = 0.5 * ( pop.RHO_R + pop.RHO_V ); // 0.5
+                  avgMomentsRho.at(1) = 0.5 * ( pop.RHO_V + pop.RHO_R_PREV ); // 0.0
+                  avgMomentsRho.at(2) = 0.5 * ( pop.RHO_R_PREV + pop.RHO_V_PREV ); // -0.5
+                  avgMomentsRho.at(3) = 0.5 * ( pop.RHO_V_PREV + pop.RHO_R_PREV_PREV ); // -1.0
+                  avgMomentsRho.at(4) = 0.5 * ( pop.RHO_R_PREV_PREV + pop.RHO_V_PREV_PREV ); // -1.5
+                  
+                  avgTs.at(0) = 0.5 * ( pop.T_R + pop.T_V ); // 0.5
+                  avgTs.at(1) = 0.5 * ( pop.T_V + pop.T_R_PREV ); // 0.0
+                  avgTs.at(2) = 0.5 * ( pop.T_R_PREV + pop.T_V_PREV ); // -0.5
+                  avgTs.at(3) = 0.5 * ( pop.T_V_PREV + pop.T_R_PREV_PREV ); // -1.0
+                  avgTs.at(4) = 0.5 * ( pop.T_R_PREV_PREV + pop.T_V_PREV_PREV ); // -1.5
+   
+                  for(int i=0; i<3; i++) {
+                     avgMomentsV.at(0).at(i) = 0.5 * (pop.V_R[i] + pop.V_V[i]);
+                     avgMomentsV.at(1).at(i) = 0.5 * (pop.V_V[i] + pop.V_R_PREV[i]);
+                     avgMomentsV.at(2).at(i) = 0.5 * (pop.V_R_PREV[i] + pop.V_V_PREV[i]);
+                     avgMomentsV.at(3).at(i) = 0.5 * (pop.V_V_PREV[i] + pop.V_R_PREV_PREV[i]);
+                     avgMomentsV.at(4).at(i) = 0.5 * (pop.V_R_PREV_PREV[i] + pop.V_V_PREV_PREV[i]);
+                  }
+                  for(int i=0; i<6; i++) {
+                     avgMomentsP.at(0).at(i) = 0.5 * (pop.P_R[i] + pop.P_V[i]);
+                     avgMomentsP.at(1).at(i) = 0.5 * (pop.P_V[i] + pop.P_R_PREV[i]);
+                     avgMomentsP.at(2).at(i) = 0.5 * (pop.P_R_PREV[i] + pop.P_V_PREV[i]);
+                     avgMomentsP.at(3).at(i) = 0.5 * (pop.P_V_PREV[i] + pop.P_R_PREV_PREV[i]);
+                     avgMomentsP.at(4).at(i) = 0.5 * (pop.P_R_PREV_PREV[i] + pop.P_V_PREV_PREV[i]);               
+                  }
+   
+                  switch(P::tcMomentInterpolationType) {
+                     case 1:
+                        pop.RHO = linearInterpolation(0.0, avgMomentsRho.at(1), 0.5, avgMomentsRho.at(0), normModul);
+                        pop.T = linearInterpolation(0.0, avgTs.at(1), 0.5, avgTs.at(0), normModul);
+                        for(int i=0; i<3; i++) {
+                           pop.V[i] = linearInterpolation(0.0, avgMomentsV.at(1).at(i), 0.5, avgMomentsV.at(0).at(i), normModul);
                         }
-                     }
-                     for(int i=0; i<6; i++) {
-                        if (normModul < 0.5) {
-                           pop.P[i] = linearInterpolation(0.0, avgMomentsP.at(2).at(i), 0.5, avgMomentsP.at(1).at(i), normModul);
-                        } else {
-                           pop.P[i] = linearInterpolation(0.5, avgMomentsP.at(1).at(i), 1.0, avgMomentsP.at(0).at(i), normModul);
+                        for(int i=0; i<6; i++) {
+                           pop.P[i] = linearInterpolation(0.0, avgMomentsP.at(1).at(i), 0.5, avgMomentsP.at(0).at(i), normModul);
                         }
-                     }
-                     break;
-                  case 2:
-                     pop.RHO = lagrangeInterpolation2order(0.0, avgMomentsRho.at(2), 0.5, avgMomentsRho.at(1), 1.0, avgMomentsRho.at(0), normModul);
-                     for(int i=0; i<3; i++) {
-                        pop.V[i] = lagrangeInterpolation2order(0.0, avgMomentsV.at(2).at(i), 0.5, avgMomentsV.at(1).at(i), 1.0, avgMomentsV.at(0).at(i), normModul);
-                     }
-                     for(int i=0; i<6; i++) {
-                        pop.P[i] = lagrangeInterpolation2order(0.0, avgMomentsP.at(2).at(i), 0.5, avgMomentsP.at(1).at(i), 1.0, avgMomentsP.at(0).at(i), normModul);
-                     }
-                     break;
-                  case 3:
-                     pop.RHO = lagrangeInterpolation3order(-0.5, avgMomentsRho.at(3), 0.0, avgMomentsRho.at(2), 0.5, avgMomentsRho.at(1), 1.0, avgMomentsRho.at(0), normModul);
-                     for(int i=0; i<3; i++) {
-                        pop.V[i] = lagrangeInterpolation3order(-0.5, avgMomentsV.at(3).at(i), 0.0, avgMomentsV.at(2).at(i), 0.5, avgMomentsV.at(1).at(i), 1.0, avgMomentsV.at(0).at(i), normModul);
-                     }
-                     for(int i=0; i<6; i++) {
-                        pop.P[i] = lagrangeInterpolation3order(-0.5, avgMomentsP.at(3).at(i), 0.0, avgMomentsP.at(2).at(i), 0.5, avgMomentsP.at(1).at(i), 1.0, avgMomentsP.at(0).at(i), normModul);
-                     }
-                     break;
-                  case -1:
-                     pop.RHO = cubicHermiteSplineInterpolation(-0.5, avgMomentsRho.at(3), 0.0, avgMomentsRho.at(2), 0.5, avgMomentsRho.at(1), 1.0, avgMomentsRho.at(0), normModul);
-                     for(int i=0; i<3; i++) {
-                        pop.V[i] = cubicHermiteSplineInterpolation(-0.5, avgMomentsV.at(3).at(i), 0.0, avgMomentsV.at(2).at(i), 0.5, avgMomentsV.at(1).at(i), 1.0, avgMomentsV.at(0).at(i), normModul);
-                     }
-                     for(int i=0; i<6; i++) {
-                        pop.P[i] = cubicHermiteSplineInterpolation(-0.5, avgMomentsP.at(3).at(i), 0.0, avgMomentsP.at(2).at(i), 0.5, avgMomentsP.at(1).at(i), 1.0, avgMomentsP.at(0).at(i), normModul);
-                     }
-                     break;
-               }
-            } // else for acceleration moments ahead of translation moments
-         } // for loop over populations
-      } // if using timeclasses
+                        break;
+                     case 2:
+                        pop.RHO = lagrangeInterpolation2order(-0.5, avgMomentsRho.at(2), 0.0, avgMomentsRho.at(1), 0.5, avgMomentsRho.at(0),
+                           normModul);
+                        pop.T = lagrangeInterpolation2order(-0.5, avgTs.at(2), 0.0, avgTs.at(1), 0.5, avgTs.at(0), normModul);
+                        for(int i=0; i<3; i++) {
+                           pop.V[i] = lagrangeInterpolation2order(-0.5, avgMomentsV.at(2).at(i), 0.0, avgMomentsV.at(1).at(i), 0.5, avgMomentsV.at(0).at(i), normModul);
+                        }
+                        for(int i=0; i<6; i++) {
+                           pop.P[i] = lagrangeInterpolation2order(-0.5, avgMomentsP.at(2).at(i), 0.0, avgMomentsP.at(1).at(i), 0.5, avgMomentsP.at(0).at(i), normModul);
+                        }
+                        break;
+                     case 3:
+                        pop.RHO = lagrangeInterpolation3order(-1.0, avgMomentsRho.at(3), -0.5, avgMomentsRho.at(2), 0.0, avgMomentsRho.at(1), 0.5, avgMomentsRho.at(0), normModul);
+                        pop.T = lagrangeInterpolation3order(-1.0, avgTs.at(3), -0.5, avgTs.at(2), 0.0, avgTs.at(1), 0.5, avgTs.at(0), normModul);
+                        for(int i=0; i<3; i++) {
+                           pop.V[i] = lagrangeInterpolation3order(-1.0, avgMomentsV.at(3).at(i), -0.5, avgMomentsV.at(2).at(i), 0.0, avgMomentsV.at(1).at(i), 0.5, avgMomentsV.at(0).at(i), normModul);
+                        }
+                        for(int i=0; i<6; i++) {
+                           pop.P[i] = lagrangeInterpolation3order(-1.0, avgMomentsP.at(3).at(i), -0.5, avgMomentsP.at(2).at(i), 0.0, avgMomentsP.at(1).at(i), 0.5, avgMomentsP.at(0).at(i), normModul);
+                        }
+                        break;
+                     case -1:
+                        pop.RHO = cubicHermiteSplineInterpolation(-1.0, avgMomentsRho.at(3), -0.5, avgMomentsRho.at(2), 0.0, avgMomentsRho.at(1), 0.5, avgMomentsRho.at(0), normModul);
+                        pop.T = cubicHermiteSplineInterpolation(-1.0, avgTs.at(3), -0.5, avgTs.at(2), 0.0, avgTs.at(1), 0.5, avgTs.at(0), normModul);
+                        for(int i=0; i<3; i++) {
+                           pop.V[i] = cubicHermiteSplineInterpolation(-1.0, avgMomentsV.at(3).at(i), -0.5, avgMomentsV.at(2).at(i), 0.0, avgMomentsV.at(1).at(i), 0.5, avgMomentsV.at(0).at(i), normModul);
+                        }
+                        for(int i=0; i<6; i++) {
+                           pop.P[i] = cubicHermiteSplineInterpolation(-1.0, avgMomentsP.at(3).at(i), -0.5, avgMomentsP.at(2).at(i), 0.0, avgMomentsP.at(1).at(i), 0.5, avgMomentsP.at(0).at(i), normModul);
+                        }  
+                        break;
+                  } 
+      
+   
+               } else { // aka if acceleration moments are ahead of translation moments
+                  // here, temporal order from newest to oldest is _V, _R, _V_PREV, _R_PREV, _V_PREV_PREV, _R_PREV_PREV
+                  
+                  avgMomentsRho.at(0) = 0.5 * ( pop.RHO_V + pop.RHO_R ); // 1.0
+                  avgMomentsRho.at(1) = 0.5 * ( pop.RHO_R + pop.RHO_V_PREV ); // 0.5
+                  avgMomentsRho.at(2) = 0.5 * ( pop.RHO_V_PREV + pop.RHO_R_PREV ); // 0.0
+                  avgMomentsRho.at(3) = 0.5 * ( pop.RHO_R_PREV + pop.RHO_V_PREV_PREV ); // -0.5
+                  avgMomentsRho.at(4) = 0.5 * ( pop.RHO_V_PREV_PREV + pop.RHO_R_PREV_PREV ); // -1.0
+
+                  avgTs.at(0) = 0.5 * ( pop.T_V + pop.T_R ); // 1.0
+                  avgTs.at(1) = 0.5 * ( pop.T_R + pop.T_V_PREV ); // 0.5
+                  avgTs.at(2) = 0.5 * ( pop.T_V_PREV + pop.T_R_PREV ); // 0.0
+                  avgTs.at(3) = 0.5 * ( pop.T_R_PREV + pop.T_V_PREV_PREV ); // -0.5
+                  avgTs.at(4) = 0.5 * ( pop.T_V_PREV_PREV + pop.T_R_PREV_PREV ); // -1.0
+   
+                  for(int i=0; i<3; i++) {
+                     avgMomentsV.at(0).at(i) = 0.5 * (pop.V_V[i] + pop.V_R[i]);
+                     avgMomentsV.at(1).at(i) = 0.5 * (pop.V_R[i] + pop.V_V_PREV[i]);
+                     avgMomentsV.at(2).at(i) = 0.5 * (pop.V_V_PREV[i] + pop.V_R_PREV[i]);
+                     avgMomentsV.at(3).at(i) = 0.5 * (pop.V_R_PREV[i] + pop.V_V_PREV_PREV[i]);
+                     avgMomentsV.at(4).at(i) = 0.5 * (pop.V_V_PREV_PREV[i] + pop.V_R_PREV_PREV[i]);
+                  }
+                  for(int i=0; i<6; i++) {
+                     avgMomentsP.at(0).at(i) = 0.5 * (pop.P_V[i] + pop.P_R[i]);
+                     avgMomentsP.at(1).at(i) = 0.5 * (pop.P_R[i] + pop.P_V_PREV[i]);
+                     avgMomentsP.at(2).at(i) = 0.5 * (pop.P_V_PREV[i] + pop.P_R_PREV[i]);
+                     avgMomentsP.at(3).at(i) = 0.5 * (pop.P_R_PREV[i] + pop.P_V_PREV_PREV[i]);
+                     avgMomentsP.at(4).at(i) = 0.5 * (pop.P_V_PREV_PREV[i] + pop.P_R_PREV_PREV[i]);
+                  }
+   
+                  switch(P::tcMomentInterpolationType) {
+                     case 1:
+                        if (normModul < 0.5) {
+                           pop.RHO = linearInterpolation(0.0, avgMomentsRho.at(2), 0.5, avgMomentsRho.at(1), normModul);
+                        } else {
+                           pop.RHO = linearInterpolation(0.5, avgMomentsRho.at(1), 1.0, avgMomentsRho.at(0), normModul);
+                        }
+                        if (normModul < 0.5) {
+                           pop.T = linearInterpolation(0.0, avgTs.at(2), 0.5, avgTs.at(1), normModul);
+                        } else {
+                           pop.T = linearInterpolation(0.5, avgTs.at(1), 1.0, avgTs.at(0), normModul);
+                        }
+                        for(int i=0; i<3; i++) {
+                           if (normModul < 0.5) {
+                              pop.V[i] = linearInterpolation(0.0, avgMomentsV.at(2).at(i), 0.5, avgMomentsV.at(1).at(i), normModul);
+                           } else {
+                              pop.V[i] = linearInterpolation(0.5, avgMomentsV.at(1).at(i), 1.0, avgMomentsV.at(0).at(i), normModul);
+                           }
+                        }
+                        for(int i=0; i<6; i++) {
+                           if (normModul < 0.5) {
+                              pop.P[i] = linearInterpolation(0.0, avgMomentsP.at(2).at(i), 0.5, avgMomentsP.at(1).at(i), normModul);
+                           } else {
+                              pop.P[i] = linearInterpolation(0.5, avgMomentsP.at(1).at(i), 1.0, avgMomentsP.at(0).at(i), normModul);
+                           }
+                        }
+                        break;
+                     case 2:
+                        pop.RHO = lagrangeInterpolation2order(0.0, avgMomentsRho.at(2), 0.5, avgMomentsRho.at(1), 1.0, avgMomentsRho.at(0), normModul);
+                        pop.T = lagrangeInterpolation2order(0.0, avgTs.at(2), 0.5, avgTs.at(1), 1.0, avgTs.at(0), normModul);
+                        for(int i=0; i<3; i++) {
+                           pop.V[i] = lagrangeInterpolation2order(0.0, avgMomentsV.at(2).at(i), 0.5, avgMomentsV.at(1).at(i), 1.0, avgMomentsV.at(0).at(i), normModul);
+                        }
+                        for(int i=0; i<6; i++) {
+                           pop.P[i] = lagrangeInterpolation2order(0.0, avgMomentsP.at(2).at(i), 0.5, avgMomentsP.at(1).at(i), 1.0, avgMomentsP.at(0).at(i), normModul);
+                        }
+                        break;
+                     case 3:
+                        std::cerr << __FILE__<<":"<<__LINE__ << "please implement T interpolation\n"; abort();
+                        pop.RHO = lagrangeInterpolation3order(-0.5, avgMomentsRho.at(3), 0.0, avgMomentsRho.at(2), 0.5, avgMomentsRho.at(1), 1.0, avgMomentsRho.at(0), normModul);
+                        for(int i=0; i<3; i++) {
+                           pop.V[i] = lagrangeInterpolation3order(-0.5, avgMomentsV.at(3).at(i), 0.0, avgMomentsV.at(2).at(i), 0.5, avgMomentsV.at(1).at(i), 1.0, avgMomentsV.at(0).at(i), normModul);
+                        }
+                        for(int i=0; i<6; i++) {
+                           pop.P[i] = lagrangeInterpolation3order(-0.5, avgMomentsP.at(3).at(i), 0.0, avgMomentsP.at(2).at(i), 0.5, avgMomentsP.at(1).at(i), 1.0, avgMomentsP.at(0).at(i), normModul);
+                        }
+                        break;
+                     case -1:
+                        std::cerr << __FILE__<<":"<<__LINE__ << "please implement T interpolation\n"; abort();
+                        pop.RHO = cubicHermiteSplineInterpolation(-0.5, avgMomentsRho.at(3), 0.0, avgMomentsRho.at(2), 0.5, avgMomentsRho.at(1), 1.0, avgMomentsRho.at(0), normModul);
+                        for(int i=0; i<3; i++) {
+                           pop.V[i] = cubicHermiteSplineInterpolation(-0.5, avgMomentsV.at(3).at(i), 0.0, avgMomentsV.at(2).at(i), 0.5, avgMomentsV.at(1).at(i), 1.0, avgMomentsV.at(0).at(i), normModul);
+                        }
+                        for(int i=0; i<6; i++) {
+                           pop.P[i] = cubicHermiteSplineInterpolation(-0.5, avgMomentsP.at(3).at(i), 0.0, avgMomentsP.at(2).at(i), 0.5, avgMomentsP.at(1).at(i), 1.0, avgMomentsP.at(0).at(i), normModul);
+                        }
+                        break;
+                  }
+               } // else for acceleration moments ahead of translation moments
+            } // for loop over populations
+         } // if using timeclasses
+      } //loop over timeclasses
    } // for loop over cells 
 }
 
