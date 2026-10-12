@@ -371,8 +371,12 @@ namespace spatial_cell {
 
       const Real& get_tc_dt() const;
       int get_tc() const;
-      bool has_timeclass(int) const;
-      bool has_active_timeclass(int) const;
+      bool has_timeclass(const int) const;
+      bool has_source_timeclass_toc(const int) const;
+      bool has_source_timeclass_tic(const int) const;
+      bool has_active_timeclass_tic(const int) const;
+      bool has_active_timeclass_toc(const int) const;
+
       bool get_timeclass_turn_r() const;
       bool get_timeclass_turn_v() const;
       bool get_timeclass_turn_v(int tc) const;

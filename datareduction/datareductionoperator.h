@@ -291,7 +291,7 @@ namespace DRO {
 
    class Blocks: public DataReductionOperator {
    public:
-      Blocks(cuint popID);
+      Blocks(cuint popID, const int timeclass = -1);
       virtual ~Blocks();
 
       virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
@@ -303,6 +303,7 @@ namespace DRO {
    protected:
       uint nBlocks;
       uint popID;
+      int timeclass;
       std::string popName;
    };
 
@@ -750,4 +751,3 @@ namespace DRO {
 } // namespace DRO
 
 #endif
-

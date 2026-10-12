@@ -421,7 +421,41 @@ namespace spatial_cell {
    /* Check if the cell has native timeclass or any sort of timeclass ghost request
     * pinned to it.
     */
-   bool SpatialCell::has_timeclass(int timeclass) const{
+   bool SpatialCell::has_timeclass(const int timeclass) const{
+      if (timeclass < 0 || 
+         (int)this->parameters[CellParams::TIMECLASS] == timeclass ||
+               this->requested_timeclass_ghosts.count(timeclass) > 0 ||
+               this->requested_timeclass_copy_ghosts.count(timeclass) > 0 ||
+               this->requested_timeclass_outer_ghosts.count(timeclass) > 0
+         ){
+            return true;
+         } 
+         else{
+            return false;
+         }
+   }
+
+   /* Check if the cell has native timeclass or any sort of timeclass ghost request
+    * pinned to it.
+    */
+   bool SpatialCell::has_source_timeclass_tic(const int timeclass) const{
+      if (timeclass < 0 || 
+         (int)this->parameters[CellParams::TIMECLASS] == timeclass ||
+               this->requested_timeclass_ghosts.count(timeclass) > 0 ||
+               this->requested_timeclass_copy_ghosts.count(timeclass) > 0 ||
+               this->requested_timeclass_outer_ghosts.count(timeclass) > 0
+         ){
+            return true;
+         } 
+         else{
+            return false;
+         }
+   }
+
+   /* Check if the cell has native timeclass or any sort of timeclass ghost request
+    * pinned to it.
+    */
+   bool SpatialCell::has_source_timeclass_toc(const int timeclass) const{
       if (timeclass < 0 || 
          (int)this->parameters[CellParams::TIMECLASS] == timeclass ||
                this->requested_timeclass_ghosts.count(timeclass) > 0 ||
@@ -437,11 +471,24 @@ namespace spatial_cell {
    /* Check if the cell has native timeclass or translation timeclass ghost request
     * pinned to it.
     */
-   bool SpatialCell::has_active_timeclass(int timeclass) const{
+   bool SpatialCell::has_active_timeclass_tic(const int timeclass) const{
       if (timeclass < 0 || 
          (int)this->parameters[CellParams::TIMECLASS] == timeclass ||
                this->requested_timeclass_ghosts.count(timeclass) > 0
          ){
+            return true;
+         } 
+         else{
+            return false;
+         }
+   }
+   
+   /* Check if the cell has native timeclass or translation timeclass ghost request
+    * pinned to it.
+    */
+   bool SpatialCell::has_active_timeclass_toc(const int timeclass) const{
+      if (timeclass < 0 || 
+         (int)this->parameters[CellParams::TIMECLASS] == timeclass){
             return true;
          } 
          else{

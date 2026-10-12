@@ -498,6 +498,47 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             continue;
          }
       }
+      if(P::systemWriteAllDROs || lowercase == "timeclass_pops" || lowercase == "vg_timeclass_pops") {
+         // per-rank timeclass 
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_timeclass",CellParams::TIMECLASS,1));
+	      outputReducer->addMetadata(outputReducer->size()-1,"","","$\\mathrm{Timeclass}$","");
+
+			
+			for (int timeclass = 0; timeclass <= P::currentMaxTimeclass; timeclass++){
+			   //if(P::systemWriteAllDROs || lowercase == "populations_rho" || lowercase == "populations_vg_rho") { // Per-population particle number density
+				stringstream ss;
+				ss << "_" << timeclass;
+            for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
+               species::Species& species=getObjectWrapper().particleSpecies[i];
+               const std::string& pop = species.name;
+               outputReducer->addOperator(new DRO::DataReductionOperatorPopulations<Real>(pop + ss.str() + "/vg_t_r", i, offsetof(spatial_cell::Population, T_R), 1, timeclass));
+               outputReducer->addMetadata(outputReducer->size()-1,"s","$\\mathrm{s}$","$t_\\mathrm{r,"+pop+ss.str()+"}$","1.0");
+            }
+            for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
+               species::Species& species=getObjectWrapper().particleSpecies[i];
+               const std::string& pop = species.name;
+               outputReducer->addOperator(new DRO::DataReductionOperatorPopulations<Real>(pop + ss.str() + "/vg_t_v", i, offsetof(spatial_cell::Population, T_V), 1, timeclass));
+               outputReducer->addMetadata(outputReducer->size()-1,"s","$\\mathrm{s}$","$t_\\mathrm{v,"+pop+ss.str()+"}$","1.0");
+            }
+            for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
+               species::Species& species=getObjectWrapper().particleSpecies[i];
+               const std::string& pop = species.name;
+               outputReducer->addOperator(new DRO::DataReductionOperatorPopulations<Real>(pop + ss.str() + "/vg_t", i, offsetof(spatial_cell::Population, T), 1, timeclass));
+               outputReducer->addMetadata(outputReducer->size()-1,"s","$\\mathrm{s}$","$t_\\mathrm{"+pop+ss.str()+"}$","1.0");
+            }
+            for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
+               species::Species& species=getObjectWrapper().particleSpecies[i];
+               const std::string& pop = species.name;
+               outputReducer->addOperator(new DRO::Blocks(i, timeclass));
+               outputReducer->addMetadata(outputReducer->size()-1,"","","$\\mathrm{"+pop+"_"+to_string(timeclass)+" blocks}$","");
+            }
+            //}
+         }
+							
+         if(!P::systemWriteAllDROs) {
+            continue;
+         }
+      }
       // if(P::systemWriteAllDROs || lowercase == "timeclass_rank" || lowercase == "vg_timeclass_rank") {
       //    // per-rank timeclass 
       //    outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_timeclass_rank",CellParams::TIMECLASS_RANK,1));
