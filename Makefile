@@ -256,7 +256,7 @@ data:
 c: clean
 clean: data
 	@echo "[CLEAN]"
-	$(SILENT)rm -rf *.o *.d *~ */*~ */*/*~ ${EXE} particle_post_pusher check_projects_compil_logs/ check_projects_cfg_logs/ particles/*.o
+	$(SILENT)rm -rf *.o *.d *~ */*~ */*/*~ ${EXE} outflow-test-bin particle_post_pusher check_projects_compil_logs/ check_projects_cfg_logs/ particles/*.o
 cleantools:
 	rm -rf vlsv2silo_${FP_PRECISION} vlsvextract_${FP_PRECISION}  vlsvdiff_${FP_PRECISION}
 
@@ -363,6 +363,21 @@ endif
 vlasiator: $(OBJS) $(OBJS_FSOLVER)
 	@echo "[LINK] ${EXE}"
 	$(SILENT)$(LNK) ${LDFLAGS} -o ${EXE} $(OBJS) $(LIBS) $(OBJS_FSOLVER)
+
+# Native boundary regression uses production objects and a separate entrypoint.
+.PHONY: outflow-test
+outflow-test: outflow-test-bin
+
+outflow-test-bin: $(filter-out vlasiator.o,$(OBJS)) $(OBJS_FSOLVER) outflow_test_main.o outflow_test.o
+	$(SILENT)$(LNK) ${LDFLAGS} -o $@ $(filter-out vlasiator.o,$(OBJS)) outflow_test_main.o outflow_test.o $(LIBS) $(OBJS_FSOLVER)
+
+outflow_test_main.o: vlasiator.cpp
+	$(SILENT)$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -Dmain=vlasiator_simulation_main -c $< -o $@ ${INC_DCCRG} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_VECTORCLASS} ${INC_FSGRID} ${INC_PROFILE} ${INC_VLSV} ${INC_PAPI} ${INC_MPI} ${INC_ZFP} ${INC_OCTREE_COMPRESSOR} ${INC_NN_COMPRESSOR}
+
+outflow_test.o: testpackage/outflow/outflow_test.cpp
+	$(SILENT)$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -c $< -o $@ -I$(CURDIR) ${INC_DCCRG} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_VECTORCLASS} ${INC_FSGRID} ${INC_PROFILE} ${INC_VLSV} ${INC_PAPI} ${INC_MPI} ${INC_ZFP} ${INC_OCTREE_COMPRESSOR} ${INC_NN_COMPRESSOR}
+
+-include outflow_test_main.d outflow_test.d
 
 
 #/// TOOLS section/////

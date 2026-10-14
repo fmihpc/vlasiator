@@ -78,13 +78,13 @@ namespace SBC {
         sP->faceVlasovScheme={0,0,0,0,0,0};
         Readparameters::add(pop + "_outflow.reapplyFaceUponRestart", "List of faces on which outflow boundary conditions are to be reapplied upon restart ([xyz][+-]).",sP->faceToReapplyUponRestartList);
 
-        Readparameters::add<vector<string>>(pop + "_outflow.face", "List of faces on which outflow boundary conditions are to be applied ([xyz][+-]).",this->faceList);
-        Readparameters::add<string>(pop + "_outflow.vlasovScheme_face_x+", "Scheme to use on the face x+ (Copy, None)", this->vlasovSysBoundarySchemeName[0],"Copy");
-        Readparameters::add<string>(pop + "_outflow.vlasovScheme_face_x-", "Scheme to use on the face x- (Copy, None)", this->vlasovSysBoundarySchemeName[1],"Copy");
-        Readparameters::add<string>(pop + "_outflow.vlasovScheme_face_y+", "Scheme to use on the face y+ (Copy, None)", this->vlasovSysBoundarySchemeName[2],"Copy");
-        Readparameters::add<string>(pop + "_outflow.vlasovScheme_face_y-", "Scheme to use on the face y- (Copy, None)", this->vlasovSysBoundarySchemeName[3],"Copy");
-        Readparameters::add<string>(pop + "_outflow.vlasovScheme_face_z+", "Scheme to use on the face z+ (Copy, None)", this->vlasovSysBoundarySchemeName[4],"Copy");
-        Readparameters::add<string>(pop + "_outflow.vlasovScheme_face_z-", "Scheme to use on the face z- (Copy, None)", this->vlasovSysBoundarySchemeName[5],"Copy");
+        Readparameters::add<vector<string>>(pop + "_outflow.face", "List of faces on which outflow boundary conditions are to be applied ([xyz][+-]).",sP->faceList);
+        Readparameters::add<string>(pop + "_outflow.vlasovScheme_face_x+", "Scheme to use on the face x+ (Copy, None)", sP->vlasovSysBoundarySchemeName[0],"Copy");
+        Readparameters::add<string>(pop + "_outflow.vlasovScheme_face_x-", "Scheme to use on the face x- (Copy, None)", sP->vlasovSysBoundarySchemeName[1],"Copy");
+        Readparameters::add<string>(pop + "_outflow.vlasovScheme_face_y+", "Scheme to use on the face y+ (Copy, None)", sP->vlasovSysBoundarySchemeName[2],"Copy");
+        Readparameters::add<string>(pop + "_outflow.vlasovScheme_face_y-", "Scheme to use on the face y- (Copy, None)", sP->vlasovSysBoundarySchemeName[3],"Copy");
+        Readparameters::add<string>(pop + "_outflow.vlasovScheme_face_z+", "Scheme to use on the face z+ (Copy, None)", sP->vlasovSysBoundarySchemeName[4],"Copy");
+        Readparameters::add<string>(pop + "_outflow.vlasovScheme_face_z-", "Scheme to use on the face z- (Copy, None)", sP->vlasovSysBoundarySchemeName[5],"Copy");
 
         Readparameters::add<Real>(pop + "_outflow.quench", "Factor by which to quench the inflowing parts of the velocity distribution function.", sP->quenchFactor,1.0);
       }
@@ -98,7 +98,7 @@ namespace SBC {
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
         OutflowSpeciesParameters* sP=this->speciesParamsRead.at(i);
 
-        for(auto& face :this->faceList) {
+        for(auto& face :sP->faceList) {
           if(face == "x+") { this->facesToProcess[0] = true; sP->facesToSkipVlasov[0] = false; }
           if(face == "x-") { this->facesToProcess[1] = true; sP->facesToSkipVlasov[1] = false; }
           if(face == "y+") { this->facesToProcess[2] = true; sP->facesToSkipVlasov[2] = false; }
@@ -109,12 +109,12 @@ namespace SBC {
 
 
         for(uint j=0; j<6 ; j++) {
-           if(this->vlasovSysBoundarySchemeName[j] == "None") {
+           if(sP->vlasovSysBoundarySchemeName[j] == "None") {
               sP->faceVlasovScheme[j] = vlasovscheme::NONE;
-           } else if (this->vlasovSysBoundarySchemeName[j] == "Copy") {
+           } else if (sP->vlasovSysBoundarySchemeName[j] == "Copy") {
               sP->faceVlasovScheme[j] = vlasovscheme::COPY;
            } else {
-              abort_mpi("ERROR: " + this->vlasovSysBoundarySchemeName[j] + " is an invalid Outflow Vlasov scheme!");
+              abort_mpi("ERROR: " + sP->vlasovSysBoundarySchemeName[j] + " is an invalid Outflow Vlasov scheme!");
            }
         }
         this->speciesParams.at(i)=*sP;
@@ -389,6 +389,13 @@ namespace SBC {
    }
 
    string Outflow::getName() const { return "Outflow"; }
+   void Outflow::getSpeciesFaces(const uint popID, bool* faces) const {
+      const auto& parameters = speciesParams.at(popID);
+      for (uint face = 0; face < 6; ++face) {
+         faces[face] = !parameters.facesToSkipVlasov[face];
+      }
+   }
+
    uint Outflow::getIndex() const { return sysboundarytype::OUTFLOW; }
 
 } // namespace SBC

@@ -32,6 +32,8 @@
 namespace SBC {
 
 	struct OutflowSpeciesParameters {
+      std::vector<std::string> faceList;
+      std::array<std::string, 6> vlasovSysBoundarySchemeName;
       /*! Array of bool telling which faces are going to be skipped by the Vlasov system boundary condition.*/
 			std::array<bool, 6> facesToSkipVlasov;
       /*! List of schemes to use for the Vlasov outflow boundary conditions on each face ([xyz][+-]). */
@@ -99,6 +101,7 @@ namespace SBC {
       virtual void setupL2OutflowAtRestart(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid) override;
 
       virtual void getFaces(bool* faces)  override;
+      void getSpeciesFaces(const uint popID, bool* faces) const;
       virtual std::string getName() const override;
       virtual uint getIndex() const override;
 
@@ -109,11 +112,8 @@ namespace SBC {
       bool facesToSkipFields[6];
       /*! Array of bool telling which faces are going to be reapplied upon restart.*/
       bool facesToReapply[6];
-      /*! List of faces on which outflow boundary conditions are to be applied ([xyz][+-]). */
-      std::vector<std::string> faceList;
       /*! List of faces on which no fields outflow boundary conditions are to be applied ([xyz][+-]). */
       std::vector<std::string> faceNoFieldsList;
-      array<string, 6> vlasovSysBoundarySchemeName;
       std::vector<OutflowSpeciesParameters> speciesParams;
       std::vector<OutflowSpeciesParameters*> speciesParamsRead;
       
