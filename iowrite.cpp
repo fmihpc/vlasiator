@@ -1924,58 +1924,70 @@ bool writeGrid(
    // Write mesh boundaries: NOTE: master process only
    // Visit plugin needs to know the boundaries of the mesh so the number of cells in x, y, z direction
    if (writeMeshBoundingBox(vlsvWriter, meshName, masterProcessId, MPI_COMM_WORLD) == false) {
+      cerr << __FILE__<<":"<<__LINE__ << " writeMeshBoundingBox failed" << endl;
       return false;
    }
 
    // Write the node coordinates: NOTE: master process only
    if (writeBoundingBoxNodeCoordinates(vlsvWriter, meshName, masterProcessId, MPI_COMM_WORLD) == false) {
+      cerr << __FILE__<<":"<<__LINE__ << " writeMeshBoundingBoxNodeCoordinates failed" << endl;
       return false;
    }
 
    // Write basic grid variables: NOTE: master process only
    if (writeCommonGridData(vlsvWriter, mpiGrid, local_cells, P::systemWrites[outputFileTypeIndex], MPI_COMM_WORLD) == false) {
+      cerr << __FILE__<<":"<<__LINE__ << " writeCommonGridData failed" << endl;
       return false;
    }
 
    // Write zone global id numbers:
    if (writeZoneGlobalIdNumbers(mpiGrid, vlsvWriter, meshName, local_cells, ghost_cells) == false) {
+      cerr << __FILE__<<":"<<__LINE__ << " writeZoneGlobalIdNumbers failed" << endl;
       return false;
    }
    // Write domain sizes:
    if (writeDomainSizes(vlsvWriter, meshName, local_cells.size(), ghost_cells.size()) == false) {
+      cerr << __FILE__<<":"<<__LINE__ << " writeDomainSizes failed" << endl;
       return false;
    }
    // Write domain extents
    if (writeDomainExtents(vlsvWriter, meshName, local_cells, mpiGrid) == false) {
+      cerr << __FILE__<<":"<<__LINE__ << " writeDomainExtents failed" << endl;
       return false;
    }
    // Update local ids for cells:
    if (updateLocalIds(mpiGrid, local_cells, MPI_COMM_WORLD) == false) {
+      cerr << __FILE__<<":"<<__LINE__ << " updateLocalIds failed" << endl;
       return false;
    }
 
    // Write ghost zone domain and local id numbers ( VisIt plugin needs this for MPI )
    if (writeGhostZoneDomainAndLocalIdNumbers(mpiGrid, vlsvWriter, meshName, ghost_cells) == false) {
+      cerr << __FILE__<<":"<<__LINE__ << " writeGhostZoneDomainAndLocalIdNumbers failed" << endl;
       return false;
    }
 
    // Write FSGrid metadata
    if (writeFsGridMetadata(fieldSolverData.fsgrid, technical, vlsvWriter, P::systemWriteFsGrid.at(outputFileTypeIndex)) == false) {
+      cerr << __FILE__<<":"<<__LINE__ << " writeFsGridMetadata failed" << endl;
       return false;
    }
 
    // Write Ionosphere Grid
    if (writeIonosphereGridMetadata(vlsvWriter) == false) {
+      cerr << __FILE__<<":"<<__LINE__ << " writeIonosphereGridMetadata failed" << endl;
       return false;
    }
 
    // Write Version Info
    if (writeVersionInfo(versionInfo, vlsvWriter, MPI_COMM_WORLD) == false) {
+      cerr << __FILE__<<":"<<__LINE__ << " writeVersionInfo failed" << endl;
       return false;
    }
 
    // Write Config Info
    if (writeConfigInfo(configInfo, vlsvWriter, MPI_COMM_WORLD) == false) {
+      cerr << __FILE__<<":"<<__LINE__ << " writeConfigInfo failed" << endl;
       return false;
    }
 
@@ -1983,6 +1995,7 @@ bool writeGrid(
    // Write Velocity Space contents i.e. VDFs
    phiprof::Timer vspaceTimer{"velocityspaceIO"};
    if (writeVelocitySpace(mpiGrid, vlsvWriter, outputFileTypeIndex, local_cells) == false) {
+      cerr << __FILE__<<":"<<__LINE__ << " writeVelocitySpace failed" << endl;
       return false;
    }
    vspaceTimer.stop();
@@ -1994,6 +2007,7 @@ bool writeGrid(
    if (dataReducer != NULL)
       for (uint i = 0; i < dataReducer->size(); ++i) {
          if (writeDataReducer(mpiGrid, local_cells, fieldSolverData, (P::writeAsFloat == 1), P::systemWriteFsGrid.at(outputFileTypeIndex), *dataReducer, i, vlsvWriter) == false) {
+            cerr << __FILE__<<":"<<__LINE__ << " writeDataReducer failed" << endl;
             return false;
          }
       }
