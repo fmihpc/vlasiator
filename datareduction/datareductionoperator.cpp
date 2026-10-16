@@ -28,6 +28,7 @@
 #include <array>
 #include "datareductionoperator.h"
 #include "../object_wrapper.h"
+#include "../fieldsolver/fs_common.h" // divideIfNonZero; ES_FS no longer gets it via ionosphere.h
 
 
 using namespace std;
