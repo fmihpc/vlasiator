@@ -425,19 +425,22 @@ void calculateSpatialGhostTranslation(
    
    pencils = &pencilSet->at(2);
    uint pencili = 0;
-   uint curend = pencils->idsStart[pencili]+pencils->lengthOfPencils[pencili];
-   for (size_t i = 0; i < pencils->sumOfLengths; ++i){
-      if (i >=curend){ // in the next pencil already
-         pencili++;
-         curend = pencils->idsStart[pencili]+pencils->lengthOfPencils[pencili];
+   uint curend = 0;
+   if( pencils->N > 0){
+      curend = pencils->idsStart[pencili]+pencils->lengthOfPencils[pencili];
+      for (size_t i = 0; i < pencils->sumOfLengths; ++i){
+         if (i >=curend){ // in the next pencil already
+            pencili++;
+            curend = pencils->idsStart[pencili]+pencils->lengthOfPencils[pencili];
+         }
+         int tc = pencils->timeclasses[pencili];
+         if (pencils->targetRatios[i] > 0.0){
+            mpiGrid[pencils->ids[i]]->get_population(popID, tc).state = mpiGrid[pencils->ids[i]]->get_population(popID, tc).state | (1u << LastPropagationState::TRANSLATED_Z);
+            target_cells.insert(pencils->ids[i]);
+         }
+         source_cells.insert(pencils->ids[i]);
       }
-      int tc = pencils->timeclasses[pencili];
-      if (pencils->targetRatios[i] > 0.0){
-         mpiGrid[pencils->ids[i]]->get_population(popID, tc).state = mpiGrid[pencils->ids[i]]->get_population(popID, tc).state | (1u << LastPropagationState::TRANSLATED_Z);
-         target_cells.insert(pencils->ids[i]);
-      }
-      source_cells.insert(pencils->ids[i]);
-   }   
+   }
    
    mappingZTimer.stop();
 
@@ -446,18 +449,20 @@ void calculateSpatialGhostTranslation(
    trans_map_1d_amr(mpiGrid, *pencilSet, local_propagated_cells, dummy_cells, nPencils, 0,dt, tc, popID); // map along x//
    pencils = &pencilSet->at(0);
    pencili = 0;
-   curend = pencils->idsStart[pencili]+pencils->lengthOfPencils[pencili];
-   for (size_t i = 0; i < pencils->sumOfLengths; ++i){
-      if (i >=curend){ // in the next pencil already
-         pencili++;
-         curend = pencils->idsStart[pencili]+pencils->lengthOfPencils[pencili];
+   if( pencils->N > 0){
+      curend = pencils->idsStart[pencili]+pencils->lengthOfPencils[pencili];
+      for (size_t i = 0; i < pencils->sumOfLengths; ++i){
+         if (i >=curend){ // in the next pencil already
+            pencili++;
+            curend = pencils->idsStart[pencili]+pencils->lengthOfPencils[pencili];
+         }
+         int tc = pencils->timeclasses[pencili];
+         if (pencils->targetRatios[i] > 0.0){
+            mpiGrid[pencils->ids[i]]->get_population(popID, tc).state = mpiGrid[pencils->ids[i]]->get_population(popID, tc).state | (1u << LastPropagationState::TRANSLATED_X);
+            target_cells.insert(pencils->ids[i]);
+         }
+         source_cells.insert(pencils->ids[i]);
       }
-      int tc = pencils->timeclasses[pencili];
-      if (pencils->targetRatios[i] > 0.0){
-         mpiGrid[pencils->ids[i]]->get_population(popID, tc).state = mpiGrid[pencils->ids[i]]->get_population(popID, tc).state | (1u << LastPropagationState::TRANSLATED_X);
-         target_cells.insert(pencils->ids[i]);
-      }
-      source_cells.insert(pencils->ids[i]);
    }
    mappingXTimer.stop();
 
@@ -466,18 +471,20 @@ void calculateSpatialGhostTranslation(
    trans_map_1d_amr(mpiGrid, *pencilSet, local_propagated_cells, dummy_cells, nPencils, 1,dt, tc, popID); // map along y//
    pencils = &pencilSet->at(1);
    pencili = 0;
-   curend = pencils->idsStart[pencili]+pencils->lengthOfPencils[pencili];
-   for (size_t i = 0; i < pencils->sumOfLengths; ++i){
-      if (i >=curend){ // in the next pencil already
-         pencili++;
-         curend = pencils->idsStart[pencili]+pencils->lengthOfPencils[pencili];
+   if( pencils->N > 0){
+      curend = pencils->idsStart[pencili]+pencils->lengthOfPencils[pencili];
+      for (size_t i = 0; i < pencils->sumOfLengths; ++i){
+         if (i >=curend){ // in the next pencil already
+            pencili++;
+            curend = pencils->idsStart[pencili]+pencils->lengthOfPencils[pencili];
+         }
+         int tc = pencils->timeclasses[pencili];
+         if (pencils->targetRatios[i] > 0.0){
+            mpiGrid[pencils->ids[i]]->get_population(popID, tc).state = mpiGrid[pencils->ids[i]]->get_population(popID, tc).state | (1u << LastPropagationState::TRANSLATED_Y);
+            target_cells.insert(pencils->ids[i]);
+         }
+         source_cells.insert(pencils->ids[i]);
       }
-      int tc = pencils->timeclasses[pencili];
-      if (pencils->targetRatios[i] > 0.0){
-         mpiGrid[pencils->ids[i]]->get_population(popID, tc).state = mpiGrid[pencils->ids[i]]->get_population(popID, tc).state | (1u << LastPropagationState::TRANSLATED_Y);
-         target_cells.insert(pencils->ids[i]);
-      }
-      source_cells.insert(pencils->ids[i]);
    }
    mappingYTimer.stop();
 
