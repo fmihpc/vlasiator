@@ -568,11 +568,27 @@ bool map_1d(SpatialCell* spatial_cell,
                int minGk = std::max(int(lagrangian_gk_l[minGkIndex]), int(columnMinBlockK[columnIndex] * WID));
                int maxGk = std::min(int(lagrangian_gk_r[maxGkIndex]), int((columnMaxBlockK[columnIndex] + 1) * WID - 1));
 
+               // Start the running integral at the image of target cell minGk's lower boundary, not at v_l:
+               // where minGk was raised to the column's first target cell (the lower velocity-space wall),
+               // the part of the source cell that maps below the mesh is then not deposited, like the part
+               // that maps above the upper wall. Elsewhere that boundary is at or below v_l, so this is zero.
+               {
+                  const Vec v_norm_l = (  min(  max( minGk * intersection_dk + intersection_min, v_l), v_r) - v_l) * i_dv;
+                  #ifdef ACC_SEMILAG_PLM
+                  target_density_r = v_norm_l * ( a[0] + v_norm_l * a[1] );
+                  #endif
+                  #ifdef ACC_SEMILAG_PPM
+                  target_density_r = v_norm_l * ( a[0] + v_norm_l * ( a[1] + v_norm_l * a[2] ) );
+                  #endif
+                  #ifdef ACC_SEMILAG_PQM
+                  target_density_r = v_norm_l * ( a[0] + v_norm_l * ( a[1] + v_norm_l * ( a[2] + v_norm_l * ( a[3] + v_norm_l * a[4] ) ) ) );
+                  #endif
+               }
+
                for(int gk = minGk; gk <= maxGk; gk++){
                   const int blockK = gk/WID;
                   const int gk_mod_WID = (gk - blockK * WID);
 
-                  
                   //cell indices in the target block  (TODO: to be replaced by
                   //compile time generated scatter write operation)
                   const Veci target_cell(target_cell_index_common + gk_mod_WID * cell_indices_to_id[2]);
