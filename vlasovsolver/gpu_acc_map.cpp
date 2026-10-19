@@ -1116,6 +1116,21 @@ __global__ void __launch_bounds__(WID3, ACCELERATION_KERNEl_MIN_BLOCKS) accelera
          // set the initial value for the integrand at the boundary at v = 0
          // (in reduced cell units), this will be shifted to target_density_1, see below.
          Realf target_density_r = (Realf)(0.0);
+         // Start the running integral at the image of the column's first target cell: at the lower
+         // velocity-space wall the part of this source cell that maps below the mesh is then not
+         // deposited. Elsewhere that image is at or below v_l, so this stays zero.
+         {
+            const Realf v_norm_l = (  std::min(  std::max( (col_mink * WID) * intersection_dk + intersection_min, v_l), v_r) - v_l) * i_dv;
+            #ifdef ACC_SEMILAG_PLM
+            target_density_r = v_norm_l * ( a[0] + v_norm_l * a[1] );
+            #endif
+            #ifdef ACC_SEMILAG_PPM
+            target_density_r = v_norm_l * ( a[0] + v_norm_l * ( a[1] + v_norm_l * a[2] ) );
+            #endif
+            #ifdef ACC_SEMILAG_PQM
+            target_density_r = v_norm_l * ( a[0] + v_norm_l * ( a[1] + v_norm_l * ( a[2] + v_norm_l * ( a[3] + v_norm_l * a[4] ) ) ) );
+            #endif
+         }
 
          // Perform the polynomial reconstruction for all cells the mapping streches into
          for(int loopgk = 0; loopgk < loopN[0]; loopgk++) {
@@ -1167,7 +1182,10 @@ __global__ void __launch_bounds__(WID3, ACCELERATION_KERNEl_MIN_BLOCKS) accelera
                const int tcell = target_cell_index_common
                                + gk_mod_WID * gpu_cell_indices_to_id[2];
                // Write values into block data
-               if (isfinite(tval) && (tval>(Realf)(0.0)) && (targetLID != invalidLID) ) {
+               // Only target cells of this column inside the velocity mesh: gk below 0 or above the last
+               // cell would give a negative gk_mod_WID or a block of another column.
+               if (isfinite(tval) && (tval>(Realf)(0.0)) && (targetLID != invalidLID)
+                   && gk >= col_mink * WID && gk <= (col_maxk + 1) * WID - 1) {
                   // gpu_blockData[targetLID * WID3 + tcell] += tval;
 
                   // We use atomicAdd to avoid the need for sync
