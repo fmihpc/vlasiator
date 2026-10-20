@@ -387,10 +387,7 @@ namespace spatial_cell {
    }
 
    bool SpatialCell::get_timeclass_turn_v() const {
-      // If on max timeclass, we propagate on each loop.
-      int mod = 1 << (P::currentMaxTimeclass - (int)this->parameters[CellParams::TIMECLASS]);
-      bool ret = ((P::fractionalTimestep % mod) == 0);
-      return ret;
+      return get_timeclass_turn_v((int)this->parameters[CellParams::TIMECLASS]);
    }
 
    bool SpatialCell::get_timeclass_turn_v(int tc) const {
