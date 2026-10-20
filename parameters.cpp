@@ -143,6 +143,7 @@ vector<int> P::systemWriteDistributionWriteYlineStride;
 vector<int> P::systemWriteDistributionWriteZlineStride;
 vector<Real> P::systemWriteDistributionWriteShellRadius;
 vector<int> P::systemWriteDistributionWriteShellStride;
+bool P::systemWriteTimeghosts=false;
 vector<bool> P::systemWriteFsGrid;
 bool P::systemWriteAllDROs=false;
 bool P::diagnosticWriteAllDROs;
@@ -322,6 +323,10 @@ bool P::addParameters() {
                     "space. 0 is none.",P::systemWriteDistributionWriteShellRadius);
    RP::add("io.system_write_distribution_shell_stride",
                     "Every this many cells for those on selected shells write out their velocity space. 0 is none.",P::systemWriteDistributionWriteShellStride);
+   
+   RP::add<bool>("io.system_write_timeghosts",
+                    "Include timeghosts to bulk files according to stride settings as well. Default 0 (none)",P::systemWriteTimeghosts);
+   
    RP::add("io.system_write_fsgrid_variables", "If 0 don't write fsgrid DROs, if 1 do write them.",P::systemWriteFsGrid);
    RP::add(
        "io.system_write_mpiio_hint_key",

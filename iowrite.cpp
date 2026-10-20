@@ -63,11 +63,11 @@ typedef Parameters P;
 
 bool writeVelocityDistributionData(const uint popID, Writer& vlsvWriter,
                                    const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                   const std::vector<CellID>& cells, MPI_Comm comm);
+                                   const std::vector<CellID>& cells, MPI_Comm comm, int timeclass = -1);
 
 bool writeVelocityDistributionDataAsterix(const uint popID,Writer& vlsvWriter,
                                    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                   const std::vector<CellID>& cells,std::vector<std::vector<char>>&mpl_bytes,MPI_Comm comm);
+                                   const std::vector<CellID>& cells,std::vector<std::vector<char>>&mpl_bytes,MPI_Comm comm, int timeclass = -1);
 
 
 /*! Updates local ids across MPI to let other processes know in which order this process saves the local cell ids
@@ -138,6 +138,13 @@ bool writeVelocityDistributionData(Writer& vlsvWriter,
    bool success = true;
    for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID) {
       if (writeVelocityDistributionData(popID, vlsvWriter, mpiGrid, cells, comm) == false) success = false;
+      if(P::systemWriteTimeghosts){
+         if(P::currentMaxTimeclass > 0){
+            for (int timeclass = 0; timeclass <= P::currentMaxTimeclass; timeclass++){
+               if (writeVelocityDistributionData(popID, vlsvWriter, mpiGrid, cells, comm, timeclass) == false) success = false;
+            }
+         }
+      }
    }
    return success;
 }
@@ -160,12 +167,15 @@ bool writeVelocityDistributionDataAsterix(Writer& vlsvWriter,
  @return Returns true if operation was successful.*/
 bool writeVelocityDistributionData(const uint popID, Writer& vlsvWriter,
                                    const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                   const std::vector<CellID>& cells, MPI_Comm comm) {
+                                   const std::vector<CellID>& cells, MPI_Comm comm, int timeclass) {
    // Write velocity blocks and related data.
    // In restart we just write velocity grids for all cells.
    // First write global Ids of those cells which write velocity blocks (here: all cells):
    map<string, string> attribs;
-   const string popName = getObjectWrapper().particleSpecies[popID].name;
+   string popName = getObjectWrapper().particleSpecies[popID].name;
+   if (timeclass >= 0){
+      popName += "_"+to_string(timeclass);
+   }
    const string spatMeshName = "SpatialGrid";
    attribs["name"] = popName;
    bool success = true;
@@ -174,8 +184,8 @@ bool writeVelocityDistributionData(const uint popID, Writer& vlsvWriter,
    uint64_t totalBlocks = 0;
    vector<vmesh::LocalID> blocksPerCell;
    for (size_t i = 0; i < cells.size(); ++i) {
-      totalBlocks += mpiGrid[cells[i]]->get_number_of_velocity_blocks(popID);
-      blocksPerCell.push_back(mpiGrid[cells[i]]->get_number_of_velocity_blocks(popID));
+      totalBlocks += mpiGrid[cells[i]]->get_number_of_velocity_blocks(popID, timeclass);
+      blocksPerCell.push_back(mpiGrid[cells[i]]->get_number_of_velocity_blocks(popID, timeclass));
    }
 
    // The name of the mesh is "SpatialGrid"
@@ -204,6 +214,9 @@ bool writeVelocityDistributionData(const uint popID, Writer& vlsvWriter,
 
    attribs.clear();
    attribs["mesh"] = getObjectWrapper().particleSpecies[popID].name;
+   if (timeclass >= 0){
+      attribs["mesh"] += "_"+to_string(timeclass);
+   }
    attribs["type"] = vlsv::mesh::STRING_UCD_AMR;
 
    // stringstream is necessary here to correctly convert refLevelMaxAllowed (hardcoded to zero now) into a string
@@ -251,13 +264,13 @@ bool writeVelocityDistributionData(const uint popID, Writer& vlsvWriter,
       // gather data for writing
       for (size_t i = 0; i < cells.size(); ++i) {
          SpatialCell* SC = mpiGrid[cells[i]];
-         const vmesh::LocalID nBlocks = SC->get_number_of_velocity_blocks(popID);
+         const vmesh::LocalID nBlocks = SC->get_number_of_velocity_blocks(popID, timeclass);
 #ifdef USE_GPU
          const vmesh::GlobalID* GIDlist = SC->get_velocity_grid(popID);
          CHK_ERR(gpuMemcpy(&velocityBlockIds[blockIndex], GIDlist, nBlocks * sizeof(vmesh::GlobalID), gpuMemcpyDeviceToHost));
 #else
          for (vmesh::LocalID block_i = 0; block_i < nBlocks; ++block_i) {
-            const vmesh::GlobalID block = SC->get_velocity_block_global_id(block_i, popID);
+            const vmesh::GlobalID block = SC->get_velocity_block_global_id(block_i, popID, timeclass);
             velocityBlockIds[blockIndex + block_i] = block;
          }
 #endif
@@ -307,7 +320,7 @@ bool writeVelocityDistributionData(const uint popID, Writer& vlsvWriter,
       SpatialCell* SC = mpiGrid[cells[i]];
 
       // Get the number of blocks in this cell
-      const uint64_t arrayElements = SC->get_number_of_velocity_blocks(popID);
+      const uint64_t arrayElements = SC->get_number_of_velocity_blocks(popID, timeclass);
       // Add a subarray to write. Note: We told beforehands that the vectorsize = WID3
 #ifdef USE_GPU
       char* arrayToWrite = IObuffer + bufferOffset;
@@ -316,7 +329,7 @@ bool writeVelocityDistributionData(const uint popID, Writer& vlsvWriter,
          bufferOffset += arrayElements * WID3 * sizeof(Realf);
       }
 #else
-      char* arrayToWrite = reinterpret_cast<char*>(SC->get_data(popID));
+      char* arrayToWrite = reinterpret_cast<char*>(SC->get_data(popID, timeclass));
 #endif
       vlsvWriter.addMultiwriteUnit(arrayToWrite, arrayElements);
    }
@@ -633,10 +646,15 @@ bool writeVspaceDataCompressionMLP(const uint popID,Writer& vlsvWriter,
 
 bool writeVelocityDistributionDataAsterix(const uint popID,Writer& vlsvWriter,
                                    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                   const std::vector<CellID>& cells,std::vector<std::vector<char>>&bytes,MPI_Comm comm) {
+                                   const std::vector<CellID>& cells,std::vector<std::vector<char>>&bytes,MPI_Comm comm, int timeclass) {
    // Write velocity blocks and related data.
    // In restart we just write velocity grids for all cells.
    // First write global Ids of those cells which write velocity blocks (here: all cells):
+   
+   if(timeclass != -1){
+      std::cerr << "ASTERIX compression not implemented for timeclasses quite yet" << std::endl;
+      return false;
+   } 
    map<string,string> attribs;
    const string popName      = getObjectWrapper().particleSpecies[popID].name;
    const string spatMeshName = "SpatialGrid";
