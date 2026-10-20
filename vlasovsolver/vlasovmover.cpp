@@ -315,7 +315,7 @@ void calculateSpatialTranslation(
       string profName = "translate "+getObjectWrapper().particleSpecies[popID].name;
       phiprof::Timer timer {profName};
       SpatialCell::setCommunicatedSpecies(popID);
-      if (P::vlasovSolverGhostTranslate && (P::amrMaxSpatialRefLevel > 0) ) {
+      if (P::vlasovSolverGhostTranslate ) {
          // All-local ghost translation with coalesced communication
          // Not yet implemented for non-AMR solver
          calculateSpatialGhostTranslation(
