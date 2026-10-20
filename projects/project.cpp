@@ -31,6 +31,7 @@
 #include "../velocity_mesh_parameters.h"
 
 #include "Alfven/Alfven.h"
+#include "AlfvenCascade/AlfvenCascade.h"
 #include "Dispersion/Dispersion.h"
 #include "Distributions/Distributions.h"
 #include "Flowthrough/Flowthrough.h"
@@ -629,6 +630,7 @@ Project* createProject() {
     if (Readparameters::helpRequested && P::projectName=="") {
         projects::MultiPeak* _Multipeak=new projects::MultiPeak();
         projects::Alfven* _Alfven = new projects::Alfven();
+        projects::AlfvenCascade* _AlfvenCascade = new projects::AlfvenCascade();
         projects::Flowthrough* _Flowthrough=new projects::Flowthrough();
         projects::Magnetosphere* _Magnetosphere=new projects::Magnetosphere();
         projects::LossCone* _Losscone=new projects::LossCone();
@@ -646,6 +648,8 @@ Project* createProject() {
         projects::Shocktest* _Shocktest = new projects::Shocktest();
         projects::Distributions* _Distributions=new projects::Distributions();
 
+        _Alfven->addParameters();
+        _AlfvenCascade->addParameters();
         _Multipeak->addCommonParameters();
         _Multipeak->addParameters();
         _Losscone->addParameters();
@@ -685,6 +689,9 @@ Project* createProject() {
 
     } else if (Parameters::projectName=="Alfven") {
         project=new projects::Alfven();
+
+    } else if (Parameters::projectName=="AlfvenCascade") {
+        project=new projects::AlfvenCascade();
 
     } else if (Parameters::projectName=="test_fp") {
         project=new projects::test_fp();
