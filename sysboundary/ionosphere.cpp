@@ -2572,12 +2572,15 @@ namespace SBC {
          // BiCGSTAB solver from Eigen
          Eigen::SparseMatrix<Real> potentialSolverMatrix(nodes.size(), nodes.size());
          Eigen::VectorXd vRightHand(nodes.size()), vPhi(nodes.size());
+         const double zPin = Ionosphere::innerRadius * sin(Ionosphere::shieldingLatitude * M_PI / 180.0);
 
          for (uint n = 0; n < nodes.size(); n++) {
             for (uint m = 0; m < nodes[n].numDepNodes; m++) {
                potentialSolverMatrix.insert(n, nodes[n].dependingNodes[m]) = nodes[n].dependingCoeffs[m];
             }
-            vRightHand[n] = nodes[n].parameters[ionosphereParameters::SOURCE];
+            // Row already pinned in addMatrixDependency; nonzero RHS would pin to SOURCE/diag, not 0.
+            const bool pinned = gaugeFixing == Equator && fabs(nodes[n].x[2]) < zPin;
+            vRightHand[n] = pinned ? 0. : nodes[n].parameters[ionosphereParameters::SOURCE];
          }
 
          potentialSolverMatrix.makeCompressed();
