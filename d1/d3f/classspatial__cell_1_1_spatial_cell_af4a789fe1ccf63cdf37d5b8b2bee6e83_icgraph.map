@@ -1,0 +1,48 @@
+<map id="spatial_cell::SpatialCell::invalid_local_id" name="spatial_cell::SpatialCell::invalid_local_id">
+<area shape="rect" id="Node000001" title=" " alt="" coords="1725,101,1900,141"/>
+<area shape="rect" id="Node000002" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#ab7eefde0425cb40b9f56b1ab06590717" title=" " alt="" coords="1208,22,1387,62"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="1780,93,1734,57,1706,40,1676,27,1639,18,1600,12,1522,9,1447,14,1381,25,1381,20,1446,9,1522,3,1601,6,1640,13,1678,22,1708,35,1737,52,1783,89"/>
+<area shape="rect" id="Node000012" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a63eff9d4f2eb2048ddb7a5de313a5ecb" title=" " alt="" coords="1463,101,1677,141"/>
+<area shape="poly" id="edge14_Node000001_Node000012" title=" " alt="" coords="1711,124,1677,124,1677,118,1711,118"/>
+<area shape="rect" id="Node000014" href="$db/df3/cpu__trans__map_8cpp.html#a3a8162b12574d06406dd0aeccb7ef561" title=" " alt="" coords="1485,166,1655,191"/>
+<area shape="poly" id="edge17_Node000001_Node000014" title=" " alt="" coords="1715,147,1625,168,1624,163,1714,141"/>
+<area shape="rect" id="Node000016" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a99502b5fa245fda28d3c40b875cce269" title=" " alt="" coords="1479,37,1661,77"/>
+<area shape="poly" id="edge19_Node000001_Node000016" title=" " alt="" coords="1722,100,1646,79,1647,74,1724,95"/>
+<area shape="rect" id="Node000017" href="$da/d92/cpu__trans__map__amr_8cpp.html#a6f5bc1b63513193062e69487bb1fef80" title=" " alt="" coords="1497,215,1643,240"/>
+<area shape="poly" id="edge21_Node000001_Node000017" title=" " alt="" coords="1775,151,1730,180,1678,206,1643,217,1642,212,1676,201,1727,175,1772,147"/>
+<area shape="rect" id="Node000003" href="$d6/dd0/namespacespatial__cell.html#a2156ac8a3cb89e32f147fb6b99df9489" title=" " alt="" coords="923,25,1110,65"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="1194,46,1110,47,1110,41,1194,41"/>
+<area shape="rect" id="Node000010" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a51a9530d498395612a85595dfe724702" title=" " alt="" coords="901,93,1132,133"/>
+<area shape="poly" id="edge12_Node000002_Node000010" title=" " alt="" coords="1205,68,1098,95,1096,90,1203,63"/>
+<area shape="rect" id="Node000004" href="$d7/d70/grid_8cpp.html#a7baea7fe82d2a96da4d085e946f24e41" title=" " alt="" coords="676,40,833,66"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="910,51,834,53,834,48,910,46"/>
+<area shape="rect" id="Node000005" href="$d5/d5d/vlasovmover_8cpp.html#a95b050f52235f371f937b7746c575025" title=" " alt="" coords="445,66,608,91"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="663,66,609,72,608,67,662,61"/>
+<area shape="rect" id="Node000006" href="$d5/d5d/vlasovmover_8cpp.html#a72de3eb0ed9d5985acc51e471edfb808" title=" " alt="" coords="235,15,397,40"/>
+<area shape="poly" id="edge10_Node000004_Node000006" title=" " alt="" coords="662,50,397,35,398,30,662,45"/>
+<area shape="rect" id="Node000007" href="$d7/d70/grid_8cpp.html#a9e9166bda148ddef07e30ac56e3b7085" title="Initialize DCCRG and fsgrids." alt="" coords="260,116,372,142"/>
+<area shape="poly" id="edge11_Node000004_Node000007" title=" " alt="" coords="691,72,657,83,633,95,609,106,546,119,483,127,373,133,372,127,482,122,545,114,607,101,631,91,655,78,690,67"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="459,65,369,43,370,38,460,60"/>
+<area shape="poly" id="edge6_Node000005_Node000007" title=" " alt="" coords="460,97,370,119,369,114,459,92"/>
+<area shape="rect" id="Node000008" href="$d4/d5b/vlasiator_8cpp.html#acfd343080edd07ae79384688a7e48693" title=" " alt="" coords="108,116,187,142"/>
+<area shape="poly" id="edge9_Node000005_Node000008" title=" " alt="" coords="432,85,337,93,235,108,187,119,186,114,234,102,336,88,432,80"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="246,132,187,132,187,126,246,126"/>
+<area shape="rect" id="Node000009" href="$d4/d5b/vlasiator_8cpp.html#a54790573f350e250ccca3cbb94733391" title=" " alt="" coords="5,116,60,142"/>
+<area shape="poly" id="edge8_Node000008_Node000009" title=" " alt="" coords="94,132,60,132,60,126,94,126"/>
+<area shape="rect" id="Node000011" href="$da/ddf/class_s_b_c_1_1_maxwellian.html#a833c7cf658faf049300eec716cc4b8c7" title="Generate the template cell for the face corresponding to the index passed. This function generates a ..." alt="" coords="656,93,853,133"/>
+<area shape="poly" id="edge13_Node000010_Node000011" title=" " alt="" coords="888,116,854,116,854,110,888,110"/>
+<area shape="rect" id="Node000013" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#acd45f3b367f7e3953ec5cf30caaa8328" title=" " alt="" coords="1209,87,1385,142"/>
+<area shape="poly" id="edge15_Node000012_Node000013" title=" " alt="" coords="1448,121,1385,119,1385,114,1449,115"/>
+<area shape="poly" id="edge16_Node000013_Node000010" title=" " alt="" coords="1196,116,1132,116,1132,111,1196,111"/>
+<area shape="rect" id="Node000015" href="$db/df3/cpu__trans__map_8cpp.html#a750c6af0f5630fbc462d35ba69456474" title=" " alt="" coords="1240,166,1355,191"/>
+<area shape="poly" id="edge18_Node000014_Node000015" title=" " alt="" coords="1471,181,1355,181,1355,176,1471,176"/>
+<area shape="poly" id="edge20_Node000016_Node000002" title=" " alt="" coords="1466,54,1387,50,1387,44,1466,49"/>
+<area shape="rect" id="Node000018" href="$d5/d5d/vlasovmover_8cpp.html#abd17456fd1479e26bc468ec9f84f89ab" title=" " alt="" coords="1180,215,1415,240"/>
+<area shape="poly" id="edge22_Node000017_Node000018" title=" " alt="" coords="1483,230,1415,230,1415,225,1483,225"/>
+<area shape="rect" id="Node000020" href="$d5/d5d/vlasovmover_8cpp.html#afbb2eb92643919d19733d48bada33359" title=" " alt="" coords="1199,264,1396,290"/>
+<area shape="poly" id="edge24_Node000017_Node000020" title=" " alt="" coords="1486,245,1369,267,1368,262,1485,240"/>
+<area shape="rect" id="Node000019" href="$d5/d5d/vlasovmover_8cpp.html#aacc4f1870b12e805320d6b001af33133" title=" " alt="" coords="918,214,1115,239"/>
+<area shape="poly" id="edge23_Node000018_Node000019" title=" " alt="" coords="1166,230,1116,229,1116,224,1166,224"/>
+<area shape="poly" id="edge26_Node000020_Node000008" title=" " alt="" coords="1185,280,756,280,525,280,469,275,414,263,360,246,310,225,223,180,165,144,168,140,226,176,312,220,362,241,415,258,470,270,525,274,756,274,1185,274"/>
+<area shape="poly" id="edge25_Node000020_Node000019" title=" " alt="" coords="1213,264,1087,242,1088,236,1213,259"/>
+</map>

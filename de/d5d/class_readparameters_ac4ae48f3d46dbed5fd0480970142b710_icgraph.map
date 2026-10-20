@@ -1,0 +1,20 @@
+<map id="Readparameters::applyAssignment" name="Readparameters::applyAssignment">
+<area shape="rect" id="Node000001" title=" " alt="" coords="788,55,1039,80"/>
+<area shape="rect" id="Node000002" href="$de/d5d/class_readparameters.html#ac5f6a94431373888a8867ae8b4aa5217" title=" " alt="" coords="523,18,719,58"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="774,56,719,50,719,45,774,51"/>
+<area shape="rect" id="Node000009" href="$de/d5d/class_readparameters.html#a5d1d560fe322d6e9d7f22ad2ba4b6edc" title=" " alt="" coords="501,83,740,108"/>
+<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="775,83,740,87,740,81,774,78"/>
+<area shape="rect" id="Node000003" href="$de/d5d/class_readparameters.html#afc7a8e13d1a71111d3c34e19f91a6b78" title=" " alt="" coords="279,55,453,80"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="509,53,454,60,453,55,509,48"/>
+<area shape="rect" id="Node000004" href="$da/d6f/particle__post__pusher_8cpp.html#a3c04138a5bfe5d72780bb7e82a18e627" title=" " alt="" coords="142,5,197,31"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="301,54,197,27,198,22,302,49"/>
+<area shape="rect" id="Node000005" href="$de/d99/vlsvextract_8cpp.html#ae1913275d15e6a91cb8ba128951c99c6" title=" " alt="" coords="108,55,231,80"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="265,70,231,70,231,65,265,65"/>
+<area shape="rect" id="Node000007" href="$d4/d5b/vlasiator_8cpp.html#acfd343080edd07ae79384688a7e48693" title=" " alt="" coords="130,104,209,129"/>
+<area shape="poly" id="edge6_Node000003_Node000007" title=" " alt="" coords="302,86,209,110,208,104,301,81"/>
+<area shape="rect" id="Node000006" href="$de/d99/vlsvextract_8cpp.html#a54790573f350e250ccca3cbb94733391" title=" " alt="" coords="5,55,60,80"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="94,70,60,70,60,65,94,65"/>
+<area shape="rect" id="Node000008" href="$d4/d5b/vlasiator_8cpp.html#a54790573f350e250ccca3cbb94733391" title=" " alt="" coords="5,104,60,129"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="116,119,60,119,60,114,116,114"/>
+<area shape="poly" id="edge9_Node000009_Node000003" title=" " alt="" coords="491,84,453,80,454,74,492,79"/>
+</map>

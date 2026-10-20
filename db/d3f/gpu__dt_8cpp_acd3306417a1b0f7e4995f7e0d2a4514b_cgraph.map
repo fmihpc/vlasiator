@@ -1,0 +1,11 @@
+<map id="__launch_bounds__" name="__launch_bounds__">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,31,152,56"/>
+<area shape="rect" id="Node000002" href="$dc/d2e/gpu__pitch__angle__diffusion_8cpp.html#ae687dbe50139c5805369b59554bddc67" title=" " alt="" coords="200,5,315,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="152,30,186,25,187,31,152,36"/>
+<area shape="rect" id="Node000003" href="$d8/dbc/vectorclass__fallback_8h.html#a1896c5fbdb17de74189d1d18cdd4cf29" title=" " alt="" coords="234,55,281,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="152,51,221,60,220,65,152,56"/>
+<area shape="rect" id="Node000004" href="$d7/d8b/class_vec_simple.html#a145923009b9b82410c5a072b8f8127f0" title=" " alt="" coords="363,55,497,80"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="281,65,349,65,349,70,281,70"/>
+<area shape="rect" id="Node000005" href="$d7/d8b/class_vec_simple.html#ae16798cf2ee14257d0706c60613cd733" title=" " alt="" coords="545,55,712,80"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="498,65,532,65,532,70,498,70"/>
+</map>

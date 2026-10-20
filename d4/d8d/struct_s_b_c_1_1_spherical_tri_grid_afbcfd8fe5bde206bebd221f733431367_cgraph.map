@@ -1,0 +1,11 @@
+<map id="SBC::SphericalTriGrid::elementIntegral" name="SBC::SphericalTriGrid::elementIntegral">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,69,164,109"/>
+<area shape="rect" id="Node000002" href="$d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#a21cffde4ce9f0b0cba515f2ab52e7cef" title=" " alt="" coords="212,5,371,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="149,67,213,47,214,52,151,72"/>
+<area shape="rect" id="Node000003" href="$d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#a22ce5b162f5a0d425247686b356c228f" title=" " alt="" coords="212,69,371,109"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="164,87,198,87,198,92,164,92"/>
+<area shape="rect" id="Node000005" href="$d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#a01fdb07b4e49a1adb404966d1f814e27" title=" " alt="" coords="212,133,371,173"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="151,107,214,127,213,132,149,112"/>
+<area shape="rect" id="Node000004" href="$de/d31/_dispersion_8m.html#af276a2aede715061015c735080cf65df" title=" " alt="" coords="419,77,465,102"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="371,87,405,87,405,92,371,92"/>
+</map>

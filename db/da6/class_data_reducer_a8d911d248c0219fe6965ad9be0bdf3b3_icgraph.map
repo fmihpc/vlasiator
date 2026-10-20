@@ -1,0 +1,14 @@
+<map id="DataReducer::hasParameters" name="DataReducer::hasParameters">
+<area shape="rect" id="Node000001" title=" " alt="" coords="572,31,783,56"/>
+<area shape="rect" id="Node000002" href="$da/daf/iowrite_8cpp.html#a74746123787e7a9ddb05d190cc50a00e" title=" " alt="" coords="385,31,524,56"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="558,46,524,46,524,41,558,41"/>
+<area shape="rect" id="Node000003" href="$da/daf/iowrite_8cpp.html#a10cc5a5af4d327af60e9f6c42480b333" title="Write out system into a vlsv file." alt="" coords="245,5,327,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="371,33,327,27,328,22,372,28"/>
+<area shape="rect" id="Node000006" href="$da/daf/iowrite_8cpp.html#a5531f0481d1489a9c4fa85ef54be0b1f" title="Write out a restart of the simulation into a vlsv file. All block data in remote cells will be reset." alt="" coords="235,55,337,80"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="372,58,338,63,337,57,371,53"/>
+<area shape="rect" id="Node000004" href="$d4/d5b/vlasiator_8cpp.html#acfd343080edd07ae79384688a7e48693" title=" " alt="" coords="108,31,187,56"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="232,31,188,39,187,34,231,25"/>
+<area shape="rect" id="Node000005" href="$d4/d5b/vlasiator_8cpp.html#a54790573f350e250ccca3cbb94733391" title=" " alt="" coords="5,31,60,56"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="94,46,60,46,60,41,94,41"/>
+<area shape="poly" id="edge6_Node000006_Node000004" title=" " alt="" coords="221,59,186,53,187,47,222,54"/>
+</map>

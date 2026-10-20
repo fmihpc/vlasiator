@@ -1,0 +1,9 @@
+<map id="getData" name="getData">
+<area shape="rect" id="Node000001" title=" " alt="" coords="228,77,303,102"/>
+<area shape="rect" id="Node000002" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a44aac9001c34f1efd4a1eda0dcb7609c" title=" " alt="" coords="5,5,180,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="217,74,179,60,147,48,149,43,181,55,219,69"/>
+<area shape="rect" id="Node000003" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#afda83e4689e1db215300ededacbdd980" title=" " alt="" coords="5,69,180,109"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="214,92,180,92,180,87,214,87"/>
+<area shape="rect" id="Node000004" href="$d5/d8c/structspatial__cell_1_1_population.html#ac1a09a67f54f111c4661953e603d5548" title=" " alt="" coords="6,133,179,173"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="219,109,181,124,149,136,147,131,179,119,217,104"/>
+</map>

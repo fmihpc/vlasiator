@@ -1,0 +1,26 @@
+<map id="SBC::SphericalTriGrid::mapDownBoundaryData" name="SBC::SphericalTriGrid::mapDownBoundaryData">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,170,195,210"/>
+<area shape="rect" id="Node000002" href="$d8/dbc/vectorclass__fallback_8h.html#ad1eccb49237393bcbb5b6b97556fa4e2" title=" " alt="" coords="320,5,365,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="113,168,164,105,201,70,241,41,274,27,306,20,307,25,275,32,244,46,204,74,168,109,117,171"/>
+<area shape="rect" id="Node000005" href="$d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#a22ce5b162f5a0d425247686b356c228f" title=" " alt="" coords="263,55,422,95"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="135,167,242,112,273,98,275,103,244,116,137,172"/>
+<area shape="rect" id="Node000006" href="$de/d31/_dispersion_8m.html#af276a2aede715061015c735080cf65df" title=" " alt="" coords="563,92,610,117"/>
+<area shape="poly" id="edge12_Node000001_Node000006" title=" " alt="" coords="185,167,242,155,414,126,550,107,550,112,415,131,243,161,186,173"/>
+<area shape="rect" id="Node000007" href="$de/daa/fieldtracing_8h.html#a1a2fda53cbb2e40528bbb2e5c674b8b4" title=" " alt="" coords="245,170,440,210"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="195,187,231,187,231,193,195,193"/>
+<area shape="rect" id="Node000008" href="$de/daa/fieldtracing_8h.html#aa05445c6a2a66c42650658b95c37d0d6" title=" " alt="" coords="243,234,443,274"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="177,207,254,228,253,233,176,213"/>
+<area shape="rect" id="Node000010" href="$d4/d24/fs__common_8cpp.html#a64e74f2d89c9a8dd19d259fe64a9c429" title=" " alt="" coords="279,299,407,324"/>
+<area shape="poly" id="edge9_Node000001_Node000010" title=" " alt="" coords="127,208,179,246,244,284,266,292,264,297,242,288,176,251,124,212"/>
+<area shape="rect" id="Node000012" href="$d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#a69fe728d9fb4d15f47be6253e26457ad" title=" " alt="" coords="263,349,422,389"/>
+<area shape="poly" id="edge11_Node000001_Node000012" title=" " alt="" coords="118,208,169,270,205,305,244,334,255,340,252,345,241,339,201,309,165,274,113,212"/>
+<area shape="rect" id="Node000003" href="$d7/d8b/class_vec_simple.html#a145923009b9b82410c5a072b8f8127f0" title=" " alt="" coords="519,5,654,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="365,15,506,15,506,21,365,21"/>
+<area shape="rect" id="Node000004" href="$d7/d8b/class_vec_simple.html#ae16798cf2ee14257d0706c60613cd733" title=" " alt="" coords="731,5,897,31"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="654,15,717,15,717,21,654,21"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="423,82,550,98,549,103,422,88"/>
+<area shape="rect" id="Node000009" href="$de/daa/fieldtracing_8h.html#ae5921c1344f5e09968087098b4674503" title=" " alt="" coords="493,234,681,274"/>
+<area shape="poly" id="edge8_Node000008_Node000009" title=" " alt="" coords="443,251,479,251,479,257,443,257"/>
+<area shape="rect" id="Node000011" href="$d4/d24/fs__common_8cpp.html#ab310768fde20c6c258e758648323f485" title="Low&#45;level helper function." alt="" coords="491,299,683,324"/>
+<area shape="poly" id="edge10_Node000010_Node000011" title=" " alt="" coords="407,309,477,309,477,314,407,314"/>
+</map>

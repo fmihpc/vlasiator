@@ -1,0 +1,13 @@
+<map id="propagateMagneticFieldSimple" name="propagateMagneticFieldSimple">
+<area shape="rect" id="Node000001" title="High&#45;level magnetic field propagation function." alt="" coords="5,35,229,60"/>
+<area shape="rect" id="Node000002" href="$dd/d80/ldz__magnetic__field_8cpp.html#a8a77490734f34d9b9cef5767fc3fec90" title=" " alt="" coords="305,5,483,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="229,33,291,26,291,32,230,38"/>
+<area shape="rect" id="Node000003" href="$dd/d80/ldz__magnetic__field_8cpp.html#aa136b79f86858af1e07dc2e6d715233a" title="Low&#45;level magnetic field propagation function." alt="" coords="277,55,511,95"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="230,56,264,60,263,65,229,61"/>
+<area shape="rect" id="Node000004" href="$d8/ddb/class_s_b_c_1_1_sys_boundary_condition.html#acf3189e296c7d3c5f06dfcb2c2009926" title=" " alt="" coords="559,26,844,66"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="511,62,545,58,545,64,511,67"/>
+<area shape="rect" id="Node000005" href="$dd/d3d/class_sys_boundary.html#a421b3fcc380523724e054d0b2778f3cf" title=" " alt="" coords="591,91,811,116"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="511,83,578,89,577,95,511,89"/>
+<area shape="rect" id="Node000006" href="$d9/df9/common_8cpp.html#a3ccffabea3435cf184592d88e6a470c8" title=" " alt="" coords="892,91,980,116"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="812,101,878,101,878,106,812,106"/>
+</map>

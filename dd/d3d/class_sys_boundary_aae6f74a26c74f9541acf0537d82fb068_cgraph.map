@@ -1,0 +1,50 @@
+<map id="SysBoundary::addParameters" name="SysBoundary::addParameters">
+<area shape="rect" id="Node000001" title="Get this class&#39; parameters." alt="" coords="5,271,217,297"/>
+<area shape="rect" id="Node000002" href="$d9/df9/common_8cpp.html#a3ccffabea3435cf184592d88e6a470c8" title=" " alt="" coords="341,73,429,98"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="118,269,138,236,171,192,213,145,264,107,295,94,326,87,327,92,296,99,267,112,217,149,175,195,143,239,122,272"/>
+<area shape="rect" id="Node000003" href="$dd/d8a/class_s_b_c_1_1_copysphere.html#a6aed887e5ad3172437b09534ffc0ea9f" title=" " alt="" coords="265,271,504,297"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="218,281,252,281,252,287,218,287"/>
+<area shape="rect" id="Node000013" href="$da/d6b/class_s_b_c_1_1_ionosphere.html#a1da19f2ca6792eb9bef3a111611106c1" title=" " alt="" coords="267,122,502,147"/>
+<area shape="poly" id="edge12_Node000001_Node000013" title=" " alt="" coords="123,269,180,216,220,185,264,159,290,149,292,154,267,164,223,189,183,220,126,273"/>
+<area shape="rect" id="Node000016" href="$da/ddf/class_s_b_c_1_1_maxwellian.html#a14f5141d8f1986bee1f1e6dcb63fd86d" title=" " alt="" coords="266,173,503,198"/>
+<area shape="poly" id="edge18_Node000001_Node000016" title=" " alt="" coords="134,269,192,239,264,208,297,199,298,204,266,213,194,243,136,273"/>
+<area shape="rect" id="Node000017" href="$d5/d71/class_s_b_c_1_1_outflow.html#a8620e015afb169eba6f39b37344f0ea5" title=" " alt="" coords="279,222,490,247"/>
+<area shape="poly" id="edge21_Node000001_Node000017" title=" " alt="" coords="182,269,299,247,300,253,183,274"/>
+<area shape="rect" id="Node000018" href="$dd/d8a/class_s_b_c_1_1_copysphere.html#af5d9e8799d97d31347033e33480ba41e" title=" " alt="" coords="285,321,484,346"/>
+<area shape="poly" id="edge24_Node000001_Node000018" title=" " alt="" coords="183,294,300,315,299,321,182,299"/>
+<area shape="rect" id="Node000019" href="$da/d6b/class_s_b_c_1_1_ionosphere.html#a3ff24d9937945d78fb20ea461d4fac8b" title=" " alt="" coords="288,370,481,395"/>
+<area shape="poly" id="edge25_Node000001_Node000019" title=" " alt="" coords="135,294,193,325,266,356,294,364,293,369,264,361,191,330,133,299"/>
+<area shape="rect" id="Node000020" href="$da/ddf/class_s_b_c_1_1_maxwellian.html#ac6833b80c433ca98f8e3f34b494afb4f" title=" " alt="" coords="287,419,483,445"/>
+<area shape="poly" id="edge26_Node000001_Node000020" title=" " alt="" coords="126,295,183,349,223,380,267,406,284,413,282,418,264,410,220,384,179,353,122,299"/>
+<area shape="rect" id="Node000021" href="$d5/d71/class_s_b_c_1_1_outflow.html#ad65daed9627fb528481d14420b094790" title=" " alt="" coords="299,469,470,494"/>
+<area shape="poly" id="edge27_Node000001_Node000021" title=" " alt="" coords="122,296,143,329,175,372,217,418,267,455,287,464,285,469,264,460,214,421,171,376,139,332,118,298"/>
+<area shape="rect" id="Node000004" href="$de/d5d/class_readparameters.html#aabf583d00f6ac5c01290021201a9a3a2" title=" " alt="" coords="835,171,997,197"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="464,294,534,301,615,303,702,296,745,288,786,276,817,262,846,244,891,205,895,209,849,248,819,267,788,281,746,293,703,301,616,308,533,306,463,299"/>
+<area shape="rect" id="Node000012" href="$d4/d0b/ionosphere_solver_tests_2main_8cpp.html#a9bf4cdc41d466e8710b8aa33a33d32e0" title=" " alt="" coords="599,222,739,247"/>
+<area shape="poly" id="edge11_Node000003_Node000012" title=" " alt="" coords="458,269,585,246,586,252,459,274"/>
+<area shape="rect" id="Node000005" href="$de/d5d/class_readparameters.html#a9f9455d203d0185b3fb13c978592bc72" title=" " alt="" coords="1057,97,1276,122"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="944,169,991,149,1045,131,1077,122,1078,128,1046,136,993,154,946,174"/>
+<area shape="rect" id="Node000007" href="$de/d5d/class_readparameters.html#af3ccff549a4084a41edc7373323ddbb6" title=" " alt="" coords="1045,146,1288,171"/>
+<area shape="poly" id="edge6_Node000004_Node000007" title=" " alt="" coords="997,173,1032,170,1032,175,998,178"/>
+<area shape="rect" id="Node000008" href="$de/d5d/class_readparameters.html#a9ff60199b788b486a7589fee28add8b3" title=" " alt="" coords="1059,195,1274,221"/>
+<area shape="poly" id="edge7_Node000004_Node000008" title=" " alt="" coords="998,189,1046,194,1045,199,997,194"/>
+<area shape="rect" id="Node000009" href="$de/d5d/class_readparameters.html#aabf36c234803838c60e72b78e22e9867" title=" " alt="" coords="1073,245,1261,285"/>
+<area shape="poly" id="edge8_Node000004_Node000009" title=" " alt="" coords="948,194,1046,231,1073,239,1071,244,1044,236,947,199"/>
+<area shape="rect" id="Node000006" href="$de/d5d/class_readparameters.html#a02ee1b8af17aba0073d8c682e365ca73" title=" " alt="" coords="1336,97,1559,122"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="1276,107,1322,107,1322,112,1276,112"/>
+<area shape="rect" id="Node000010" href="$de/d5d/class_readparameters.html#a82e9a80e512ea25b45212587ceca5759" title=" " alt="" coords="1353,281,1541,306"/>
+<area shape="poly" id="edge9_Node000009_Node000010" title=" " alt="" coords="1261,272,1340,280,1339,285,1261,277"/>
+<area shape="rect" id="Node000011" href="$de/d5d/class_readparameters.html#a4de6c25680490730332d7557157fcd15" title=" " alt="" coords="1353,216,1541,256"/>
+<area shape="poly" id="edge10_Node000009_Node000011" title=" " alt="" coords="1261,253,1339,245,1340,250,1261,258"/>
+<area shape="poly" id="edge13_Node000013_Node000004" title=" " alt="" coords="503,139,787,163,821,167,821,172,786,168,502,144"/>
+<area shape="poly" id="edge17_Node000013_Node000012" title=" " alt="" coords="453,145,505,159,574,186,633,213,630,218,571,191,503,164,452,150"/>
+<area shape="rect" id="Node000014" href="$de/d5d/class_readparameters.html#ac227b04d203daa450955bcc27cc6aec6" title=" " alt="" coords="552,70,787,95"/>
+<area shape="poly" id="edge14_Node000013_Node000014" title=" " alt="" coords="455,119,586,95,587,100,455,125"/>
+<area shape="rect" id="Node000015" href="$d0/d7b/struct_readparameters_1_1_option.html#aa39407d05f70985d7b0f4c9245fc0707" title=" " alt="" coords="579,5,760,45"/>
+<area shape="poly" id="edge16_Node000013_Node000015" title=" " alt="" coords="474,119,503,107,517,95,526,82,535,68,550,55,565,47,567,52,554,60,539,72,530,85,521,99,505,112,476,124"/>
+<area shape="poly" id="edge15_Node000014_Node000004" title=" " alt="" coords="728,93,788,112,839,137,884,162,882,167,837,141,786,117,726,98"/>
+<area shape="poly" id="edge19_Node000016_Node000004" title=" " alt="" coords="504,182,821,182,821,187,504,188"/>
+<area shape="poly" id="edge20_Node000016_Node000012" title=" " alt="" coords="459,195,586,218,585,223,458,201"/>
+<area shape="poly" id="edge22_Node000017_Node000004" title=" " alt="" coords="454,245,552,257,671,271,722,270,786,257,814,247,842,233,887,203,890,207,844,238,817,252,787,263,722,275,670,276,552,263,453,250"/>
+<area shape="poly" id="edge23_Node000017_Node000012" title=" " alt="" coords="490,232,586,232,586,237,490,237"/>
+</map>

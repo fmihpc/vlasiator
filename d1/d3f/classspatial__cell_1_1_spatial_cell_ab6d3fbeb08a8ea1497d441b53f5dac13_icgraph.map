@@ -1,0 +1,36 @@
+<map id="spatial_cell::SpatialCell::applyReservation" name="spatial_cell::SpatialCell::applyReservation">
+<area shape="rect" id="Node000001" title=" " alt="" coords="1176,154,1351,194"/>
+<area shape="rect" id="Node000002" href="$d7/d70/grid_8cpp.html#ad1bdb09168de4bf51ffe7b6fada86915" title="Balance load." alt="" coords="487,219,591,244"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="1176,200,1128,209,976,225,824,233,591,235,591,230,824,228,975,220,1128,204,1175,195"/>
+<area shape="rect" id="Node000006" href="$da/ddf/class_s_b_c_1_1_maxwellian.html#a833c7cf658faf049300eec716cc4b8c7" title="Generate the template cell for the face corresponding to the index passed. This function generates a ..." alt="" coords="909,40,1106,80"/>
+<area shape="poly" id="edge6_Node000001_Node000006" title=" " alt="" coords="1222,148,1177,120,1127,94,1095,82,1097,77,1129,89,1180,115,1225,144"/>
+<area shape="rect" id="Node000007" href="$db/db8/gpu__acc__map_8cpp.html#aba0515f11e02075756808f2acd4028fc" title="This function performs the semi&#45;Lagrangian acceleration for a provided list of spatial cells,..." alt="" coords="940,104,1075,130"/>
+<area shape="poly" id="edge7_Node000001_Node000007" title=" " alt="" coords="1166,154,1127,145,1069,132,1071,127,1129,140,1167,148"/>
+<area shape="rect" id="Node000008" href="$d5/d9e/gpu__acc__semilag_8cpp.html#a2f3ac063bfdc2b3e88a844b929ff924a" title="Propagates the distribution function in velocity space of given list of real space cells using a semi..." alt="" coords="680,54,839,79"/>
+<area shape="poly" id="edge13_Node000001_Node000008" title=" " alt="" coords="1242,144,1222,114,1196,82,1164,53,1127,30,1082,15,1035,9,987,9,940,14,855,34,791,56,789,51,853,29,939,9,987,4,1035,4,1083,10,1129,25,1167,48,1200,79,1226,111,1246,141"/>
+<area shape="rect" id="Node000011" href="$db/d19/classprojects_1_1_project.html#ad425d38e349f5797d870c8047ad1973c" title="Sets the distribution function in a cell." alt="" coords="940,154,1075,194"/>
+<area shape="poly" id="edge14_Node000001_Node000011" title=" " alt="" coords="1163,177,1075,177,1075,172,1163,172"/>
+<area shape="rect" id="Node000014" href="$d6/dd0/namespacespatial__cell.html#a6246a5c04af91361b63f1a3ab0b08796" title="spatial_cell::update_velocity_block_content_lists Finds blocks above the sparsity threshold" alt="" coords="901,269,1114,309"/>
+<area shape="poly" id="edge18_Node000001_Node000014" title=" " alt="" coords="1220,204,1129,253,1080,271,1078,266,1127,248,1218,199"/>
+<area shape="rect" id="Node000015" href="$da/d6b/class_s_b_c_1_1_ionosphere.html#ac904b9ee61069aa1314aa2b638a2f4e9" title=" " alt="" coords="887,333,1128,373"/>
+<area shape="poly" id="edge19_Node000001_Node000015" title=" " alt="" coords="1244,207,1196,267,1165,297,1129,323,1105,335,1103,330,1127,319,1161,293,1192,263,1239,204"/>
+<area shape="rect" id="Node000003" href="$d7/d70/grid_8cpp.html#a9e9166bda148ddef07e30ac56e3b7085" title="Initialize DCCRG and fsgrids." alt="" coords="260,130,372,155"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="473,218,444,209,396,183,343,157,346,153,399,179,446,204,474,213"/>
+<area shape="rect" id="Node000004" href="$d4/d5b/vlasiator_8cpp.html#acfd343080edd07ae79384688a7e48693" title=" " alt="" coords="108,130,187,155"/>
+<area shape="poly" id="edge5_Node000002_Node000004" title=" " alt="" coords="472,221,234,169,186,156,188,151,235,164,473,216"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="246,145,187,145,187,140,246,140"/>
+<area shape="rect" id="Node000005" href="$d4/d5b/vlasiator_8cpp.html#a54790573f350e250ccca3cbb94733391" title=" " alt="" coords="5,130,60,155"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="94,145,60,145,60,140,94,140"/>
+<area shape="poly" id="edge8_Node000007_Node000008" title=" " alt="" coords="930,104,822,82,823,76,931,99"/>
+<area shape="rect" id="Node000009" href="$d5/d5d/vlasovmover_8cpp.html#a95b050f52235f371f937b7746c575025" title=" " alt="" coords="457,54,620,79"/>
+<area shape="poly" id="edge9_Node000008_Node000009" title=" " alt="" coords="667,69,620,69,620,64,667,64"/>
+<area shape="poly" id="edge11_Node000009_Node000003" title=" " alt="" coords="488,86,446,101,398,119,360,132,359,127,396,114,444,96,486,81"/>
+<area shape="poly" id="edge12_Node000009_Node000004" title=" " alt="" coords="457,54,406,50,349,49,291,55,236,70,212,82,191,98,161,131,157,127,188,94,209,78,234,65,290,50,349,44,406,44,457,49"/>
+<area shape="rect" id="Node000010" href="$d5/d5d/vlasovmover_8cpp.html#a72de3eb0ed9d5985acc51e471edfb808" title=" " alt="" coords="235,80,397,106"/>
+<area shape="poly" id="edge10_Node000009_Node000010" title=" " alt="" coords="444,80,398,86,397,81,444,75"/>
+<area shape="rect" id="Node000012" href="$db/d19/classprojects_1_1_project.html#afb2a412ae6cedce4e914650ea35b8f42" title="Set the perturbed fields and distribution of a cell according to the default simulation settings...." alt="" coords="692,154,827,194"/>
+<area shape="poly" id="edge15_Node000011_Node000012" title=" " alt="" coords="926,177,827,177,827,172,926,172"/>
+<area shape="poly" id="edge17_Node000012_Node000003" title=" " alt="" coords="678,154,632,145,562,139,492,137,372,141,372,135,492,132,562,134,632,140,679,148"/>
+<area shape="rect" id="Node000013" href="$d5/d71/class_s_b_c_1_1_outflow.html#ad84f9747b6fc7215052b5b4940a59896" title=" " alt="" coords="445,154,632,194"/>
+<area shape="poly" id="edge16_Node000012_Node000013" title=" " alt="" coords="678,177,632,177,632,172,678,172"/>
+</map>

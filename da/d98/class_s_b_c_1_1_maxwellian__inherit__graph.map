@@ -1,0 +1,9 @@
+<map id="SBC::Maxwellian" name="SBC::Maxwellian">
+<area shape="rect" id="Node000001" title="Maxwellian is a class applying fixed Maxwellian conditions according to parameters read from an input..." alt="" coords="48,225,179,251"/>
+<area shape="rect" id="Node000002" href="$de/d6a/class_s_b_c_1_1_inflow.html" title="Base class for boundary conditions with settings and parameters read from file." alt="" coords="66,152,161,177"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="116,191,116,225,111,225,111,191"/>
+<area shape="rect" id="Node000003" href="$d2/d68/class_s_b_c_1_1_outer_boundary_condition.html" title=" " alt="" coords="5,79,221,104"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="116,118,116,152,111,152,111,118"/>
+<area shape="rect" id="Node000004" href="$d8/ddb/class_s_b_c_1_1_sys_boundary_condition.html" title="SBC::SysBoundaryCondition is the base class for system boundary conditions." alt="" coords="12,5,215,31"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="116,44,116,79,111,79,111,44"/>
+</map>

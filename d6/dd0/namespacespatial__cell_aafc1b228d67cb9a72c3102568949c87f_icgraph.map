@@ -1,0 +1,31 @@
+<map id="spatial_cell::resize_vmesh_ondevice_kernel" name="spatial_cell::resize_vmesh_ondevice_kernel">
+<area shape="rect" id="Node000001" title=" " alt="" coords="1411,99,1597,139"/>
+<area shape="rect" id="Node000002" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a952c375b0dfdd7b437e7ae060d964a41" title=" " alt="" coords="1188,99,1363,139"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="1396,121,1363,121,1363,116,1396,116"/>
+<area shape="rect" id="Node000003" href="$db/d19/classprojects_1_1_project.html#a5a857d2b4393cdb81f5eaaa322624e02" title="Prepares a list of blocks to loop through when initialising." alt="" coords="961,35,1120,75"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="1188,98,1114,77,1115,72,1189,92"/>
+<area shape="rect" id="Node000010" href="$dc/d2c/classprojects_1_1_tri_axis_search.html#a10106fe679bbce733a8f5692d667e5ad" title="Find blocks above the threshold centred isotropically around a bulk velocity." alt="" coords="956,99,1125,139"/>
+<area shape="poly" id="edge9_Node000002_Node000010" title=" " alt="" coords="1174,121,1125,121,1125,116,1174,116"/>
+<area shape="rect" id="Node000011" href="$d4/de8/namespace_s_b_c.html#a0cea5d5845a2d12ad49a0b3b048460be" title="SBC::findMaxwellianBlocksToInitialize returns a list of blocks to construct the VDF with." alt="" coords="941,163,1140,203"/>
+<area shape="poly" id="edge10_Node000002_Node000011" title=" " alt="" coords="1189,145,1115,165,1114,160,1188,140"/>
+<area shape="rect" id="Node000004" href="$db/d19/classprojects_1_1_project.html#ad425d38e349f5797d870c8047ad1973c" title="Sets the distribution function in a cell." alt="" coords="705,35,840,75"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="947,57,840,57,840,52,947,52"/>
+<area shape="rect" id="Node000005" href="$db/d19/classprojects_1_1_project.html#afb2a412ae6cedce4e914650ea35b8f42" title="Set the perturbed fields and distribution of a cell according to the default simulation settings...." alt="" coords="469,35,604,75"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="691,57,604,57,604,52,691,52"/>
+<area shape="rect" id="Node000006" href="$d5/d71/class_s_b_c_1_1_outflow.html#ad84f9747b6fc7215052b5b4940a59896" title=" " alt="" coords="235,5,421,45"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="455,46,421,41,422,36,456,41"/>
+<area shape="rect" id="Node000007" href="$d7/d70/grid_8cpp.html#a9e9166bda148ddef07e30ac56e3b7085" title="Initialize DCCRG and fsgrids." alt="" coords="272,70,384,95"/>
+<area shape="poly" id="edge6_Node000005_Node000007" title=" " alt="" coords="456,68,385,78,384,73,455,63"/>
+<area shape="rect" id="Node000008" href="$d4/d5b/vlasiator_8cpp.html#acfd343080edd07ae79384688a7e48693" title=" " alt="" coords="108,70,187,95"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="258,85,187,85,187,80,258,80"/>
+<area shape="rect" id="Node000009" href="$d4/d5b/vlasiator_8cpp.html#a54790573f350e250ccca3cbb94733391" title=" " alt="" coords="5,70,60,95"/>
+<area shape="poly" id="edge8_Node000008_Node000009" title=" " alt="" coords="94,85,60,85,60,80,94,80"/>
+<area shape="rect" id="Node000012" href="$dd/d8a/class_s_b_c_1_1_copysphere.html#a489a1683d7537fb427aafbb3528387b5" title=" " alt="" coords="673,99,872,139"/>
+<area shape="poly" id="edge11_Node000011_Node000012" title=" " alt="" coords="942,162,856,141,858,136,944,157"/>
+<area shape="rect" id="Node000013" href="$da/d6b/class_s_b_c_1_1_ionosphere.html#a66dd6c8d7e5b91522b6b05c51910d982" title=" " alt="" coords="675,163,870,203"/>
+<area shape="poly" id="edge12_Node000011_Node000013" title=" " alt="" coords="928,185,870,185,870,180,928,180"/>
+<area shape="rect" id="Node000014" href="$da/ddf/class_s_b_c_1_1_maxwellian.html#a833c7cf658faf049300eec716cc4b8c7" title="Generate the template cell for the face corresponding to the index passed. This function generates a ..." alt="" coords="674,227,871,267"/>
+<area shape="poly" id="edge13_Node000011_Node000014" title=" " alt="" coords="944,209,858,229,856,224,942,203"/>
+<area shape="rect" id="Node000015" href="$da/d6b/class_s_b_c_1_1_ionosphere.html#ac904b9ee61069aa1314aa2b638a2f4e9" title=" " alt="" coords="652,291,893,331"/>
+<area shape="poly" id="edge14_Node000011_Node000015" title=" " alt="" coords="1004,214,954,249,894,281,863,293,861,288,892,276,951,244,1001,209"/>
+</map>

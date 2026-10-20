@@ -1,0 +1,11 @@
+<map id="projects::LossCone::calcCellParameters" name="projects::LossCone::calcCellParameters">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,69,160,109"/>
+<area shape="rect" id="Node000002" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#ac00840314863e8205b85a48b4e34e5e8" title=" " alt="" coords="208,5,383,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="149,67,214,47,216,52,151,72"/>
+<area shape="rect" id="Node000003" href="$db/d19/classprojects_1_1_project.html#a4edca85a367571de52d58b772c08191b" title=" " alt="" coords="221,69,370,109"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="160,87,207,87,207,92,160,92"/>
+<area shape="rect" id="Node000004" href="$db/d19/classprojects_1_1_project.html#ab9a03adce38eac8b87af5e07e3b0ebe1" title=" " alt="" coords="219,133,372,173"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="151,107,216,127,214,132,149,112"/>
+<area shape="rect" id="Node000005" href="$db/d19/classprojects_1_1_project.html#a9fa1ae6ea89d3e235f5ad25c5fe87e66" title=" " alt="" coords="431,133,565,173"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="372,151,416,151,416,156,372,156"/>
+</map>

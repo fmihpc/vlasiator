@@ -1,0 +1,9 @@
+<map id="arch" name="arch">
+<area shape="rect" id="node1" href="dir_ea9599923402ca8ab47fc3e495999dea.html" title="arch" alt="" coords="95,5,146,31"/>
+<area shape="rect" id="node2" href="dir_9a0f5bd62ecdee24b48726a658697d82.html" title="spatial_cells" alt="" coords="5,79,108,104"/>
+<area shape="poly" id="edge1" href="dir_000004_000036.html" alt="" coords="112,33,78,70,74,67,108,29"/>
+<area shape="rect" id="edge1-headlabel" href="dir_000004_000036.html" title="2" alt="" coords="81,63,90,78"/>
+<area shape="rect" id="node3" href="dir_c151978dc0afc1b8cb6d4656e0516851.html" title="vlasovsolver" alt="" coords="132,79,237,104"/>
+<area shape="poly" id="edge2" href="dir_000004_000049.html" alt="" coords="133,29,167,67,163,70,129,33"/>
+<area shape="rect" id="edge2-headlabel" href="dir_000004_000049.html" title="3" alt="" coords="164,52,173,67"/>
+</map>

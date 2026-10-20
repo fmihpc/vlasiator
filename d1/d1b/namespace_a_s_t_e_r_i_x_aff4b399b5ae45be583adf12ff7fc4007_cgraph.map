@@ -1,0 +1,25 @@
+<map id="ASTERIX::get_Non_MaxWellianity" name="ASTERIX::get_Non_MaxWellianity">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,191,244,216"/>
+<area shape="rect" id="Node000002" href="$d8/dbc/vectorclass__fallback_8h.html#ad1eccb49237393bcbb5b6b97556fa4e2" title=" " alt="" coords="387,5,433,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="133,189,193,118,239,76,291,41,333,25,373,18,374,23,334,31,293,46,242,80,197,122,137,192"/>
+<area shape="rect" id="Node000005" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a12396b706cfbfbef0a336d936238b867" title=" " alt="" coords="323,55,497,95"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="143,188,207,148,291,105,311,97,313,102,293,110,210,152,146,193"/>
+<area shape="rect" id="Node000007" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#ac04b3c2b12e5179f8b8800381575f379" title=" " alt="" coords="323,119,497,159"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="182,188,309,159,310,164,183,193"/>
+<area shape="rect" id="Node000008" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a0a70ad5e1571d0fec973183d1b236682" title=" " alt="" coords="292,183,528,223"/>
+<area shape="poly" id="edge8_Node000001_Node000008" title=" " alt="" coords="244,201,278,201,278,206,244,206"/>
+<area shape="rect" id="Node000009" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#ac3e9c10c72c754b3ca8586d8811ad6d4" title=" " alt="" coords="323,247,497,287"/>
+<area shape="poly" id="edge10_Node000001_Node000009" title=" " alt="" coords="183,213,310,242,309,247,182,219"/>
+<area shape="rect" id="Node000010" href="$d4/d0b/ionosphere_solver_tests_2main_8cpp.html#a9bf4cdc41d466e8710b8aa33a33d32e0" title=" " alt="" coords="340,312,480,337"/>
+<area shape="poly" id="edge11_Node000001_Node000010" title=" " alt="" coords="145,214,209,255,250,277,293,297,327,308,326,313,291,302,248,282,206,259,143,219"/>
+<area shape="rect" id="Node000011" href="$de/d31/_dispersion_8m.html#af276a2aede715061015c735080cf65df" title=" " alt="" coords="387,361,433,387"/>
+<area shape="poly" id="edge12_Node000001_Node000011" title=" " alt="" coords="138,215,199,279,244,317,293,348,334,362,374,369,373,374,332,367,291,352,240,321,196,283,135,218"/>
+<area shape="rect" id="Node000003" href="$d7/d8b/class_vec_simple.html#a145923009b9b82410c5a072b8f8127f0" title=" " alt="" coords="604,5,739,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="433,15,590,15,590,21,433,21"/>
+<area shape="rect" id="Node000004" href="$d7/d8b/class_vec_simple.html#ae16798cf2ee14257d0706c60613cd733" title=" " alt="" coords="815,5,981,31"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="739,15,801,15,801,21,739,21"/>
+<area shape="rect" id="Node000006" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a0b5ae6d60c03a10b43a732a20bf20625" title=" " alt="" coords="576,119,767,159"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="493,93,577,113,575,119,492,98"/>
+<area shape="poly" id="edge7_Node000007_Node000006" title=" " alt="" coords="497,137,562,137,562,142,497,142"/>
+<area shape="poly" id="edge9_Node000008_Node000006" title=" " alt="" coords="492,181,575,160,577,165,493,186"/>
+</map>

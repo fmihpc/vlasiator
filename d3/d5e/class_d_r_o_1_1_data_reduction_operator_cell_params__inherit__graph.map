@@ -1,0 +1,9 @@
+<map id="DRO::DataReductionOperatorCellParams" name="DRO::DataReductionOperatorCellParams">
+<area shape="rect" id="Node000001" title=" " alt="" coords="123,79,335,119"/>
+<area shape="rect" id="Node000003" href="$d8/d46/class_d_r_o_1_1_data_reduction_operator_b_v_o_l_derivatives.html" title=" " alt="" coords="5,167,217,207"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="193,129,139,169,136,164,190,125"/>
+<area shape="rect" id="Node000004" href="$d4/df9/class_d_r_o_1_1_data_reduction_operator_derivatives.html" title=" " alt="" coords="241,167,453,207"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="268,125,323,164,320,169,265,129"/>
+<area shape="rect" id="Node000002" href="$d4/d52/class_d_r_o_1_1_data_reduction_operator.html" title=" " alt="" coords="123,5,335,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="231,44,231,79,226,79,226,44"/>
+</map>

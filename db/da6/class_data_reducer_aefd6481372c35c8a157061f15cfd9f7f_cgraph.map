@@ -1,0 +1,14 @@
+<map id="DataReducer::writeIonosphereGridData" name="DataReducer::writeIonosphereGridData">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,63,224,103"/>
+<area shape="rect" id="Node000002" href="$d1/dba/class_d_r_o_1_1_data_reduction_operator_ionosphere_element.html#a3441e39b208d8f119a70bf351e7d1bc2" title=" " alt="" coords="272,31,564,71"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="224,69,258,65,259,70,224,74"/>
+<area shape="rect" id="Node000005" href="$d5/d14/class_d_r_o_1_1_data_reduction_operator_ionosphere_node.html#ad77dfc604690ce0b16c9eecf2f93254c" title=" " alt="" coords="282,95,554,135"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="224,92,268,96,268,102,224,97"/>
+<area shape="rect" id="Node000003" href="$d9/df9/common_8cpp.html#a6167b9f510c4eef8b16fa67bf3d5566e" title="A function to stop the simulation if the boolean condition is true. Raises a flag which gets MPI_Redu..." alt="" coords="687,70,753,95"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="564,63,673,75,673,80,564,69"/>
+<area shape="rect" id="Node000004" href="$d1/dba/class_d_r_o_1_1_data_reduction_operator_ionosphere_element.html#a5cb0fc845273134ba3c2f0c7ac2fa78a" title=" " alt="" coords="612,5,828,45"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="564,36,598,33,598,38,564,41"/>
+<area shape="poly" id="edge5_Node000005_Node000003" title=" " alt="" coords="554,98,673,85,673,90,554,103"/>
+<area shape="rect" id="Node000006" href="$d5/d14/class_d_r_o_1_1_data_reduction_operator_ionosphere_node.html#a1101a5ac929d6458f505036858f1d87a" title=" " alt="" coords="614,120,826,160"/>
+<area shape="poly" id="edge6_Node000005_Node000006" title=" " alt="" coords="554,123,600,127,600,133,554,129"/>
+</map>

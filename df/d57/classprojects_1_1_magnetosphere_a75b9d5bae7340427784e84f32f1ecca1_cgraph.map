@@ -1,0 +1,7 @@
+<map id="projects::Magnetosphere::forceRefinement" name="projects::Magnetosphere::forceRefinement">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,35,188,75"/>
+<area shape="rect" id="Node000002" href="$db/d19/classprojects_1_1_project.html#a2f9f845b74a7af50dfe92a738f6da6f4" title=" " alt="" coords="236,5,371,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="188,39,222,34,223,39,188,44"/>
+<area shape="rect" id="Node000003" href="$d4/d5b/vlasiator_8cpp.html#a0e89e9e9c29d929027088b0a8dd56585" title=" " alt="" coords="249,70,358,95"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="188,64,235,71,234,76,188,70"/>
+</map>

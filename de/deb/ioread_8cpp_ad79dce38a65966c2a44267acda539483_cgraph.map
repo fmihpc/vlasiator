@@ -1,0 +1,12 @@
+<map id="readFileCells" name="readFileCells">
+<area shape="rect" id="Node000001" title="Refine the grid to be identical to the file&#39;s." alt="" coords="5,31,112,56"/>
+<area shape="rect" id="Node000002" href="$de/deb/ioread_8cpp.html#a14bd78d2906bda424e140663774aa173" title="Collective exit on error functions." alt="" coords="160,5,256,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="112,32,146,26,147,31,113,37"/>
+<area shape="rect" id="Node000005" href="$de/deb/ioread_8cpp.html#a2e781a62c1f5eb9647fbd0b4fc737e7b" title="Read cell ID&#39;s Read in cell ID&#39;s from file. Note: Uses the newer version of vlsv parallel reader." alt="" coords="161,55,255,80"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="113,49,148,55,147,60,112,54"/>
+<area shape="rect" id="Node000003" href="$d3/d30/logger_8cpp.html#a8a4ad0ef8144875dad9a9e46831ed042" title=" " alt="" coords="304,31,359,56"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="257,25,291,32,290,38,256,30"/>
+<area shape="rect" id="Node000004" href="$d3/d42/class_logger.html#ab45d7f3a73f2ddbb92c27752f688be68" title=" " alt="" coords="407,31,512,56"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="359,41,393,41,393,46,359,46"/>
+<area shape="poly" id="edge5_Node000005_Node000003" title=" " alt="" coords="255,56,290,49,291,54,256,61"/>
+</map>

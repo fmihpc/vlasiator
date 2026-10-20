@@ -1,0 +1,33 @@
+<map id="vlasovsolver/vlasovmover.h" name="vlasovsolver/vlasovmover.h">
+<area shape="rect" id="Node000001" title=" " alt="" coords="1116,5,1321,31"/>
+<area shape="rect" id="Node000002" href="$d7/d70/grid_8cpp.html" title=" " alt="" coords="5,86,80,111"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="1102,24,867,29,576,39,296,56,180,68,93,81,69,88,68,83,91,76,180,62,295,51,576,34,867,23,1102,18"/>
+<area shape="rect" id="Node000003" href="$de/deb/ioread_8cpp.html" title=" " alt="" coords="104,86,195,111"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="1102,25,632,44,386,60,284,70,207,81,180,89,179,83,206,76,284,65,385,55,632,38,1102,20"/>
+<area shape="rect" id="Node000004" href="$da/daf/iowrite_8cpp.html" title=" " alt="" coords="219,86,314,111"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="1102,21,947,23,753,32,539,50,431,64,326,81,299,88,297,83,325,76,430,58,538,45,752,26,947,18,1102,15"/>
+<area shape="rect" id="Node000005" href="$d5/d64/_shocktest_8cpp.html" title=" " alt="" coords="338,79,481,119"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="1102,26,824,44,658,60,492,81,481,83,480,78,492,76,657,55,823,39,1102,21"/>
+<area shape="rect" id="Node000006" href="$df/d18/project_8cpp.html" title=" " alt="" coords="505,86,655,111"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="1103,31,900,51,668,81,630,89,629,83,668,76,899,46,1102,26"/>
+<area shape="rect" id="Node000007" href="$d9/db6/copysphere_8cpp.html" title="Implementation of the class SysBoundaryCondition::Copysphere to handle cells classified as sysboundar..." alt="" coords="680,86,891,111"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="1143,36,849,89,848,83,1142,30"/>
+<area shape="rect" id="Node000008" href="$d3/d2c/inflow_8cpp.html" title="Implementation of the class SysBoundaryCondition::Inflow. This serves as the base class for inherited..." alt="" coords="915,86,1090,111"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="1175,38,1035,88,1033,83,1174,33"/>
+<area shape="rect" id="Node000009" href="$dc/d4f/ionosphere_8cpp.html" title="Implementation of the class SysBoundaryCondition::Ionosphere to handle cells classified as sysboundar..." alt="" coords="1115,86,1323,111"/>
+<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="1221,44,1221,86,1216,86,1216,44"/>
+<area shape="rect" id="Node000010" href="$df/d1d/outflow_8cpp.html" title="Implementation of the class SysBoundaryCondition::Outflow to handle cells classified as sysboundaryty..." alt="" coords="1347,86,1530,111"/>
+<area shape="poly" id="edge9_Node000001_Node000010" title=" " alt="" coords="1265,33,1408,83,1406,88,1263,38"/>
+<area shape="rect" id="Node000011" href="$d8/db4/setmaxwellian_8cpp.html" title="Implementation of the class SysBoundaryCondition::Maxwellian to handle cells classified as sysboundar..." alt="" coords="1555,86,1787,111"/>
+<area shape="poly" id="edge10_Node000001_Node000011" title=" " alt="" coords="1298,30,1605,83,1604,89,1297,36"/>
+<area shape="rect" id="Node000012" href="$da/d74/sysboundarycondition_8cpp.html" title="Implementation of the base class SysBoundaryCondition to handle system boundary cells." alt="" coords="1811,86,2090,111"/>
+<area shape="poly" id="edge11_Node000001_Node000012" title=" " alt="" coords="1335,28,1799,76,1861,83,1860,89,1798,81,1335,33"/>
+<area shape="rect" id="Node000013" href="$d4/d5b/vlasiator_8cpp.html" title=" " alt="" coords="2114,86,2219,111"/>
+<area shape="poly" id="edge12_Node000001_Node000013" title=" " alt="" coords="1335,16,1489,20,1681,29,1892,47,2103,76,2133,83,2132,89,2102,81,1892,52,1680,34,1488,25,1335,22"/>
+<area shape="rect" id="Node000014" href="$dd/d0c/arch__moments_8cpp.html" title=" " alt="" coords="2243,86,2477,111"/>
+<area shape="poly" id="edge13_Node000001_Node000014" title=" " alt="" coords="1335,20,1733,38,1982,54,2232,76,2290,83,2289,89,2232,81,1982,60,1733,43,1335,26"/>
+<area shape="rect" id="Node000015" href="$da/d47/gpu__moments_8cpp.html" title=" " alt="" coords="2501,86,2731,111"/>
+<area shape="poly" id="edge14_Node000001_Node000015" title=" " alt="" coords="1335,18,1837,33,2162,50,2490,76,2547,83,2547,89,2489,81,2161,56,1837,38,1335,24"/>
+<area shape="rect" id="Node000016" href="$d5/d5d/vlasovmover_8cpp.html" title=" " alt="" coords="2755,86,2975,111"/>
+<area shape="poly" id="edge15_Node000001_Node000016" title=" " alt="" coords="1335,17,1589,19,1938,28,2338,46,2542,59,2743,76,2800,83,2800,89,2742,81,2542,65,2337,51,1938,33,1589,25,1335,22"/>
+</map>

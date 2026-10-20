@@ -1,0 +1,15 @@
+<map id="deallocateRemoteCellBlocks" name="deallocateRemoteCellBlocks">
+<area shape="rect" id="Node000001" title=" " alt="" coords="547,81,756,107"/>
+<area shape="rect" id="Node000002" href="$d7/d70/grid_8cpp.html#ad1bdb09168de4bf51ffe7b6fada86915" title="Balance load." alt="" coords="395,56,499,81"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="534,82,499,78,499,72,535,77"/>
+<area shape="rect" id="Node000006" href="$da/daf/iowrite_8cpp.html#a5531f0481d1489a9c4fa85ef54be0b1f" title="Write out a restart of the simulation into a vlsv file. All block data in remote cells will be reset." alt="" coords="239,107,342,132"/>
+<area shape="poly" id="edge6_Node000001_Node000006" title=" " alt="" coords="533,105,342,118,342,113,533,100"/>
+<area shape="rect" id="Node000003" href="$d7/d70/grid_8cpp.html#a9e9166bda148ddef07e30ac56e3b7085" title="Initialize DCCRG and fsgrids." alt="" coords="235,5,347,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="393,54,330,33,332,28,394,49"/>
+<area shape="rect" id="Node000004" href="$d4/d5b/vlasiator_8cpp.html#acfd343080edd07ae79384688a7e48693" title=" " alt="" coords="108,56,187,81"/>
+<area shape="poly" id="edge5_Node000002_Node000004" title=" " alt="" coords="381,71,187,71,187,66,381,66"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="242,38,185,58,183,53,240,33"/>
+<area shape="rect" id="Node000005" href="$d4/d5b/vlasiator_8cpp.html#a54790573f350e250ccca3cbb94733391" title=" " alt="" coords="5,56,60,81"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="94,71,60,71,60,66,94,66"/>
+<area shape="poly" id="edge7_Node000006_Node000004" title=" " alt="" coords="240,104,183,84,185,79,242,99"/>
+</map>

@@ -1,0 +1,7 @@
+<map id="Romberg_simple" name="Romberg_simple">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,31,137,56"/>
+<area shape="rect" id="Node000002" href="$d3/da8/quadr_8cpp.html#adde271c5da57f58e525315c139e1a37d" title=" " alt="" coords="187,5,246,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="137,29,173,23,174,28,138,34"/>
+<area shape="rect" id="Node000003" href="$d3/da8/quadr_8cpp.html#ab15a726e703d67fd81e39363e1f815de" title=" " alt="" coords="185,55,248,80"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="138,52,172,57,171,63,137,57"/>
+</map>

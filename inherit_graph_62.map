@@ -1,0 +1,43 @@
+<map id="Graphical Class Hierarchy" name="Graphical Class Hierarchy">
+<area shape="rect" id="Node000000" href="$db/d19/classprojects_1_1_project.html" title=" " alt="" coords="5,179,132,204"/>
+<area shape="rect" id="Node000001" href="$d9/d08/classprojects_1_1_alfven.html" title=" " alt="" coords="219,5,343,31"/>
+<area shape="poly" id="edge59_Node000000_Node000001" title=" " alt="" coords="79,165,117,102,145,68,179,40,217,23,219,28,181,44,149,72,121,105,84,168"/>
+<area shape="rect" id="Node000002" href="$d2/d03/classprojects_1_1_dispersion.html" title=" " alt="" coords="205,55,356,80"/>
+<area shape="poly" id="edge60_Node000000_Node000002" title=" " alt="" coords="87,166,127,126,152,106,179,89,207,78,209,83,181,94,155,110,130,130,91,170"/>
+<area shape="rect" id="Node000003" href="$de/d23/classprojects_1_1_larmor.html" title=" " alt="" coords="217,104,345,129"/>
+<area shape="poly" id="edge61_Node000000_Node000003" title=" " alt="" coords="106,170,179,138,218,127,219,132,181,143,108,175"/>
+<area shape="rect" id="Node000004" href="$d4/d0a/classprojects_1_1_riemann1.html" title=" " alt="" coords="207,153,355,179"/>
+<area shape="poly" id="edge62_Node000000_Node000004" title=" " alt="" coords="145,180,206,172,207,177,146,185"/>
+<area shape="rect" id="Node000005" href="$d5/db6/classprojects_1_1_shock.html" title=" " alt="" coords="220,203,341,228"/>
+<area shape="poly" id="edge63_Node000000_Node000005" title=" " alt="" coords="146,197,220,206,220,211,145,203"/>
+<area shape="rect" id="Node000006" href="$d9/d72/classprojects_1_1_test_hall.html" title=" " alt="" coords="213,252,348,277"/>
+<area shape="poly" id="edge64_Node000000_Node000006" title=" " alt="" coords="109,207,181,237,223,249,222,254,179,242,107,212"/>
+<area shape="rect" id="Node000007" href="$dc/d2c/classprojects_1_1_tri_axis_search.html" title=" " alt="" coords="196,301,365,327"/>
+<area shape="poly" id="edge65_Node000000_Node000007" title=" " alt="" coords="92,213,131,251,181,286,212,299,210,304,179,291,128,255,88,217"/>
+<area shape="rect" id="Node000020" href="$dd/d25/classprojects_1_1verification_larmor.html" title=" " alt="" coords="180,351,381,376"/>
+<area shape="poly" id="edge78_Node000000_Node000020" title=" " alt="" coords="84,215,122,276,149,309,181,336,206,348,204,353,179,340,146,312,118,279,80,218"/>
+<area shape="rect" id="Node000008" href="$d9/d69/classprojects_1_1_distributions.html" title=" " alt="" coords="438,29,603,55"/>
+<area shape="poly" id="edge66_Node000007_Node000008" title=" " alt="" coords="374,292,379,287,398,260,406,233,406,206,403,178,399,150,400,121,408,92,427,64,442,53,446,57,431,68,413,95,405,122,405,149,408,177,412,205,411,234,403,262,383,290,378,296"/>
+<area shape="rect" id="Node000009" href="$dd/d62/classprojects_1_1_flowthrough.html" title=" " alt="" coords="439,79,602,104"/>
+<area shape="poly" id="edge67_Node000007_Node000009" title=" " alt="" coords="373,292,379,287,395,266,402,245,403,202,403,158,411,135,427,113,443,102,447,106,431,117,416,138,409,159,408,202,408,246,400,269,383,290,377,296"/>
+<area shape="rect" id="Node000010" href="$dd/d9d/classprojects_1_1_fluctuations.html" title=" " alt="" coords="439,128,602,153"/>
+<area shape="poly" id="edge68_Node000007_Node000010" title=" " alt="" coords="372,292,380,287,392,272,399,258,403,226,407,194,414,178,428,163,445,151,448,156,431,167,419,181,412,196,408,227,404,259,397,275,383,291,376,296"/>
+<area shape="rect" id="Node000011" href="$d2/d61/classprojects_1_1_harris.html" title=" " alt="" coords="460,177,581,203"/>
+<area shape="poly" id="edge69_Node000007_Node000011" title=" " alt="" coords="368,293,380,287,396,269,403,250,411,231,428,212,459,197,461,202,431,216,415,234,408,252,400,272,383,291,371,298"/>
+<area shape="rect" id="Node000012" href="$db/d4a/classprojects_1_1_i_p_shock.html" title=" " alt="" coords="454,227,587,252"/>
+<area shape="poly" id="edge70_Node000007_Node000012" title=" " alt="" coords="354,295,380,286,404,274,428,261,463,250,464,255,430,266,407,278,382,291,356,300"/>
+<area shape="rect" id="Node000013" href="$de/da1/classprojects_1_1_k_h_b.html" title=" " alt="" coords="465,276,576,301"/>
+<area shape="poly" id="edge71_Node000007_Node000013" title=" " alt="" coords="378,301,465,292,465,297,379,306"/>
+<area shape="rect" id="Node000014" href="$d9/da0/classprojects_1_1_loss_cone.html" title=" " alt="" coords="449,325,593,351"/>
+<area shape="poly" id="edge72_Node000007_Node000014" title=" " alt="" coords="379,321,449,328,448,333,379,326"/>
+<area shape="rect" id="Node000015" href="$df/d57/classprojects_1_1_magnetosphere.html" title=" " alt="" coords="429,375,612,400"/>
+<area shape="poly" id="edge73_Node000007_Node000015" title=" " alt="" coords="358,328,382,336,407,347,430,360,469,372,467,377,428,364,404,352,380,340,356,333"/>
+<area shape="rect" id="Node000016" href="$d4/dc0/classprojects_1_1_multi_peak.html" title=" " alt="" coords="447,424,594,449"/>
+<area shape="poly" id="edge74_Node000007_Node000016" title=" " alt="" coords="374,330,383,336,400,354,408,373,415,392,431,409,454,422,452,426,428,413,411,395,403,375,396,357,380,340,371,335"/>
+<area shape="rect" id="Node000017" href="$d5/dbc/classprojects_1_1_shocktest.html" title=" " alt="" coords="447,473,594,499"/>
+<area shape="poly" id="edge75_Node000007_Node000017" title=" " alt="" coords="377,331,383,336,397,351,404,367,408,399,412,430,419,444,431,459,450,471,447,475,428,463,414,447,407,431,403,399,399,369,392,354,380,340,374,336"/>
+<area shape="rect" id="Node000018" href="$df/d44/classprojects_1_1_template.html" title=" " alt="" coords="449,523,592,548"/>
+<area shape="poly" id="edge76_Node000007_Node000018" title=" " alt="" coords="378,332,383,336,400,358,408,380,408,424,409,467,416,488,431,508,450,521,447,526,427,512,411,490,404,468,403,424,402,381,395,360,379,340,375,336"/>
+<area shape="rect" id="Node000019" href="$da/df8/classprojects_1_1test__fp.html" title=" " alt="" coords="457,572,584,597"/>
+<area shape="poly" id="edge77_Node000007_Node000019" title=" " alt="" coords="379,332,383,336,403,364,411,392,412,420,408,449,405,476,405,504,413,531,431,558,444,567,458,574,456,579,441,572,427,561,408,533,400,504,400,476,403,448,407,420,406,393,398,366,379,340,375,336"/>
+</map>

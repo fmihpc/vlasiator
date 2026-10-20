@@ -1,0 +1,7 @@
+<map id="DRO::VariableEnergyDensity" name="DRO::VariableEnergyDensity">
+<area shape="rect" id="Node000001" title=" " alt="" coords="8,167,215,192"/>
+<area shape="rect" id="Node000002" href="$de/d11/class_d_r_o_1_1_data_reduction_operator_has_parameters.html" title=" " alt="" coords="5,79,217,119"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="114,132,114,166,109,166,109,132"/>
+<area shape="rect" id="Node000003" href="$d4/d52/class_d_r_o_1_1_data_reduction_operator.html" title=" " alt="" coords="5,5,217,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="114,44,114,79,109,79,109,44"/>
+</map>

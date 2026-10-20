@@ -1,0 +1,19 @@
+<map id="compute_cell_intersections" name="compute_cell_intersections">
+<area shape="rect" id="Node000001" title=" " alt="" coords="863,55,1063,80"/>
+<area shape="rect" id="Node000002" href="$d7/d31/cpu__acc__semilag_8cpp.html#a16eb408704dcb3c4fb17300f0fc4be8a" title=" " alt="" coords="657,29,814,55"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="849,57,814,53,814,48,849,52"/>
+<area shape="rect" id="Node000008" href="$d5/d9e/gpu__acc__semilag_8cpp.html#a2f3ac063bfdc2b3e88a844b929ff924a" title="Propagates the distribution function in velocity space of given list of real space cells using a semi..." alt="" coords="656,79,815,104"/>
+<area shape="poly" id="edge8_Node000001_Node000008" title=" " alt="" coords="849,82,815,86,814,80,848,77"/>
+<area shape="rect" id="Node000003" href="$d5/d5d/vlasovmover_8cpp.html#a95b050f52235f371f937b7746c575025" title=" " alt="" coords="445,55,608,80"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="643,56,608,60,608,55,642,51"/>
+<area shape="rect" id="Node000004" href="$d5/d5d/vlasovmover_8cpp.html#a72de3eb0ed9d5985acc51e471edfb808" title=" " alt="" coords="235,5,397,31"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="458,54,370,33,372,28,459,49"/>
+<area shape="rect" id="Node000005" href="$d7/d70/grid_8cpp.html#a9e9166bda148ddef07e30ac56e3b7085" title="Initialize DCCRG and fsgrids." alt="" coords="260,55,372,80"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="431,70,372,70,372,65,431,65"/>
+<area shape="rect" id="Node000006" href="$d4/d5b/vlasiator_8cpp.html#acfd343080edd07ae79384688a7e48693" title=" " alt="" coords="108,80,187,105"/>
+<area shape="poly" id="edge7_Node000003_Node000006" title=" " alt="" coords="456,85,398,94,282,99,187,97,187,92,282,94,397,89,456,80"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="247,80,188,89,187,84,246,75"/>
+<area shape="rect" id="Node000007" href="$d4/d5b/vlasiator_8cpp.html#a54790573f350e250ccca3cbb94733391" title=" " alt="" coords="5,80,60,105"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="94,95,60,95,60,90,94,90"/>
+<area shape="poly" id="edge9_Node000008_Node000003" title=" " alt="" coords="642,83,608,79,609,74,642,78"/>
+</map>

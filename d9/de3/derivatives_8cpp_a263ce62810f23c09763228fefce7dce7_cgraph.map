@@ -1,0 +1,7 @@
+<map id="calculateCurvatureSimple" name="calculateCurvatureSimple">
+<area shape="rect" id="Node000001" title="High&#45;level curvature calculation wrapper function." alt="" coords="5,5,196,31"/>
+<area shape="rect" id="Node000002" href="$d9/de3/derivatives_8cpp.html#aadcf6f0871f0cb4459fc4b61d74302a2" title="Low&#45;level curvature calculation." alt="" coords="244,5,389,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="196,15,230,15,230,21,196,21"/>
+<area shape="rect" id="Node000003" href="$de/d31/_dispersion_8m.html#af276a2aede715061015c735080cf65df" title=" " alt="" coords="437,5,484,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="389,15,423,15,423,21,389,21"/>
+</map>

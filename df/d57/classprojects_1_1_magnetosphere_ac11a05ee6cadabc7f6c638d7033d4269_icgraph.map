@@ -1,0 +1,7 @@
+<map id="projects::Magnetosphere::getV0" name="projects::Magnetosphere::getV0">
+<area shape="rect" id="Node000001" title="Return a vector containing the velocity coordinate of the centre of each ion population in the distri..." alt="" coords="236,37,419,77"/>
+<area shape="rect" id="Node000002" href="$df/d57/classprojects_1_1_magnetosphere.html#aec1a71d2331bcefb696a27aa419fb030" title=" " alt="" coords="5,5,188,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="222,45,188,41,189,35,223,40"/>
+<area shape="rect" id="Node000003" href="$df/d57/classprojects_1_1_magnetosphere.html#a539f67b3dc136e473c181541acf858da" title=" " alt="" coords="5,69,188,109"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="223,74,189,79,188,74,222,69"/>
+</map>

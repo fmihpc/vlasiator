@@ -1,0 +1,16 @@
+<map id="compute_plm_coeff_explicit_column" name="compute_plm_coeff_explicit_column">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,47,211,87"/>
+<area shape="rect" id="Node000002" href="$d5/d3d/mini-apps_2acceleration_2cpu__slope__limiters_8hpp.html#af5f8cd32ea4efcd598f93f20deaa8959" title=" " alt="" coords="259,55,365,80"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="211,65,245,65,245,70,211,70"/>
+<area shape="rect" id="Node000003" href="$d8/dbc/vectorclass__fallback_8h.html#ad1eccb49237393bcbb5b6b97556fa4e2" title=" " alt="" coords="415,5,461,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="344,52,401,29,403,34,346,57"/>
+<area shape="rect" id="Node000006" href="$d8/dbc/vectorclass__fallback_8h.html#a1896c5fbdb17de74189d1d18cdd4cf29" title=" " alt="" coords="415,55,461,80"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="366,65,401,65,401,70,366,70"/>
+<area shape="rect" id="Node000007" href="$dc/d54/common_8h.html#a704bbe0aac85fb7120eb499852241a91" title=" " alt="" coords="413,104,463,129"/>
+<area shape="poly" id="edge7_Node000002_Node000007" title=" " alt="" coords="346,78,402,100,400,105,344,83"/>
+<area shape="rect" id="Node000004" href="$d7/d8b/class_vec_simple.html#a145923009b9b82410c5a072b8f8127f0" title=" " alt="" coords="511,31,645,56"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="461,19,497,26,496,31,460,25"/>
+<area shape="rect" id="Node000005" href="$d7/d8b/class_vec_simple.html#ae16798cf2ee14257d0706c60613cd733" title=" " alt="" coords="693,31,860,56"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="646,41,680,41,680,46,646,46"/>
+<area shape="poly" id="edge6_Node000006_Node000004" title=" " alt="" coords="461,61,497,55,497,60,462,66"/>
+</map>

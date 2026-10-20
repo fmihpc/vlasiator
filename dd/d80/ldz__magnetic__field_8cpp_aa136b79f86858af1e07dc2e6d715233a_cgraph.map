@@ -1,0 +1,9 @@
+<map id="propagateSysBoundaryMagneticField" name="propagateSysBoundaryMagneticField">
+<area shape="rect" id="Node000001" title="Low&#45;level magnetic field propagation function." alt="" coords="5,35,239,75"/>
+<area shape="rect" id="Node000002" href="$d8/ddb/class_s_b_c_1_1_sys_boundary_condition.html#acf3189e296c7d3c5f06dfcb2c2009926" title=" " alt="" coords="287,5,572,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="239,41,273,38,273,43,239,46"/>
+<area shape="rect" id="Node000003" href="$dd/d3d/class_sys_boundary.html#a421b3fcc380523724e054d0b2778f3cf" title=" " alt="" coords="319,70,539,95"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="239,63,306,69,305,74,239,68"/>
+<area shape="rect" id="Node000004" href="$d9/df9/common_8cpp.html#a3ccffabea3435cf184592d88e6a470c8" title=" " alt="" coords="620,70,708,95"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="540,80,606,80,606,85,540,85"/>
+</map>

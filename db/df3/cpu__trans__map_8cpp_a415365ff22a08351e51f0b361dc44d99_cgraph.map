@@ -1,0 +1,7 @@
+<map id="compute_spatial_source_neighbors" name="compute_spatial_source_neighbors">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,5,185,45"/>
+<area shape="rect" id="Node000002" href="$db/df3/cpu__trans__map_8cpp.html#a22d2f463ef73476e735ea91746d82cea" title=" " alt="" coords="233,5,392,45"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="186,23,220,23,220,28,186,28"/>
+<area shape="rect" id="Node000003" href="$db/df3/cpu__trans__map_8cpp.html#ab54aa4eb5e50b7baf7e3beb1a0a89f3d" title=" " alt="" coords="440,13,599,38"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="392,23,426,23,426,28,392,28"/>
+</map>

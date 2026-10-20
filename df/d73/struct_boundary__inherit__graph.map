@@ -1,0 +1,11 @@
+<map id="Boundary" name="Boundary">
+<area shape="rect" id="Node000001" title=" " alt="" coords="317,5,401,31"/>
+<area shape="rect" id="Node000002" href="$d4/d62/struct_compact_spatial_dimension.html" title=" " alt="" coords="5,79,200,104"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="305,37,145,81,143,76,304,32"/>
+<area shape="rect" id="Node000003" href="$d9/d9e/struct_open_boundary.html" title=" " alt="" coords="225,79,343,104"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="339,42,298,80,294,77,335,38"/>
+<area shape="rect" id="Node000004" href="$df/d0f/struct_periodic_boundary.html" title=" " alt="" coords="367,79,503,104"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="383,38,424,76,420,80,379,42"/>
+<area shape="rect" id="Node000005" href="$d5/d59/struct_reflect_boundary.html" title=" " alt="" coords="527,79,657,104"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="410,32,555,76,553,81,408,37"/>
+</map>
