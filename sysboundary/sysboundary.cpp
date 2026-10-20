@@ -25,6 +25,7 @@
  */
 
 #include <cstdlib>
+#include <algorithm>
 #include <iostream>
 
 #include "../grid.h"
@@ -157,6 +158,7 @@ void SysBoundary::getParameters() {
      b->getParameters();
    }
    bool boundaries_valid[6]={periodic[0],periodic[0],periodic[1],periodic[1],periodic[2],periodic[2]};
+   const auto& populations = getObjectWrapper().particleSpecies;
    if (sysBoundaryCondList.size() == 0) {
       if (!periodic[0] && !Readparameters::helpRequested) {
          abort_mpi("Non-periodic in x but no boundary condition loaded!");
@@ -242,6 +244,51 @@ void SysBoundary::getParameters() {
   }
   if (!boundaries_valid[4] || !boundaries_valid[5]) {
     abort_mpi("Boundary settings for z direction invalid");
+  }
+  if (!Readparameters::helpRequested) {
+     // Match classification's stable precedence order without mutating its list.
+     std::vector<SBC::SysBoundaryCondition*> boundaryOrder(sysBoundaries.begin(), sysBoundaries.end());
+     std::stable_sort(boundaryOrder.begin(), boundaryOrder.end(), precedenceSort);
+     const std::array<const char*, 6> faceNames{{"x+", "x-", "y+", "y-", "z+", "z-"}};
+     for (uint popID = 0; popID < populations.size(); ++popID) {
+        // Opposite faces cannot intersect on the supported (at least five-cell)
+        // outer grids. These combinations cover face interiors, edges and corners.
+        for (int x : {1, 0, -1}) for (int y : {1, 0, -1}) for (int z : {1, 0, -1}) {
+           if ((x == 0 && y == 0 && z == 0) || (x && periodic[0]) ||
+               (y && periodic[1]) || (z && periodic[2])) continue;
+           const std::array<bool, 6> region{{x == 1, x == -1, y == 1, y == -1, z == 1, z == -1}};
+           SBC::SysBoundaryCondition* effective = nullptr;
+           std::array<bool, 6> effectiveFaces{};
+           for (auto* boundary : boundaryOrder) {
+              if (boundary->getIndex() != sysboundarytype::OUTFLOW &&
+                  boundary->getIndex() != sysboundarytype::MAXWELLIAN) continue;
+              std::array<bool, 6> faces{};
+              boundary->getFaces(faces.data());
+              for (uint face = 0; face < 6; ++face) {
+                 if (faces[face] && region[face]) {
+                    effective = boundary;
+                    effectiveFaces = faces;
+                    break;
+                 }
+              }
+           }
+           // Maxwellian applies to all populations; inner boundaries do not
+           // supply the outer-face contract checked here.
+           if (!effective || effective->getIndex() != sysboundarytype::OUTFLOW) continue;
+           std::array<bool, 6> speciesFaces{};
+           static_cast<const SBC::Outflow*>(effective)->getSpeciesFaces(popID, speciesFaces.data());
+           bool covered = false;
+           for (uint face = 0; face < 6; ++face) covered = covered || (region[face] && speciesFaces[face]);
+           if (!covered) {
+              for (uint face = 0; face < 6; ++face) {
+                 if (region[face] && effectiveFaces[face]) {
+                    abort_mpi("Missing system boundary condition for population '" + populations[popID].name +
+                              "' on face " + faceNames[face] + " (effective boundary: Outflow)");
+                 }
+              }
+           }
+        }
+     }
   }
 }
 

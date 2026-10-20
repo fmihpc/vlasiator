@@ -309,6 +309,17 @@ jobs:
           exit 1
         fi
 
+    - name: Build and run outflow population regression
+      if: matrix.compile_flags == 'prod'
+      shell: bash
+      env:
+        OMPI_ALLOW_RUN_AS_ROOT: '1'
+        OMPI_ALLOW_RUN_AS_ROOT_CONFIRM: '1'
+      run: |
+        make -j 3 outflow-test
+        export LD_LIBRARY_PATH="$GITHUB_WORKSPACE/libraries-docker/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+        bash testpackage/outflow/run.sh
+
     - name: Upload release binary
       uses: actions/upload-artifact@v4
       with:
