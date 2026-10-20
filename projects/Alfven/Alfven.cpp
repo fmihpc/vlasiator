@@ -30,6 +30,7 @@
 #include "../../object_wrapper.h"
 
 #include "Alfven.h"
+#include "alfven_field.hpp"
 
 using namespace std;
 
@@ -169,16 +170,13 @@ namespace projects {
             const std::array<Real, 3> gridSpacing = coordinates.physicalGridSpacing;
             auto& cell = perb[stencil.ooo()];
 
-            const Real dx = gridSpacing[0];
-            const Real dy = gridSpacing[1];
-            const Real ksi = ((xyz[0] + 0.5 * dx) * cos(ALPHA_l) + (xyz[1] + 0.5 * dy) * sin(ALPHA_l)) / WAVELENGTH_l;
-            const Real dBxavg = sin(2.0 * M_PI * ksi);
-            const Real dByavg = sin(2.0 * M_PI * ksi);
-            const Real dBzavg = cos(2.0 * M_PI * ksi);
-
-            cell[fsgrids::bfield::PERBX] = B0_l * cos(ALPHA_l) - A_MAG_l * B0_l * sin(ALPHA_l) * dBxavg;
-            cell[fsgrids::bfield::PERBY] = B0_l * sin(ALPHA_l) + A_MAG_l * B0_l * cos(ALPHA_l) * dByavg;
-            cell[fsgrids::bfield::PERBZ] = B0_l * A_MAG_l * dBzavg;
+            const auto field = alfvenFaceAverages(
+               {xyz[0], xyz[1], xyz[2]},
+               {gridSpacing[0], gridSpacing[1], gridSpacing[2]},
+               ALPHA_l, WAVELENGTH_l, B0_l, A_MAG_l);
+            cell[fsgrids::bfield::PERBX] = field[0];
+            cell[fsgrids::bfield::PERBY] = field[1];
+            cell[fsgrids::bfield::PERBZ] = field[2];
          });
       }
    }
