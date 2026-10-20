@@ -151,6 +151,8 @@ struct Parameters {
    static std::vector<std::pair<std::string, std::string>>
        restartWriteHints; /*!< Collection of MPI-IO hints passed for restart IO. Pairs of key-value strings. */
 
+   static bool systemWriteTimeghosts; /*!< Write VDFs in bulk files of timeghosts according to stride, otherwise only cell-native population */
+
    static bool writeInitialState; /*!< If true, initial state is written. This is useful for debugging as the restarts
                                      are always written out after propagation of 0.5dt in real space.*/
    static bool writeFullBGB; /*!< If true, write full BGB components and derivatives in a dedicated file, then exit.*/
