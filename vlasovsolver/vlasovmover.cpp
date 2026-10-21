@@ -292,7 +292,7 @@ void communicatePreSpatialGhostTranslationCoalesced(
       neighborhood = Neighborhoods::VLASOV_SOLVER_TIMEGHOST_OUTER_HALO;
    }
    else if (tictoc == Timeclasses::TOC) {
-      neighborhood = Neighborhoods::VLASOV_SOLVER_TIMEGHOST_EXACT_HALO;
+      neighborhood = Neighborhoods::VLASOV_SOLVER_GHOST;
    }
    else {
       std::cerr << __FILE__<<":"<<__LINE__<< " Unknown state: Current maxtimeclass=" << P::currentMaxTimeclass << ", tictoc = " << tictoc << std::endl;
@@ -397,6 +397,7 @@ void calculateSpatialGhostTranslation(
 
    std::cerr << "GT, tictoc = " << tictoc << ", pop " << popID << ", tc " << tc << "\n";
    std::map<CellID, Population> copy_ghosts;
+   int expected_translations = 0; // count how many translation ops suffice for a complete translation
    if (P::currentMaxTimeclass > 0 && tictoc == Timeclasses::TIC){
       std::cerr << "Tic copy\n";
       phiprof::Timer copyghostOuter {"copy-ghost temporaries"};
@@ -427,6 +428,7 @@ void calculateSpatialGhostTranslation(
    uint pencili = 0;
    uint curend = 0;
    if( pencils->N > 0){
+      expected_translations++;
       curend = pencils->idsStart[pencili]+pencils->lengthOfPencils[pencili];
       for (size_t i = 0; i < pencils->sumOfLengths; ++i){
          if (i >=curend){ // in the next pencil already
@@ -450,6 +452,7 @@ void calculateSpatialGhostTranslation(
    pencils = &pencilSet->at(0);
    pencili = 0;
    if( pencils->N > 0){
+      expected_translations++;
       curend = pencils->idsStart[pencili]+pencils->lengthOfPencils[pencili];
       for (size_t i = 0; i < pencils->sumOfLengths; ++i){
          if (i >=curend){ // in the next pencil already
@@ -472,6 +475,7 @@ void calculateSpatialGhostTranslation(
    pencils = &pencilSet->at(1);
    pencili = 0;
    if( pencils->N > 0){
+      expected_translations++;
       curend = pencils->idsStart[pencili]+pencils->lengthOfPencils[pencili];
       for (size_t i = 0; i < pencils->sumOfLengths; ++i){
          if (i >=curend){ // in the next pencil already
@@ -509,7 +513,7 @@ void calculateSpatialGhostTranslation(
       if (tictoc == Timeclasses::TIC && !mpiGrid[c]->has_source_timeclass_tic(tc)) continue;
       if (tictoc == Timeclasses::TOC && !mpiGrid[c]->has_source_timeclass_toc(tc)) continue;
       Population& pop = mpiGrid[c]->get_population(popID, tc);
-      if(t0 != pop.T_V){
+      if(abs(t0 - pop.T_V) > dt/1e6){ // some scaled epsilon
          std::cerr << *source_cells.begin() << " and " << c << " have differing source times: " << t0 << " and " << pop.T_V << ", respectively. Delta " << pop.T_V - t0 << std::endl;
       }
    }
@@ -517,17 +521,17 @@ void calculateSpatialGhostTranslation(
    {
       Population& pop = mpiGrid[c]->get_population(popID, tc);
       if(pop.state & (1u << LastPropagationState::TRANSLATED_X)){
-         pop.T_R += dt/3.0;
+         pop.T_R += dt/expected_translations;
       }
       if(pop.state & (1u << LastPropagationState::TRANSLATED_Y)){
-         pop.T_R += dt/3.0;
+         pop.T_R += dt/expected_translations;
       }
       if(pop.state & (1u << LastPropagationState::TRANSLATED_Z)){
-         pop.T_R += dt/3.0;
+         pop.T_R += dt/expected_translations;
       }
-      if((pop.state & (1u << LastPropagationState::TRANSLATED_X)) && 
-         (pop.state & (1u << LastPropagationState::TRANSLATED_Y)) &&
-         (pop.state & (1u << LastPropagationState::TRANSLATED_Z))){
+      if((int)(bool)(pop.state & (1u << LastPropagationState::TRANSLATED_X)) +
+         (int)(bool)(pop.state & (1u << LastPropagationState::TRANSLATED_Y)) +
+         (int)(bool)(pop.state & (1u << LastPropagationState::TRANSLATED_Z)) == expected_translations){
          
          pop.state = pop.state | (1u << LastPropagationState::TRANSLATED);
          pop.state = pop.state & ~(1u << LastPropagationState::TRANSLATED_X);
@@ -541,7 +545,7 @@ void calculateSpatialGhostTranslation(
             (tictoc == Timeclasses::TOC && mpiGrid[c]->has_active_timeclass_toc(tc))
             )
          ){
-            std::cerr << __FILE__ << ":" << __LINE__ << ": incomplete translation for " << mpiGrid[c]->parameters[CellParams::CELLID] << "t" << mpiGrid[c]->parameters[CellParams::TIMECLASS] << " t = " << P::t << " at timeclass " << tc << tictocstr << ", state = " << std::bitset<8>(pop.state) << ", tG flags " << mpiGrid[c]->requested_timeclass_ghosts.count(tc) << ", " << mpiGrid[c]->requested_timeclass_copy_ghosts.count(tc) << ", " << mpiGrid[c]->requested_timeclass_outer_ghosts.count(tc)<< std::endl;
+            std::cerr << __FILE__ << ":" << __LINE__ << ": incomplete translation for " << mpiGrid[c]->parameters[CellParams::CELLID] << "t" << mpiGrid[c]->parameters[CellParams::TIMECLASS] << " t = " << P::t << " at timeclass " << tc << tictocstr << ", state = " << std::bitset<8>(pop.state) << ", tG flags " << mpiGrid[c]->requested_timeclass_ghosts.count(tc) << ", " << mpiGrid[c]->requested_timeclass_copy_ghosts.count(tc) << ", " << mpiGrid[c]->requested_timeclass_outer_ghosts.count(tc)<< ", expected translations: " << expected_translations << " " << (int)(pop.state & (1u << LastPropagationState::TRANSLATED_X)) << " " << (int)(pop.state & (1u << LastPropagationState::TRANSLATED_Y)) << " " << (int)(pop.state & (1u << LastPropagationState::TRANSLATED_Z)) << std::endl;
          }
       }
 

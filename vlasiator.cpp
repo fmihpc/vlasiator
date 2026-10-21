@@ -828,7 +828,6 @@ int simulate(int argn,char* args[]) {
 
    //std::cerr << "calculating timesteps" << std::endl;
 
-   P::tc_leapfrog_init = false; // not used
    if (P::isRestart == false) {
       //compute new dt
       phiprof::Timer computeDtimer {"compute-dt"};
@@ -890,6 +889,12 @@ int simulate(int argn,char* args[]) {
       //go forward by dt/2 in V, initializes leapfrog split. In restarts the
       //the distribution function is already propagated forward in time by dt/2
       phiprof::Timer propagateHalfTimer {"propagate-velocity-space-dt/2"};
+      for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+         for (CellID c : getLocalCells()){
+            setAccelerationTimeGhosts(mpiGrid[c], popID);
+         }
+      }
+      P::tc_leapfrog_init = false;
       if (P::propagateVlasovAcceleration) {
          calculateAcceleration(mpiGrid, 0.5);
       } else {
@@ -1525,12 +1530,6 @@ int simulate(int argn,char* args[]) {
          addTimedBarrier("barrier-boundary-conditions");
       }
 
-      for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-         for (CellID c : getLocalCells()){
-            setAccelerationTimeGhosts(mpiGrid[c], popID);
-         }
-      }
-
       phiprof::Timer spatialSpaceTimer {"Spatial-space"};
       if( P::propagateVlasovTranslation) {
          calculateSpatialTranslation(mpiGrid,1.0,false);
@@ -1671,7 +1670,14 @@ int simulate(int argn,char* args[]) {
 
       // updating _V_PREV moments here, before _V moments are updated 
       updatePreviousVMoments(mpiGrid, false);
-      
+
+      // Get the new timeghosts after translations
+      for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+         for (CellID c : getLocalCells()){
+            setAccelerationTimeGhosts(mpiGrid[c], popID);
+         }
+      }
+      P::tc_leapfrog_init = true;
       phiprof::Timer vspaceTimer {"Velocity-space"};
       if ( P::propagateVlasovAcceleration ) {
       // calculateAcceleration(mpiGrid,P::dt);
