@@ -131,6 +131,12 @@ namespace projects {
          std::cerr<<"Warning in initializing Magnetosphere: dipoleTiltPhi/dipoleTiltTheta are only applied with "
          <<"dipoleType 4. The dipole of dipoleType "<<this->dipoleType<<" is NOT tilted."<<std::endl;
       }
+      if (this->dipoleType == 4) {
+         // Set here, not in setProjectBField: the ionosphere mesh is refined in magnetic latitude before that.
+         const Real phi = this->dipoleTiltPhi * M_PI / 180.;
+         const Real theta = this->dipoleTiltTheta * M_PI / 180.;
+         SBC::ionosphereGrid.setDipoleAxis({sin(phi) * cos(theta), sin(phi) * sin(theta), cos(phi)});
+      }
 
       /** Read inner boundary parameters from either ionospheric or copysphere sysboundary condition */
       if (sysBoundaryContainer.existSysBoundary("Copysphere")) {

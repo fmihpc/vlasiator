@@ -23,6 +23,8 @@
 #ifndef IONOSPHERE_H
 #define IONOSPHERE_H
 
+#include <array>
+#include <cmath>
 #include <cstdint>
 #include <vector>
 #include <functional>
@@ -170,22 +172,45 @@ namespace SBC {
       std::array< std::array< std::array< Real, productionNumTemperatures >, productionNumAccEnergies >, numAtmosphereLevels > productionTable;
       Real lookupProductionValue(int heightindex, Real energy_keV, Real temperature_keV);
 
-      MPI_Comm communicator = MPI_COMM_NULL; /*!< The communicator internally used to solve the ionosphere potential */
-      int rank = -1;                         /*!< Own rank in the ionosphere communicator */
-      int writingRank;                       /*!< Rank in the MPI_COMM_WORLD communicator that does ionosphere I/O */
-      bool isCouplingInwards = true;         /*!< True for any rank that actually couples fsgrid information into the ionosphere */
-      bool isCouplingOutwards = true;        /*!< True for any rank that actually couples ionosphere potential information out to the vlasov grid */
-      FieldFunction dipoleField;             /*!< Simulation background field model to trace connections with */
-      std::array<Real, 3> BGB;               /*!< Uniform background field */
-
+      MPI_Comm communicator = MPI_COMM_NULL;           /*!< The communicator internally used to solve the ionosphere potential */
+      int rank = -1;                                   /*!< Own rank in the ionosphere communicator */
+      int writingRank;                                 /*!< Rank in the MPI_COMM_WORLD communicator that does ionosphere I/O */
+      bool isCouplingInwards = true;                   /*!< True for any rank that actually couples fsgrid information into the ionosphere */
+      bool isCouplingOutwards = true;                  /*!< True for any rank that actually couples ionosphere potential information out to the vlasov grid */
+      FieldFunction dipoleField;                       /*!< Simulation background field model to trace connections with */
+      std::array<Real, 3> BGB;                         /*!< Uniform background field */
+      std::array<Real, 3> dipoleAxis       = {0,0,1};  /*!< Dipole axis: +z rotated by the dipole tilt (northern hemisphere side) */
+      std::array<Real, 3> magneticNoonAxis = {1,0,0};  /*!< Solar-magnetic x: sunward direction perpendicular to dipoleAxis */
+      std::array<Real, 3> magneticDuskAxis = {0,1,0};  /*!< Solar-magnetic y = dipoleAxis x magneticNoonAxis */
+               bool dipoleAxisTilted = false;          /*!< False keeps untilted runs bit-identical (no rotation applied) */
       std::map< std::array<Real, 3>, std::array<
-         std::pair<int, Real>, 3> > vlasovGridCoupling; /*!< Grid coupling information, caching how vlasovGrid coordinate couple to ionosphere data */
+         std::pair<int, Real>, 3> > vlasovGridCoupling;/*!< Grid coupling information, caching how vlasovGrid coordinate couple to ionosphere data */
 
       void setDipoleField(const FieldFunction& dipole) {
          dipoleField = dipole;
       };
       void setConstantBackgroundField(const std::array<Real, 3> B) {
          BGB = B;
+      }
+      void setDipoleAxis(const std::array<Real, 3>& axis); /*!< Must be called before the mesh is refined */
+      template <typename V> std::array<Real, 3> toSolarMagnetic(const V& v) const {
+         // Explicit casts: callers pass Eigen::Vector3d, which would narrow if Real is float.
+         const std::array<Real, 3> x = {static_cast<Real>(v[0]), static_cast<Real>(v[1]), static_cast<Real>(v[2])};
+         if (!dipoleAxisTilted) {
+            return x;
+         }
+         return {x[0] * magneticNoonAxis[0] + x[1] * magneticNoonAxis[1] + x[2] * magneticNoonAxis[2],
+                 x[0] * magneticDuskAxis[0] + x[1] * magneticDuskAxis[1] + x[2] * magneticDuskAxis[2],
+                 x[0] * dipoleAxis[0] + x[1] * dipoleAxis[1] + x[2] * dipoleAxis[2]};
+      }
+      // Signed distance along the dipole axis; > 0 in the northern magnetic hemisphere.
+      template <typename V> Real magneticZ(const V& x) const {
+         return toSolarMagnetic(x)[2];
+      }
+      // Magnetic local time as an angle (rad): 0 at magnetic noon, +pi/2 at dusk.
+      template <typename V> Real magneticLocalTimeAngle(const V& x) const {
+         const std::array<Real, 3> sm = toSolarMagnetic(x);
+         return atan2(sm[1], sm[0]);
       }
       void readAtmosphericModelFile(const char* filename);
       void storeNodeB();
