@@ -334,7 +334,7 @@ namespace projects {
                bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, this->dipoleMirrorLocationX, 0.0, 0.0, 0.0 );//mirror
                setBackgroundField(bgFieldDipole, bgb, technical, fsgrid, true);
                break;
-            case 4:  // Vector potential dipole, vanishes or optionally scales to static inflow value after a given x-coordinate
+            case 4: {// Vector potential dipole, vanishes or optionally scales to static inflow value after a given x-coordinate
                // What we in fact do is we place the regular dipole in the background field, and the
                // corrective terms in the perturbed field. This maintains the BGB as curl-free.
                const Real moment = 8e15 * this->dipoleScalingFactor;
@@ -367,6 +367,7 @@ namespace projects {
                   });
                }
                break;
+            }
             default:
                setBackgroundFieldToZero(fsgrid, technical, bgb);
       }
