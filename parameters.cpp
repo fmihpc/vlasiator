@@ -1209,18 +1209,36 @@ void Parameters::getParameters() {
    // Get Vlasov solver parameters
 
    if (P::vlasovSolverGhostTranslate==true) {
+      int nRanks;
+      MPI_Comm_size(MPI_COMM_WORLD, &nRanks);
+
       if (myRank == MASTER_RANK) {
          if (P::xcells_ini < 2*VLASOV_STENCIL_WIDTH+1) {
             cerr << "ERROR The domain has x_length = " << P::xcells_ini << " < 2*VLASOV_STENCIL_WIDTH+1 = " << 2*VLASOV_STENCIL_WIDTH+1 << endl;
-            MPI_Abort(MPI_COMM_WORLD, 1);
+            if(nRanks == 1){
+               cerr << "However, we are running on a single rank, and will not abort for now." << endl;
+            }
+            else{
+               MPI_Abort(MPI_COMM_WORLD, 1);
+            }
          }
          if (P::ycells_ini < 2*VLASOV_STENCIL_WIDTH+1) {
             cerr << "ERROR The domain has y_length = " << P::ycells_ini << " < 2*VLASOV_STENCIL_WIDTH+1 = " << 2*VLASOV_STENCIL_WIDTH+1 << endl;
-            MPI_Abort(MPI_COMM_WORLD, 1);
+            if(nRanks == 1){
+               cerr << "However, we are running on a single rank, and will not abort for now." << endl;
+            }
+            else{
+               MPI_Abort(MPI_COMM_WORLD, 1);
+            }
          }
          if (P::zcells_ini < 2*VLASOV_STENCIL_WIDTH+1) {
             cerr << "ERROR The domain has z_length = " << P::zcells_ini << " < 2*VLASOV_STENCIL_WIDTH+1 = " << 2*VLASOV_STENCIL_WIDTH+1 << endl;
-            MPI_Abort(MPI_COMM_WORLD, 1);
+            if(nRanks == 1){
+               cerr << "However, we are running on a single rank, and will not abort for now." << endl;
+            }
+            else{
+               MPI_Abort(MPI_COMM_WORLD, 1);
+            }
          }
       }
       if (myRank == MASTER_RANK) {
