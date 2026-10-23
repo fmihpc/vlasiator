@@ -192,7 +192,7 @@ void calculateMoments_R(
    std::vector<CellID> cells;
    for (size_t c=0; c<allcells.size(); ++c) {
          SpatialCell* cell = mpiGrid[allcells[c]];
-         if (cell->get_timeclass_turn_v()) cells.push_back(allcells[c]);
+         if (cell->get_timeclass_turn_r()) cells.push_back(allcells[c]);
    } 
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
       #pragma omp parallel for schedule(dynamic,1)
@@ -430,6 +430,8 @@ void calculateMoments_V(
          // before updating, save the previous moments to the _PREV variables
          pop.RHO_V_PREV_PREV = pop.RHO_V_PREV;
          pop.RHO_V_PREV = pop.RHO_V;
+         pop.T_V_PREV_PREV = pop.T_V_PREV;
+         pop.T_V_PREV = pop.T_V;
          for (uint i=0; i<3; ++i) {
             pop.V_V_PREV_PREV[i] = pop.V_V_PREV[i];
             pop.V_V_PREV[i] = pop.V_V[i];

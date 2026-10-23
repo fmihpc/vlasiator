@@ -171,6 +171,7 @@ namespace CellParams {
       VX,  /*!< Vx. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
       VY,  /*!< Vy. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
       VZ,  /*!< Vz. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
+      T,   /*!< Timestamp for the above set of moments */
 
       RHOM_DT2,    /*!< Total mass density. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
       RHOQ_DT2,    /*!< Total charge density. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
@@ -183,6 +184,7 @@ namespace CellParams {
       VX_DT2,  /*!< Vx. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
       VY_DT2,  /*!< Vy. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
       VZ_DT2,  /*!< Vz. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
+      T_DT2,   /*!< Timestamp for the above set of moments */
 
       RHOM_R,     /*!< RHO after propagation in ordinary space*/
       RHOQ_R,     /*!< RHOQ after propagation in ordinary space*/
@@ -195,6 +197,7 @@ namespace CellParams {
       VX_R,   /*!< VX after propagation in ordinary space*/
       VY_R,   /*!< VY after propagation in ordinary space*/
       VZ_R,   /*!< VZ after propagation in ordinary space*/
+      T_R,   /*!< Timestamp for the above set of moments */
 
       RHOM_R_PREV, /* !< Previous value of RHOM_R, used for timeclass interpolation */
       RHOQ_R_PREV, /* !< Previous value of RHOQ_R, used for timeclass interpolation */
@@ -207,6 +210,7 @@ namespace CellParams {
       VX_R_PREV, /* !< Previous value of VX_R, used for timeclass interpolation */
       VY_R_PREV, /* !< Previous value of VY_R, used for timeclass interpolation */
       VZ_R_PREV, /* !< Previous value of VZ_R, used for timeclass interpolation */
+      T_R_PREV,   /*!< Timestamp for the above set of moments */
 
       RHOM_R_PREV_PREV, /* !< Value of RHOM_R from two updates back*/
       RHOQ_R_PREV_PREV, /* !< Value of RHOQ_R from two updates back*/
@@ -219,6 +223,7 @@ namespace CellParams {
       VX_R_PREV_PREV, /* !< Value of VX_R from two updates back*/
       VY_R_PREV_PREV, /* !< Value of VY_R from two updates back*/
       VZ_R_PREV_PREV, /* !< Value of VZ_R from two updates back*/
+      T_R_PREV_PREV,   /*!< Timestamp for the above set of moments */
 
       RHOM_V,     /*!< RHOM after propagation in velocity space*/
       RHOQ_V,     /*!< RHOQ after propagation in velocity space*/
@@ -231,6 +236,7 @@ namespace CellParams {
       VX_V,   /*!< VX after propagation in velocity space*/
       VY_V,   /*!< VY after propagation in velocity space*/
       VZ_V,   /*!< VZ after propagation in velocity space*/
+      T_V,   /*!< Timestamp for the above set of moments */
 
       RHOM_V_PREV, /* !< Previous value of RHOM_V, used for timeclass interpolation */
       RHOQ_V_PREV, /* !< Previous value of RHOQ_V, used for timeclass interpolation */
@@ -243,6 +249,7 @@ namespace CellParams {
       VX_V_PREV, /* !< Previous value of VX_V, used for timeclass interpolation */
       VY_V_PREV, /* !< Previous value of VY_V, used for timeclass interpolation */
       VZ_V_PREV, /* !< Previous value of VZ_V, used for timeclass interpolation */
+      T_V_PREV,   /*!< Timestamp for the above set of moments */
 
       RHOM_V_PREV_PREV, /* !< Value of RHOM_V from two updates back*/
       RHOQ_V_PREV_PREV, /* !< Value of RHOQ_V from two updates back*/
@@ -255,6 +262,7 @@ namespace CellParams {
       VX_V_PREV_PREV, /* !< Value of VX_V from two updates back*/
       VY_V_PREV_PREV, /* !< Value of VY_V from two updates back*/
       VZ_V_PREV_PREV, /* !< Value of VZ_V from two updates back*/
+      T_V_PREV_PREV,   /*!< Timestamp for the above set of moments */
       
       // P_23,     /*!< Pressure P_yz component, computed by Vlasov propagator. */
       // P_13,     /*!< Pressure P_xz component, computed by Vlasov propagator. */
@@ -289,16 +297,6 @@ namespace CellParams {
 
       TIMECLASS,           /*!< timeclass of this cell*/
       TIMECLASSDT,           /*!< timeclass-adjusted timestep, ...*/
-      TIME_R,           /*!< Current time of the cell due to timeclass timestepping*/
-      TIMESTEP_R,           /*!< Current timestep of the cell due to timeclass timestepping - obs float precision*/
-      TIMESTEP_FRACTIONAL_R,           /*!< Current timestep of the cell due to timeclass timestepping;
-                                             0..2^number_of_timeclasses - 1; increments by 
-                                             2^(max_timeclass-timeclass)*/
-      TIME_V,           /*!< Current time of the cell due to timeclass timestepping*/
-      TIMESTEP_V,           /*!< Current timestep of the cell due to timeclass timestepping - obs float precision*/
-      TIMESTEP_FRACTIONAL_V,           /*!< Current timestep of the cell due to timeclass timestepping*/
-      //TIMECLASS_RANK,           /*!< timeclass of this rank*/
-      //TIMECLASSDT_RANK,           /*!< timeclass-adjusted timestep, ...*/
 
       LBWEIGHTCOUNTER,    /*!< Counter for storing compute time weights needed by the load balancing**/
       ISCELLSAVINGF,      /*!< Value telling whether a cell is saving its distribution function when partial f data is written out. */

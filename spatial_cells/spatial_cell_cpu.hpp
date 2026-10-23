@@ -410,6 +410,7 @@ namespace spatial_cell {
       bool has_active_timeclass_toc(const int) const;
 
       bool get_timeclass_turn_r() const;
+      bool get_timeclass_turn_r(int tc) const;
       bool get_timeclass_turn_v() const;
       bool get_timeclass_turn_v(int tc) const;
 
