@@ -127,6 +127,7 @@ void interpolateMomentsForTimeclasses(
    const int cp_vx,
    const int cp_vy,
    const int cp_vz,
+   const int cp_t,
    const bool dt2,
    const bool lastUpdateWasTranslation
 );

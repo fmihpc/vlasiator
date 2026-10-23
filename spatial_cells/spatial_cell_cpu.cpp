@@ -398,21 +398,11 @@ namespace spatial_cell {
    }
 
    bool SpatialCell::get_timeclass_turn_r() const {
-      return this->get_timeclass_turn_v();
-      /* // Obsolete tries for fancy and incorrect stepping
-      if (this->parameters[CellParams::TIMECLASS] == P::currentMaxTimeclass) {
-         return true;
-      }
-      else {
-         int mod = 1 << (P::currentMaxTimeclass - (int)this->parameters[CellParams::TIMECLASS]);
-         int mod2 = 1 << (P::currentMaxTimeclass - (int)this->parameters[CellParams::TIMECLASS] - 1);
-         mod2 = max(0,mod2);
-         bool ret = ((P::fractionalTimestep % mod) == mod2);
-         if (ret && (this->parameters[CellParams::CELLID] == 11 || this->parameters[CellParams::CELLID] == 12)){}
-            // std::cout << "R on tc  " << this->parameters[CellParams::TIMECLASS] << " ftstep " << P::fractionalTimestep <<", t " << P::tstep <<"\n";
-         return ret;
-      }
-      */
+      return this->get_timeclass_turn_r((int)this->parameters[CellParams::TIMECLASS]);
+   }
+
+   bool SpatialCell::get_timeclass_turn_r(int timeclass) const {
+      return this->get_timeclass_turn_v(timeclass);
    }
 
    /* Check if the cell has native timeclass or any sort of timeclass ghost request

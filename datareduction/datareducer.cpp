@@ -565,9 +565,9 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       // }
       if(P::systemWriteAllDROs || lowercase == "timeclass_t" || lowercase == "vg_timeclass_t") {
          // per-rank timeclass 
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_timeclass_t_r",CellParams::TIME_R,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_timeclass_t_r",CellParams::T_R,1));
 	      outputReducer->addMetadata(outputReducer->size()-1,"s","$\\mathrm{s}$","$\\t_mathrm{tc,r}$","1.0");
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_timeclass_t_v",CellParams::TIME_V,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_timeclass_t_v",CellParams::T_V,1));
 	      outputReducer->addMetadata(outputReducer->size()-1,"s","$\\mathrm{s}$","$\\t_mathrm{tc,v}$","1.0");
          if(!P::systemWriteAllDROs) {
             continue;
