@@ -908,7 +908,7 @@ int simulate(int argn,char* args[]) {
 
       propagateHalfTimer.stop();
 
-      updatePreviousVMoments(mpiGrid, true);
+      updatePreviousVMoments(mpiGrid, true); // TODO Shouldn't this go after boundary update?
 
       // Apply boundary conditions
       if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration ) {
@@ -920,21 +920,41 @@ int simulate(int argn,char* args[]) {
       // Also update all moments. They won't be transmitted to FSgrid until the field solver is called, though.
       phiprof::Timer computeMomentsTimer {"Compute interp moments"};
       //std::cout << "for initial interpolated moments\n";
-      calculateInterpolatedVelocityMoments(
-         mpiGrid,
-         CellParams::RHOM,
-         CellParams::VX,
-         CellParams::VY,
-         CellParams::VZ,
-         CellParams::RHOQ,
-         CellParams::P_11,
-         CellParams::P_22,
-         CellParams::P_33,
-         CellParams::P_23,
-         CellParams::P_13,
-         CellParams::P_12
-      );
-      
+      if(P::currentMaxTimeclass == 0){
+         calculateInterpolatedVelocityMoments(
+            mpiGrid,
+            CellParams::RHOM,
+            CellParams::VX,
+            CellParams::VY,
+            CellParams::VZ,
+            CellParams::RHOQ,
+            CellParams::P_11,
+            CellParams::P_22,
+            CellParams::P_33,
+            CellParams::P_23,
+            CellParams::P_13,
+            CellParams::P_12
+         );
+      }else{
+         interpolateMomentsForTimeclasses(
+            mpiGrid,
+            CellParams::RHOM,
+            CellParams::RHOQ,
+            CellParams::P_11,
+            CellParams::P_22,
+            CellParams::P_33,
+            CellParams::P_23,
+            CellParams::P_13,
+            CellParams::P_12,
+            CellParams::VX,
+            CellParams::VY,
+            CellParams::VZ,
+            CellParams::T,
+            false,
+            false
+         );
+      }
+
       updateParticlePopulations(mpiGrid, false);
 
       computeMomentsTimer.stop();
@@ -1525,6 +1545,7 @@ int simulate(int argn,char* args[]) {
             CellParams::VX,
             CellParams::VY,
             CellParams::VZ,
+            CellParams::T,
             false,
             false
          );
@@ -1564,6 +1585,7 @@ int simulate(int argn,char* args[]) {
          CellParams::VX,
          CellParams::VY,
          CellParams::VZ,
+         CellParams::T,
          false,
          true
       );
@@ -1581,6 +1603,7 @@ int simulate(int argn,char* args[]) {
          CellParams::VX_DT2,
          CellParams::VY_DT2,
          CellParams::VZ_DT2,
+         CellParams::T_DT2,
          true,
          true
       );
@@ -1722,6 +1745,7 @@ int simulate(int argn,char* args[]) {
          CellParams::VX,
          CellParams::VY,
          CellParams::VZ,
+         CellParams::T,
          false,
          false
       );
