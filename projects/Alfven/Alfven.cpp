@@ -44,7 +44,7 @@ namespace projects {
       this->Bx_guiding /= norm;
       this->By_guiding /= norm;
       this->Bz_guiding /= norm;
-      this->ALPHA = atan(this->By_guiding/this->Bx_guiding);
+      this->ALPHA = atan(this->By_guiding/this->Bx_guiding) + this->ALPHAPLUS;
 
       return success;
    }
@@ -56,6 +56,7 @@ namespace projects {
       RP::add<Real>("Alfven.By_guiding", "Guiding field y component", this->By_guiding,0.0);
       RP::add<Real>("Alfven.Bz_guiding", "Guiding field z component", this->Bz_guiding,0.0);
       RP::add<Real>("Alfven.Wavelength", "Wavelength (m)", this->WAVELENGTH,100000.0);
+      RP::add<Real>("Alfven.ALPHAPLUS", "Angle of Alfven wave (rad)", this->ALPHAPLUS, 0.0);
       RP::add<Real>("Alfven.A_mag", "Amplitude of the magnetic perturbation", this->A_MAG,0.1);
 
       // Per-population parameters

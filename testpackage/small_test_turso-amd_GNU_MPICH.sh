@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -t 01:30:00        # Run time (hh:mm:ss)
+#SBATCH -t 05:10:00        # Run time (hh:mm:ss)
 #SBATCH --job-name=ctestpackage
 # test short medium 20min1d 3d
 #SBATCH -p turso

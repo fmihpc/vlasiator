@@ -5,10 +5,10 @@ from update_vlasiator_cfg_variables import updatecfg
 
 projects = [
     'Alfven',
+    'AlfvenCascade',
     'Diffusion',
     'Dispersion',
     'Distributions',
-    'Firehose',
     'Flowthrough',
     'Fluctuations',
     'Harris',
@@ -33,4 +33,3 @@ for project in projects:
     for file in glob.glob(directory+"*.cfg"):
         print(file)
         updatecfg(file, verbose=True)
-

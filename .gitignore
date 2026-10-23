@@ -24,4 +24,5 @@ library-build/
 submodules/
 run_*/
 !run_tests.sh
+slurm*out
 profile/

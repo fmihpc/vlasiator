@@ -375,8 +375,8 @@ bool propagateFields(fsgrids::perbspan perb,
          }
 
          // Reassess subcycle dt
-         Real dtMaxGlobal = 0.0;
-         Real dtMaxLocal = fsgrid.parallel_reduction([](int timerId) ->  phiprof::Timer { return phiprof::Timer{timerId}; },
+         Real dtMaxGlobalFs = 0.0;
+         Real dtMaxLocalFs = fsgrid.parallel_reduction([](int timerId) ->  phiprof::Timer { return phiprof::Timer{timerId}; },
                                                    phiprof::initializeTimer("compute-subcycle-dt-reduction-loop"), technical,
                                                    [](Real a, Real b) { return std::min<Real>(a, b); },
                                                    std::numeric_limits<Real>::max(),
@@ -390,13 +390,13 @@ bool propagateFields(fsgrids::perbspan perb,
          });
 
          phiprof::Timer allreduceTimer{"MPI_Allreduce"};
-         fsgrid.Allreduce(&(dtMaxLocal), &(dtMaxGlobal), 1, MPI_Type<Real>(), MPI_MIN);
+         fsgrid.Allreduce(&(dtMaxLocalFs), &(dtMaxGlobalFs), 1, MPI_Type<Real>(), MPI_MIN);
          allreduceTimer.stop();
 
          // reduce dt if it is too high
-         if (subcycleDt > dtMaxGlobal * P::fieldSolverMaxCFL) {
+         if (subcycleDt > dtMaxGlobalFs * P::fieldSolverMaxCFL) {
             creal meanFieldsCFL = 0.5 * (P::fieldSolverMaxCFL + P::fieldSolverMinCFL);
-            subcycleDt = meanFieldsCFL * dtMaxGlobal;
+            subcycleDt = meanFieldsCFL * dtMaxGlobalFs;
             if (myRank == MASTER_RANK) {
                logFile << "(TIMESTEP) New field solver subcycle dt = " << subcycleDt << " computed on step " << P::tstep << " and substep " << subcycleCount << " at " << P::t << " s" << std::endl;
             }
@@ -407,10 +407,10 @@ bool propagateFields(fsgrids::perbspan perb,
          if (subcycleT + 1.5 * subcycleDt > targetT) {
             subcycleDt = targetT - subcycleT;
             maxSubcycleCount = subcycleCount + 1; // 1 more steps
-            // check that subcyclDt has correct CFL, take 2 if not
-            if (subcycleDt > dtMaxGlobal * P::fieldSolverMaxCFL) {
-               subcycleDt = (targetT - subcycleT) / 2;
-               maxSubcycleCount = subcycleCount + 2;
+            //check that subcyclDt has correct CFL, take 2 if not
+            if(subcycleDt > dtMaxGlobalFs * P::fieldSolverMaxCFL ) {
+               subcycleDt = (targetT - subcycleT)/2;
+               maxSubcycleCount = subcycleCount + 2; 
             }
          }
 
