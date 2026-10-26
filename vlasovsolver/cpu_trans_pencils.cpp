@@ -1085,13 +1085,13 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
          dccrg::Types<3>::neighborhood_item_t lookahead_offset;
          switch (dimension) {
             case 0:
-               lookahead_offset={-(VLASOV_STENCIL_WIDTH+1),0,0};
+               lookahead_offset={-1,0,0};
                break;
             case 1:
-               lookahead_offset={0,-(VLASOV_STENCIL_WIDTH+1),0};
+               lookahead_offset={0,-1,0};
                break;
             case 2:
-               lookahead_offset={0,0,-(VLASOV_STENCIL_WIDTH+1)};
+               lookahead_offset={0,0,-1};
                break;
             default:
                std::cerr << __FILE__ << ":" << __LINE__ << ": bad dimension " << dimension << std::endl;
@@ -1102,10 +1102,13 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
                                                                        maxNbr,
                                                                        mpiGrid.get_refinement_level(maxNbr),
                                                                        lookahead_offset);
-         for (const CellID cell : offset_cells) {
-            if (cell != INVALID_CELLID) {
+         for (const CellID offset_cell : offset_cells) {
+            if (offset_cell != INVALID_CELLID) {
+                  // This is a rather ugly hack. These are the correct distances, assuming additive offsets, for the last cell to check,
+                  // counting from the prospective seed cell (instead of the maxNbr cell, from which we just step once)
                   distancesminus.insert(VLASOV_STENCIL_WIDTH+1);
-                  nbrPairs2.push_back(std::pair<CellID,dccrg::Types<3>::neighborhood_item_t>{cell, lookahead_offset});
+                  lookahead_offset[dimension] = -(VLASOV_STENCIL_WIDTH+1); 
+                  nbrPairs2.push_back(std::pair<CellID,dccrg::Types<3>::neighborhood_item_t>{offset_cell, lookahead_offset});
             }
          }
       }
