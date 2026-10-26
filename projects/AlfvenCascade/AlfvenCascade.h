@@ -24,7 +24,7 @@
 #define ALFVENCASCADE_H
 
 #include "../../definitions.h"
-#include "../project.h"
+#include "../projectTriAxisSearch.h"
 #include <vector>
 
 namespace projects {
@@ -35,7 +35,7 @@ namespace projects {
       Real phase;
    };
 
-   class AlfvenCascade : public Project {
+   class AlfvenCascade : public TriAxisSearch {
    public:
       AlfvenCascade();
       virtual ~AlfvenCascade();
@@ -51,9 +51,10 @@ namespace projects {
       virtual Realf fillPhaseSpace(spatial_cell::SpatialCell *cell,
                                     const uint popID,
                                     const uint nRequested) const override;
-      virtual void calcCellParameters(spatial_cell::SpatialCell* cell, creal& t) override;
-      // virtual std::vector<std::array<Real, 3>> getV0(creal x, creal y, creal z, const uint popID) const;
-      
+      virtual Realf probePhaseSpace(spatial_cell::SpatialCell* cell, const uint popID, Real vx_in, Real vy_in,
+                                    Real vz_in) const override;
+      virtual std::vector<std::array<Real, 3>> getV0(creal x, creal y, creal z, const uint popID) const override;
+      virtual void calcCellParameters(spatial_cell::SpatialCell* cell, creal& t) override;      
 
       // Basic plasma parameters
       Real rho0;    // Background mass density
@@ -67,9 +68,9 @@ namespace projects {
 
       // Turbulence parameters
       int nWaves; // Number of waves in simulation
-      std::vector<Real> wavelength;  // Vector of wavelengths
-      std::vector<Real> amplitude;   // Vector of velocity amplitudes
-      std::vector<Real> phase;       // Vector of initial phases
+      // std::vector<Real> wavelength;  // Vector of wavelengths
+      // std::vector<Real> amplitude;   // Vector of velocity amplitudes
+      // std::vector<Real> phase;       // Vector of initial phases
       
       Real spectralIndex;            // Power law index for initial spectrum
       int randomSeed;               // Seed for random phase generation

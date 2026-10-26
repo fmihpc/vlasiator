@@ -40,16 +40,18 @@
 using namespace spatial_cell;
 
 namespace projects {
-AlfvenCascade::AlfvenCascade() : Project() {}
+AlfvenCascade::AlfvenCascade() : TriAxisSearch() {}
 AlfvenCascade::~AlfvenCascade() {}
 
    bool AlfvenCascade::initialize(void) {
       bool success = Project::initialize();
 
+      if (getObjectWrapper().particleSpecies.size() != 1) {
+         std::cerr << "This project currently only supports protons!\n";
+      }
+
       creal m = physicalconstants::MASS_PROTON;
-      creal e = physicalconstants::CHARGE;
       creal kB = physicalconstants::K_B;
-      creal gamma = 5.0 / 3.0;
       creal mu0 = physicalconstants::MU_0;
 
       rho0 = m * n0; // Mass density
@@ -197,6 +199,93 @@ AlfvenCascade::~AlfvenCascade() {}
             };
          }, rhosum);
       return rhosum;
+   }
+
+   Realf AlfvenCascade::probePhaseSpace(spatial_cell::SpatialCell *cell,
+                                        const uint popID,
+                                        Real vx_in, Real vy_in, Real vz_in
+      ) const {
+
+      // Fetch spatial cell center coordinates
+      const Real x  = cell->parameters[CellParams::XCRD] + 0.5*cell->parameters[CellParams::DX];
+      const Real y  = cell->parameters[CellParams::YCRD] + 0.5*cell->parameters[CellParams::DY];
+      // const Real z  = cell->parameters[CellParams::ZCRD] + 0.5*cell->parameters[CellParams::DZ];
+
+      creal mass = physicalconstants::MASS_PROTON;
+      creal mu0 = physicalconstants::MU_0;
+      Real ux = 0.0, uy = 0.0, uz = 0.0;
+
+      for (int idx = 0; idx < this->nWaves; idx++) {
+         WaveParameters wave = this->wavesParams.at(idx);
+
+         Real cosalpha = cos(this->angle);
+         Real sinalpha = sin(this->angle);
+         Real kwave = 2 * M_PI / wave.wavelength;
+         Real xpar = x * cosalpha + y * sinalpha;
+
+         Real uperp = 0.0, upara = 0.0;
+
+         if (!gaussianMask) {
+            uperp = wave.amplitude * sin(kwave * xpar + wave.phase);
+            upara = wave.amplitude * cos(kwave * xpar + wave.phase);
+         } else {
+            Real gaussianVal = exp(-((x - this->gaussianMaskLocation) * (x - this->gaussianMaskLocation)) / (2 * this->gaussianMaskWidth * this->gaussianMaskWidth));
+            uperp = wave.amplitude * sin(kwave * xpar + wave.phase) * gaussianVal;
+            upara = wave.amplitude * cos(kwave * xpar + wave.phase) * gaussianVal;
+         }
+
+         ux += -uperp * sinalpha;
+         uy += uperp * cosalpha;
+         uz += upara;
+      }
+      creal initV0X = ux;
+      creal initV0Y = uy;
+      creal initV0Z = uz;
+
+      Real initRho = this->n0;
+      Real initT = this->T;
+
+      creal vx = vx_in - initV0X;
+      creal vy = vy_in - initV0Y;
+      creal vz = vz_in - initV0Z;
+      const Realf value = MaxwellianPhaseSpaceDensity(vx,vy,vz,initT,initRho,mass);
+      return value;
+   }
+
+   std::vector<std::array<Real, 3>> AlfvenCascade::getV0(creal x, creal y, creal z, const uint popID) const {
+
+      creal mass = physicalconstants::MASS_PROTON;
+      creal mu0 = physicalconstants::MU_0;
+      Real ux = 0.0, uy = 0.0, uz = 0.0;
+
+      for (int idx = 0; idx < this->nWaves; idx++) {
+         WaveParameters wave = this->wavesParams.at(idx);
+
+         Real cosalpha = cos(this->angle);
+         Real sinalpha = sin(this->angle);
+         Real kwave = 2 * M_PI / wave.wavelength;
+         Real xpar = x * cosalpha + y * sinalpha;
+
+         Real uperp = 0.0, upara = 0.0;
+
+         if (!gaussianMask) {
+            uperp = wave.amplitude * sin(kwave * xpar + wave.phase);
+            upara = wave.amplitude * cos(kwave * xpar + wave.phase);
+         } else {
+            Real gaussianVal = exp(-((x - this->gaussianMaskLocation) * (x - this->gaussianMaskLocation)) / (2 * this->gaussianMaskWidth * this->gaussianMaskWidth));
+            uperp = wave.amplitude * sin(kwave * xpar + wave.phase) * gaussianVal;
+            upara = wave.amplitude * cos(kwave * xpar + wave.phase) * gaussianVal;
+         }
+
+         ux += -uperp * sinalpha;
+         uy += uperp * cosalpha;
+         uz += upara;
+      }
+
+      vector<std::array<Real, 3>> centerPoints;
+      std::array<Real, 3> point {{ux, uy, uz}};
+      centerPoints.push_back(point);
+      return centerPoints;
    }
 
    void AlfvenCascade::setProjectBField(fsgrids::perbspan perb,
