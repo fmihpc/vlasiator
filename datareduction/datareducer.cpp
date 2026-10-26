@@ -364,6 +364,9 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          }
       }
       if(P::systemWriteAllDROs || lowercase == "pencils" || lowercase == "vg_pencils") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_pencils_n",CellParams::NPENCILS,1));
+         outputReducer->addMetadata(outputReducer->size()-1,"","","$N_\\mathrm{Pencils}$","");
+         
           outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_pencils_x",CellParams::PENCIL_ID_X,1));
           outputReducer->addMetadata(outputReducer->size()-1,"","","$\\mathrm{Pencil ID_x}$","");
           outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_pencils_y",CellParams::PENCIL_ID_Y,1));

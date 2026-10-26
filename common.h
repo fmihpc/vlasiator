@@ -227,6 +227,7 @@ namespace CellParams {
       BULKV_FORCING_Z, /*! Externally forced drift velocity (ex. from the ionosphere) */
       NU0, /*!< nu0 value for subgrid diffusion */
 
+      NPENCILS,
       PENCIL_ID_X,
       PENCIL_ID_Y,
       PENCIL_ID_Z,
