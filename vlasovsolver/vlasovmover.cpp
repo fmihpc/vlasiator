@@ -347,6 +347,7 @@ void calculateSpatialTranslation(
       for (size_t c=0; c<localCells.size(); ++c) {
          SpatialCell* SC = mpiGrid[localCells[c]];
          SC->parameters[CellParams::LBWEIGHTCOUNTER] = 0;
+         SC->parameters[CellParams::NPENCILS] = nPencils[c];
       }
       for (size_t c=0; c<local_propagated_cells.size(); ++c) {
          // Gather total blocks in cell
