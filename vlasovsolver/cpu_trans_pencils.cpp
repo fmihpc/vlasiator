@@ -1032,15 +1032,91 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
          seedIds.push_back(celli);
          continue;
       }
+      
       /* Proceed with C, checking if the next two negative neighbours have the same refinement level as ccell, but the
          third neighbour a higher one. Iterate through negative distances for VLASOV_STENCIL_WIDTH+1 elements
          starting from the smallest distance. */
       iSrc = VLASOV_STENCIL_WIDTH;
+
+      distancesminus.clear();
+      if(P::vlasovSolverGhostTranslate){
+         nbrPairs  = mpiGrid.get_neighbors_of(celli, getNeighborhood(dimension,VLASOV_STENCIL_WIDTH+1));    
+      }
+      else{
+         nbrPairs  = mpiGrid.get_neighbors_of(celli, getNeighborhood(dimension,VLASOV_STENCIL_WIDTH));
+      }
+      // Non-const nbrPairs
+      std::vector<std::pair<CellID, std::array<int, 3>>> nbrPairs2 = std::vector<std::pair<CellID, std::array<int, 3>>>(nbrPairs->begin(), nbrPairs->end());
+      int maxdistance = 0;
+      CellID maxNbr = INVALID_CELLID;
+      for (const auto& nbrPair : nbrPairs2) {
+         if (nbrPair.second[dimension] < 0) {
+            // gather absolute distance values for correct order
+            distancesminus.insert(-nbrPair.second[dimension]);
+            if (-nbrPair.second[dimension] > maxdistance) {
+               maxdistance = -nbrPair.second[dimension];
+               maxNbr = nbrPair.first;
+            }
+         }
+      }
+      if(!P::vlasovSolverGhostTranslate){
+         /*!
+      	  Find the cell (or, potentially, multiple cells) that can be encountered by hopping
+      	  from face neighbour to face neighbour along the given offset path.
+      	  The "offset" parameter defines how many unique cells should be traveled in each dimension.
+      	  "dims" defines the order in which dimensions are stepped through.For proper
+      	  matching of neighbors_to and neighbors_of, these should be constructed in
+      	  opposite direction.
+      	*/
+      	// std::set<uint64_t> find_cells_at_offset(
+      	// 		const Types<3>::indices_t starting_point,
+      	// 		uint64_t starting_cell,
+      	// 		int refinement_level,
+      	// 		const Types<3>::neighborhood_item_t& offsets, std::array<int, 3> dims = {2,0,1}) const {
+
+         
+         // If the furthest-away neighbor is local, we can look ahead as we have the required neighborhood.
+         // If the third cell is not local, we have just seeded in case A from the second cell. Those may get
+         // further split, however, and if we do not flag based the non-local cell we are pushing the problem 
+         // to a smaller set of edge cases. find_cells_at_offset as above to help with this. get_neighbors_of will
+         // not work with nonlocal cells outside of the stencil size.
+         // 
+         // We have already walked this far, so let's not retrace our steps from the beginning. 
+         dccrg::Types<3>::neighborhood_item_t lookahead_offset;
+         switch (dimension) {
+            case 0:
+               lookahead_offset={-1,0,0};
+               break;
+            case 1:
+               lookahead_offset={0,-1,0};
+               break;
+            case 2:
+               lookahead_offset={0,0,-1};
+               break;
+            default:
+               std::cerr << __FILE__ << ":" << __LINE__ << ": bad dimension " << dimension << std::endl;
+               abort();
+         } 
+         
+         std::set<CellID> offset_cells = mpiGrid.find_cells_at_offset(mpiGrid.mapping.get_indices(maxNbr),
+                                                                       maxNbr,
+                                                                       mpiGrid.get_refinement_level(maxNbr),
+                                                                       lookahead_offset);
+         for (const CellID offset_cell : offset_cells) {
+            if (offset_cell != INVALID_CELLID) {
+                  // This is a rather ugly hack. These are the correct distances, assuming additive offsets, for the last cell to check,
+                  // counting from the prospective seed cell (instead of the maxNbr cell, from which we just step once)
+                  distancesminus.insert(VLASOV_STENCIL_WIDTH+1);
+                  lookahead_offset[dimension] = -(VLASOV_STENCIL_WIDTH+1); 
+                  nbrPairs2.push_back(std::pair<CellID,dccrg::Types<3>::neighborhood_item_t>{offset_cell, lookahead_offset});
+            }
+         }
+      }
       for (auto it = distancesminus.begin(); it != distancesminus.end(); ++it) {
          if (iSrc < 0) {
             break; // found enough elements
          }
-         for (const auto& nbrPair : *nbrPairs) {
+         for (const auto& nbrPair : nbrPairs2) {
             int distanceInRefinedCells = -nbrPair.second[dimension];
             if (distanceInRefinedCells == *it) {
                // Break search if we are not at the final entry, and have different refinement level
@@ -1048,7 +1124,7 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
                   iSrc = -1;
                   break;
                }
-               // Flag as seed id if VLASOV_STENCIL_WIDTH+1 positive neighbour is at higher refinement level
+               // Flag as seed id if VLASOV_STENCIL_WIDTH+1 negative neighbour is at higher refinement level
                if (iSrc==0 && mpiGrid.get_refinement_level(nbrPair.first)>myRefLevel) {
                   addToSeedIds = true;
                   break;
