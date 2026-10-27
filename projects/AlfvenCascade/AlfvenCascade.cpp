@@ -327,7 +327,7 @@ AlfvenCascade::~AlfvenCascade() {}
                Real cosalpha = cos(angle_l);
                Real sinalpha = sin(angle_l);
                Real kwave = 2 * M_PI / wave.wavelength;
-               Real xpar = xyz[0] * cosalpha + xyz[1] * sinalpha;
+               Real xpar = (xyz[0] + 0.5 * gridSpacing[0]) * cosalpha + (xyz[1] + 0.5 * gridSpacing[1]) * sinalpha;
 
                // Calculate B1 from v1 using Alfvén wave relation
                Real B1 = std::pow(-1.0,idx) * wave.amplitude * sqrt(mu0 * rho0_l);
@@ -338,7 +338,7 @@ AlfvenCascade::~AlfvenCascade() {}
                   Bperp = B1 * sin(kwave * xpar + wave.phase);
                   Bpara = B1 * cos(kwave * xpar + wave.phase);
                } else {
-                  Real gaussianVal = exp(-((xyz[0] - gaussianMaskLocation_l) * (xyz[0] - gaussianMaskLocation_l)) / (2 * gaussianMaskWidth_l * gaussianMaskWidth_l));
+                  Real gaussianVal = exp(-(((xyz[0] + 0.5 * gridSpacing[0]) - gaussianMaskLocation_l) * ((xyz[0] + 0.5 * gridSpacing[0]) - gaussianMaskLocation_l)) / (2 * gaussianMaskWidth_l * gaussianMaskWidth_l));
                   Bperp = B1 * sin(kwave * xpar + wave.phase) * gaussianVal;
                   Bpara = B1 * cos(kwave * xpar + wave.phase) * gaussianVal;
                }
