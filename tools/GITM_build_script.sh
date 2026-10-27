@@ -51,6 +51,4 @@ echo "BUILD OK"
 make rundir
 
 cd run
-mpirun -np 4 ./GITM.exe
-
 
