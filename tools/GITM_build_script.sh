@@ -1,4 +1,3 @@
-
 #!/bin/bash
 # GNU + OpenMPI + netCDF stack for GITM/TIEGCM
 set -e   # stop on first error — "script finished" then means "build succeeded"
@@ -24,7 +23,17 @@ test -f ext/Electrodynamics/src/Makefile || { echo "FAIL: Electrodynamics extens
 find . -name "GITM.exe" | grep -q . || { echo "FAIL: GITM.exe not built"; exit 1; }
 echo "BUILD OK"
 
+cat > run_script.sh << 'EOF'
+#!/bin/bash
+#SBATCH --time=00:10:00
+#SBATCH --ntasks=4
+source /turso/group/spacephysics/applications/easybuild/setup.sh
+mpirun -np 4 ~/GITM_testbuild/run/GITM.exe
+EOF
+chmod +x run_script.sh
+
+make 
+
 make rundir
 
-cd run
-
+mv run_script.sh run/
