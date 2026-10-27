@@ -1,0 +1,32 @@
+<map id="compute_filtered_face_values_derivatives" name="compute_filtered_face_values_derivatives">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,264,172,309"/>
+<area shape="rect" id="Node000002" href="$d3/d94/gpu__face__estimates_8hpp.html#ac59ee669773665f79137a5ecd7997b8d" title=" " alt="" coords="231,5,395,50"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="95,263,111,220,137,166,172,110,194,84,218,60,226,57,223,61,221,64,198,87,177,113,142,169,116,222,100,264"/>
+<area shape="rect" id="Node000003" href="$d3/d94/gpu__face__estimates_8hpp.html#a83a8a7c97bdab6cae4255e731e25deaf" title=" " alt="" coords="231,75,395,119"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="101,262,148,197,181,161,218,130,229,125,225,129,221,134,184,165,152,201,106,265"/>
+<area shape="rect" id="Node000004" href="$d3/d94/gpu__face__estimates_8hpp.html#ae13012b6909c8eeb2de7a94b38145687" title=" " alt="" coords="231,144,395,189"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="118,262,165,230,218,199,233,193,230,197,221,203,168,234,122,265"/>
+<area shape="rect" id="Node000005" href="$d3/d94/gpu__face__estimates_8hpp.html#a54974e178a4fafe9df69ad412b7ae618" title=" " alt="" coords="220,212,406,240"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="170,262,246,243,242,247,173,266"/>
+<area shape="rect" id="Node000006" href="$d3/d94/gpu__face__estimates_8hpp.html#a6f93c369e8a81827b2ecf536b7219433" title=" " alt="" coords="231,264,395,309"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="171,284,218,285,213,288,173,289"/>
+<area shape="rect" id="Node000007" href="$d3/d94/gpu__face__estimates_8hpp.html#a17f8c8b602746bc1498567cac98ac014" title=" " alt="" coords="231,333,395,378"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="162,307,226,327,221,329,164,312"/>
+<area shape="rect" id="Node000008" href="$d3/d94/gpu__face__estimates_8hpp.html#a62bd104b3d964fb6e35cd8e5d4c9d34f" title=" " alt="" coords="231,403,395,447"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="113,306,162,348,221,388,233,395,227,396,218,393,159,352,114,312"/>
+<area shape="rect" id="Node000009" href="$d3/d94/gpu__face__estimates_8hpp.html#ae0055ebd61e235eccb5a5626505aeeab" title=" " alt="" coords="231,472,395,517"/>
+<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="102,307,149,381,182,422,221,458,229,464,223,464,218,462,179,426,145,384,101,312"/>
+<area shape="rect" id="Node000010" href="$d5/d3d/mini-apps_2acceleration_2cpu__slope__limiters_8hpp.html#af5f8cd32ea4efcd598f93f20deaa8959" title=" " alt="" coords="260,540,366,568"/>
+<area shape="poly" id="edge9_Node000001_Node000010" title=" " alt="" coords="96,307,113,355,137,414,173,475,196,503,221,527,248,543,242,543,218,531,192,506,169,478,133,416,108,357,95,312"/>
+<area shape="rect" id="Node000011" href="$d8/dbc/vectorclass__fallback_8h.html#ad1eccb49237393bcbb5b6b97556fa4e2" title=" " alt="" coords="456,488,500,516"/>
+<area shape="poly" id="edge10_Node000010_Node000011" title=" " alt="" coords="366,538,405,526,439,517,445,515,407,532,367,543"/>
+<area shape="rect" id="Node000014" href="$d8/dbc/vectorclass__fallback_8h.html#a1896c5fbdb17de74189d1d18cdd4cf29" title=" " alt="" coords="455,540,501,568"/>
+<area shape="poly" id="edge13_Node000010_Node000014" title=" " alt="" coords="366,552,442,554,437,555,367,557"/>
+<area shape="rect" id="Node000015" href="$dc/d54/common_8h.html#a704bbe0aac85fb7120eb499852241a91" title=" " alt="" coords="454,592,502,620"/>
+<area shape="poly" id="edge15_Node000010_Node000015" title=" " alt="" coords="360,566,442,594,437,594,359,571"/>
+<area shape="rect" id="Node000012" href="$d7/d8b/class_vec_simple.html#a145923009b9b82410c5a072b8f8127f0" title=" " alt="" coords="550,515,685,543"/>
+<area shape="poly" id="edge11_Node000011_Node000012" title=" " alt="" coords="501,504,538,513,532,513,501,509"/>
+<area shape="rect" id="Node000013" href="$d7/d8b/class_vec_simple.html#ae16798cf2ee14257d0706c60613cd733" title=" " alt="" coords="733,515,898,543"/>
+<area shape="poly" id="edge12_Node000012_Node000013" title=" " alt="" coords="685,526,720,529,714,529,685,532"/>
+<area shape="poly" id="edge14_Node000014_Node000012" title=" " alt="" coords="501,548,533,544,538,544,502,553"/>
+</map>

@@ -1,0 +1,58 @@
+<map id="logger.h" name="logger.h">
+<area shape="rect" id="Node000001" title=" " alt="" coords="2253,5,2326,33"/>
+<area shape="rect" id="Node000002" href="$dc/dc7/gpu__base_8cpp.html" title=" " alt="" coords="5,90,148,117"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="2235,21,1853,25,1252,33,626,51,364,65,166,84,126,91,123,87,165,78,363,60,626,46,1252,28,1853,20,2240,20"/>
+<area shape="rect" id="Node000003" href="$de/dff/ldz__main_8cpp.html" title="Londrillo – Del Zanna upwind constrained transport field solver." alt="" coords="222,182,401,210"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="2235,22,1750,38,1403,56,1046,84,868,103,729,122,414,176,373,184,372,179,413,171,728,117,867,98,1046,78,1402,50,1750,33,2240,21"/>
+<area shape="rect" id="Node000004" href="$de/daa/fieldtracing_8h.html" title=" " alt="" coords="1058,90,1242,117"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="2235,25,1242,98,1242,93,2240,24"/>
+<area shape="rect" id="Node000008" href="$da/daf/iowrite_8cpp.html" title=" " alt="" coords="1078,266,1171,294"/>
+<area shape="poly" id="edge15_Node000001_Node000008" title=" " alt="" coords="2235,20,1810,23,1496,28,1158,38,829,56,677,69,540,84,420,102,323,123,252,148,228,161,212,175,205,186,203,196,205,206,212,216,229,227,258,237,346,252,464,263,599,271,875,277,1080,279,1075,279,875,282,599,276,463,269,345,258,256,242,226,232,208,220,200,208,197,196,200,184,208,172,225,157,250,143,322,118,419,97,539,79,677,63,828,51,1158,33,1496,22,1810,18,2241,20"/>
+<area shape="rect" id="Node000012" href="$d4/d5b/vlasiator_8cpp.html" title=" " alt="" coords="1770,266,1874,294"/>
+<area shape="poly" id="edge31_Node000001_Node000012" title=" " alt="" coords="2240,24,2123,44,2057,61,1994,83,1953,102,1922,119,1896,142,1867,175,1852,198,1841,223,1826,268,1823,264,1836,222,1847,196,1862,172,1892,138,1919,115,1950,97,1991,79,2056,55,2122,39,2235,25"/>
+<area shape="rect" id="Node000013" href="$d7/d70/grid_8cpp.html" title=" " alt="" coords="2328,90,2401,117"/>
+<area shape="poly" id="edge13_Node000001_Node000013" title=" " alt="" coords="2313,42,2355,90,2350,88,2311,47"/>
+<area shape="rect" id="Node000014" href="$de/deb/ioread_8cpp.html" title=" " alt="" coords="2169,266,2258,294"/>
+<area shape="poly" id="edge14_Node000001_Node000014" title=" " alt="" coords="2291,46,2299,87,2307,107,2318,124,2336,138,2354,144,2393,145,2432,147,2450,155,2467,172,2476,196,2474,208,2467,220,2453,232,2432,242,2377,258,2315,270,2259,277,2259,272,2314,265,2376,253,2430,237,2450,227,2462,217,2469,206,2471,196,2462,175,2447,160,2430,152,2393,150,2353,149,2333,142,2315,127,2302,109,2294,89,2288,51"/>
+<area shape="rect" id="Node000015" href="$d3/d30/logger_8cpp.html" title=" " alt="" coords="2426,90,2514,117"/>
+<area shape="poly" id="edge16_Node000001_Node000015" title=" " alt="" coords="2333,37,2444,89,2438,89,2332,43"/>
+<area shape="rect" id="Node000016" href="$da/d08/memory__report_8cpp.html" title=" " alt="" coords="2538,90,2687,117"/>
+<area shape="poly" id="edge17_Node000001_Node000016" title=" " alt="" coords="2342,31,2563,89,2558,89,2341,36"/>
+<area shape="rect" id="Node000017" href="$dc/ddd/memoryallocation_8cpp.html" title=" " alt="" coords="2712,90,2879,117"/>
+<area shape="poly" id="edge18_Node000001_Node000017" title=" " alt="" coords="2342,24,2502,46,2700,78,2741,89,2736,89,2699,84,2501,52,2342,30"/>
+<area shape="rect" id="Node000018" href="$d4/d0b/ionosphere_solver_tests_2main_8cpp.html" title=" " alt="" coords="2903,81,3106,126"/>
+<area shape="poly" id="edge19_Node000001_Node000018" title=" " alt="" coords="2342,22,2580,42,2892,78,2905,83,2900,83,2891,84,2580,47,2342,27"/>
+<area shape="rect" id="Node000019" href="$df/d18/project_8cpp.html" title=" " alt="" coords="3130,90,3279,117"/>
+<area shape="poly" id="edge20_Node000001_Node000019" title=" " alt="" coords="2342,19,2478,23,2670,32,2893,50,3118,78,3159,89,3154,89,3117,84,2892,56,2670,38,2478,28,2342,24"/>
+<area shape="rect" id="Node000020" href="$d1/daf/compression_8h.html" title=" " alt="" coords="1877,182,2108,210"/>
+<area shape="poly" id="edge21_Node000001_Node000020" title=" " alt="" coords="2240,26,2116,48,2059,64,2038,73,2024,83,2008,106,1999,133,1994,184,1990,180,1994,132,2003,104,2020,79,2036,68,2058,59,2114,43,2235,26"/>
+<area shape="rect" id="Node000022" href="$da/d44/compression__tools_8h.html" title=" " alt="" coords="2034,81,2253,126"/>
+<area shape="poly" id="edge26_Node000001_Node000022" title=" " alt="" coords="2256,40,2183,83,2181,78,2250,42"/>
+<area shape="rect" id="Node000024" href="$d0/d80/cpu__trans__pencils_8cpp.html" title=" " alt="" coords="3303,81,3474,126"/>
+<area shape="poly" id="edge32_Node000001_Node000024" title=" " alt="" coords="2342,18,2502,21,2737,30,3012,48,3153,62,3292,78,3305,83,3300,83,3291,84,3153,67,3011,54,2737,36,2502,27,2342,24"/>
+<area shape="poly" id="edge6_Node000004_Node000003" title=" " alt="" coords="1040,112,758,136,586,154,414,176,370,184,369,179,413,171,585,149,757,131,1045,111"/>
+<area shape="rect" id="Node000005" href="$da/d47/datareducer_8cpp.html" title=" " alt="" coords="426,182,645,210"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="1040,119,657,176,609,184,608,179,656,171,1046,118"/>
+<area shape="rect" id="Node000006" href="$d4/d24/fs__common_8cpp.html" title=" " alt="" coords="669,182,865,210"/>
+<area shape="poly" id="edge5_Node000004_Node000006" title=" " alt="" coords="1082,121,823,184,822,179,1077,122"/>
+<area shape="rect" id="Node000007" href="$dd/ddb/fieldtracing_8cpp.html" title="Implementation of the field tracing algorithms used in Magnetosphere runs and in magnetosphere&#45;ionosp..." alt="" coords="889,182,1088,210"/>
+<area shape="poly" id="edge7_Node000004_Node000007" title=" " alt="" coords="1116,124,1013,184,1011,179,1111,126"/>
+<area shape="poly" id="edge8_Node000004_Node000008" title=" " alt="" coords="1148,131,1128,268,1124,264,1144,134"/>
+<area shape="rect" id="Node000009" href="$d5/d10/parameters_8cpp.html" title=" " alt="" coords="1212,182,1336,210"/>
+<area shape="poly" id="edge9_Node000004_Node000009" title=" " alt="" coords="1181,124,1258,182,1253,181,1179,129"/>
+<area shape="rect" id="Node000010" href="$d9/db6/copysphere_8cpp.html" title="Implementation of the class SysBoundaryCondition::Copysphere to handle cells classified as sysboundar..." alt="" coords="1359,182,1570,210"/>
+<area shape="poly" id="edge10_Node000004_Node000010" title=" " alt="" coords="1211,119,1421,182,1416,181,1210,125"/>
+<area shape="rect" id="Node000011" href="$dc/d4f/ionosphere_8cpp.html" title="Implementation of the class SysBoundaryCondition::Ionosphere to handle cells classified as sysboundar..." alt="" coords="1594,182,1802,210"/>
+<area shape="poly" id="edge11_Node000004_Node000011" title=" " alt="" coords="1251,117,1582,171,1629,182,1624,181,1581,176,1250,123"/>
+<area shape="poly" id="edge12_Node000004_Node000012" title=" " alt="" coords="1156,130,1171,177,1184,199,1202,216,1233,227,1289,238,1449,255,1772,277,1767,277,1449,260,1288,243,1232,233,1199,221,1180,202,1167,179,1153,135"/>
+<area shape="poly" id="edge23_Node000020_Node000008" title=" " alt="" coords="1873,212,1814,221,1445,255,1172,278,1172,273,1444,250,1814,216,1868,212"/>
+<area shape="poly" id="edge25_Node000020_Node000012" title=" " alt="" coords="1954,216,1850,268,1849,263,1949,218"/>
+<area shape="poly" id="edge22_Node000020_Node000014" title=" " alt="" coords="2042,213,2181,266,2176,265,2041,218"/>
+<area shape="rect" id="Node000021" href="$de/dc6/compression_8cpp.html" title=" " alt="" coords="1899,266,2145,294"/>
+<area shape="poly" id="edge24_Node000020_Node000021" title=" " alt="" coords="2004,223,2019,268,2015,265,2001,227"/>
+<area shape="poly" id="edge27_Node000022_Node000014" title=" " alt="" coords="2159,138,2211,267,2206,264,2156,142"/>
+<area shape="poly" id="edge29_Node000022_Node000020" title=" " alt="" coords="2097,133,2015,184,2013,179,2091,135"/>
+<area shape="poly" id="edge28_Node000022_Node000021" title=" " alt="" coords="2145,139,2140,181,2133,201,2123,220,2093,249,2058,268,2056,263,2090,245,2118,217,2128,199,2135,180,2141,143"/>
+<area shape="rect" id="Node000023" href="$df/ded/compression__tools_8cpp.html" title=" " alt="" coords="2234,174,2453,218"/>
+<area shape="poly" id="edge30_Node000022_Node000023" title=" " alt="" coords="2205,130,2298,174,2293,173,2204,135"/>
+</map>

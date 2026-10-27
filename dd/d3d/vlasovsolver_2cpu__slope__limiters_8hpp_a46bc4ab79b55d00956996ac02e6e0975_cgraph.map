@@ -1,0 +1,24 @@
+<map id="slope_limiter" name="slope_limiter">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,47,112,74"/>
+<area shape="rect" id="Node000002" href="$d8/dbc/vectorclass__fallback_8h.html#ad1eccb49237393bcbb5b6b97556fa4e2" title=" " alt="" coords="626,20,670,48"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="109,44,159,33,252,19,324,12,490,6,530,3,570,6,614,20,609,20,569,11,530,9,490,11,324,18,252,24,160,38,111,49"/>
+<area shape="rect" id="Node000005" href="$d8/dbc/vectorclass__fallback_8h.html#a9d51f83173fc2d8e087fbccc672abf92" title=" " alt="" coords="618,72,678,100"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="110,72,160,83,252,96,324,103,490,108,530,111,569,109,600,103,605,103,570,114,530,116,490,114,324,108,252,102,159,88,110,78"/>
+<area shape="rect" id="Node000006" href="$dd/d3d/vlasovsolver_2cpu__slope__limiters_8hpp.html#aae45df90e1a7f06dcfbd7581aaaa488f" title=" " alt="" coords="160,47,266,74"/>
+<area shape="poly" id="edge6_Node000001_Node000006" title=" " alt="" coords="112,58,147,60,142,61,112,63"/>
+<area shape="rect" id="Node000003" href="$d7/d8b/class_vec_simple.html#a145923009b9b82410c5a072b8f8127f0" title=" " alt="" coords="726,47,860,74"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="670,35,713,45,708,45,670,40"/>
+<area shape="rect" id="Node000004" href="$d7/d8b/class_vec_simple.html#ae16798cf2ee14257d0706c60613cd733" title=" " alt="" coords="908,47,1074,74"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="860,58,895,60,890,61,861,63"/>
+<area shape="poly" id="edge5_Node000005_Node000003" title=" " alt="" coords="678,78,708,75,713,75,679,83"/>
+<area shape="rect" id="Node000007" href="$dd/d3d/vlasovsolver_2cpu__slope__limiters_8hpp.html#af664e59b8a8e7fcfa5c2bf381187c2ee" title=" " alt="" coords="314,47,442,74"/>
+<area shape="poly" id="edge7_Node000006_Node000007" title=" " alt="" coords="266,58,301,60,296,61,267,63"/>
+<area shape="rect" id="Node000008" href="$dd/d3d/vlasovsolver_2cpu__slope__limiters_8hpp.html#addf329c676b7eb33403b50f0ccfb9e9c" title=" " alt="" coords="490,20,570,48"/>
+<area shape="poly" id="edge8_Node000007_Node000008" title=" " alt="" coords="442,47,472,44,478,43,443,52"/>
+<area shape="rect" id="Node000009" href="$dd/d3d/vlasovsolver_2cpu__slope__limiters_8hpp.html#a4f10220a90d43132ee18d2b61f8c0dc3" title=" " alt="" coords="492,72,568,100"/>
+<area shape="poly" id="edge11_Node000007_Node000009" title=" " alt="" coords="443,69,480,77,474,77,443,74"/>
+<area shape="poly" id="edge9_Node000008_Node000002" title=" " alt="" coords="570,31,613,34,607,34,570,36"/>
+<area shape="poly" id="edge10_Node000008_Node000005" title=" " alt="" coords="564,46,606,67,601,66,563,51"/>
+<area shape="poly" id="edge12_Node000009_Node000002" title=" " alt="" coords="563,69,609,50,614,49,564,74"/>
+<area shape="poly" id="edge13_Node000009_Node000005" title=" " alt="" coords="568,83,605,86,599,86,568,88"/>
+</map>

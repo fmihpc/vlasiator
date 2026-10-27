@@ -1,0 +1,23 @@
+<map id="ASTERIX::PhaseSpaceUnion::PhaseSpaceUnion" name="ASTERIX::PhaseSpaceUnion::PhaseSpaceUnion">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,244,206,289"/>
+<area shape="rect" id="Node000002" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a12396b706cfbfbef0a336d936238b867" title=" " alt="" coords="279,5,453,50"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="115,243,135,203,165,154,205,104,252,60,267,53,263,57,255,64,208,107,170,157,140,206,119,245"/>
+<area shape="rect" id="Node000004" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#ac3e9c10c72c754b3ca8586d8811ad6d4" title=" " alt="" coords="279,75,452,119"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="124,242,178,186,214,156,252,129,267,124,263,127,255,134,217,160,182,190,128,245"/>
+<area shape="rect" id="Node000005" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a18b8ef0d4f590289f8924765b348ca6c" title=" " alt="" coords="257,144,474,189"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="153,241,253,199,275,192,271,196,255,203,156,246"/>
+<area shape="rect" id="Node000006" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a1dc25bb724906fa5d6dd76096cb7b9a4" title=" " alt="" coords="279,213,452,258"/>
+<area shape="poly" id="edge6_Node000001_Node000006" title=" " alt="" coords="205,252,266,246,262,249,207,257"/>
+<area shape="rect" id="Node000007" href="$d4/d0b/ionosphere_solver_tests_2main_8cpp.html#a9bf4cdc41d466e8710b8aa33a33d32e0" title=" " alt="" coords="296,282,436,310"/>
+<area shape="poly" id="edge8_Node000001_Node000007" title=" " alt="" coords="205,275,283,285,278,287,207,280"/>
+<area shape="rect" id="Node000008" href="$d0/df6/class_a_s_t_e_r_i_x_1_1_phase_space_union.html#a785d6eb44851c2db738538bb5a2fd1c9" title=" " alt="" coords="266,333,466,378"/>
+<area shape="poly" id="edge9_Node000001_Node000008" title=" " alt="" coords="166,287,255,318,277,327,272,329,253,324,166,292"/>
+<area shape="rect" id="Node000009" href="$d0/df6/class_a_s_t_e_r_i_x_1_1_phase_space_union.html#afb4b0ca04510e98ca2f5003cc253c3db" title=" " alt="" coords="266,403,466,447"/>
+<area shape="poly" id="edge10_Node000001_Node000009" title=" " alt="" coords="128,287,184,338,218,365,255,388,268,396,263,396,252,393,215,369,180,342,128,292"/>
+<area shape="rect" id="Node000010" href="$dd/df7/classvmesh_1_1_velocity_block_container.html#a79f6cabbeb2e3d93e2b4abd996621536" title=" " alt="" coords="254,472,478,517"/>
+<area shape="poly" id="edge11_Node000001_Node000010" title=" " alt="" coords="118,286,141,325,171,371,210,417,255,458,264,465,259,464,252,462,206,421,167,374,137,328,118,292"/>
+<area shape="rect" id="Node000003" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a0b5ae6d60c03a10b43a732a20bf20625" title=" " alt="" coords="526,144,716,189"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="450,48,479,60,536,95,585,134,580,134,533,99,477,65,451,53"/>
+<area shape="poly" id="edge5_Node000005_Node000003" title=" " alt="" coords="474,164,513,165,508,167,476,169"/>
+<area shape="poly" id="edge7_Node000006_Node000003" title=" " alt="" coords="450,210,524,192,520,194,452,215"/>
+</map>

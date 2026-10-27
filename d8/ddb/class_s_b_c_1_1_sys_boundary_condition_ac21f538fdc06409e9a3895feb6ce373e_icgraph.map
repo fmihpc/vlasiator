@@ -1,0 +1,22 @@
+<map id="SBC::SysBoundaryCondition::setCellDerivativesToZero" name="SBC::SysBoundaryCondition::setCellDerivativesToZero">
+<area shape="rect" id="Node000001" title=" " alt="" coords="913,152,1115,196"/>
+<area shape="rect" id="Node000002" href="$d9/de3/derivatives_8cpp.html#a538118f0e57e26d4474bb6b2c5b39d7f" title="Low&#45;level spatial derivatives calculation." alt="" coords="683,31,838,58"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="972,141,923,106,864,72,835,62,835,56,866,67,926,102,978,142"/>
+<area shape="rect" id="Node000007" href="$dd/d8a/class_s_b_c_1_1_copysphere.html#a9575096caacbe0c3281df5ce9f386550" title=" " alt="" coords="656,82,865,127"/>
+<area shape="poly" id="edge7_Node000001_Node000007" title=" " alt="" coords="913,147,845,130,845,125,918,147"/>
+<area shape="rect" id="Node000008" href="$de/d6a/class_s_b_c_1_1_inflow.html#a8b8ac79cd91c0a35e5e8d30dcc8e2da4" title=" " alt="" coords="665,152,856,196"/>
+<area shape="poly" id="edge8_Node000001_Node000008" title=" " alt="" coords="895,174,857,176,856,171,900,174"/>
+<area shape="rect" id="Node000009" href="$da/d6b/class_s_b_c_1_1_ionosphere.html#ad55965ffce1feadea4b5a274b759ce18" title=" " alt="" coords="658,221,862,266"/>
+<area shape="poly" id="edge9_Node000001_Node000009" title=" " alt="" coords="918,200,845,223,844,218,913,201"/>
+<area shape="rect" id="Node000010" href="$d5/d71/class_s_b_c_1_1_outflow.html#a1f632e60008d1bc3f5629bac2c98d353" title=" " alt="" coords="665,290,856,335"/>
+<area shape="poly" id="edge10_Node000001_Node000010" title=" " alt="" coords="976,205,925,245,866,280,839,292,838,287,864,275,922,241,971,207"/>
+<area shape="rect" id="Node000003" href="$d9/de3/derivatives_8cpp.html#a6961ee44131fac4d85b736af115b3c97" title="High&#45;level derivative calculation wrapper function." alt="" coords="407,31,608,58"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="665,45,609,47,608,42,670,44"/>
+<area shape="rect" id="Node000004" href="$de/dff/ldz__main_8cpp.html#ac91e0dc80c9375ba517e2f263308c64f" title="Top&#45;level field propagation function." alt="" coords="234,5,359,33"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="389,31,360,29,359,24,394,30"/>
+<area shape="rect" id="Node000005" href="$d4/d5b/vlasiator_8cpp.html#acfd343080edd07ae79384688a7e48693" title=" " alt="" coords="108,31,186,58"/>
+<area shape="poly" id="edge6_Node000003_Node000005" title=" " alt="" coords="390,46,187,47,186,42,393,43"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="216,34,188,40,185,36,220,31"/>
+<area shape="rect" id="Node000006" href="$d4/d5b/vlasiator_8cpp.html#a54790573f350e250ccca3cbb94733391" title=" " alt="" coords="5,31,60,58"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="90,46,62,47,59,42,94,43"/>
+</map>

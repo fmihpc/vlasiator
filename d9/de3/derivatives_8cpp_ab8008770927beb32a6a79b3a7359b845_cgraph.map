@@ -1,0 +1,17 @@
+<map id="calculateScaledDeltas" name="calculateScaledDeltas">
+<area shape="rect" id="Node000001" title="Low&#45;level scaled gradients calculation." alt="" coords="5,132,171,160"/>
+<area shape="rect" id="Node000002" href="$d9/de3/derivatives_8cpp.html#aaf097ccca5547c9fca688383c97de918" title="Calculates pressure anistotropy from B and Pi." alt="" coords="230,5,380,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="104,129,153,90,217,49,247,37,243,41,220,53,156,95,108,133"/>
+<area shape="rect" id="Node000003" href="$d9/de3/derivatives_8cpp.html#a9ec1a44de0513ba69004a1784bac87c7" title="Calculates energy density for spatial cell." alt="" coords="260,107,350,134"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="170,134,247,126,242,129,172,139"/>
+<area shape="rect" id="Node000004" href="$d9/de3/derivatives_8cpp.html#a74763edc9ece05eb8c4bfc4a8a284fdb" title="Returns volumetric B of cell." alt="" coords="488,69,559,97"/>
+<area shape="poly" id="edge6_Node000001_Node000004" title=" " alt="" coords="116,129,163,109,218,93,287,82,356,77,475,79,470,81,356,82,287,87,219,98,165,114,119,134"/>
+<area shape="rect" id="Node000005" href="$d9/de3/derivatives_8cpp.html#ace776df59ba570d228e3f3c8d02e507b" title="Calculates momentum density of cell." alt="" coords="440,133,607,161"/>
+<area shape="poly" id="edge7_Node000001_Node000005" title=" " alt="" coords="171,143,426,145,423,149,172,149"/>
+<area shape="rect" id="Node000006" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#ab65ea376c5eeb1aa58eaab61087fe2ef" title=" " alt="" coords="219,209,392,254"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="126,158,235,201,230,204,125,163"/>
+<area shape="rect" id="Node000007" href="$de/d31/_dispersion_8m.html#af276a2aede715061015c735080cf65df" title=" " alt="" coords="282,277,328,305"/>
+<area shape="poly" id="edge8_Node000001_Node000007" title=" " alt="" coords="102,158,151,210,184,239,220,264,244,274,270,284,265,284,242,279,217,268,180,243,147,214,100,163"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="350,110,475,91,470,93,352,115"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="351,123,427,134,422,136,351,129"/>
+</map>

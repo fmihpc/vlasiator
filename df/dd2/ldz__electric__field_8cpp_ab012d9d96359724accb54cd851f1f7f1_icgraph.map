@@ -1,0 +1,11 @@
+<map id="calculateElectricField" name="calculateElectricField">
+<area shape="rect" id="Node000001" title="Electric field propagation function." alt="" coords="649,14,808,42"/>
+<area shape="rect" id="Node000002" href="$df/dd2/ldz__electric__field_8cpp.html#a5c5eee0422166c83186fad5c71cbc72a" title="High&#45;level electric field computation function." alt="" coords="407,5,601,50"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="630,28,601,30,601,25,636,28"/>
+<area shape="rect" id="Node000003" href="$de/dff/ldz__main_8cpp.html#ac91e0dc80c9375ba517e2f263308c64f" title="Top&#45;level field propagation function." alt="" coords="234,14,359,42"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="389,28,360,30,360,25,395,28"/>
+<area shape="rect" id="Node000004" href="$d4/d5b/vlasiator_8cpp.html#acfd343080edd07ae79384688a7e48693" title=" " alt="" coords="108,14,186,42"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="216,28,187,30,186,25,221,27"/>
+<area shape="rect" id="Node000005" href="$d4/d5b/vlasiator_8cpp.html#a54790573f350e250ccca3cbb94733391" title=" " alt="" coords="5,14,60,42"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="89,29,60,30,60,25,94,27"/>
+</map>

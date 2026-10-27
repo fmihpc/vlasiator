@@ -1,0 +1,9 @@
+<map id="computePitchAngleDiffusionParameters" name="computePitchAngleDiffusionParameters">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,65,211,110"/>
+<area shape="rect" id="Node000002" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a5ac5e609f6acb3f06bf4853436a7aef7" title=" " alt="" coords="259,5,457,50"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="203,62,250,53,245,55,205,67"/>
+<area shape="rect" id="Node000003" href="$d0/dc2/common__pitch__angle__diffusion_8cpp.html#a10ca96a2b4781f946290f996a3dd7b0f" title=" " alt="" coords="269,74,447,102"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="211,85,255,87,250,88,212,90"/>
+<area shape="rect" id="Node000004" href="$de/d31/_dispersion_8m.html#af276a2aede715061015c735080cf65df" title=" " alt="" coords="335,126,381,154"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="212,106,322,131,317,132,211,112"/>
+</map>

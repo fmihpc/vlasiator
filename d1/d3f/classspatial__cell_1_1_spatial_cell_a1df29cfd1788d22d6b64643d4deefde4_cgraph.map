@@ -1,0 +1,8 @@
+<map id="spatial_cell::SpatialCell::checkSizes" name="spatial_cell::SpatialCell::checkSizes">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,5,179,50"/>
+<area shape="rect" id="Node000002" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a0b5ae6d60c03a10b43a732a20bf20625" title=" " alt="" coords="448,5,638,50"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="179,21,227,20,400,20,435,23,430,23,400,25,227,25,179,26"/>
+<area shape="rect" id="Node000003" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a3a95df29bab5edf56724489af64523e5" title=" " alt="" coords="227,35,400,79"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="179,37,214,43,208,44,179,42"/>
+<area shape="poly" id="edge3_Node000003_Node000002" title=" " alt="" coords="400,43,430,42,435,42,401,49"/>
+</map>

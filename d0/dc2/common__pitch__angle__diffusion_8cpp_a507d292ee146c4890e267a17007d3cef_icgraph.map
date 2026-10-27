@@ -1,0 +1,11 @@
+<map id="readNuArrayFromFile" name="readNuArrayFromFile">
+<area shape="rect" id="Node000001" title=" " alt="" coords="430,32,590,60"/>
+<area shape="rect" id="Node000002" href="$dc/d2e/gpu__pitch__angle__diffusion_8cpp.html#a88e83cb1bbf15b69d1d99d7704e590e0" title=" " alt="" coords="234,5,382,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="412,33,382,32,382,26,417,33"/>
+<area shape="rect" id="Node000003" href="$d6/d86/cpu__pitch__angle__diffusion_8cpp.html#aa434e645358fc0eb01e07d5b0168d75d" title=" " alt="" coords="234,57,382,85"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="417,58,383,65,382,59,412,58"/>
+<area shape="rect" id="Node000004" href="$d4/d5b/vlasiator_8cpp.html#acfd343080edd07ae79384688a7e48693" title=" " alt="" coords="108,57,186,85"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="216,71,187,74,186,69,221,71"/>
+<area shape="rect" id="Node000005" href="$d4/d5b/vlasiator_8cpp.html#a54790573f350e250ccca3cbb94733391" title=" " alt="" coords="5,57,60,85"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="89,72,60,74,60,69,94,70"/>
+</map>

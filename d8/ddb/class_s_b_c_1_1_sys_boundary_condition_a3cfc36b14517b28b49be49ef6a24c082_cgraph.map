@@ -1,0 +1,13 @@
+<map id="SBC::SysBoundaryCondition::vlasovBoundaryCopyFromTheClosestL1OutflowNbr" name="SBC::SysBoundaryCondition::vlasovBoundaryCopyFromTheClosestL1OutflowNbr">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,48,278,110"/>
+<area shape="rect" id="Node000002" href="$d9/df9/common_8cpp.html#a3ccffabea3435cf184592d88e6a470c8" title=" " alt="" coords="388,5,476,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="278,48,375,30,370,32,279,53"/>
+<area shape="rect" id="Node000003" href="$d8/ddb/class_s_b_c_1_1_sys_boundary_condition.html#a9bae328740bdbd87689286e4a78a4532" title=" " alt="" coords="331,57,533,102"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="278,77,318,79,312,80,279,82"/>
+<area shape="rect" id="Node000006" href="$d8/ddb/class_s_b_c_1_1_sys_boundary_condition.html#aa3d89d9f7805406c356384d2cdafb4ac" title=" " alt="" coords="326,126,538,171"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="273,108,323,122,318,122,273,113"/>
+<area shape="rect" id="Node000004" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#ac3e9c10c72c754b3ca8586d8811ad6d4" title=" " alt="" coords="586,22,759,67"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="533,62,573,59,568,60,534,67"/>
+<area shape="rect" id="Node000005" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a0cd7b26f72d55d4735500850e5a48316" title=" " alt="" coords="586,92,759,136"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="534,91,573,99,568,99,533,96"/>
+</map>

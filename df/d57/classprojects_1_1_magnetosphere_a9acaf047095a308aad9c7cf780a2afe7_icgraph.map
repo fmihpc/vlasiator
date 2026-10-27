@@ -1,0 +1,11 @@
+<map id="projects::Magnetosphere::geometryRadius" name="projects::Magnetosphere::geometryRadius">
+<area shape="rect" id="Node000001" title=" " alt="" coords="466,52,648,97"/>
+<area shape="rect" id="Node000002" href="$df/d57/classprojects_1_1_magnetosphere.html#aec1a71d2331bcefb696a27aa419fb030" title=" " alt="" coords="5,5,188,50"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="459,48,418,42,298,31,189,29,188,23,299,26,418,37,465,48"/>
+<area shape="rect" id="Node000003" href="$df/d57/classprojects_1_1_magnetosphere.html#ac11a05ee6cadabc7f6c638d7033d4269" title="Return a vector containing the velocity coordinate of the centre of each ion population in the distri..." alt="" coords="236,52,418,97"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="448,75,419,77,418,72,453,74"/>
+<area shape="rect" id="Node000004" href="$df/d57/classprojects_1_1_magnetosphere.html#a539f67b3dc136e473c181541acf858da" title=" " alt="" coords="5,87,188,131"/>
+<area shape="poly" id="edge5_Node000001_Node000004" title=" " alt="" coords="467,100,418,112,298,119,188,118,188,112,298,114,418,106,462,101"/>
+<area shape="poly" id="edge3_Node000003_Node000002" title=" " alt="" coords="218,53,188,49,188,44,223,52"/>
+<area shape="poly" id="edge4_Node000003_Node000004" title=" " alt="" coords="218,91,189,98,188,93,223,90"/>
+</map>

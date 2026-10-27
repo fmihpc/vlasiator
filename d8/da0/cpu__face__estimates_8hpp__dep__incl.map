@@ -1,0 +1,25 @@
+<map id="vlasovsolver/cpu_face_estimates.hpp" name="vlasovsolver/cpu_face_estimates.hpp">
+<area shape="rect" id="Node000001" title=" " alt="" coords="465,5,631,50"/>
+<area shape="rect" id="Node000002" href="$d8/d05/cpu__1d__ppm_8hpp.html" title=" " alt="" coords="200,98,355,143"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="466,56,343,100,341,95,471,54"/>
+<area shape="rect" id="Node000006" href="$d3/d07/cpu__1d__ppm__nonuniform_8hpp.html" title=" " alt="" coords="558,98,725,143"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="582,58,622,98,617,97,580,63"/>
+<area shape="rect" id="Node000008" href="$d2/de0/cpu__1d__ppm__nonuniform__conserving_8hpp.html" title=" " alt="" coords="758,98,1003,143"/>
+<area shape="poly" id="edge8_Node000001_Node000008" title=" " alt="" coords="642,52,803,97,798,98,642,57"/>
+<area shape="rect" id="Node000010" href="$d2/dd5/cpu__1d__pqm_8hpp.html" title=" " alt="" coords="379,98,533,143"/>
+<area shape="poly" id="edge10_Node000001_Node000010" title=" " alt="" coords="518,60,479,100,476,96,513,62"/>
+<area shape="rect" id="Node000003" href="$d1/d9f/acceleration-vlasiator_2map__test_8cpp.html" title=" " alt="" coords="190,191,365,235"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="279,156,280,192,275,189,276,160"/>
+<area shape="rect" id="Node000004" href="$db/d0f/cpu__acc__map_8cpp.html" title=" " alt="" coords="5,191,166,235"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="220,149,132,193,130,188,215,150"/>
+<area shape="rect" id="Node000005" href="$db/df3/cpu__trans__map_8cpp.html" title=" " alt="" coords="389,191,560,235"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="339,147,430,190,425,190,338,152"/>
+<area shape="poly" id="edge6_Node000006_Node000005" title=" " alt="" coords="591,150,515,193,514,188,586,151"/>
+<area shape="rect" id="Node000007" href="$da/d92/cpu__trans__map__amr_8cpp.html" title=" " alt="" coords="585,191,756,235"/>
+<area shape="poly" id="edge7_Node000006_Node000007" title=" " alt="" coords="655,155,666,192,662,189,652,160"/>
+<area shape="rect" id="Node000009" href="$d0/df9/amr__reconstruction_2map__test_8cpp.html" title=" " alt="" coords="780,191,996,235"/>
+<area shape="poly" id="edge9_Node000008_Node000009" title=" " alt="" coords="885,156,888,192,884,189,882,160"/>
+<area shape="poly" id="edge11_Node000010_Node000003" title=" " alt="" coords="402,149,321,193,319,188,397,151"/>
+<area shape="poly" id="edge12_Node000010_Node000004" title=" " alt="" coords="364,147,167,195,166,189,363,141"/>
+<area shape="poly" id="edge13_Node000010_Node000005" title=" " alt="" coords="465,156,473,192,468,189,462,160"/>
+</map>

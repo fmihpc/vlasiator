@@ -1,0 +1,7 @@
+<map id="SBC::SphericalTriGrid::nodeNeighbourArea" name="SBC::SphericalTriGrid::nodeNeighbourArea">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,5,164,50"/>
+<area shape="rect" id="Node000002" href="$d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#a22ce5b162f5a0d425247686b356c228f" title=" " alt="" coords="212,5,369,50"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="164,25,199,27,193,28,164,30"/>
+<area shape="rect" id="Node000003" href="$de/d31/_dispersion_8m.html#af276a2aede715061015c735080cf65df" title=" " alt="" coords="417,14,463,42"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="369,25,404,28,399,28,370,30"/>
+</map>

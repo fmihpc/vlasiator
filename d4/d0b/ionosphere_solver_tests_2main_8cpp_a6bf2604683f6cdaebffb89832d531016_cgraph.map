@@ -1,0 +1,7 @@
+<map id="getAreaInDualPolygon" name="getAreaInDualPolygon">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,32,172,60"/>
+<area shape="rect" id="Node000002" href="$d4/d0b/ionosphere_solver_tests_2main_8cpp.html#a2b09cc8f3be06ff202ea57172d375c40" title=" " alt="" coords="220,5,410,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="171,33,206,32,201,33,172,39"/>
+<area shape="rect" id="Node000003" href="$d4/d0b/ionosphere_solver_tests_2main_8cpp.html#a0d13bb8471804904ad0eb0c264968b77" title=" " alt="" coords="223,57,406,85"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="172,52,210,59,205,59,172,58"/>
+</map>

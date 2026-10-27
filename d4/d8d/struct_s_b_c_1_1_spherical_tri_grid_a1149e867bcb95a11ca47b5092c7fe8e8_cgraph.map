@@ -1,0 +1,10 @@
+<map id="SBC::SphericalTriGrid::lookupProductionValue" name="SBC::SphericalTriGrid::lookupProductionValue">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,21,183,66"/>
+<area shape="rect" id="Node000002" href="$d8/dbc/vectorclass__fallback_8h.html#ae83b95cd4defb63faf66a7cbc78801e6" title=" " alt="" coords="231,29,281,57"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="183,41,218,43,212,43,183,46"/>
+<area shape="poly" id="edge2_Node000002_Node000002" title=" " alt="" coords="231,28,227,20,230,11,240,5,256,3,273,5,283,14,278,13,271,10,256,8,242,10,234,14,232,20,236,30"/>
+<area shape="rect" id="Node000003" href="$d7/d8b/class_vec_simple.html#a145923009b9b82410c5a072b8f8127f0" title=" " alt="" coords="329,29,463,57"/>
+<area shape="poly" id="edge3_Node000002_Node000003" title=" " alt="" coords="281,41,316,43,311,43,281,46"/>
+<area shape="rect" id="Node000004" href="$d7/d8b/class_vec_simple.html#ae16798cf2ee14257d0706c60613cd733" title=" " alt="" coords="511,29,677,57"/>
+<area shape="poly" id="edge4_Node000003_Node000004" title=" " alt="" coords="464,41,498,43,493,43,464,46"/>
+</map>

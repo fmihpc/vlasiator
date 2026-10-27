@@ -1,0 +1,12 @@
+<map id="Reconstructions::interpolateAndLimitMoments" name="Reconstructions::interpolateAndLimitMoments">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,24,210,68"/>
+<area shape="rect" id="Node000002" href="$d8/dbc/vectorclass__fallback_8h.html#a92b2075c51472d120e4ef0a663e3814b" title=" " alt="" coords="258,5,308,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="210,28,245,25,240,26,211,33"/>
+<area shape="rect" id="Node000005" href="$d8/dbc/vectorclass__fallback_8h.html#a1896c5fbdb17de74189d1d18cdd4cf29" title=" " alt="" coords="260,57,306,85"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="210,58,247,66,242,66,210,63"/>
+<area shape="rect" id="Node000003" href="$d7/d8b/class_vec_simple.html#a145923009b9b82410c5a072b8f8127f0" title=" " alt="" coords="356,32,490,60"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="308,21,343,30,338,30,308,26"/>
+<area shape="rect" id="Node000004" href="$d7/d8b/class_vec_simple.html#ae16798cf2ee14257d0706c60613cd733" title=" " alt="" coords="538,32,704,60"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="490,43,525,46,520,46,491,48"/>
+<area shape="poly" id="edge5_Node000005_Node000003" title=" " alt="" coords="306,64,338,61,343,60,307,70"/>
+</map>

@@ -1,0 +1,31 @@
+<map id="FieldTracing::calculateIonosphereVlasovGridCoupling" name="FieldTracing::calculateIonosphereVlasovGridCoupling">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,48,243,92"/>
+<area shape="rect" id="Node000002" href="$dc/d54/common_8h.html#a704bbe0aac85fb7120eb499852241a91" title=" " alt="" coords="363,5,411,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="242,44,349,25,345,28,244,49"/>
+<area shape="rect" id="Node000003" href="$de/d31/_dispersion_8m.html#af276a2aede715061015c735080cf65df" title=" " alt="" coords="899,55,946,82"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="243,67,885,66,883,71,243,72"/>
+<area shape="rect" id="Node000004" href="$df/dbb/namespace_field_tracing.html#a60e934706171c3fc058da120902ba239" title=" " alt="" coords="291,164,483,192"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="181,90,339,156,335,159,180,95"/>
+<area shape="rect" id="Node000005" href="$df/dbb/namespace_field_tracing.html#ab9ec0b5cdf987ba0a0427bade61c546b" title=" " alt="" coords="535,108,760,136"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="454,161,568,139,562,140,456,166"/>
+<area shape="rect" id="Node000006" href="$df/dbb/namespace_field_tracing.html#a59b59e2981e9f1e92e985f2702a4a2aa" title=" " alt="" coords="538,164,758,192"/>
+<area shape="poly" id="edge6_Node000004_Node000006" title=" " alt="" coords="483,175,525,177,519,178,484,180"/>
+<area shape="rect" id="Node000010" href="$df/dbb/namespace_field_tracing.html#a8b5ab68b738e39c3f0f2637246d20e1c" title=" " alt="" coords="531,216,764,244"/>
+<area shape="poly" id="edge11_Node000004_Node000010" title=" " alt="" coords="460,190,562,212,557,213,460,195"/>
+<area shape="rect" id="Node000014" href="$df/dbb/namespace_field_tracing.html#ad58e139440ba1a357a4e1a08ca563e2a" title=" " alt="" coords="564,268,732,296"/>
+<area shape="poly" id="edge15_Node000004_Node000014" title=" " alt="" coords="411,189,465,221,532,253,559,264,553,263,530,258,463,226,410,195"/>
+<area shape="poly" id="edge5_Node000005_Node000003" title=" " alt="" coords="722,105,887,75,882,76,723,110"/>
+<area shape="rect" id="Node000007" href="$df/dbb/namespace_field_tracing.html#a2e2efcf29f4b87a8ea98cde5290c9761" title=" " alt="" coords="1081,171,1247,198"/>
+<area shape="poly" id="edge7_Node000006_Node000007" title=" " alt="" coords="705,161,757,150,812,142,923,133,971,134,1033,142,1074,151,1115,165,1109,165,1073,156,1032,147,971,140,923,138,813,147,758,155,706,166"/>
+<area shape="rect" id="Node000008" href="$df/dbb/namespace_field_tracing.html#ab35d5c9372a7d3d0c4933e113f9b0956" title=" " alt="" coords="812,157,1033,202"/>
+<area shape="poly" id="edge8_Node000006_Node000008" title=" " alt="" coords="758,176,800,178,794,179,758,181"/>
+<area shape="rect" id="Node000009" href="$df/dbb/namespace_field_tracing.html#a5586166d34e82a2723217131921e50ec" title=" " alt="" coords="835,226,1010,271"/>
+<area shape="poly" id="edge9_Node000006_Node000009" title=" " alt="" coords="714,190,765,202,830,222,825,221,764,207,714,195"/>
+<area shape="poly" id="edge10_Node000009_Node000007" title=" " alt="" coords="1009,223,1092,203,1097,202,1010,228"/>
+<area shape="rect" id="Node000011" href="$d8/dbc/vectorclass__fallback_8h.html#ad1eccb49237393bcbb5b6b97556fa4e2" title=" " alt="" coords="900,295,945,322"/>
+<area shape="poly" id="edge12_Node000010_Node000011" title=" " alt="" coords="725,242,765,254,790,267,813,281,887,303,882,302,811,286,787,272,763,259,725,247"/>
+<area shape="rect" id="Node000012" href="$d7/d8b/class_vec_simple.html#a145923009b9b82410c5a072b8f8127f0" title=" " alt="" coords="1097,295,1231,322"/>
+<area shape="poly" id="edge13_Node000011_Node000012" title=" " alt="" coords="945,306,1083,308,1078,309,945,311"/>
+<area shape="rect" id="Node000013" href="$d7/d8b/class_vec_simple.html#ae16798cf2ee14257d0706c60613cd733" title=" " alt="" coords="1295,295,1460,322"/>
+<area shape="poly" id="edge14_Node000012_Node000013" title=" " alt="" coords="1231,306,1282,308,1276,309,1231,311"/>
+</map>

@@ -1,0 +1,16 @@
+<map id="compute_cell_intersections" name="compute_cell_intersections">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,100,205,128"/>
+<area shape="rect" id="Node000002" href="$df/dd8/cpu__acc__transform_8cpp.html#af3ebe4b58092daac492fd23a66b63630" title=" " alt="" coords="270,5,436,50"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="146,97,252,60,274,54,269,57,254,65,148,102"/>
+<area shape="rect" id="Node000004" href="$d9/d30/cpu__acc__intersections_8cpp.html#a72a70bfc666f27dec8e24e909e7bf921" title=" " alt="" coords="255,74,451,102"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="204,101,242,99,237,101,206,106"/>
+<area shape="rect" id="Node000006" href="$d9/d30/cpu__acc__intersections_8cpp.html#a255a995e39d6190a7c8457e21c7dbb81" title=" " alt="" coords="253,126,453,154"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="205,122,240,127,235,128,205,127"/>
+<area shape="rect" id="Node000007" href="$d9/d30/cpu__acc__intersections_8cpp.html#a5cee05807b4c49e815144e8b11bb4796" title=" " alt="" coords="254,178,452,206"/>
+<area shape="poly" id="edge7_Node000001_Node000007" title=" " alt="" coords="146,126,253,162,283,173,278,173,252,168,145,131"/>
+<area shape="rect" id="Node000003" href="$d4/d0b/ionosphere_solver_tests_2main_8cpp.html#a9bf4cdc41d466e8710b8aa33a33d32e0" title=" " alt="" coords="518,14,657,42"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="435,25,504,27,499,28,436,30"/>
+<area shape="rect" id="Node000005" href="$d9/d30/cpu__acc__intersections_8cpp.html#a941fec7c7705db6d081ad0653ff9e703" title=" " alt="" coords="501,99,673,127"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="451,96,488,102,483,102,452,101"/>
+<area shape="poly" id="edge6_Node000006_Node000005" title=" " alt="" coords="453,126,488,124,483,125,454,131"/>
+</map>

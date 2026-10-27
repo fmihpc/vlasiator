@@ -1,0 +1,29 @@
+<map id="vmesh::VelocityMesh::size" name="vmesh::VelocityMesh::size">
+<area shape="rect" id="Node000001" title=" " alt="" coords="890,265,1050,310"/>
+<area shape="rect" id="Node000002" href="$dc/d39/classvmesh_1_1_velocity_mesh.html#a6bc6ac8cee8fbcbd6f219ab8feca1aee" title=" " alt="" coords="666,36,826,81"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="951,251,933,216,909,174,877,131,840,95,823,84,824,78,844,91,881,128,913,171,938,213,956,252"/>
+<area shape="rect" id="Node000008" href="$dc/d39/classvmesh_1_1_velocity_mesh.html#a84c2119c8ff38700b4db113a3e193a67" title=" " alt="" coords="666,105,826,150"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="939,253,896,209,841,165,820,153,820,148,843,160,899,205,944,254"/>
+<area shape="rect" id="Node000009" href="$dc/d39/classvmesh_1_1_velocity_mesh.html#a728ff744921394d16a79bbba199b16e5" title=" " alt="" coords="666,175,826,219"/>
+<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="903,259,841,234,812,223,812,217,843,229,908,259"/>
+<area shape="rect" id="Node000010" href="$dc/d39/classvmesh_1_1_velocity_mesh.html#a331b714fbfba9b09b43d38827c8730e1" title=" " alt="" coords="650,243,842,271"/>
+<area shape="poly" id="edge9_Node000001_Node000010" title=" " alt="" coords="872,275,842,273,842,268,877,274"/>
+<area shape="rect" id="Node000011" href="$dc/d39/classvmesh_1_1_velocity_mesh.html#a8c71d034e66b9e6fe1f231e06e9ff519" title=" " alt="" coords="666,295,826,339"/>
+<area shape="poly" id="edge10_Node000001_Node000011" title=" " alt="" coords="872,301,827,309,826,304,877,300"/>
+<area shape="rect" id="Node000012" href="$dc/d39/classvmesh_1_1_velocity_mesh.html#a79bf30b2a5d8b2677f25e7746320e113" title=" " alt="" coords="666,364,826,409"/>
+<area shape="poly" id="edge11_Node000001_Node000012" title=" " alt="" coords="916,317,843,354,814,366,812,361,841,349,911,318"/>
+<area shape="rect" id="Node000013" href="$dc/d39/classvmesh_1_1_velocity_mesh.html#a246d8b0d79214e76b67b12b298e604e8" title=" " alt="" coords="666,433,826,478"/>
+<area shape="poly" id="edge12_Node000001_Node000013" title=" " alt="" coords="946,321,901,375,873,401,843,423,821,435,819,430,841,419,870,396,897,371,941,324"/>
+<area shape="rect" id="Node000014" href="$dc/d39/classvmesh_1_1_velocity_mesh.html#a720ed0a1d2d18d08d75e2ff20af091a9" title=" " alt="" coords="666,503,826,547"/>
+<area shape="poly" id="edge13_Node000001_Node000014" title=" " alt="" coords="957,323,939,364,914,409,882,454,844,492,825,505,823,500,840,488,878,450,910,406,934,362,952,326"/>
+<area shape="rect" id="Node000003" href="$db/d19/classprojects_1_1_project.html#afb2a412ae6cedce4e914650ea35b8f42" title="Set the perturbed fields and distribution of a cell according to the default simulation settings...." alt="" coords="467,36,602,81"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="647,59,603,61,601,56,652,57"/>
+<area shape="rect" id="Node000004" href="$d5/d71/class_s_b_c_1_1_outflow.html#ad84f9747b6fc7215052b5b4940a59896" title=" " alt="" coords="234,5,419,50"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="450,47,421,44,419,39,455,45"/>
+<area shape="rect" id="Node000005" href="$d7/d70/grid_8cpp.html#a9e9166bda148ddef07e30ac56e3b7085" title="Initialize DCCRG and fsgrids." alt="" coords="271,74,382,102"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="450,71,384,82,382,77,454,69"/>
+<area shape="rect" id="Node000006" href="$d4/d5b/vlasiator_8cpp.html#acfd343080edd07ae79384688a7e48693" title=" " alt="" coords="108,74,186,102"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="254,89,188,90,185,85,258,86"/>
+<area shape="rect" id="Node000007" href="$d4/d5b/vlasiator_8cpp.html#a54790573f350e250ccca3cbb94733391" title=" " alt="" coords="5,74,60,102"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="90,90,62,90,58,86,94,86"/>
+</map>

@@ -1,0 +1,8 @@
+<map id="sve::instructions::svsub" name="sve::instructions::svsub">
+<area shape="rect" id="Node000001" title=" " alt="" coords="202,29,338,74"/>
+<area shape="poly" id="edge3_Node000001_Node000001" title=" " alt="" coords="299,14,289,10,270,8,252,10,241,15,237,21,238,30,233,27,232,19,238,10,251,5,270,3,290,5,304,14"/>
+<area shape="rect" id="Node000002" href="$dc/d6a/class_vec_s_v_e.html#a659bda2bf9622414ff0870842d134267" title=" " alt="" coords="11,11,148,39"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="184,41,148,37,148,32,189,39"/>
+<area shape="rect" id="Node000003" href="$dc/d6a/class_vec_s_v_e.html#aec2652d81c8fae09727f6acee163459a" title=" " alt="" coords="5,63,154,91"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="184,63,154,70,154,64,189,62"/>
+</map>

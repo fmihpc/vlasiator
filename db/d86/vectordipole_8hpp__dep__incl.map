@@ -1,0 +1,7 @@
+<map id="backgroundfield/vectordipole.hpp" name="backgroundfield/vectordipole.hpp">
+<area shape="rect" id="Node000001" title=" " alt="" coords="121,5,359,33"/>
+<area shape="rect" id="Node000002" href="$d5/d3c/vectordipole_8cpp.html" title=" " alt="" coords="5,90,243,117"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="212,42,144,91,141,87,207,43"/>
+<area shape="rect" id="Node000003" href="$d3/d46/_magnetosphere_8cpp.html" title=" " alt="" coords="267,81,445,126"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="272,40,328,80,323,80,270,45"/>
+</map>

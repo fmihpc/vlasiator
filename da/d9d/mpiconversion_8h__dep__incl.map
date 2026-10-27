@@ -1,0 +1,27 @@
+<map id="mpiconversion.h" name="mpiconversion.h">
+<area shape="rect" id="Node000001" title=" " alt="" coords="425,5,554,33"/>
+<area shape="rect" id="Node000002" href="$de/dff/ldz__main_8cpp.html" title="Londrillo – Del Zanna upwind constrained transport field solver." alt="" coords="5,90,185,117"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="410,39,197,84,159,91,157,87,196,78,413,34"/>
+<area shape="rect" id="Node000003" href="$d7/d70/grid_8cpp.html" title=" " alt="" coords="209,90,282,117"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="426,39,296,84,276,91,274,87,294,78,430,36"/>
+<area shape="rect" id="Node000004" href="$d1/daf/compression_8h.html" title=" " alt="" coords="447,182,679,210"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="514,42,540,80,558,135,564,183,560,180,553,137,535,82,512,47"/>
+<area shape="rect" id="Node000008" href="$d4/d5b/vlasiator_8cpp.html" title=" " alt="" coords="664,266,768,294"/>
+<area shape="poly" id="edge13_Node000001_Node000008" title=" " alt="" coords="531,38,571,61,615,91,657,128,693,172,705,196,713,222,718,267,714,264,708,223,700,198,689,175,654,132,611,95,568,65,530,43"/>
+<area shape="rect" id="Node000009" href="$da/d44/compression__tools_8h.html" title=" " alt="" coords="307,81,526,126"/>
+<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="470,43,437,82,434,78,466,46"/>
+<area shape="rect" id="Node000011" href="$d5/d5d/vlasovmover_8cpp.html" title=" " alt="" coords="753,90,973,117"/>
+<area shape="poly" id="edge14_Node000001_Node000011" title=" " alt="" coords="565,34,806,88,801,90,564,40"/>
+<area shape="rect" id="Node000005" href="$de/deb/ioread_8cpp.html" title=" " alt="" coords="433,266,522,294"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="541,220,492,268,490,264,536,222"/>
+<area shape="rect" id="Node000006" href="$da/daf/iowrite_8cpp.html" title=" " alt="" coords="547,266,640,294"/>
+<area shape="poly" id="edge5_Node000004_Node000006" title=" " alt="" coords="575,223,591,267,587,265,572,227"/>
+<area shape="rect" id="Node000007" href="$de/dc6/compression_8cpp.html" title=" " alt="" coords="162,266,409,294"/>
+<area shape="poly" id="edge6_Node000004_Node000007" title=" " alt="" coords="506,215,331,268,329,263,501,215"/>
+<area shape="poly" id="edge7_Node000004_Node000008" title=" " alt="" coords="602,215,694,266,689,265,600,220"/>
+<area shape="poly" id="edge11_Node000009_Node000004" title=" " alt="" coords="465,131,544,182,539,182,464,137"/>
+<area shape="poly" id="edge9_Node000009_Node000005" title=" " alt="" coords="420,139,426,179,437,217,452,243,468,267,463,265,447,246,433,219,421,180,417,143"/>
+<area shape="poly" id="edge10_Node000009_Node000007" title=" " alt="" coords="395,137,336,220,298,268,295,264,332,217,390,140"/>
+<area shape="rect" id="Node000010" href="$df/ded/compression__tools_8cpp.html" title=" " alt="" coords="103,174,322,218"/>
+<area shape="poly" id="edge12_Node000009_Node000010" title=" " alt="" coords="351,133,262,176,260,171,356,131"/>
+</map>

@@ -1,0 +1,11 @@
+<map id="fieldsolver/gridGlue.hpp" name="fieldsolver/gridGlue.hpp">
+<area shape="rect" id="Node000001" title=" " alt="" coords="237,5,413,33"/>
+<area shape="rect" id="Node000002" href="$dd/d12/grid_glue_8cpp.html" title=" " alt="" coords="5,81,181,109"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="271,40,135,83,134,78,267,36"/>
+<area shape="rect" id="Node000003" href="$d7/d70/grid_8cpp.html" title=" " alt="" coords="204,81,278,109"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="301,43,257,83,255,78,296,44"/>
+<area shape="rect" id="Node000004" href="$d9/dd6/sysboundary_8cpp.html" title="Implementation of the class SysBoundary." alt="" coords="302,81,518,109"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="353,41,398,81,393,80,351,46"/>
+<area shape="rect" id="Node000005" href="$d4/d5b/vlasiator_8cpp.html" title=" " alt="" coords="542,81,646,109"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="388,35,549,80,543,81,387,40"/>
+</map>

@@ -1,0 +1,20 @@
+<map id="SBC::SphericalTriGrid::elementArea" name="SBC::SphericalTriGrid::elementArea">
+<area shape="rect" id="Node000001" title=" " alt="" coords="929,144,1086,189"/>
+<area shape="rect" id="Node000002" href="$d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#a51aa6d27cda7f199b3ef7775d82d6303" title=" " alt="" coords="668,5,881,50"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="970,132,929,99,879,65,855,53,856,48,882,60,932,94,976,134"/>
+<area shape="rect" id="Node000003" href="$d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#afbcfd8fe5bde206bebd221f733431367" title=" " alt="" coords="696,75,853,119"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="913,139,852,123,852,117,918,139"/>
+<area shape="rect" id="Node000007" href="$d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#a07dfc031f000a1c8f901bd265693a876" title=" " alt="" coords="680,144,869,189"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="910,167,869,169,869,164,915,166"/>
+<area shape="rect" id="Node000008" href="$d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#ad69ae75a09ab0669432eb9b2f177a288" title=" " alt="" coords="695,213,854,258"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="918,193,853,215,852,210,913,194"/>
+<area shape="rect" id="Node000009" href="$d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#aafc6eaeba1866e6ea6d08341aa2b3d7d" title=" " alt="" coords="440,209,597,254"/>
+<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="980,199,937,241,910,259,882,273,843,284,802,289,721,287,645,275,581,257,582,252,646,269,721,282,802,284,842,278,880,268,907,255,933,237,975,201"/>
+<area shape="rect" id="Node000004" href="$d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#a7120890dd640ec6076873bfcce3091fd" title=" " alt="" coords="416,108,620,153"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="678,110,621,120,620,114,683,109"/>
+<area shape="rect" id="Node000005" href="$d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#a69454c9f66f9fe884a4cb853a0df5214" title=" " alt="" coords="211,143,368,187"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="398,149,369,156,368,151,403,147"/>
+<area shape="rect" id="Node000006" href="$d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#afbfcea50d70a04c78edc90ada05f9a0a" title=" " alt="" coords="5,176,163,221"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="193,181,164,188,162,183,198,179"/>
+<area shape="poly" id="edge9_Node000009_Node000006" title=" " alt="" coords="423,227,163,207,163,202,425,222"/>
+</map>

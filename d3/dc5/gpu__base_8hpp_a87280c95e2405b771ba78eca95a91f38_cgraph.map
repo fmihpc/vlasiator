@@ -1,0 +1,11 @@
+<map id="gpu_vlasov_allocate" name="gpu_vlasov_allocate">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,44,160,72"/>
+<area shape="rect" id="Node000002" href="$dc/dc7/gpu__base_8cpp.html#a2c8c954f9608dcb7820842adb7d8884b" title=" " alt="" coords="208,5,362,50"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="159,44,195,41,190,42,160,49"/>
+<area shape="rect" id="Node000003" href="$d8/dbc/vectorclass__fallback_8h.html#a92b2075c51472d120e4ef0a663e3814b" title=" " alt="" coords="260,74,310,102"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="160,67,247,81,242,82,160,72"/>
+<area shape="rect" id="Node000004" href="$d7/d8b/class_vec_simple.html#a145923009b9b82410c5a072b8f8127f0" title=" " alt="" coords="410,74,544,102"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="311,85,397,88,392,88,311,90"/>
+<area shape="rect" id="Node000005" href="$d7/d8b/class_vec_simple.html#ae16798cf2ee14257d0706c60613cd733" title=" " alt="" coords="592,74,758,102"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="545,85,579,88,574,88,545,90"/>
+</map>

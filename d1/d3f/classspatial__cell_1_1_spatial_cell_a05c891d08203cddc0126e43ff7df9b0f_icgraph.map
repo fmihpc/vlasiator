@@ -1,0 +1,7 @@
+<map id="spatial_cell::SpatialCell::checkMesh" name="spatial_cell::SpatialCell::checkMesh">
+<area shape="rect" id="Node000001" title=" " alt="" coords="267,40,440,85"/>
+<area shape="rect" id="Node000002" href="$dd/d8a/class_s_b_c_1_1_copysphere.html#a9e5ff8c0a5fddac3bd281ec21b4c2fd4" title=" " alt="" coords="5,5,219,50"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="249,48,219,46,219,40,254,47"/>
+<area shape="rect" id="Node000003" href="$da/d6b/class_s_b_c_1_1_ionosphere.html#a1a508ff108ded95287b3593dd1ef44aa" title=" " alt="" coords="8,75,216,119"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="249,77,217,85,216,79,254,77"/>
+</map>

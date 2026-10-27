@@ -1,0 +1,14 @@
+<map id="ASTERIX::compress_vdfs" name="ASTERIX::compress_vdfs">
+<area shape="rect" id="Node000001" title=" " alt="" coords="577,32,759,60"/>
+<area shape="rect" id="Node000002" href="$da/daf/iowrite_8cpp.html#a5531f0481d1489a9c4fa85ef54be0b1f" title="Write out a restart of the simulation into a vlsv file. All block data in remote cells will be reset." alt="" coords="234,5,335,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="559,39,336,25,336,20,564,38"/>
+<area shape="rect" id="Node000005" href="$da/daf/iowrite_8cpp.html#ae6d9152d3306ea3c3d03693dcffed0b3" title=" " alt="" coords="383,57,529,85"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="564,58,529,65,529,60,559,59"/>
+<area shape="rect" id="Node000003" href="$d4/d5b/vlasiator_8cpp.html#acfd343080edd07ae79384688a7e48693" title=" " alt="" coords="108,32,186,60"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="216,33,187,41,186,36,221,31"/>
+<area shape="rect" id="Node000004" href="$d4/d5b/vlasiator_8cpp.html#a54790573f350e250ccca3cbb94733391" title=" " alt="" coords="5,32,60,60"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="89,47,60,48,60,43,94,45"/>
+<area shape="rect" id="Node000006" href="$da/daf/iowrite_8cpp.html#a10cc5a5af4d327af60e9f6c42480b333" title="Write out system into a vlsv file." alt="" coords="244,57,325,85"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="365,71,326,74,326,69,371,71"/>
+<area shape="poly" id="edge6_Node000006_Node000003" title=" " alt="" coords="226,61,186,56,186,50,231,61"/>
+</map>

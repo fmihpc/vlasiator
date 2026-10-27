@@ -1,0 +1,11 @@
+<map id="slope_limiter_amr" name="slope_limiter_amr">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,5,145,33"/>
+<area shape="rect" id="Node000002" href="$d7/d8b/gpu__slope__limiters_8hpp.html#a564a986c3ebd99c60ad807f47c53ddf9" title=" " alt="" coords="193,5,393,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="145,17,179,19,174,19,145,22"/>
+<area shape="rect" id="Node000003" href="$d8/dbc/vectorclass__fallback_8h.html#a1896c5fbdb17de74189d1d18cdd4cf29" title=" " alt="" coords="441,5,487,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="393,17,428,19,423,19,393,22"/>
+<area shape="rect" id="Node000004" href="$d7/d8b/class_vec_simple.html#a145923009b9b82410c5a072b8f8127f0" title=" " alt="" coords="535,5,670,33"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="488,17,522,19,517,19,488,22"/>
+<area shape="rect" id="Node000005" href="$d7/d8b/class_vec_simple.html#ae16798cf2ee14257d0706c60613cd733" title=" " alt="" coords="718,5,883,33"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="670,17,705,19,699,19,670,22"/>
+</map>

@@ -1,0 +1,15 @@
+<map id="writeParticles" name="writeParticles">
+<area shape="rect" id="Node000001" title=" " alt="" coords="278,164,387,192"/>
+<area shape="rect" id="Node000002" href="$d2/d57/structdistribution_scenario.html#a30202df0501a9df44008445385c71272" title=" " alt="" coords="42,5,193,50"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="311,151,276,107,254,84,228,65,194,47,193,42,231,60,257,80,280,104,317,151"/>
+<area shape="rect" id="Node000003" href="$da/d83/structip_shock_scenario.html#ad090a6afedf95c5c8ec5b4687f4154a1" title=" " alt="" coords="26,74,209,102"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="298,155,266,135,229,115,198,105,197,99,231,111,269,130,303,155"/>
+<area shape="rect" id="Node000004" href="$d2/d57/structdistribution_scenario.html#ab51bf3bbd5aa77db1f5d52742fe49a1b" title=" " alt="" coords="42,125,193,170"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="260,170,194,161,193,156,265,167"/>
+<area shape="rect" id="Node000005" href="$da/d83/structip_shock_scenario.html#a3b08b5d1eb7a515110da3884c9f347e9" title=" " alt="" coords="5,194,230,222"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="260,189,225,196,223,191,265,187"/>
+<area shape="rect" id="Node000006" href="$d0/d9b/structprecipitation_scenario.html#ab940f1c3b195f04a310a26be1fc0276a" title=" " alt="" coords="38,245,197,290"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="292,201,231,235,199,248,197,243,229,231,297,199"/>
+<area shape="rect" id="Node000007" href="$d6/de0/structshock_reflectivity_scenario.html#a864c18020b4d0865d2bfba3b215c898f" title=" " alt="" coords="23,315,212,359"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="318,204,282,257,258,282,231,305,209,317,207,312,228,300,255,279,278,253,313,207"/>
+</map>

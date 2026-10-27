@@ -1,0 +1,11 @@
+<map id="surfaceAverage" name="surfaceAverage">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,57,128,85"/>
+<area shape="rect" id="Node000002" href="$d3/da8/quadr_8cpp.html#a54bbf527c4ebeb2484d25660f73fca81" title=" " alt="" coords="176,57,256,85"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="127,69,163,70,157,72,128,74"/>
+<area shape="rect" id="Node000003" href="$d3/da8/quadr_8cpp.html#adde271c5da57f58e525315c139e1a37d" title=" " alt="" coords="306,5,364,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="249,54,289,39,294,37,251,59"/>
+<area shape="rect" id="Node000004" href="$d3/da8/quadr_8cpp.html#a1fac0542d7675c60cd58b31bc9fb020f" title=" " alt="" coords="307,57,363,85"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="256,69,294,71,289,72,257,74"/>
+<area shape="rect" id="Node000005" href="$d3/da8/quadr_8cpp.html#ab15a726e703d67fd81e39363e1f815de" title=" " alt="" coords="304,109,366,137"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="250,83,292,104,287,103,249,88"/>
+</map>

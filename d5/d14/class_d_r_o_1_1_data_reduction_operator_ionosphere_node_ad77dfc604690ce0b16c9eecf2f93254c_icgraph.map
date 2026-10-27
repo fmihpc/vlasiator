@@ -1,0 +1,18 @@
+<map id="DRO::DataReductionOperatorIonosphereNode::writeIonosphereData" name="DRO::DataReductionOperatorIonosphereNode::writeIonosphereData">
+<area shape="rect" id="Node000001" title=" " alt="" coords="836,24,1107,68"/>
+<area shape="rect" id="Node000002" href="$db/da6/class_data_reducer.html#aefd6481372c35c8a157061f15cfd9f7f" title=" " alt="" coords="570,24,788,68"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="818,46,789,48,789,43,823,46"/>
+<area shape="rect" id="Node000003" href="$d4/d0b/ionosphere_solver_tests_2main_8cpp.html#a3c04138a5bfe5d72780bb7e82a18e627" title=" " alt="" coords="425,5,480,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="552,31,480,25,480,20,557,31"/>
+<area shape="rect" id="Node000004" href="$da/daf/iowrite_8cpp.html#a74746123787e7a9ddb05d190cc50a00e" title=" " alt="" coords="383,57,522,85"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="557,59,522,66,521,61,552,60"/>
+<area shape="rect" id="Node000005" href="$da/daf/iowrite_8cpp.html#a10cc5a5af4d327af60e9f6c42480b333" title="Write out system into a vlsv file." alt="" coords="244,31,325,58"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="366,58,326,54,326,48,371,58"/>
+<area shape="rect" id="Node000008" href="$da/daf/iowrite_8cpp.html#a5531f0481d1489a9c4fa85ef54be0b1f" title="Write out a restart of the simulation into a vlsv file. All block data in remote cells will be reset." alt="" coords="234,83,335,110"/>
+<area shape="poly" id="edge7_Node000004_Node000008" title=" " alt="" coords="371,84,336,92,336,86,365,84"/>
+<area shape="rect" id="Node000006" href="$d4/d5b/vlasiator_8cpp.html#acfd343080edd07ae79384688a7e48693" title=" " alt="" coords="108,57,186,85"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="226,56,187,66,186,61,231,55"/>
+<area shape="rect" id="Node000007" href="$d4/d5b/vlasiator_8cpp.html#a54790573f350e250ccca3cbb94733391" title=" " alt="" coords="5,57,60,85"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="89,72,60,74,60,69,94,70"/>
+<area shape="poly" id="edge8_Node000008_Node000006" title=" " alt="" coords="216,84,186,81,187,76,221,84"/>
+</map>

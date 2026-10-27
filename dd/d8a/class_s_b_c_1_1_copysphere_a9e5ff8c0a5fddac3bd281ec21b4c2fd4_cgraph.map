@@ -1,0 +1,21 @@
+<map id="SBC::Copysphere::applyInitialState" name="SBC::Copysphere::applyInitialState">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,92,219,137"/>
+<area shape="rect" id="Node000002" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a05c891d08203cddc0126e43ff7df9b0f" title=" " alt="" coords="273,5,446,50"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="177,89,281,54,277,57,179,94"/>
+<area shape="rect" id="Node000004" href="$d4/d5b/vlasiator_8cpp.html#a0e89e9e9c29d929027088b0a8dd56585" title=" " alt="" coords="305,74,414,102"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="218,100,293,94,288,96,220,105"/>
+<area shape="rect" id="Node000005" href="$d4/d0b/ionosphere_solver_tests_2main_8cpp.html#a9bf4cdc41d466e8710b8aa33a33d32e0" title=" " alt="" coords="290,126,429,154"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="219,123,276,130,271,132,220,128"/>
+<area shape="rect" id="Node000006" href="$dd/d8a/class_s_b_c_1_1_copysphere.html#a25e930336c8e5922224197b2d825ae38" title=" " alt="" coords="267,177,452,222"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="179,135,280,171,275,173,179,140"/>
+<area shape="rect" id="Node000003" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a0b5ae6d60c03a10b43a732a20bf20625" title=" " alt="" coords="506,5,696,50"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="446,25,493,27,488,28,447,30"/>
+<area shape="rect" id="Node000007" href="$d8/ddb/class_s_b_c_1_1_sys_boundary_condition.html#a9bae328740bdbd87689286e4a78a4532" title=" " alt="" coords="500,143,702,187"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="452,184,487,181,482,182,453,189"/>
+<area shape="rect" id="Node000010" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#adb0efa30027b52e6dc6d4871277561e3" title=" " alt="" coords="514,212,688,257"/>
+<area shape="poly" id="edge9_Node000006_Node000010" title=" " alt="" coords="453,210,502,220,497,220,452,216"/>
+<area shape="rect" id="Node000008" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#ac3e9c10c72c754b3ca8586d8811ad6d4" title=" " alt="" coords="750,108,924,153"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="702,147,738,145,732,146,703,153"/>
+<area shape="rect" id="Node000009" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a0cd7b26f72d55d4735500850e5a48316" title=" " alt="" coords="750,177,924,222"/>
+<area shape="poly" id="edge8_Node000007_Node000009" title=" " alt="" coords="703,177,738,185,732,185,703,183"/>
+</map>

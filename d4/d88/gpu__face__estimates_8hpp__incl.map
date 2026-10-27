@@ -1,0 +1,17 @@
+<map id="vlasovsolver/gpu_face_estimates.hpp" name="vlasovsolver/gpu_face_estimates.hpp">
+<area shape="rect" id="Node000001" title=" " alt="" coords="132,5,299,50"/>
+<area shape="rect" id="Node000002" href="$d7/d8b/gpu__slope__limiters_8hpp.html" title=" " alt="" coords="5,98,178,126"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="181,53,126,91,122,87,185,48"/>
+<area shape="rect" id="Node000003" href="$dc/d9d/arch__device__api_8h.html" title=" " alt="" coords="84,174,227,218"/>
+<area shape="poly" id="edge8_Node000001_Node000003" title=" " alt="" coords="213,48,193,127,177,162,172,159,188,125,210,53"/>
+<area shape="rect" id="Node000006" href="$d6/dc2/definitions_8h.html" title=" " alt="" coords="254,98,367,126"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="241,48,286,87,281,88,240,53"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="102,124,132,161,127,162,101,129"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="242,266,312,294"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="188,216,247,257,242,257,187,221"/>
+<area shape="rect" id="Node000005" href="$d9/d13/arch__device__host_8h.html" title=" " alt="" coords="72,266,218,294"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="155,217,151,252,146,249,151,221"/>
+<area shape="poly" id="edge6_Node000006_Node000004" title=" " alt="" coords="310,125,285,253,280,250,305,128"/>
+<area shape="rect" id="Node000007" title=" " alt="" coords="314,182,373,210"/>
+<area shape="poly" id="edge7_Node000006_Node000007" title=" " alt="" coords="317,124,335,169,330,167,314,129"/>
+</map>

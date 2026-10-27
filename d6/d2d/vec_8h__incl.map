@@ -1,0 +1,23 @@
+<map id="vlasovsolver/vec.h" name="vlasovsolver/vec.h">
+<area shape="rect" id="Node000001" title="An interface to a type with floating point values." alt="" coords="105,5,248,33"/>
+<area shape="rect" id="Node000002" href="$dc/d54/common_8h.html" title=" " alt="" coords="126,81,228,109"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="178,31,179,66,174,65,176,36"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="93,232,151,260"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="123,102,95,109,64,119,36,135,14,158,9,169,9,179,23,198,49,215,80,230,76,232,46,220,19,202,4,181,3,168,9,155,33,131,62,114,94,103,127,98"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="24,157,82,184"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="153,111,89,151,86,146,156,107"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="106,157,168,184"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="171,107,153,144,149,141,168,111"/>
+<area shape="rect" id="Node000006" title=" " alt="" coords="192,157,244,184"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="185,107,206,143,200,143,183,112"/>
+<area shape="rect" id="Node000007" href="$d6/dc2/definitions_8h.html" title=" " alt="" coords="269,157,370,184"/>
+<area shape="poly" id="edge6_Node000002_Node000007" title=" " alt="" coords="203,107,283,149,278,150,202,112"/>
+<area shape="rect" id="Node000009" href="$dc/d9d/arch__device__api_8h.html" title=" " alt="" coords="394,157,565,184"/>
+<area shape="poly" id="edge9_Node000002_Node000009" title=" " alt="" coords="229,106,412,151,408,154,228,111"/>
+<area shape="poly" id="edge8_Node000007_Node000003" title=" " alt="" coords="287,185,167,231,165,226,281,185"/>
+<area shape="rect" id="Node000008" title=" " alt="" coords="298,232,368,260"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="323,183,330,218,325,216,320,187"/>
+<area shape="poly" id="edge10_Node000009_Node000008" title=" " alt="" coords="456,184,373,228,371,223,451,185"/>
+<area shape="rect" id="Node000010" href="$d9/d13/arch__device__host_8h.html" title=" " alt="" coords="406,232,553,260"/>
+<area shape="poly" id="edge11_Node000009_Node000010" title=" " alt="" coords="481,183,481,218,477,215,477,187"/>
+</map>

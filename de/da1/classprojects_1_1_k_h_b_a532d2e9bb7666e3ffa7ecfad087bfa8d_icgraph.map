@@ -1,0 +1,13 @@
+<map id="projects::KHB::profile" name="projects::KHB::profile">
+<area shape="rect" id="Node000001" title=" " alt="" coords="477,82,635,110"/>
+<area shape="rect" id="Node000002" href="$de/da1/classprojects_1_1_k_h_b.html#ad74c072205c1b6142494de1a839d1385" title=" " alt="" coords="16,5,188,50"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="510,75,472,61,428,48,367,37,303,31,189,27,188,22,304,25,367,32,430,42,474,56,516,75"/>
+<area shape="rect" id="Node000003" href="$de/da1/classprojects_1_1_k_h_b.html#a1facf2fb424ea5cb10dd5942f2fb2677" title="Return a vector containing the velocity coordinate of the centre of each ion population in the distri..." alt="" coords="260,56,416,84"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="459,85,416,82,416,77,464,84"/>
+<area shape="rect" id="Node000004" href="$de/da1/classprojects_1_1_k_h_b.html#a0963716260a467adc2aae867efd8e037" title=" " alt="" coords="5,83,199,127"/>
+<area shape="poly" id="edge5_Node000001_Node000004" title=" " alt="" coords="461,100,200,106,199,100,463,95"/>
+<area shape="rect" id="Node000005" href="$de/da1/classprojects_1_1_k_h_b.html#a0a271e216af1818739e1ffa801c264b3" title=" " alt="" coords="247,159,429,203"/>
+<area shape="poly" id="edge6_Node000001_Node000005" title=" " alt="" coords="507,115,398,161,396,156,502,116"/>
+<area shape="poly" id="edge3_Node000003_Node000002" title=" " alt="" coords="242,55,189,46,188,41,247,53"/>
+<area shape="poly" id="edge4_Node000003_Node000004" title=" " alt="" coords="242,85,200,93,198,88,247,83"/>
+</map>

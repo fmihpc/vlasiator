@@ -1,0 +1,21 @@
+<map id="getLocalFsGridCellIndexForCoord" name="getLocalFsGridCellIndexForCoord">
+<area shape="rect" id="Node000001" title=" " alt="" coords="999,75,1198,119"/>
+<area shape="rect" id="Node000002" href="$df/dbb/namespace_field_tracing.html#a57968e42ad293046b0de7a02259b9875" title=" " alt="" coords="463,5,701,50"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="1045,66,1001,47,950,30,887,20,823,15,701,17,701,12,823,10,888,15,952,25,1003,42,1051,67"/>
+<area shape="rect" id="Node000005" href="$d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#a07dfc031f000a1c8f901bd265693a876" title=" " alt="" coords="756,40,944,85"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="981,81,944,78,944,73,986,81"/>
+<area shape="rect" id="Node000006" href="$df/dbb/namespace_field_tracing.html#aa9b344ad87cfb176e35cc1d5f3d74008" title="Trace magnetic field lines forward and backward from each DCCRG cell to record the connectivity and d..." alt="" coords="749,109,951,154"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="986,113,952,120,951,115,981,113"/>
+<area shape="rect" id="Node000009" href="$df/dbb/namespace_field_tracing.html#a3119c1154c9472b6266170fd365ec950" title=" " alt="" coords="473,169,691,214"/>
+<area shape="poly" id="edge9_Node000001_Node000009" title=" " alt="" coords="1049,127,1002,151,952,169,885,183,817,191,691,197,691,192,817,186,884,177,950,164,1000,146,1043,128"/>
+<area shape="rect" id="Node000003" href="$d4/d5b/vlasiator_8cpp.html#acfd343080edd07ae79384688a7e48693" title=" " alt="" coords="108,83,186,111"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="447,51,187,93,186,88,449,46"/>
+<area shape="rect" id="Node000004" href="$d4/d5b/vlasiator_8cpp.html#a54790573f350e250ccca3cbb94733391" title=" " alt="" coords="5,83,60,111"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="90,99,61,99,59,95,94,95"/>
+<area shape="rect" id="Node000007" href="$df/dbb/namespace_field_tracing.html#a419c4a8b8cc6f48d5141bd2bae7800d0" title=" " alt="" coords="488,100,676,145"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="730,128,676,128,676,123,736,127"/>
+<area shape="rect" id="Node000008" href="$df/dbb/namespace_field_tracing.html#ac9d41efdb5093cf48aac1e4f0c03f863" title=" " alt="" coords="234,108,415,136"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="470,123,416,125,415,120,476,122"/>
+<area shape="poly" id="edge8_Node000008_Node000003" title=" " alt="" coords="216,108,187,105,186,100,221,106"/>
+<area shape="poly" id="edge10_Node000009_Node000008" title=" " alt="" coords="479,165,379,139,379,134,484,165"/>
+</map>

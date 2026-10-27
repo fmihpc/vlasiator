@@ -1,0 +1,7 @@
+<map id="compute_h6_left_face_value" name="compute_h6_left_face_value">
+<area shape="rect" id="Node000001" title=" " alt="" coords="220,40,384,85"/>
+<area shape="rect" id="Node000002" href="$d3/d94/gpu__face__estimates_8hpp.html#af2be48f0df2228b1973f56a97eb352ed" title=" " alt="" coords="5,5,172,50"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="201,47,172,44,172,39,207,46"/>
+<area shape="rect" id="Node000003" href="$d3/d94/gpu__face__estimates_8hpp.html#ac48b96bf65b5fe6934da7e0171d6629a" title=" " alt="" coords="5,75,172,119"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="201,79,173,86,172,81,207,78"/>
+</map>

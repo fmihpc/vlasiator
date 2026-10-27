@@ -1,0 +1,10 @@
+<map id="FieldTracing::bulirschStoerStep" name="FieldTracing::bulirschStoerStep">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,36,226,64"/>
+<area shape="rect" id="Node000002" href="$df/dbb/namespace_field_tracing.html#a2e2efcf29f4b87a8ea98cde5290c9761" title=" " alt="" coords="542,41,708,69"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="168,33,219,21,273,12,384,3,433,5,494,12,535,21,576,36,571,36,534,26,494,18,432,10,384,8,274,18,220,26,170,38"/>
+<area shape="rect" id="Node000003" href="$df/dbb/namespace_field_tracing.html#ab35d5c9372a7d3d0c4933e113f9b0956" title=" " alt="" coords="274,27,494,72"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="226,47,261,49,256,50,226,52"/>
+<area shape="rect" id="Node000004" href="$df/dbb/namespace_field_tracing.html#a5586166d34e82a2723217131921e50ec" title=" " alt="" coords="297,97,471,141"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="172,61,284,92,279,94,172,67"/>
+<area shape="poly" id="edge4_Node000004_Node000002" title=" " alt="" coords="470,93,553,74,558,73,471,99"/>
+</map>
