@@ -1758,7 +1758,7 @@ void interpolateMomentsForTimeclasses(
             SC->parameters[cp_vx]   = 0.5* ( SC->parameters[CellParams::VX_R] + SC->parameters[CellParams::VX_V] );
             SC->parameters[cp_vy] = 0.5* ( SC->parameters[CellParams::VY_R] + SC->parameters[CellParams::VY_V] );
             SC->parameters[cp_vz] = 0.5* ( SC->parameters[CellParams::VZ_R] + SC->parameters[CellParams::VZ_V] );
-            SC->parameters[cp_t] = min( SC->parameters[CellParams::T_R],SC->parameters[CellParams::T_V] );
+            SC->parameters[cp_t] = min( SC->parameters[CellParams::T_R],SC->parameters[CellParams::T_V] ); // Supposedly T_V for us
 
          } else {
 
@@ -1773,7 +1773,7 @@ void interpolateMomentsForTimeclasses(
             SC->parameters[cp_vx]   = 0.5* ( SC->parameters[CellParams::VX_R_PREV] + SC->parameters[CellParams::VX_V] );
             SC->parameters[cp_vy] = 0.5* ( SC->parameters[CellParams::VY_R_PREV] + SC->parameters[CellParams::VY_V] );
             SC->parameters[cp_vz] = 0.5* ( SC->parameters[CellParams::VZ_R_PREV] + SC->parameters[CellParams::VZ_V] );
-            SC->parameters[cp_t] = min( SC->parameters[CellParams::T_R_PREV], SC->parameters[CellParams::T_V] ); 
+            SC->parameters[cp_t] = min( SC->parameters[CellParams::T_R_PREV], SC->parameters[CellParams::T_V] ); // Supposedly T_R_PREV for us
 
             }
 

@@ -427,8 +427,6 @@ void calculateMoments_V(
          // before updating, save the previous moments to the _PREV variables
          pop.RHO_V_PREV_PREV = pop.RHO_V_PREV;
          pop.RHO_V_PREV = pop.RHO_V;
-         pop.T_V_PREV_PREV = pop.T_V_PREV;
-         pop.T_V_PREV = pop.T_V;
          for (uint i=0; i<3; ++i) {
             pop.V_V_PREV_PREV[i] = pop.V_V_PREV[i];
             pop.V_V_PREV[i] = pop.V_V[i];
