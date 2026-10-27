@@ -33,6 +33,10 @@
 #include <fstream>
 #include <sstream>
 
+#ifdef IONOSPHERE_EXTERNAL_COUPLING
+#include <hdf5.h>
+#endif /* IONOSPHERE_EXTERNAL_COUPLING */
+
 #include "ionosphere.h"
 #include "../projects/project.h"
 #include "../projects/Magnetosphere/Magnetosphere.h"
@@ -101,6 +105,7 @@ namespace SBC {
    bool Ionosphere::solverToggleMinimumResidualVariant;
    Real Ionosphere::shieldingLatitude;
    enum Ionosphere::IonosphereConductivityModel Ionosphere::conductivityModel;
+   string Ionosphere::externalITFile;
    Real Ionosphere::fixedSigmaH;
    Real Ionosphere::fixedSigmaP;
 
@@ -1006,6 +1011,7 @@ namespace SBC {
             break;
          case Robinson2020:
          case Juusola2025:
+         case GITMoneWay:
          case FixedSigma:
             // We don't need to actually do anything about the atmosphere here, and can just bail out.
             return;
@@ -1034,6 +1040,7 @@ namespace SBC {
                break;
             case Robinson2020:
             case Juusola2025:
+            case GITMoneWay:
             case FixedSigma:
                // We don't need to actually do anything about the atmosphere here, and can just bail out.
                return;
@@ -1659,6 +1666,264 @@ namespace SBC {
                   }
                }
             }
+         } else if (ionosphereGrid.ionizationModel == GITMoneWay) {
+
+#ifndef IONOSPHERE_EXTERNAL_COUPLING
+            // Read GITM output file and fill into SigmaH and SigmaP
+            if(rank == 0) {
+               cerr << "(IONOSPHERE) External model coupling not enabled. Rebuild with IONOSPHERE_EXTERNAL COUPLING. Aborting." << endl;
+            }
+            abort();
+#else /* IONOSPHERE_EXTERNAL_COUPLING */
+            // Read GITM output file and fill into SigmaH and SigmaP
+            hid_t file = H5Fopen(Ionosphere::externalITFile.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+            if(file == H5I_INVALID_HID) {
+               if(rank == 0) {
+                  cerr << "(IONOSPHERE) Opening external coupling file \"" << Ionosphere::externalITFile << "\" failed: " << strerror(errno) << endl;
+               }
+               abort();
+            }
+
+            // Longitude and latitude values
+            hid_t lon_dataset = H5Dopen(file, "lon", H5P_DEFAULT);
+            if(lon_dataset == H5I_INVALID_HID) {
+               if(rank ==0) {
+                  cerr << "(IONOSPHERE) Failed to load lon dataset from coupling file: " << strerror(errno) << endl;
+                  abort();
+               }
+            }
+            hid_t lat_dataset = H5Dopen(file, "lat", H5P_DEFAULT);
+            if(lon_dataset == H5I_INVALID_HID) {
+               if(rank ==0) {
+                  cerr << "(IONOSPHERE) Failed to load lat dataset from coupling file: " << strerror(errno) << endl;
+                  abort();
+               }
+            }
+            hid_t time_dataset = H5Dopen(file, "time", H5P_DEFAULT);
+            if(lon_dataset == H5I_INVALID_HID) {
+               if(rank ==0) {
+                  cerr << "(IONOSPHERE) Failed to load time dataset from coupling file: " << strerror(errno) << endl;
+                  abort();
+               }
+            }
+
+            unsigned int nlon = 0, nlat=0, ntime=0;
+            {
+               // Find grid size
+               // Longitude
+               hid_t lon_dspace = H5Dget_space(lon_dataset);
+               int ndims = H5Sget_simple_extent_ndims(lon_dspace);
+               if(ndims != 1) {
+                  if(rank==0){
+                     cerr << "(IONOSPHERE) Warning: lon dataspace dims != 1" << endl;
+                  }
+               }
+               hsize_t dims[ndims];
+               H5Sget_simple_extent_dims(lon_dspace, dims, NULL);
+               nlon = dims[0];
+
+               // Latitude
+               hid_t lat_dspace = H5Dget_space(lat_dataset);
+               ndims = H5Sget_simple_extent_ndims(lat_dspace);
+               if(ndims != 1) {
+                  if(rank==0){
+                     cerr << "(IONOSPHERE) Warning: lat dataspace dims != 1" << endl;
+                  }
+               }
+               dims[ndims];
+               H5Sget_simple_extent_dims(lat_dspace, dims, NULL);
+               nlat = dims[0];
+
+               // Times in the file
+               hid_t time_dspace = H5Dget_space(time_dataset);
+               ndims = H5Sget_simple_extent_ndims(time_dspace);
+               if(ndims != 1) {
+                  if(rank==0){
+                     cerr << "(IONOSPHERE) Warning: time dataspace dims != 1" << endl;
+                  }
+               }
+               dims[ndims];
+               H5Sget_simple_extent_dims(time_dspace, dims, NULL);
+               ntime = dims[0];
+            }
+            if(rank==0) {
+               cerr << "(IONOSPHERE) Found " << ntime << " Timesteps in " << Ionosphere::externalITFile << endl;
+               cerr << "(IONOSPHERE) Found lat x long = [" << nlat << ", " << nlon << "] coordinate arrays in " << Ionosphere::externalITFile << endl;
+            }
+
+            // Load the latitudes and longitudes
+            std::vector<double> lat_grid(nlat), lon_grid(nlon);
+            if(H5Dread(lon_dataset, H5T_NATIVE_DOUBLE, H5S_BLOCK, H5S_ALL, H5P_DEFAULT, lon_grid.data()) < 0 ||
+               H5Dread(lat_dataset, H5T_NATIVE_DOUBLE, H5S_BLOCK, H5S_ALL, H5P_DEFAULT, lat_grid.data()) < 0) {
+               if(rank==0) {
+                  cerr << "(IONOSPHERE) Loading latitude or longitude arrays failed: " << strerror(errno) << endl;
+               }
+               abort();
+            }
+            H5Dclose(lon_dataset);
+            H5Dclose(lat_dataset);
+
+            if(rank==0) {
+               cerr << "(IONOSPHERE) external input file longitude range: [" << lon_grid[0] << ".." << lon_grid[nlon-1] <<"]: ";
+               for(int i=0; i<nlon; i++) {
+                  cerr << lon_grid[i] << ",";
+               }
+               cerr << endl;
+               cerr << "(IONOSPHERE) external input file latitude range: [" << lat_grid[0] << ".." << lat_grid[nlat-1] <<"]: ";
+               for(int i=0; i<nlat; i++) {
+                  cerr << lat_grid[i] << ",";
+               }
+               cerr << endl;
+            }
+
+            // Load the actual sigma data
+            std::vector<double> sigmaHfromFile(nlon*nlat), sigmaPfromFile(nlon*nlat);
+            hid_t sigmaH_dataset = H5Dopen(file, "HalCond", H5P_DEFAULT);
+            hid_t sigmaP_dataset = H5Dopen(file, "PedCond", H5P_DEFAULT);
+
+            // TODO: This is assuming that both sigma datasets have the same dataspace, because anything else
+            // would be silly.
+            hid_t sigma_dataspace = H5Scopy(H5Dget_space(sigmaH_dataset));
+            // TODO: Determine correct timestep
+            hsize_t start[4] = {0,0,0,0};
+            hsize_t length[4] = {1, nlon, nlat, 1};
+            H5Sselect_hyperslab(sigma_dataspace, H5S_SELECT_SET, start, NULL, length,NULL);
+
+            if(sigmaH_dataset == H5I_INVALID_HID || sigmaP_dataset == H5I_INVALID_HID) {
+               if(rank==0) {
+                  cerr << "(IONOSPHERE) Loading conductivity from \"" << Ionosphere::externalITFile << "\" failed: " << strerror(errno) << endl;
+               }
+               abort();
+            }
+            H5Dread(sigmaH_dataset, H5T_NATIVE_DOUBLE, H5S_BLOCK, sigma_dataspace, H5P_DEFAULT, sigmaHfromFile.data());
+            H5Dread(sigmaP_dataset, H5T_NATIVE_DOUBLE, H5S_BLOCK, sigma_dataspace, H5P_DEFAULT, sigmaPfromFile.data());
+            H5Sclose(sigma_dataspace);
+            H5Dclose(sigmaH_dataset);
+            H5Dclose(sigmaP_dataset);
+
+            Real minH=100,minP=100,maxH=-100,maxP=-100;
+            
+            // Interpolate conductivities to node coordinates.
+            for (uint n = 0; n < nodes.size(); n++) {
+               Real node_latitude = -acos(nodes[n].x[2]/Ionosphere::innerRadius) / M_PI * 180. + 90.;
+               Real node_longitude = atan2(nodes[n].x[1], nodes[n].x[0]) / M_PI * 180. + 180.;
+
+               // Find the corresponding lat and long bin and set up interpolants
+               // a and b
+               unsigned int i=0;
+               double b = -1.;
+               if(node_latitude >= lat_grid[0] && node_latitude < lat_grid[nlat-1]) {
+                  // Find latitude interpolant if we are inside the grid
+                  for(i=0; i<nlat-1; i++) {
+                     if(node_latitude < lat_grid[i+1]) {
+                        b = (node_latitude - lat_grid[i]) / (lat_grid[i+1] - lat_grid[i]);
+                        if(b > 1) {
+                           cerr << "Node " << n << "lat = " << node_latitude << ", grid is " << lat_grid[i] << ".." << lat_grid[i+1] << endl;
+                        }
+                        break;
+                     }
+                  }
+               }
+
+               // Longitude wraps around
+               unsigned int j=0;
+               double a = -1.;
+               if(node_longitude < lon_grid[0]) {
+                  node_longitude += 360.;
+               }
+               for(j=0; j<nlon; j++) {
+                  if(node_longitude < lon_grid[(j+1)%nlon]) {
+                     unsigned int j2 = (j+1)%nlon;
+                     
+                     double l1 = lon_grid[j];
+                     double l2 = lon_grid[j2];
+                     if(l2 < l1) {
+                        // Wrap around
+                        l2 += 360.;
+                     } 
+                     a = (node_longitude - l1) / (l2 - l1);
+                     if(a > 1) {
+                        cerr << "Node " << n << "lon = " << node_longitude << ", grid is " << l1 << ".." << l2 << endl;
+                     }
+                     break;
+                  }
+               }
+
+               Real sigmaH, sigmaP;
+               // Outside the grid, conductivities are zero
+               if(b < 0) {
+                  sigmaH = 0;
+                  sigmaP = 0;
+               } else {
+
+                  //if(a > 1 || b > 1 || a < 0) {
+                  //   if(rank==0) {
+                  //      cerr << "(IONOSPHERE) node " << n << " at lat=" << node_latitude << ", lon=" << node_longitude << " has a=" << a << ", b=" << b << endl;
+                  //   }
+                  //}
+
+                  // Interpolate conductivities to the nodes
+                  sigmaH =(1.-a)*(1.-b)* sigmaHfromFile[i     * nlat + j] +
+                              a *(1.-b)* sigmaHfromFile[(i+1) * nlat + j] +
+                          (1.-a)*    b * sigmaHfromFile[i     * nlat + j+1] +
+                              a *    b * sigmaHfromFile[(i+1) * nlat + j+1];
+
+                  sigmaP =(1.-a)*(1.-b)* sigmaPfromFile[i     * nlat + j] +
+                              a *(1.-b)* sigmaPfromFile[(i+1) * nlat + j] +
+                          (1.-a)*    b * sigmaPfromFile[i     * nlat + j+1] +
+                              a *    b * sigmaPfromFile[(i+1) * nlat + j+1];
+
+                  if(sigmaH < minH) {
+                     minH = sigmaH;
+                  }
+                  if(sigmaH > maxH) {
+                     maxH = sigmaH;
+                  }
+                  if(sigmaP < minP) {
+                     minP = sigmaP;
+                  }
+                  if(sigmaP > maxP) {
+                     maxP = sigmaP;
+                  }
+               }
+
+               // Assign interpolated values to the nodes proper
+               nodes[n].parameters[ionosphereParameters::SIGMAP] = sigmaP;
+               nodes[n].parameters[ionosphereParameters::SIGMAH] = sigmaH;
+
+               // Antisymmetric tensor epsilon_ijk
+               // clang-format off
+               static const int epsilon[3][3][3] = {
+                  {{0,0, 0}, { 0,0,1}, {0,-1,0}},
+                  {{0,0,-1}, { 0,0,0}, {1, 0,0}},
+                  {{0,1, 0}, {-1,0,0}, {0, 0,0}}
+               };
+               // clang-format on
+
+               {
+                  Eigen::Vector3d b(nodes[n].x.data());
+                  b.normalized();
+                  if (nodes[n].x[2] >= 0) {
+                     b *= -1;
+                  }
+                  for (int i = 0; i < 3; i++) {
+                     for (int j = 0; j < 3; j++) {
+                        nodes[n].parameters[ionosphereParameters::SIGMA + i * 3 + j] = sigmaP * (((i == j) ? 1. : 0.) - b[i] * b[j]);
+                        for (int k = 0; k < 3; k++) {
+                           nodes[n].parameters[ionosphereParameters::SIGMA + i * 3 + j] -= sigmaH * epsilon[i][j][k] * b[k];
+                        }
+                     }
+                  }
+               }
+            }
+
+            if(rank==0) {
+               cerr << "(IONOSPHERE) external input file read, SigmaH = [" << minH << ".." << maxH << "], SigmaP = [" << minP << ".." << maxP << "]" << endl;
+            }
+
+
+#endif /* IONOSPHERE_EXTERNAL_COUPLING */
+
          } else {
             // The other (atmospheric precipitation and height-integration-based) models
             // share most of their code
@@ -1728,9 +1993,9 @@ namespace SBC {
          // (This is the calculation based on Moen&Brekke)
 
          // At restart we have SIGMAP, SIGMAH and SIGMAPARALLEL read in from the restart file already.
-         // Note: The Juusola 2005 ionization model has its own UV calculation,
+         // Note: The Juusola 2025 ionization model has its own UV calculation,
          // which is already included at this point.
-         if (!refillTensorAtRestart && ionosphereGrid.ionizationModel != Juusola2025) {
+         if (!refillTensorAtRestart && ionosphereGrid.ionizationModel != Juusola2025 && ionosphereGrid.ionizationModel != GITMoneWay) {
 
             // Solar incidence parameter for calculating UV ionisation on the dayside
             Real coschi = x[0] / Ionosphere::innerRadius;
@@ -3053,7 +3318,8 @@ namespace SBC {
       Readparameters::addComposing("ionosphere.refineMaxLatitude", "Refine the grid equatorwards of the given latitude. Multiple of these lines can be given for successive refinement, paired up with refineMinLatitude lines.",this->refineMaxLatitudes)->expected(0,-1);
       Readparameters::add<string>("ionosphere.atmosphericModelFile", "Filename to read the MSIS atmosphere data from (default: NRLMSIS.dat)", this->atmosphericModelFile,std::string("NRLMSIS.dat"));
       Readparameters::add<Real>("ionosphere.recombAlpha", "Ionospheric recombination parameter (m^3/s)", Ionosphere::recombAlpha , 2.4e-13);
-      Readparameters::add<string>("ionosphere.ionizationModel", "Ionospheric electron production rate model. Options are: Rees1963, Rees1989, SergienkoIvanov (default).", this->ionizationModelString,std::string("SergienkoIvanov"));
+      Readparameters::add<string>("ionosphere.ionizationModel", "Ionospheric electron production rate model. Options are: Rees1963, Rees1989, SergienkoIvanov (default), Robinson2020, Juusola2025, FixedSigma, GITMoneWay.", this->ionizationModelString,std::string("SergienkoIvanov"));
+      Readparameters::add<string>("ionosphere.externalITFile", "NetCDF file for input coupling of quantities from external thermosphere/ionosphere models.", this->externalITFile,std::string("2DGEL.nc"));
       Readparameters::add<string>("ionosphere.innerBoundaryVDFmode", "Inner boundary VDF construction method. Options ar: FixedMoments, AverageMoments, AverageAllMoments, CopyAndLosscone.", this->VDFmodeString,std::string("FixedMoments"));
       Readparameters::add<Real>("ionosphere.F10_7", "Solar 10.7 cm radio flux (sfu = 10^{-22} W/m^2)", Ionosphere::F10_7,100);
       Readparameters::add<Real>("ionosphere.backgroundIonisation", "Background ionoisation due to cosmic rays (mho)", Ionosphere::backgroundIonisation,0.5);
@@ -3158,6 +3424,8 @@ namespace SBC {
          ionosphereGrid.ionizationModel = SphericalTriGrid::Juusola2025;
       } else if (ionizationModelString == "FixedSigma") {
          ionosphereGrid.ionizationModel = SphericalTriGrid::FixedSigma;
+      } else if (ionizationModelString == "GITMoneWay") {
+         ionosphereGrid.ionizationModel = SphericalTriGrid::GITMoneWay;
       } else {
          cerr << "(IONOSPHERE) Unknown ionization production model \"" << ionizationModelString << "\". Aborting." << endl;
          abort();
