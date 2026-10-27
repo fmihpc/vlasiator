@@ -494,6 +494,15 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          // per-rank timeclass 
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_timeclass",CellParams::TIMECLASS,1));
 	      outputReducer->addMetadata(outputReducer->size()-1,"","","$\\mathrm{Timeclass}$","");
+
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_t",CellParams::T,1));
+         outputReducer->addMetadata(outputReducer->size()-1,"s","$\\mathrm{s}$","$t_\\mathrm{vg}$","1.0");
+
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_t_r",CellParams::T_R,1));
+         outputReducer->addMetadata(outputReducer->size()-1,"s","$\\mathrm{s}$","$t_\\mathrm{vg,r}$","1.0");
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_t_v",CellParams::T_V,1));
+         outputReducer->addMetadata(outputReducer->size()-1,"s","$\\mathrm{s}$","$t_\\mathrm{vg,v}$","1.0");
+
          if(!P::systemWriteAllDROs) {
             continue;
          }
