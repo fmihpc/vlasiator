@@ -205,19 +205,14 @@ void calculateMoments_R(
          if (cell->sysBoundaryFlag == sysboundarytype::OUTFLOW && cell->sysBoundaryLayer != 1 && !initialCompute) { // these should have been handled by the boundary code
             continue;
          }
-         // Clear old moments to zero value
+         // Clear old moments to zero value and push the prev-moments downstream
          if (popID == 0) {
-            cell->parameters[CellParams::RHOM_R  ] = 0.0;
-            cell->parameters[CellParams::VX_R] = 0.0;
-            cell->parameters[CellParams::VY_R] = 0.0;
-            cell->parameters[CellParams::VZ_R] = 0.0;
-            cell->parameters[CellParams::RHOQ_R  ] = 0.0;
-            cell->parameters[CellParams::P_11_R] = 0.0;
-            cell->parameters[CellParams::P_22_R] = 0.0;
-            cell->parameters[CellParams::P_33_R] = 0.0;
-            cell->parameters[CellParams::P_23_R] = 0.0;
-            cell->parameters[CellParams::P_13_R] = 0.0;
-            cell->parameters[CellParams::P_12_R] = 0.0;
+            size_t nMomentsToCompute = 11;
+            for (size_t i = 0; i < nMomentsToCompute; ++i){
+               cell->parameters[CellParams::RHOM_R_PREV_PREV + i] = cell->parameters[CellParams::RHOM_R_PREV + i];
+               cell->parameters[CellParams::RHOM_R_PREV + i] = cell->parameters[CellParams::RHOM_R + i];
+               cell->parameters[CellParams::RHOM_R + i] = 0.0;
+            }
          }
 
          #ifdef USE_GPU
@@ -373,7 +368,9 @@ void calculateMoments_V(
    std::vector<CellID> cells_on_turn;
    for (size_t c=0; c<cells.size(); ++c) {
          SpatialCell* cell = mpiGrid[cells[c]];
-         if (cell->get_timeclass_turn_v()) cells_on_turn.push_back(cells[c]);
+         if (cell->get_timeclass_turn_v()){
+            cells_on_turn.push_back(cells[c]);
+         }
    } 
    // Loop over all particle species
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {

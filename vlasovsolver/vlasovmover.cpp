@@ -710,6 +710,9 @@ void calculateSpatialTranslation(
                SC->parameters[CellParams::P_13_R_PREV] = SC->parameters[CellParams::P_13_R];
                SC->parameters[CellParams::P_12_R_PREV] = SC->parameters[CellParams::P_12_R];
                SC->parameters[CellParams::T_R_PREV] = SC->parameters[CellParams::T_R];
+
+               mpiGrid[c]->parameters[CellParams::T_R] += P::timeclassDt[mpiGrid[c]->parameters[CellParams::TIMECLASS]];
+               
             }
          }
       }
@@ -722,6 +725,15 @@ void calculateSpatialTranslation(
          }
       }
       return;
+   }
+   
+   for (size_t c=0; c<localCells.size(); ++c) {
+      auto cell = mpiGrid[localCells[c]];
+      if(cell->get_timeclass_turn_r() && dt > 0.0){
+         cell->parameters[CellParams::T_R_PREV_PREV] = cell->parameters[CellParams::T_R_PREV];
+         cell->parameters[CellParams::T_R_PREV] = cell->parameters[CellParams::T_R];
+         cell->parameters[CellParams::T_R] += dt*P::timeclassDt[cell->parameters[CellParams::TIMECLASS]];
+      }
    }
    
    if (P::prepareForRebalance == true) {
@@ -1388,16 +1400,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
             for (size_t c=0; c<cells.size(); ++c) {
                SpatialCell* SC = mpiGrid[cells[c]];
                Real dt_cell;
-               if(dt < 0.0) { // Revert to previous real time, stored in cell
-                     //dt_cell = SC->parameters[CellParams::TIME_R] - P::t;
-                     dt_cell = dt*SC->get_tc_dt();
-
-                  }
-               else { // dt is a factor of 0.5 or 1.0; so dt_cell is local timestep * dt factor
-                     dt_cell = dt*SC->get_tc_dt();
-                  }
-               // if ( (SC->parameters[CellParams::CELLID] == 9 || SC->parameters[CellParams::CELLID] == 11 || SC->parameters[CellParams::CELLID] == 12))
-                  // std::cout << "vdt on tc  " << SC->parameters[CellParams::TIMECLASS] << " on ftstep " << P::fractionalTimestep << ", dt " << dt_cell <<"\n";
+               dt_cell = dt*SC->get_tc_dt();
 
                const vmesh::VelocityMesh* vmesh = SC->get_velocity_mesh(popID);
                // disregard boundary cells, in preparation for acceleration
@@ -1559,6 +1562,12 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
       cellsToPropagateVector.push_back(cell);
    }
 
+   for (auto cell : cellsToPropagateSet){
+      if(mpiGrid[cell]->get_timeclass_turn_v()){
+         mpiGrid[cell]->parameters[CellParams::T_V] += dt*mpiGrid[cell]->get_tc_dt();
+      }
+   }
+   
    // Recalculate "_V" velocity moments
    calculateMoments_V(mpiGrid,cellsToPropagateVector,true,(dt==0.0));
 
@@ -1801,7 +1810,9 @@ void interpolateMomentsForTimeclasses(
 
          // for type of interpolation (P::tcMomentInterpolationType) -1 is cubic C^1 Hermite spline, 1 is linear, 2 is lagrange 2nd order, 3 is lagrange 3rd order.
 
-         if (lastUpdateWasTranslation) { // aka if translation moments are ahead of acceleration moments
+         bool bLastUpdateWasTranslation = SC->parameters[CellParams::T_R] > SC->parameters[CellParams::T_V];
+
+         if (bLastUpdateWasTranslation) { // aka if translation moments are ahead of acceleration moments
             // here, temporal order from newest to oldest is _R, _V, _R_PREV, _V_PREV, _R_PREV_PREV, _V_PREV_PREV
             for (int i=0; i<nMomentsToInterp; i++) {
                avgMoments1[i] = 0.5*( SC->parameters[CellParams::RHOM_R+i] + SC->parameters[CellParams::RHOM_V+i] ); // at 0.5
@@ -1896,14 +1907,15 @@ void updateParticlePopulations(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometr
             Real normModul = modul/RTCpow; // point at which to interpolate to, between [0, 1]
    
             for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-               spatial_cell::Population& pop = SC->get_population(popID);
+               spatial_cell::Population& pop = SC->get_population(popID,timeclass);
    
                std::array<Real, 5> avgMomentsRho; // logic of these lists is flipped in comparison to the other interpolation function
                std::array<Real, 5> avgTs;
                std::array<std::array<Real, 3>, 5> avgMomentsV; 
                std::array<std::array<Real, 6>, 5> avgMomentsP;
-   
-               if (lastUpdateWasTranslation) { // aka if translation moments are ahead of acceleration moments
+               bool bLastUpdateWasTranslation = pop.T_R > pop.T_V;
+
+               if (bLastUpdateWasTranslation) { // aka if translation moments are ahead of acceleration moments
                   // here, temporal order from newest to oldest is _R, _V, _R_PREV, _V_PREV, _R_PREV_PREV, _V_PREV_PREV
 
                   avgMomentsRho.at(0) = 0.5 * ( pop.RHO_R + pop.RHO_V ); // 0.5
@@ -2100,7 +2112,7 @@ void calculateInitialVelocityMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_G
       SC->parameters[CellParams::P_23_DT2] = SC->parameters[CellParams::P_23];
       SC->parameters[CellParams::P_13_DT2] = SC->parameters[CellParams::P_13];
       SC->parameters[CellParams::P_12_DT2] = SC->parameters[CellParams::P_12];
-      SC->parameters[CellParams::T_DT2] = SC->parameters[CellParams::T]+P::timeclassDt[P::currentMaxTimeclass]/2.0;
+      SC->parameters[CellParams::T_DT2] = P::timeclassDt[P::currentMaxTimeclass]/2.0;
    } // for-loop over spatial cells
 }
 
@@ -2153,10 +2165,10 @@ void updatePreviousVMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
          SC->parameters[CellParams::P_12_R_PREV] = SC->parameters[CellParams::P_12_R];
 
          // Initialize the timestamps coherently into the past
-         SC->parameters[CellParams::T_V_PREV_PREV] = SC->parameters[CellParams::T_V]-2*P::timeclassDt[SC->parameters[CellParams::TIMECLASS]];
-         SC->parameters[CellParams::T_V_PREV] = SC->parameters[CellParams::T_V]-P::timeclassDt[SC->parameters[CellParams::TIMECLASS]];
-         SC->parameters[CellParams::T_R_PREV_PREV] = SC->parameters[CellParams::T_R]-2*P::timeclassDt[SC->parameters[CellParams::TIMECLASS]];
-         SC->parameters[CellParams::T_R_PREV] = SC->parameters[CellParams::T_R]-P::timeclassDt[SC->parameters[CellParams::TIMECLASS]];
+         SC->parameters[CellParams::T_V_PREV_PREV] = -1.5*P::timeclassDt[SC->parameters[CellParams::TIMECLASS]];
+         SC->parameters[CellParams::T_V_PREV] = -0.5*P::timeclassDt[SC->parameters[CellParams::TIMECLASS]];
+         SC->parameters[CellParams::T_R_PREV_PREV] = -2*P::timeclassDt[SC->parameters[CellParams::TIMECLASS]];
+         SC->parameters[CellParams::T_R_PREV] = -P::timeclassDt[SC->parameters[CellParams::TIMECLASS]];
          
          for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
             for (int timeclass = 0; timeclass <=P::currentMaxTimeclass; ++timeclass){
