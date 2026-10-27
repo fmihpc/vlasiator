@@ -1613,7 +1613,8 @@ void calculateInterpolatedVelocityMoments(
    const int cp_p33,
    const int cp_p23,
    const int cp_p13,
-   const int cp_p12
+   const int cp_p12,
+   const int cp_t
 ) {
    const vector<CellID>& cells = getLocalCells();
 
@@ -1635,6 +1636,8 @@ void calculateInterpolatedVelocityMoments(
       SC->parameters[cp_p23]   = 0.5* ( SC->parameters[CellParams::P_23_R] + SC->parameters[CellParams::P_23_V] );
       SC->parameters[cp_p13]   = 0.5* ( SC->parameters[CellParams::P_13_R] + SC->parameters[CellParams::P_13_V] );
       SC->parameters[cp_p12]   = 0.5* ( SC->parameters[CellParams::P_12_R] + SC->parameters[CellParams::P_12_V] );
+      SC->parameters[cp_t]   = SC->parameters[CellParams::T_R];
+
 
       // for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
       //    spatial_cell::Population& pop = SC->get_population(popID);
@@ -1706,6 +1709,7 @@ Real cubicHermiteSplineInterpolation(Real x0, Real y0, Real x1, Real y1, Real x2
 
 void interpolateMomentsForTimeclasses(
   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   const Real target_time,
    const int cp_rhom,
    const int cp_rhoq,
    const int cp_p11,
@@ -1781,6 +1785,7 @@ void interpolateMomentsForTimeclasses(
          if (dt2) {
             normModul += 0.5/RTCpow; // for dt2, we need to shift the interpolation by 0.5
          }
+         normModul = target_time;
 
          // in this function the moments are calculated to an interval [0, 1] that matches a single timestep in real space, or [t, t + dt].
          // for example, the moment "at 0.5" means the moment at t+dt/2.
@@ -1834,7 +1839,7 @@ void interpolateMomentsForTimeclasses(
 
                switch(P::tcMomentInterpolationType) {
                   case 1:
-                     SC->parameters[cp_rhom+i] = linearInterpolation(0.0, avgMoments2[i], 0.5, avgMoments1[i], normModul);
+                     SC->parameters[cp_rhom+i] = linearInterpolation(avgMoments2[nMomentsToInterp-1],avgMoments2[i], avgMoments1[nMomentsToInterp-1], avgMoments1[i], normModul);
                      break;
                   case 2:
                      SC->parameters[cp_rhom+i] = lagrangeInterpolation2order(-0.5, avgMoments3[i], 0.0, avgMoments2[i], 0.5, avgMoments1[i], normModul);
@@ -1867,14 +1872,30 @@ void interpolateMomentsForTimeclasses(
             avgMoments4[nMomentsToInterp-1] = min( SC->parameters[CellParams::T_R_PREV], SC->parameters[CellParams::T_V_PREV_PREV] ); // at -0.5
             avgMoments5[nMomentsToInterp-1] = min( SC->parameters[CellParams::T_V_PREV_PREV], SC->parameters[CellParams::T_R_PREV_PREV] ); // at -1.0
 
+            if(SC->parameters[CellParams::CELLID] == 1){
 
+               std::cerr << __FILE__ << ":" << __LINE__ << " T_V " << SC->parameters[CellParams::T_V] << std::endl; 
+               std::cerr << __FILE__ << ":" << __LINE__ << " T_R " << SC->parameters[CellParams::T_R] << std::endl; 
+               std::cerr << __FILE__ << ":" << __LINE__ << " T_V_PREV " << SC->parameters[CellParams::T_V_PREV] << std::endl; 
+               std::cerr << __FILE__ << ":" << __LINE__ << " T_R_PREV " << SC->parameters[CellParams::T_R_PREV] << std::endl; 
+               std::cerr << __FILE__ << ":" << __LINE__ << " T_V_PREV_PREV " << SC->parameters[CellParams::T_V_PREV_PREV] << std::endl; 
+               std::cerr << __FILE__ << ":" << __LINE__ << " T_R_PREV_PREV " << SC->parameters[CellParams::T_R_PREV_PREV] << std::endl; 
+               
+               std::cerr << __FILE__ << ":" << __LINE__ << " avgMoments1_T " << avgMoments1[nMomentsToInterp-1] << std::endl; 
+               std::cerr << __FILE__ << ":" << __LINE__ << " avgMoments2_T " << avgMoments2[nMomentsToInterp-1] << std::endl;
+               std::cerr << __FILE__ << ":" << __LINE__ << " avgMoments3_T " << avgMoments3[nMomentsToInterp-1] << std::endl;
+               std::cerr << __FILE__ << ":" << __LINE__ << " avgMoments4_T " << avgMoments4[nMomentsToInterp-1] << std::endl;
+               std::cerr << __FILE__ << ":" << __LINE__ << " avgMoments5_T " << avgMoments5[nMomentsToInterp-1] << std::endl;
+   
+               std::cerr << "Cellid " << SC->parameters[CellParams::CELLID] << ", tc " << SC->parameters[CellParams::TIMECLASS] << " at t = " << P::t << ", tstep " <<P::tstep << ", fstep " << P::fractionalTimestep << "normmodul " << normModul << std::endl;
+            }
             for (int i=0; i<nMomentsToInterp; i++) {
                switch(P::tcMomentInterpolationType) {
                   case 1:
-                     if (normModul < 0.5) {
-                        SC->parameters[cp_rhom+i] = linearInterpolation(0.0, avgMoments3[i], 0.5, avgMoments2[i], normModul);
+                     if (normModul < avgMoments2[nMomentsToInterp-1]) {
+                        SC->parameters[cp_rhom+i] = linearInterpolation(avgMoments3[nMomentsToInterp-1], avgMoments3[i], avgMoments2[nMomentsToInterp-1], avgMoments2[i], normModul);
                      } else {
-                        SC->parameters[cp_rhom+i] = linearInterpolation(0.5, avgMoments2[i], 1.0, avgMoments1[i], normModul);
+                        SC->parameters[cp_rhom+i] = linearInterpolation(avgMoments2[nMomentsToInterp-1], avgMoments2[i], avgMoments1[nMomentsToInterp-1], avgMoments1[i], normModul);
                      }
                      break;
                   case 2:
@@ -1888,12 +1909,15 @@ void interpolateMomentsForTimeclasses(
                      break;
                }
             }
+            if(SC->parameters[CellParams::CELLID] == 1){
+               std::cerr  << __FILE__ << ":" << __LINE__ << "T after interp = "<< SC->parameters[cp_t] << " dt2? "<< dt2 << std::endl;
+            }
          }
       } // if timeclass = maxTC
    } // for loop over cells
 }
 
-void updateParticlePopulations(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, const bool lastUpdateWasTranslation) {
+void updateParticlePopulations(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, const bool lastUpdateWasTranslation, const Real target_time) {
 
    const vector<CellID>& cells = getLocalCells();
    #pragma omp parallel for
@@ -1924,6 +1948,7 @@ void updateParticlePopulations(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometr
             Real RTCpow = pow(2, P::currentMaxTimeclass - timeclass);
             Real modul = P::fractionalTimestep % (int)RTCpow;
             Real normModul = modul/RTCpow; // point at which to interpolate to, between [0, 1]
+            normModul = target_time;
    
             for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
                spatial_cell::Population& pop = SC->get_population(popID,timeclass);
@@ -1967,13 +1992,13 @@ void updateParticlePopulations(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometr
    
                   switch(P::tcMomentInterpolationType) {
                      case 1:
-                        pop.RHO = linearInterpolation(0.0, avgMomentsRho.at(1), 0.5, avgMomentsRho.at(0), normModul);
-                        pop.T = linearInterpolation(0.0, avgTs.at(1), 0.5, avgTs.at(0), normModul);
+                        pop.RHO = linearInterpolation(avgTs.at(1), avgMomentsRho.at(1), avgTs.at(0), avgMomentsRho.at(0), normModul);
+                        pop.T = linearInterpolation(avgTs.at(1), avgTs.at(1), avgTs.at(0), avgTs.at(0), normModul);
                         for(int i=0; i<3; i++) {
-                           pop.V[i] = linearInterpolation(0.0, avgMomentsV.at(1).at(i), 0.5, avgMomentsV.at(0).at(i), normModul);
+                           pop.V[i] = linearInterpolation(avgTs.at(1), avgMomentsV.at(1).at(i), avgTs.at(0), avgMomentsV.at(0).at(i), normModul);
                         }
                         for(int i=0; i<6; i++) {
-                           pop.P[i] = linearInterpolation(0.0, avgMomentsP.at(1).at(i), 0.5, avgMomentsP.at(0).at(i), normModul);
+                           pop.P[i] = linearInterpolation(avgTs.at(1), avgMomentsP.at(1).at(i), avgTs.at(0), avgMomentsP.at(0).at(i), normModul);
                         }
                         break;
                      case 2:
@@ -2041,28 +2066,24 @@ void updateParticlePopulations(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometr
    
                   switch(P::tcMomentInterpolationType) {
                      case 1:
-                        if (normModul < 0.5) {
-                           pop.RHO = linearInterpolation(0.0, avgMomentsRho.at(2), 0.5, avgMomentsRho.at(1), normModul);
-                        } else {
-                           pop.RHO = linearInterpolation(0.5, avgMomentsRho.at(1), 1.0, avgMomentsRho.at(0), normModul);
-                        }
-                        if (normModul < 0.5) {
-                           pop.T = linearInterpolation(0.0, avgTs.at(2), 0.5, avgTs.at(1), normModul);
-                        } else {
-                           pop.T = linearInterpolation(0.5, avgTs.at(1), 1.0, avgTs.at(0), normModul);
-                        }
-                        for(int i=0; i<3; i++) {
-                           if (normModul < 0.5) {
-                              pop.V[i] = linearInterpolation(0.0, avgMomentsV.at(2).at(i), 0.5, avgMomentsV.at(1).at(i), normModul);
-                           } else {
-                              pop.V[i] = linearInterpolation(0.5, avgMomentsV.at(1).at(i), 1.0, avgMomentsV.at(0).at(i), normModul);
+                        if (normModul < avgTs.at(1)) {
+                           pop.RHO = linearInterpolation(avgTs.at(2), avgMomentsRho.at(2), avgTs.at(1), avgMomentsRho.at(1), normModul);
+                           pop.T = linearInterpolation(avgTs.at(2), avgTs.at(2), avgTs.at(1), avgTs.at(1), normModul);
+                           for(int i =0; i<3; i++){
+                              pop.V[i] = linearInterpolation(avgTs.at(2), avgMomentsV.at(2).at(i), avgTs.at(1), avgMomentsV.at(1).at(i), normModul);
                            }
-                        }
-                        for(int i=0; i<6; i++) {
-                           if (normModul < 0.5) {
-                              pop.P[i] = linearInterpolation(0.0, avgMomentsP.at(2).at(i), 0.5, avgMomentsP.at(1).at(i), normModul);
-                           } else {
-                              pop.P[i] = linearInterpolation(0.5, avgMomentsP.at(1).at(i), 1.0, avgMomentsP.at(0).at(i), normModul);
+                           for(int i=0; i<6; i++) {
+                              pop.P[i] = linearInterpolation(avgTs.at(2), avgMomentsP.at(2).at(i), avgTs.at(1), avgMomentsP.at(1).at(i), normModul);
+                           }
+
+                        } else {
+                           pop.RHO = linearInterpolation(avgTs.at(1), avgMomentsRho.at(1), avgTs.at(0), avgMomentsRho.at(0), normModul);
+                           pop.T = linearInterpolation(avgTs.at(1), avgTs.at(1), avgTs.at(0), avgTs.at(0), normModul);
+                           for(int i =0; i<3; i++){
+                              pop.V[i] = linearInterpolation(avgTs.at(1), avgMomentsV.at(1).at(i), avgTs.at(0), avgMomentsV.at(0).at(i), normModul);
+                           }
+                           for(int i=0; i<6; i++) {
+                              pop.P[i] = linearInterpolation(avgTs.at(1), avgMomentsP.at(1).at(i), avgTs.at(0), avgMomentsP.at(0).at(i), normModul);
                            }
                         }
                         break;
