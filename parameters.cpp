@@ -341,7 +341,7 @@ bool P::addParameters() {
            hallRho);
 
    RP::add("project",
-           "Specify the name of the project to use. Supported to date (20150610): Alfven Diffusion Dispersion "
+           "Specify the name of the project to use. Supported to date (20150610): Alfven AlfvenCascade Diffusion Dispersion "
            "Distributions Firehose Flowthrough Fluctuations Harris KHB Larmor Magnetosphere Multipeak Riemann1 Shock "
            "Shocktest Template test_fp testHall test_trans verificationLarmor",
            P::projectName);
