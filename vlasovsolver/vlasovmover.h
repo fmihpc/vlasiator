@@ -97,7 +97,8 @@ void calculateInterpolatedVelocityMoments(
    const int cp_p33,
    const int cp_p23,
    const int cp_p13,
-   const int cp_p12
+   const int cp_p12,
+   const int cp_t
 );
 
 /*!
@@ -116,6 +117,7 @@ double cubicHermiteSplineInterpolation(double x0, double y0, double x1, double y
 */
 void interpolateMomentsForTimeclasses(
   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   const Real target_time,
    const int cp_rhom,
    const int cp_rhoq,
    const int cp_p11,
@@ -132,7 +134,7 @@ void interpolateMomentsForTimeclasses(
    const bool lastUpdateWasTranslation
 );
 
-void updateParticlePopulations(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, const bool lastUpdateWasTranslation);
+void updateParticlePopulations(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, const bool lastUpdateWasTranslation, const Real target_time);
 
 /*!
   \brief Compute 0th, 1st and 2nd velocity moments (RHO,VX,VY,VZ,P_11,P_22,P_33 and *_DT2) for all cells in the grid directly from distribution function. The simulation should be at a true time-step! This is at the moment only called at initialisation.

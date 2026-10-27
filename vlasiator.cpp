@@ -918,42 +918,23 @@ int simulate(int argn,char* args[]) {
       // Also update all moments. They won't be transmitted to FSgrid until the field solver is called, though.
       phiprof::Timer computeMomentsTimer {"Compute interp moments"};
       //std::cout << "for initial interpolated moments\n";
-      if(P::currentMaxTimeclass == 0){
-         calculateInterpolatedVelocityMoments(
-            mpiGrid,
-            CellParams::RHOM,
-            CellParams::VX,
-            CellParams::VY,
-            CellParams::VZ,
-            CellParams::RHOQ,
-            CellParams::P_11,
-            CellParams::P_22,
-            CellParams::P_33,
-            CellParams::P_23,
-            CellParams::P_13,
-            CellParams::P_12
-         );
-      }else{
-         interpolateMomentsForTimeclasses(
-            mpiGrid,
-            CellParams::RHOM,
-            CellParams::RHOQ,
-            CellParams::P_11,
-            CellParams::P_22,
-            CellParams::P_33,
-            CellParams::P_23,
-            CellParams::P_13,
-            CellParams::P_12,
-            CellParams::VX,
-            CellParams::VY,
-            CellParams::VZ,
-            CellParams::T,
-            false,
-            false
-         );
-      }
+      calculateInterpolatedVelocityMoments( // This is fine for initial moments
+         mpiGrid,
+         CellParams::RHOM,
+         CellParams::VX,
+         CellParams::VY,
+         CellParams::VZ,
+         CellParams::RHOQ,
+         CellParams::P_11,
+         CellParams::P_22,
+         CellParams::P_33,
+         CellParams::P_23,
+         CellParams::P_13,
+         CellParams::P_12,
+         CellParams::T
+      );
 
-      updateParticlePopulations(mpiGrid, false);
+      updateParticlePopulations(mpiGrid, false, 0);
 
       computeMomentsTimer.stop();
    } else { // if we are restaring, make sure global timeclass settings are set
@@ -1532,6 +1513,7 @@ int simulate(int argn,char* args[]) {
          // TODO: Check whether updated state is the same as previously so synchronization can be skipped when not needed?
          interpolateMomentsForTimeclasses(
             mpiGrid,
+            P::t,
             CellParams::RHOM,
             CellParams::RHOQ,
             CellParams::P_11,
@@ -1572,6 +1554,7 @@ int simulate(int argn,char* args[]) {
 
       interpolateMomentsForTimeclasses(
          mpiGrid,
+         P::t,
          CellParams::RHOM,
          CellParams::RHOQ,
          CellParams::P_11,
@@ -1590,6 +1573,7 @@ int simulate(int argn,char* args[]) {
 
       interpolateMomentsForTimeclasses(
          mpiGrid,
+         P::t + 0.5*P::dt,
          CellParams::RHOM_DT2,
          CellParams::RHOQ_DT2,
          CellParams::P_11_DT2,
@@ -1606,7 +1590,7 @@ int simulate(int argn,char* args[]) {
          true
       );
 
-      updateParticlePopulations(mpiGrid, true);
+      updateParticlePopulations(mpiGrid, true, P::t);
 
       momentsTimer.stop();
 
@@ -1732,6 +1716,7 @@ int simulate(int argn,char* args[]) {
       //we interpolate here for output data reasons
       interpolateMomentsForTimeclasses(
          mpiGrid,
+         P::t+P::dt,
          CellParams::RHOM,
          CellParams::RHOQ,
          CellParams::P_11,
@@ -1748,7 +1733,7 @@ int simulate(int argn,char* args[]) {
          false
       );
       
-      updateParticlePopulations(mpiGrid, false);
+      updateParticlePopulations(mpiGrid, false, P::t+P::dt);
 
       // momentsTimer.stop();
 
