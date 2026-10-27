@@ -292,7 +292,12 @@ AlfvenCascade::~AlfvenCascade() {}
                                  fsgrids::bgbspan bgb,
                                  fsgrids::technicalspan technical, FieldSolverGrid &fsgrid) {
       // Set background field
-      setBackgroundFieldToZero(fsgrid, technical, bgb);
+      ConstantField bgField;
+      bgField.initialize(this->B * cos(this->angle),
+                         this->B * sin(this->angle),
+                         0);
+
+      setBackgroundField(bgField, bgb, technical, fsgrid);
 
       if (!P::isRestart) {
 
