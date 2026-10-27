@@ -63,11 +63,11 @@ typedef Parameters P;
 
 bool writeVelocityDistributionData(const uint popID, Writer& vlsvWriter,
                                    const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                   const std::vector<CellID>& cells, MPI_Comm comm);
+                                   const std::vector<CellID>& cells, MPI_Comm comm, int timeclass = -1);
 
 bool writeVelocityDistributionDataAsterix(const uint popID,Writer& vlsvWriter,
                                    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                   const std::vector<CellID>& cells,std::vector<std::vector<char>>&mpl_bytes,MPI_Comm comm);
+                                   const std::vector<CellID>& cells,std::vector<std::vector<char>>&mpl_bytes,MPI_Comm comm, int timeclass = -1);
 
 
 /*! Updates local ids across MPI to let other processes know in which order this process saves the local cell ids
@@ -138,6 +138,13 @@ bool writeVelocityDistributionData(Writer& vlsvWriter,
    bool success = true;
    for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID) {
       if (writeVelocityDistributionData(popID, vlsvWriter, mpiGrid, cells, comm) == false) success = false;
+      if(P::systemWriteTimeghosts){
+         if(P::currentMaxTimeclass > 0){
+            for (int timeclass = 0; timeclass <= P::currentMaxTimeclass; timeclass++){
+               if (writeVelocityDistributionData(popID, vlsvWriter, mpiGrid, cells, comm, timeclass) == false) success = false;
+            }
+         }
+      }
    }
    return success;
 }
@@ -160,12 +167,15 @@ bool writeVelocityDistributionDataAsterix(Writer& vlsvWriter,
  @return Returns true if operation was successful.*/
 bool writeVelocityDistributionData(const uint popID, Writer& vlsvWriter,
                                    const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-                                   const std::vector<CellID>& cells, MPI_Comm comm) {
+                                   const std::vector<CellID>& cells, MPI_Comm comm, int timeclass) {
    // Write velocity blocks and related data.
    // In restart we just write velocity grids for all cells.
    // First write global Ids of those cells which write velocity blocks (here: all cells):
    map<string, string> attribs;
-   const string popName = getObjectWrapper().particleSpecies[popID].name;
+   string popName = getObjectWrapper().particleSpecies[popID].name;
+   if (timeclass >= 0){
+      popName += "_"+to_string(timeclass);
+   }
    const string spatMeshName = "SpatialGrid";
    attribs["name"] = popName;
    bool success = true;
@@ -174,8 +184,8 @@ bool writeVelocityDistributionData(const uint popID, Writer& vlsvWriter,
    uint64_t totalBlocks = 0;
    vector<vmesh::LocalID> blocksPerCell;
    for (size_t i = 0; i < cells.size(); ++i) {
-      totalBlocks += mpiGrid[cells[i]]->get_number_of_velocity_blocks(popID);
-      blocksPerCell.push_back(mpiGrid[cells[i]]->get_number_of_velocity_blocks(popID));
+      totalBlocks += mpiGrid[cells[i]]->get_number_of_velocity_blocks(popID, timeclass);
+      blocksPerCell.push_back(mpiGrid[cells[i]]->get_number_of_velocity_blocks(popID, timeclass));
    }
 
    // The name of the mesh is "SpatialGrid"
@@ -204,6 +214,9 @@ bool writeVelocityDistributionData(const uint popID, Writer& vlsvWriter,
 
    attribs.clear();
    attribs["mesh"] = getObjectWrapper().particleSpecies[popID].name;
+   if (timeclass >= 0){
+      attribs["mesh"] += "_"+to_string(timeclass);
+   }
    attribs["type"] = vlsv::mesh::STRING_UCD_AMR;
 
    // stringstream is necessary here to correctly convert refLevelMaxAllowed (hardcoded to zero now) into a string
@@ -251,13 +264,13 @@ bool writeVelocityDistributionData(const uint popID, Writer& vlsvWriter,
       // gather data for writing
       for (size_t i = 0; i < cells.size(); ++i) {
          SpatialCell* SC = mpiGrid[cells[i]];
-         const vmesh::LocalID nBlocks = SC->get_number_of_velocity_blocks(popID);
+         const vmesh::LocalID nBlocks = SC->get_number_of_velocity_blocks(popID, timeclass);
 #ifdef USE_GPU
          const vmesh::GlobalID* GIDlist = SC->get_velocity_grid(popID);
          CHK_ERR(gpuMemcpy(&velocityBlockIds[blockIndex], GIDlist, nBlocks * sizeof(vmesh::GlobalID), gpuMemcpyDeviceToHost));
 #else
          for (vmesh::LocalID block_i = 0; block_i < nBlocks; ++block_i) {
-            const vmesh::GlobalID block = SC->get_velocity_block_global_id(block_i, popID);
+            const vmesh::GlobalID block = SC->get_velocity_block_global_id(block_i, popID, timeclass);
             velocityBlockIds[blockIndex + block_i] = block;
          }
 #endif
@@ -307,7 +320,7 @@ bool writeVelocityDistributionData(const uint popID, Writer& vlsvWriter,
       SpatialCell* SC = mpiGrid[cells[i]];
 
       // Get the number of blocks in this cell
-      const uint64_t arrayElements = SC->get_number_of_velocity_blocks(popID);
+      const uint64_t arrayElements = SC->get_number_of_velocity_blocks(popID, timeclass);
       // Add a subarray to write. Note: We told beforehands that the vectorsize = WID3
 #ifdef USE_GPU
       char* arrayToWrite = IObuffer + bufferOffset;
@@ -316,7 +329,7 @@ bool writeVelocityDistributionData(const uint popID, Writer& vlsvWriter,
          bufferOffset += arrayElements * WID3 * sizeof(Realf);
       }
 #else
-      char* arrayToWrite = reinterpret_cast<char*>(SC->get_data(popID));
+      char* arrayToWrite = reinterpret_cast<char*>(SC->get_data(popID, timeclass));
 #endif
       vlsvWriter.addMultiwriteUnit(arrayToWrite, arrayElements);
    }
@@ -633,10 +646,15 @@ bool writeVspaceDataCompressionMLP(const uint popID,Writer& vlsvWriter,
 
 bool writeVelocityDistributionDataAsterix(const uint popID,Writer& vlsvWriter,
                                    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                   const std::vector<CellID>& cells,std::vector<std::vector<char>>&bytes,MPI_Comm comm) {
+                                   const std::vector<CellID>& cells,std::vector<std::vector<char>>&bytes,MPI_Comm comm, int timeclass) {
    // Write velocity blocks and related data.
    // In restart we just write velocity grids for all cells.
    // First write global Ids of those cells which write velocity blocks (here: all cells):
+   
+   if(timeclass != -1){
+      std::cerr << "ASTERIX compression not implemented for timeclasses quite yet" << std::endl;
+      return false;
+   } 
    map<string,string> attribs;
    const string popName      = getObjectWrapper().particleSpecies[popID].name;
    const string spatMeshName = "SpatialGrid";
@@ -944,21 +962,25 @@ bool writeCommonGridData(
       return false;
    }
 
-   // Write parameters:
-   if (vlsvWriter.writeParameter("time", &P::t) == false) { return false; }
-   if (vlsvWriter.writeParameter("dt", &P::dt) == false) { return false; }
-   if (vlsvWriter.writeParameter("timestep", &P::tstep) == false) { return false; }
-   if (vlsvWriter.writeParameter("fieldSolverSubcycles", &P::fieldSolverSubcycles) == false) { return false; }
-   if (vlsvWriter.writeParameter("fileIndex", &fileIndex) == false) { return false; }
-   if (vlsvWriter.writeParameter("xmin", &P::xmin) == false) { return false; }
-   if (vlsvWriter.writeParameter("xmax", &P::xmax) == false) { return false; }
-   if (vlsvWriter.writeParameter("ymin", &P::ymin) == false) { return false; }
-   if (vlsvWriter.writeParameter("ymax", &P::ymax) == false) { return false; }
-   if (vlsvWriter.writeParameter("zmin", &P::zmin) == false) { return false; }
-   if (vlsvWriter.writeParameter("zmax", &P::zmax) == false) { return false; }
-   if (vlsvWriter.writeParameter("xcells_ini", &P::xcells_ini) == false) { return false; }
-   if (vlsvWriter.writeParameter("ycells_ini", &P::ycells_ini) == false) { return false; }
-   if (vlsvWriter.writeParameter("zcells_ini", &P::zcells_ini) == false) { return false; }
+   //Write parameters:
+   if( vlsvWriter.writeParameter("time", &P::t) == false ) { return false; }
+   if( vlsvWriter.writeParameter("dt", &P::dt) == false ) { return false; }
+   if( vlsvWriter.writeParameter("timestep", &P::tstep) == false ) { return false; }
+   if( vlsvWriter.writeParameter("fieldSolverSubcycles", &P::fieldSolverSubcycles) == false ) { return false; }
+   if( vlsvWriter.writeParameter("fileIndex", &fileIndex) == false ) { return false; }
+   if( vlsvWriter.writeParameter("xmin", &P::xmin) == false ) { return false; }
+   if( vlsvWriter.writeParameter("xmax", &P::xmax) == false ) { return false; }
+   if( vlsvWriter.writeParameter("ymin", &P::ymin) == false ) { return false; }
+   if( vlsvWriter.writeParameter("ymax", &P::ymax) == false ) { return false; }
+   if( vlsvWriter.writeParameter("zmin", &P::zmin) == false ) { return false; }
+   if( vlsvWriter.writeParameter("zmax", &P::zmax) == false ) { return false; }
+   if( vlsvWriter.writeParameter("xcells_ini", &P::xcells_ini) == false ) { return false; }
+   if( vlsvWriter.writeParameter("ycells_ini", &P::ycells_ini) == false ) { return false; }
+   if( vlsvWriter.writeParameter("zcells_ini", &P::zcells_ini) == false ) { return false; }
+
+   if( vlsvWriter.writeParameter("currentmaxtimeclass", &P::currentMaxTimeclass) == false ) { return false; }
+
+
    // Although the stored velocity meshes already include block size information, the parameter WID
    // is also stored for ease of reading in post-processing.
    const int writewid = WID;
@@ -2224,21 +2246,48 @@ bool writeRestart(
    phiprof::Timer reducedTimer{"reduceddataIO"};
    // write out DROs we need for restarts
    DataReducer restartReducer;
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("moments", CellParams::RHOM, 5));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("moments_dt2", CellParams::RHOM_DT2, 5));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("moments_r", CellParams::RHOM_R, 5));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("moments_v", CellParams::RHOM_V, 5));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("pressure", CellParams::P_11, 3));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("pressure_dt2", CellParams::P_11_DT2, 3));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("pressure_r", CellParams::P_11_R, 3));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("pressure_v", CellParams::P_11_V, 3));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("LB_weight", CellParams::LBWEIGHTCOUNTER, 1));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("max_v_dt", CellParams::MAXVDT, 1));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("max_r_dt", CellParams::MAXRDT, 1));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("max_fields_dt", CellParams::MAXFDT, 1));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("vg_drift", CellParams::BULKV_FORCING_X, 3));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_alpha1", CellParams::AMR_ALPHA1, 1));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_alpha2", CellParams::AMR_ALPHA2, 1));
+
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("densities",CellParams::RHOM,2));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("pressure",CellParams::P_11,6));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("bulkvelocities",CellParams::VX,3));
+
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("densities_dt2",CellParams::RHOM_DT2,2));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("pressure_dt2",CellParams::P_11_DT2,6));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("bulkvelocities_dt2",CellParams::VX_DT2,3));
+
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("densities_r",CellParams::RHOM_R,2));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("pressure_r",CellParams::P_11_R,6));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("bulkvelocities_r",CellParams::VX_R,3));
+
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("densities_v",CellParams::RHOM_V,2));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("pressure_v",CellParams::P_11_V,6));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("bulkvelocities_v",CellParams::VX_V,3));
+
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("densities_r_prev",CellParams::RHOM_R_PREV,2));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("pressure_r_prev",CellParams::P_11_R_PREV,6));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("bulkvelocities_r_prev",CellParams::VX_R_PREV,3));
+
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("densities_v_prev",CellParams::RHOM_V_PREV,2));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("pressure_v_prev",CellParams::P_11_V_PREV,6));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("bulkvelocities_v_prev",CellParams::VX_V_PREV,3));
+
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("densities_r_prev_prev",CellParams::RHOM_R_PREV_PREV,2));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("pressure_r_prev_prev",CellParams::P_11_R_PREV_PREV,6));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("bulkvelocities_r_prev_prev",CellParams::VX_R_PREV_PREV,3));
+
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("densities_v_prev_prev",CellParams::RHOM_V_PREV,2));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("pressure_v_prev_prev",CellParams::P_11_V_PREV_PREV,6));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("bulkvelocities_v_prev_prev",CellParams::VX_V_PREV_PREV,3));
+
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("timeclass",CellParams::TIMECLASS,1));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("timeclass_dt",CellParams::TIMECLASSDT,1));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("LB_weight",CellParams::LBWEIGHTCOUNTER,1));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("max_v_dt",CellParams::MAXVDT,1));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("max_r_dt",CellParams::MAXRDT,1));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("max_fields_dt",CellParams::MAXFDT,1));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("vg_drift",CellParams::BULKV_FORCING_X,3));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_alpha1",CellParams::AMR_ALPHA1,1));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_alpha2",CellParams::AMR_ALPHA2,1));
    restartReducer.addOperator(new DRO::VariableBVol);
    restartReducer.addMetadata(restartReducer.size() - 1, "T", "$\\mathrm{T}$", "$B_\\mathrm{vol,vg}$", "1.0");
    restartReducer.addOperator(new DRO::MPIrank);
@@ -2384,11 +2433,16 @@ bool writeRestart(
    }
 #endif
 
-   phiprof::Timer updateRemoteTimer{"updateRemoteBlocks"};
-   // Updated newly adjusted velocity block lists on remote cells, and
-   // prepare to receive block data
-   for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID)
-      updateRemoteVelocityBlockLists(mpiGrid, popID);
+   phiprof::Timer updateRemoteTimer {"updateRemoteBlocks"};
+   //Updated newly adjusted velocity block lists on remote cells, and
+   //prepare to receive block data
+   for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID){
+      for(int timeclass = 0; timeclass <= P::currentMaxTimeclass; ++timeclass){
+         //std::cerr<<__FILE__<<":"<<__LINE__<<"\n";
+        updateRemoteVelocityBlockLists(mpiGrid,popID,Neighborhoods::DIST_FUNC,timeclass);
+      }
+   }
+   //std::cerr<<__FILE__<<":"<<__LINE__<<"\n";
    updateRemoteTimer.stop();
 
    const uint64_t bytesWritten = vlsvWriter.getBytesWritten();

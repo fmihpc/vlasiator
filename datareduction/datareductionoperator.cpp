@@ -571,7 +571,7 @@ namespace DRO {
    }
 
    // Blocks
-   Blocks::Blocks(cuint _popID): DataReductionOperator(),popID(_popID) {
+   Blocks::Blocks(cuint _popID, const int _timeclass): DataReductionOperator(),popID(_popID),timeclass(_timeclass) {
       popName=getObjectWrapper().particleSpecies[popID].name;
    }
    Blocks::~Blocks() { }
@@ -583,7 +583,13 @@ namespace DRO {
       return true;
    }
 
-   std::string Blocks::getName() const {return popName + "/vg_blocks";}
+   std::string Blocks::getName() const {
+      if(timeclass == -1){
+        return popName + "/vg_blocks";
+      }else{
+        return popName +"_"+to_string(timeclass)+ "/vg_blocks";
+      }
+   }
 
    bool Blocks::reduceData(const SpatialCell* cell,char* buffer) {
       const char* ptr = reinterpret_cast<const char*>(&nBlocks);
@@ -597,7 +603,38 @@ namespace DRO {
    }
 
    bool Blocks::setSpatialCell(const SpatialCell* cell) {
-      nBlocks = cell->get_number_of_velocity_blocks(popID);
+      nBlocks = cell->get_number_of_velocity_blocks(popID,timeclass);
+      return true;
+   }
+
+   // Blocks of timeclass ghosts
+   BlocksTC::BlocksTC(cuint _popID): DataReductionOperator(),popID(_popID) {
+      popName=getObjectWrapper().particleSpecies[popID].name;
+   }
+   BlocksTC::~BlocksTC() { }
+
+   bool BlocksTC::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "uint";
+      dataSize = sizeof(int);
+      vectorSize = 1;
+      return true;
+   }
+
+   std::string BlocksTC::getName() const {return popName + "/vg_blocks_tc";}
+
+   bool BlocksTC::reduceData(const SpatialCell* cell,char* buffer) {
+      const char* ptr = reinterpret_cast<const char*>(&nBlocks);
+      for (uint i = 0; i < sizeof(int); ++i) buffer[i] = ptr[i];
+      return true;
+   }
+
+   bool BlocksTC::reduceDiagnostic(const SpatialCell* cell,Real* buffer) {
+      *buffer = 1.0 * nBlocks;
+      return true;
+   }
+
+   bool BlocksTC::setSpatialCell(const SpatialCell* cell) {
+      nBlocks = cell->get_number_of_velocity_blocks_ghost(popID);
       return true;
    }
 
