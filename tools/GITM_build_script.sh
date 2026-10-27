@@ -47,3 +47,10 @@ make
 test -f ext/Electrodynamics/src/Makefile || { echo "FAIL: Electrodynamics extension missing"; exit 1; }
 find . -name "GITM.exe" | grep -q . || { echo "FAIL: GITM.exe not built"; exit 1; }
 echo "BUILD OK"
+
+make rundir
+
+cd run
+mpirun -np 4 ./GITM.exe
+
+
