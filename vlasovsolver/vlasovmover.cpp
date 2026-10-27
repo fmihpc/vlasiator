@@ -1754,7 +1754,7 @@ void interpolateMomentsForTimeclasses(
             SC->parameters[cp_vx]   = 0.5* ( SC->parameters[CellParams::VX_R] + SC->parameters[CellParams::VX_V] );
             SC->parameters[cp_vy] = 0.5* ( SC->parameters[CellParams::VY_R] + SC->parameters[CellParams::VY_V] );
             SC->parameters[cp_vz] = 0.5* ( SC->parameters[CellParams::VZ_R] + SC->parameters[CellParams::VZ_V] );
-            SC->parameters[cp_t] = 0.5* ( SC->parameters[CellParams::T_R] + SC->parameters[CellParams::T_V] );
+            SC->parameters[cp_t] = min( SC->parameters[CellParams::T_R],SC->parameters[CellParams::T_V] );
 
          } else {
 
@@ -1769,7 +1769,7 @@ void interpolateMomentsForTimeclasses(
             SC->parameters[cp_vx]   = 0.5* ( SC->parameters[CellParams::VX_R_PREV] + SC->parameters[CellParams::VX_V] );
             SC->parameters[cp_vy] = 0.5* ( SC->parameters[CellParams::VY_R_PREV] + SC->parameters[CellParams::VY_V] );
             SC->parameters[cp_vz] = 0.5* ( SC->parameters[CellParams::VZ_R_PREV] + SC->parameters[CellParams::VZ_V] );
-            SC->parameters[cp_t] = 0.5* ( SC->parameters[CellParams::T_R_PREV] + SC->parameters[CellParams::T_V] ); 
+            SC->parameters[cp_t] = min( SC->parameters[CellParams::T_R_PREV], SC->parameters[CellParams::T_V] ); 
 
             }
 
@@ -1814,13 +1814,21 @@ void interpolateMomentsForTimeclasses(
 
          if (bLastUpdateWasTranslation) { // aka if translation moments are ahead of acceleration moments
             // here, temporal order from newest to oldest is _R, _V, _R_PREV, _V_PREV, _R_PREV_PREV, _V_PREV_PREV
-            for (int i=0; i<nMomentsToInterp; i++) {
+            for (int i=0; i<nMomentsToInterp-1; i++) {
                avgMoments1[i] = 0.5*( SC->parameters[CellParams::RHOM_R+i] + SC->parameters[CellParams::RHOM_V+i] ); // at 0.5
                avgMoments2[i] = 0.5*( SC->parameters[CellParams::RHOM_V+i] + SC->parameters[CellParams::RHOM_R_PREV+i] ); // at 0.0
                avgMoments3[i] = 0.5*( SC->parameters[CellParams::RHOM_R_PREV+i] + SC->parameters[CellParams::RHOM_V_PREV+i] );  // at -0.5
                avgMoments4[i] = 0.5*( SC->parameters[CellParams::RHOM_V_PREV+i] + SC->parameters[CellParams::RHOM_R_PREV_PREV+i] ); // at -1.0
                avgMoments5[i] = 0.5*( SC->parameters[CellParams::RHOM_R_PREV_PREV+i] + SC->parameters[CellParams::RHOM_V_PREV_PREV+i] ); // at -1.5
             }
+            avgMoments1[nMomentsToInterp-1] = min( SC->parameters[CellParams::T_R], SC->parameters[CellParams::T_V] ); // at 0.5
+            avgMoments2[nMomentsToInterp-1] = min( SC->parameters[CellParams::T_V], SC->parameters[CellParams::T_R_PREV] ); // at 0.0
+            avgMoments3[nMomentsToInterp-1] = min( SC->parameters[CellParams::T_R_PREV], SC->parameters[CellParams::T_V_PREV] );  // at -0.5
+            avgMoments4[nMomentsToInterp-1] = min( SC->parameters[CellParams::T_V_PREV], SC->parameters[CellParams::T_R_PREV_PREV] ); // at -1.0
+            avgMoments5[nMomentsToInterp-1] = min( SC->parameters[CellParams::T_R_PREV_PREV], SC->parameters[CellParams::T_V_PREV_PREV] ); // at -1.5
+
+
+
 
             for (int i=0; i<nMomentsToInterp; i++) {
 
@@ -1838,16 +1846,27 @@ void interpolateMomentsForTimeclasses(
                      SC->parameters[cp_rhom+i] = cubicHermiteSplineInterpolation(-1.0, avgMoments4[i], -0.5, avgMoments3[i], 0.0, avgMoments2[i], 0.5, avgMoments1[i], normModul);
                      break;
                }
+               
+
+            }
+            if(SC->parameters[CellParams::CELLID] == 1){
+               std::cerr  << __FILE__ << ":" << __LINE__ << "T after interp = "<< SC->parameters[cp_t] << std::endl;
             }
          } else { // if acceleration moments are ahead of translation moments
             // here, temporal order from newest to oldest is _V, _R, _V_PREV, _R_PREV, _V_PREV_PREV, _R_PREV_PREV
-            for (int i=0; i<nMomentsToInterp; i++) {
+            for (int i=0; i<nMomentsToInterp-1; i++) {
                avgMoments1[i] = 0.5*( SC->parameters[CellParams::RHOM_V+i] + SC->parameters[CellParams::RHOM_R+i] ); // at 1.0
                avgMoments2[i] = 0.5*( SC->parameters[CellParams::RHOM_R+i] + SC->parameters[CellParams::RHOM_V_PREV+i] ); // at 0.5
                avgMoments3[i] = 0.5*( SC->parameters[CellParams::RHOM_V_PREV+i] + SC->parameters[CellParams::RHOM_R_PREV+i] ); // at 0.0
                avgMoments4[i] = 0.5*( SC->parameters[CellParams::RHOM_R_PREV+i] + SC->parameters[CellParams::RHOM_V_PREV_PREV+i] ); // at -0.5
                avgMoments5[i] = 0.5*( SC->parameters[CellParams::RHOM_V_PREV_PREV+i] + SC->parameters[CellParams::RHOM_R_PREV_PREV+i] ); // at -1.0
             }
+            avgMoments1[nMomentsToInterp-1] = min( SC->parameters[CellParams::T_V], SC->parameters[CellParams::T_R] ); // at 1.0
+            avgMoments2[nMomentsToInterp-1] = min( SC->parameters[CellParams::T_R], SC->parameters[CellParams::T_V_PREV] ); // at 0.5
+            avgMoments3[nMomentsToInterp-1] = min( SC->parameters[CellParams::T_V_PREV], SC->parameters[CellParams::T_R_PREV] );  // at 0.0
+            avgMoments4[nMomentsToInterp-1] = min( SC->parameters[CellParams::T_R_PREV], SC->parameters[CellParams::T_V_PREV_PREV] ); // at -0.5
+            avgMoments5[nMomentsToInterp-1] = min( SC->parameters[CellParams::T_V_PREV_PREV], SC->parameters[CellParams::T_R_PREV_PREV] ); // at -1.0
+
 
             for (int i=0; i<nMomentsToInterp; i++) {
                switch(P::tcMomentInterpolationType) {
@@ -1890,7 +1909,7 @@ void updateParticlePopulations(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometr
             for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
                spatial_cell::Population& pop = SC->get_population(popID, timeclass);
                pop.RHO = 0.5 * ( pop.RHO_R + pop.RHO_V );
-               pop.T = 0.5 * ( pop.T_R + pop.T_V );
+               pop.T = min( pop.T_R, pop.T_V );
                for(int i=0; i<3; i++) {
                   pop.V[i] = 0.5 * ( pop.V_R[i] + pop.V_V[i] );
                }
@@ -1924,11 +1943,12 @@ void updateParticlePopulations(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometr
                   avgMomentsRho.at(3) = 0.5 * ( pop.RHO_V_PREV + pop.RHO_R_PREV_PREV ); // -1.0
                   avgMomentsRho.at(4) = 0.5 * ( pop.RHO_R_PREV_PREV + pop.RHO_V_PREV_PREV ); // -1.5
                   
-                  avgTs.at(0) = 0.5 * ( pop.T_R + pop.T_V ); // 0.5
-                  avgTs.at(1) = 0.5 * ( pop.T_V + pop.T_R_PREV ); // 0.0
-                  avgTs.at(2) = 0.5 * ( pop.T_R_PREV + pop.T_V_PREV ); // -0.5
-                  avgTs.at(3) = 0.5 * ( pop.T_V_PREV + pop.T_R_PREV_PREV ); // -1.0
-                  avgTs.at(4) = 0.5 * ( pop.T_R_PREV_PREV + pop.T_V_PREV_PREV ); // -1.5
+                  avgTs.at(0) = min( pop.T_R, pop.T_V ); // 0.5
+                  avgTs.at(1) = min( pop.T_V, pop.T_R_PREV ); // 0.0
+                  avgTs.at(2) = min( pop.T_R_PREV, pop.T_V_PREV ); // -0.5
+                  avgTs.at(3) = min( pop.T_V_PREV, pop.T_R_PREV_PREV ); // -1.0
+                  avgTs.at(4) = min( pop.T_R_PREV_PREV, pop.T_V_PREV_PREV ); // -1.5
+
    
                   for(int i=0; i<3; i++) {
                      avgMomentsV.at(0).at(i) = 0.5 * (pop.V_R[i] + pop.V_V[i]);
@@ -1999,12 +2019,11 @@ void updateParticlePopulations(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometr
                   avgMomentsRho.at(3) = 0.5 * ( pop.RHO_R_PREV + pop.RHO_V_PREV_PREV ); // -0.5
                   avgMomentsRho.at(4) = 0.5 * ( pop.RHO_V_PREV_PREV + pop.RHO_R_PREV_PREV ); // -1.0
 
-                  avgTs.at(0) = 0.5 * ( pop.T_V + pop.T_R ); // 1.0
-                  avgTs.at(1) = 0.5 * ( pop.T_R + pop.T_V_PREV ); // 0.5
-                  avgTs.at(2) = 0.5 * ( pop.T_V_PREV + pop.T_R_PREV ); // 0.0
-                  avgTs.at(3) = 0.5 * ( pop.T_R_PREV + pop.T_V_PREV_PREV ); // -0.5
-                  avgTs.at(4) = 0.5 * ( pop.T_V_PREV_PREV + pop.T_R_PREV_PREV ); // -1.0
-   
+                  avgTs.at(0) = min( pop.T_V, pop.T_R ); // 1.0
+                  avgTs.at(1) = min( pop.T_R, pop.T_V_PREV ); // 0.5
+                  avgTs.at(2) = min( pop.T_V_PREV, pop.T_R_PREV ); // 0.0
+                  avgTs.at(3) = min( pop.T_R_PREV, pop.T_V_PREV_PREV ); // -0.5
+                  avgTs.at(4) = min( pop.T_V_PREV_PREV, pop.T_R_PREV_PREV ); // -1.0
                   for(int i=0; i<3; i++) {
                      avgMomentsV.at(0).at(i) = 0.5 * (pop.V_V[i] + pop.V_R[i]);
                      avgMomentsV.at(1).at(i) = 0.5 * (pop.V_R[i] + pop.V_V_PREV[i]);
