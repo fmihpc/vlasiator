@@ -657,7 +657,7 @@ namespace SBC {
       static Real fixedSigmaP; /*!< For the fixedSigma conductivity model */
       static Real fixedSigmaH;
 
-      void generateTemplateCell(Project &project);
+      void generateTemplateCell();
       void setCellFromTemplate(SpatialCell* cell,const uint popID);
 
       std::array<Real, 3> fieldSolverGetNormalDirection(

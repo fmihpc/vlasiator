@@ -3259,7 +3259,7 @@ namespace SBC {
 
       // iniSysBoundary is only called once, generateTemplateCell must
       // init all particle species
-      generateTemplateCell(project);
+      generateTemplateCell();
    }
 
    static Real getR(creal x, creal y, creal z, uint geometry, Real center[3]) {
@@ -4057,7 +4057,7 @@ namespace SBC {
     * NOTE: This function must initialize all particle species!
     * @param project
     */
-   void Ionosphere::generateTemplateCell(Project& project) {
+   void Ionosphere::generateTemplateCell() {
       // WARNING not 0.0 here or the dipole() function fails miserably.
       templateCell.sysBoundaryFlag = this->getIndex();
       templateCell.sysBoundaryLayer = 1;

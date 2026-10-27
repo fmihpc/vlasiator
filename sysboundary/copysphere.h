@@ -99,7 +99,7 @@ namespace SBC {
       virtual std::string getName() const override;
       virtual uint getIndex() const override;
 
-      void generateTemplateCell(Project &project);
+      void generateTemplateCell();
       void setCellFromTemplate(SpatialCell* cell,const uint popID);
 
       std::array<Real, 3> fieldSolverGetNormalDirection(
