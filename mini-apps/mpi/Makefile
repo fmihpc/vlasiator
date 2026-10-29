@@ -4,12 +4,10 @@ include ../../MAKE/Makefile.${ARCH}
 
 CXXFLAGS +=
 
-default: ring connectivity
-
-all: ring connectivity
+all: ring ringperf connectivity
 
 # Executables
-EXE = ring connectivity
+EXE = ring ringperf connectivity
 
 LIBS += ${LIB_MPI}
 
@@ -28,6 +26,12 @@ ring.o: ring.cpp
 
 ring: ring.o
 	$(LNK) ${LDFLAGS} -o ring ring.o $(LIBS)
+
+ringperf.o: ringperf.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c ringperf.cpp ${INC_MPI}
+
+ringperf: ringperf.o
+	$(LNK) ${LDFLAGS} -o ringperf ringperf.o $(LIBS)
 
 connectivity.o: connectivity.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c connectivity.cpp ${INC_MPI}

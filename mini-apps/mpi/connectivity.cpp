@@ -1,7 +1,13 @@
+/* nanosleep is POSIX, which strict modes such as -std=c99 hide unless asked for. */
+#ifndef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 200112L
+#endif
+#include <getopt.h>
 #include <mpi.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #define TAG_PROBE 1
 #define TAG_REPORT 2
@@ -241,15 +247,33 @@ static int lat_send(int p, MPI_Request *r) {
     return MPI_Isend(&one, 1, MPI_INT, p, TAG_LAT, MPI_COMM_WORLD, r) == MPI_SUCCESS;
 }
 
+/* Sleeps instead of spinning so cores sit idle; loops because nanosleep can
+ * wake early on a signal. */
+static void pause_for(double seconds) {
+    double end = MPI_Wtime() + seconds, left;
+
+    while ((left = end - MPI_Wtime()) > 0) {
+        struct timespec ts;
+
+        ts.tv_sec = (time_t)left;
+        ts.tv_nsec = (long)((left - (double)ts.tv_sec) * 1e9);
+        nanosleep(&ts, NULL);
+    }
+}
+
 /* One timed round trip per pair per round. Returns the number of stalls; sets
  * *gave_up if a barrier timed out. A stalled pair is dropped for good, because
  * its abandoned requests would match later messages. */
-static int latency(int rounds, float *samp, int *pstep, char *dead, int *inbuf, int *gave_up) {
+static int latency(int rounds, double pause, float *samp, int *pstep, char *dead, int *inbuf, int *gave_up) {
     int P = size + (size & 1), r, step, stalls = 0;
     MPI_Request rq[2];
 
     *gave_up = 0;
     for (r = 0; r < rounds; ++r) {
+        /* Spreads rounds over time so intermittent problems get sampled; the next barrier absorbs any skew in waking up. */
+        if (r > 0) {
+            pause_for(pause);
+        }
         for (step = 0; step < P - 1; ++step) {
             int p = partner(rank, step, P), ok;
             double dl, t;
@@ -342,7 +366,8 @@ static int pair_stats(int rounds, double factor, const float *samp, const int *p
         }
         qsort(x, n, sizeof *x, by_float);
         s->min = x[0];
-        s->med = x[n / 2];
+        /* Lower median: with an even count the upper one is the larger middle sample, for two rounds the maximum, so one noisy round would make the pair slow. */
+        s->med = x[(n - 1) / 2];
         s->max = x[n - 1];
         thr = spike_threshold(s->med, factor);
         for (r = 0; r < n; ++r) {
@@ -387,7 +412,7 @@ static void print_pair(const pairstat_t *s) {
 }
 
 /* Prints the latency report on rank 0; returns 1 if any outlier was flagged. */
-static int analyze(const pairstat_t *ps, long nps, event_t *ev, long nev, int ntrunc, int rounds, double factor, double elapsed) {
+static int analyze(const pairstat_t *ps, long nps, event_t *ev, long nev, int ntrunc, int rounds, double pause, double factor, double elapsed) {
     int *order = (int *)malloc((size_t)size * sizeof *order), *hid = (int *)malloc((size_t)size * sizeof *hid);
     long *sel = (long *)malloc(((size_t)nps + size) * sizeof *sel), *hsp, *hsm, nm[2], nsel, nslow, p;
     long nsamples = 0, nspikes = 0;
@@ -434,7 +459,7 @@ static int analyze(const pairstat_t *ps, long nps, event_t *ev, long nev, int nt
         nsamples += ps[p].n;
         nspikes += ps[p].nspike;
     }
-    printf("latency: %d round(s) of %d step(s), %ld timed round trips in %.1f s, timer resolution %.3g us\n", rounds, size + (size & 1) - 1, nsamples, elapsed, 1e6 * tick);
+    printf("latency: %d round(s) of %d step(s), %g s apart, %ld timed round trips in %.1f s, timer resolution %.3g us\n", rounds, size + (size & 1) - 1, pause, nsamples, elapsed, 1e6 * tick);
     for (c = 0; c < 2; ++c) {
         if (nm[c] > 0) {
             printf("  %s: %ld pair(s), typical round trip %.2f us (median of pair medians)\n", c ? "different hosts" : "same host", nm[c], 1e6 * typ[c]);
@@ -666,16 +691,172 @@ static int analyze(const pairstat_t *ps, long nps, event_t *ev, long nev, int nt
     return nslow > 0 || nsel > 0;
 }
 
+/* BSD sysexits value for a bad command line, so scripts can tell it apart from a failed check. */
+#define EXIT_USAGE 64
+
+typedef struct {
+    double timeout, factor, pause;
+    int rounds, machine;
+} options_t;
+
+enum { OPT_TIMEOUT, OPT_ROUNDS, OPT_FACTOR, OPT_PAUSE, OPT_MACHINE, OPT_HELP };
+
+/* In enum order. The parser and the help text both come from this table, so they cannot drift apart. */
+/* clang-format off */
+static const struct {
+    const char *name;
+    char letter;
+    const char *metavar, *expect, *help;
+} option_table[] = {
+    {"timeout", 't', "S", "seconds, more than 0 and at most 86400", "seconds until a missing message counts as failed (default 30, at most 86400)"},
+    {"rounds", 'r', "N", "a whole number from 0 to 1000000", "latency rounds after a passed check (default 0: none, at most 1000000)"},
+    {"factor", 'f', "F", "a number more than 1 and at most 1e6", "outlier factor for slow pairs, spikes and hosts (default 10)"},
+    {"pause", 'p', "S", "seconds from 0 to 86400", "seconds between latency rounds (default 10, at most 86400)"},
+    {"machine", 'm', NULL, NULL, "also print one machine-readable line per rank: @connectivity v=1 rank= size= node= host= missing="},
+    {"help", 'h', NULL, NULL, "show this help and exit"},
+};
+/* clang-format on */
+#define NOPT ((int)(sizeof option_table / sizeof option_table[0]))
+
+static void usage(FILE *f, const char *prog) {
+    int k;
+
+    fprintf(f, "usage: %s [options]\n", prog);
+    fprintf(f, "Checks that every rank receives a message from every other rank, then optionally times round trips between all pairs.\n");
+    for (k = 0; k < NOPT; ++k) {
+        const char *mv = option_table[k].metavar;
+        int pad = 12 - (int)(strlen(option_table[k].name) + (mv ? 1 + strlen(mv) : 0));
+
+        fprintf(f, "  -%c, --%s%s%s%*s %s\n", option_table[k].letter, option_table[k].name, mv ? "=" : "", mv ? mv : "", pad, "", option_table[k].help);
+    }
+    fprintf(f, "Long options may be shortened while unambiguous. Values may be given as --name=V, --name V, -xV or -x V.\n");
+    fprintf(f, "Exit status: 0 all good, 1 a failed check or incomplete latency rounds, 2 latency outliers, %d bad command line.\n", EXIT_USAGE);
+}
+
+static int usage_hint(const char *prog) {
+    if (rank == 0) {
+        fprintf(stderr, "Try '%s --help'.\n", prog);
+    }
+    return EXIT_USAGE;
+}
+
+/* The whole string must be a number in [lo, hi], or (lo, hi] if lo_open. NaN fails every comparison, inf fails the upper bound. */
+static int parse_double(const char *s, double lo, int lo_open, double hi, double *v) {
+    char *end;
+    double x = strtod(s, &end);
+
+    if (end == s || *end != '\0' || !(lo_open ? x > lo : x >= lo) || !(x <= hi)) {
+        return 0;
+    }
+    *v = x;
+    return 1;
+}
+
+static int parse_int(const char *s, long lo, long hi, int *v) {
+    char *end;
+    long x = strtol(s, &end, 10);
+
+    /* strtol saturates on overflow, which the range check then rejects. */
+    if (end == s || *end != '\0' || x < lo || x > hi) {
+        return 0;
+    }
+    *v = (int)x;
+    return 1;
+}
+
+static int option_index(int letter) {
+    int k;
+
+    for (k = 0; k < NOPT; ++k) {
+        if (option_table[k].letter == letter) {
+            return k;
+        }
+    }
+    return -1;
+}
+
+/* Returns 0 to go on, -1 after --help, or EXIT_USAGE. Every rank parses the same arguments, so only rank 0 reports. getopt_long is a GNU extension that musl and the BSDs also provide. */
+static int parse_args(int argc, char **argv, options_t *o) {
+    const char *prog = argc > 0 ? argv[0] : "connectivity";
+    struct option longopts[NOPT + 1];
+    char shortopts[2 * NOPT + 1];
+    int c, k, n = 0, ok;
+
+    o->timeout = 30.0;
+    o->rounds = 0;
+    o->factor = 10.0;
+    o->pause = 10.0;
+    o->machine = 0;
+    /* Built from option_table, so getopt_long sees exactly the options the help text describes. */
+    for (k = 0; k < NOPT; ++k) {
+        longopts[k].name = option_table[k].name;
+        longopts[k].has_arg = option_table[k].metavar ? required_argument : no_argument;
+        longopts[k].flag = NULL;
+        longopts[k].val = option_table[k].letter;
+        shortopts[n++] = option_table[k].letter;
+        if (option_table[k].metavar) {
+            shortopts[n++] = ':';
+        }
+    }
+    memset(&longopts[NOPT], 0, sizeof longopts[NOPT]);
+    shortopts[n] = '\0';
+    opterr = rank == 0;
+    while ((c = getopt_long(argc, argv, shortopts, longopts, NULL)) != -1) {
+        k = option_index(c);
+        if (k < 0) {
+            /* getopt_long has already said what was wrong. */
+            return usage_hint(prog);
+        }
+        ok = 1;
+        switch (k) {
+        case OPT_TIMEOUT:
+            ok = parse_double(optarg, 0.0, 1, 86400.0, &o->timeout);
+            break;
+        case OPT_ROUNDS:
+            ok = parse_int(optarg, 0, 1000000, &o->rounds);
+            break;
+        case OPT_FACTOR:
+            ok = parse_double(optarg, 1.0, 1, 1e6, &o->factor);
+            break;
+        case OPT_PAUSE:
+            ok = parse_double(optarg, 0.0, 0, 86400.0, &o->pause);
+            break;
+        case OPT_MACHINE:
+            o->machine = 1;
+            break;
+        case OPT_HELP:
+            if (rank == 0) {
+                usage(stdout, prog);
+            }
+            return -1;
+        }
+        if (!ok) {
+            if (rank == 0) {
+                fprintf(stderr, "%s: invalid value '%s' for --%s: expected %s\n", prog, optarg, option_table[k].name, option_table[k].expect);
+            }
+            return usage_hint(prog);
+        }
+    }
+    if (optind < argc) {
+        if (rank == 0) {
+            fprintf(stderr, "%s: unexpected argument '%s'\n", prog, argv[optind]);
+        }
+        return usage_hint(prog);
+    }
+    return 0;
+}
+
 int main(int argc, char **argv) {
-    int len, j, k, lo, hi, nfail, nsend, rounds = 0, nmine, hdr[3], bad;
-    double t0, w, factor = 10.0, tl, tl_end;
+    int len, j, k, lo, hi, nfail, nsend, rounds, nmine, hdr[3], machine;
+    double t0, w, factor, pause, tl, tl_end;
     size_t z;
-    char *rstate, *sstate, *end, rep = PENDING, *dead;
+    char *rstate, *sstate, rep = PENDING, *dead;
     int *rbuf, *pstep, *inbuf;
     float *samp;
     pairstat_t *mystats;
     event_t *ev;
     report_t mine;
+    options_t opt;
 
     MPI_Init(&argc, &argv);
     t0 = MPI_Wtime();
@@ -685,29 +866,16 @@ int main(int argc, char **argv) {
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
-    timeout = 30.0;
-    bad = argc > 4;
-    if (argc > 1) {
-        timeout = strtod(argv[1], &end);
-        bad |= end == argv[1] || *end != '\0' || !(timeout > 0);
-    }
-    if (argc > 2) {
-        long v = strtol(argv[2], &end, 10);
-
-        bad |= end == argv[2] || *end != '\0' || v < 0 || v > 1000000;
-        rounds = (int)v;
-    }
-    if (argc > 3) {
-        factor = strtod(argv[3], &end);
-        bad |= end == argv[3] || *end != '\0' || !(factor > 1);
-    }
-    if (bad) {
-        if (rank == 0) {
-            fprintf(stderr, "usage: %s [timeout_s > 0 [latency_rounds >= 0 [outlier_factor > 1]]]\n", argv[0]);
-        }
+    k = parse_args(argc, argv, &opt);
+    if (k != 0) {
         MPI_Finalize();
-        return 1;
+        return k < 0 ? 0 : EXIT_USAGE;
     }
+    timeout = opt.timeout;
+    rounds = opt.rounds;
+    factor = opt.factor;
+    pause = opt.pause;
+    machine = opt.machine;
 
     memset(&mine, 0, sizeof mine);
     MPI_Get_processor_name(mine.host, &len);
@@ -771,6 +939,19 @@ int main(int argc, char **argv) {
     if (nsend > 0) {
         printf("rank %d (%s): %d send(s) not completed: ", rank, mine.host, nsend);
         print_runs(sstate, size);
+        printf("\n");
+    }
+    /* Every rank reports for itself, so a script can still tell which nodes to drop when rank 0 is the one cut off. */
+    if (machine) {
+        const char *node = getenv("SLURMD_NODENAME");
+
+        /* Slurm's own node name when launched by srun, because MPI's processor name need not match what --nodelist accepts. */
+        printf("@connectivity v=1 rank=%d size=%d node=%s host=%s missing=", rank, size, node && *node ? node : mine.host, mine.host);
+        if (nfail == 0) {
+            printf("-");
+        } else {
+            print_runs(rstate, size);
+        }
         printf("\n");
     }
     fflush(stdout);
@@ -920,7 +1101,7 @@ int main(int argc, char **argv) {
         samp[z] = -1.0f;
     }
     tl = MPI_Wtime();
-    hdr[0] = latency(rounds, samp, pstep, dead, inbuf, &hdr[1]);
+    hdr[0] = latency(rounds, pause, samp, pstep, dead, inbuf, &hdr[1]);
     tl_end = MPI_Wtime();
     hdr[2] = pair_stats(rounds, factor, samp, pstep, dead, mystats, nmine, ev);
 
@@ -996,7 +1177,7 @@ int main(int argc, char **argv) {
             nev += hdrs[3 * j + 2];
             ntrunc += nsp > hdrs[3 * j + 2];
         }
-        outliers = analyze(use, nuse, evuse, nev, ntrunc, rounds, factor, tl_end - tl);
+        outliers = analyze(use, nuse, evuse, nev, ntrunc, rounds, pause, factor, tl_end - tl);
         if (nmiss > 0 || nstall > 0 || ngave > 0) {
             printf("latency INCOMPLETE: %d stalled exchange(s), %d rank(s) gave up, %d rank(s) sent no statistics\n", nstall, ngave, nmiss);
             fflush(stdout);
