@@ -1482,6 +1482,8 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
             // std::cerr << __FILE__ <<":"<<__LINE__<<" "<<myRank <<" : cell " << payload.cellptr->parameters[CellParams::CELLID] << " acc dt " << payload.cellptr->get_max_v_dt(popID) << "; payload.dt " << payload.dt << " maxSubcycles " << maxSubcycles << "\n";
             maxSubcycles = max(getAccelerationSubcycles(payload.cellptr->get_max_v_dt(popID), payload.dt), maxSubcycles);
             spatial_cell::Population& pop = payload.cellptr->get_population(popID,payload.timeclass);
+            pop.T_V_PREV_PREV = pop.T_V_PREV;
+            pop.T_V_PREV = pop.T_V; // acceleration will push pop.T_V forward over subcycles, roll forward the previous stamps here
             pop.ACCSUBCYCLES = getAccelerationSubcycles(payload.cellptr->get_max_v_dt(popID), payload.dt);
             timeclasses_handled.insert(payload.cellptr->get_tc());
          }
@@ -1653,8 +1655,12 @@ void calculateInterpolatedVelocityMoments(
 Real linearInterpolation(Real x0, Real y0, Real x1, Real y1, Real x) {
    // https://en.wikipedia.org/wiki/Linear_interpolation
    // this is used in the function below.
-   if (!(x >= x0 && x<=x1)) {
+   if (!(x >= x0*(1-1e-6) && x<=x1*(1+1e-6))) {
       std::cerr << "linearInterpolation: x = " << x << " is out of bounds [" << x0 << ", " << x1 << "]\n";
+      // assert(false);
+   }
+   if (x0 == x1){
+      std::cerr << "linearInterpolation x0 = " << x0 << " == " << x1 << " x1" << std::endl;
       assert(false);
    }
 
