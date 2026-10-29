@@ -1,0 +1,27 @@
+#!/bin/bash
+#SBATCH --job-name=restarting
+#SBATCH --nodes=4                    # all compute nodes; for another count: sbatch -N <n> hello.sbatch
+#SBATCH --ntasks-per-node=2
+#SBATCH --time=00:20:00
+#SBATCH --output=%x-%j.out   # default lands in the batch node's local home, invisible from head
+#SBATCH --no-kill
+
+MIN=2  # fewest nodes worth starting on
+MAX=4  # most nodes to use; the rest of the allocation are spares
+
+set -euo pipefail
+export SLURM_MPI_TYPE=pmix
+
+source "$SLURM_SUBMIT_DIR/healthy_nodes.sh"
+
+find_healthy_nodes "$MIN" "$MAX" || exit 1
+srun --nodes="$HEALTHY_COUNT" --nodelist="$HEALTHY_NODES" --ntasks=$((HEALTHY_COUNT * SLURM_NTASKS_PER_NODE)) --ntasks-per-node="$SLURM_NTASKS_PER_NODE"  \
+./ringperf || echo "first step failed"
+
+# if something died, lets find the remaining healthy nodes and try again
+#
+find_healthy_nodes "$MIN" "$MAX" || exit 1
+srun --nodes="$HEALTHY_COUNT" --nodelist="$HEALTHY_NODES" --ntasks=$((HEALTHY_COUNT * SLURM_NTASKS_PER_NODE)) --ntasks-per-node="$SLURM_NTASKS_PER_NODE" \
+./ringperf || echo "second step failed"
+
+echo "reached the end"
