@@ -132,16 +132,6 @@ struct ColumnOffsets {
       kBegin.resize(nColumns);
       i.resize(nColumns);
       j.resize(nColumns);
-      // These vectors themselves are not in unified memory, just their content data
-      setColumnOffsets.optimizeGPU(stream);
-      setNumColumns.optimizeGPU(stream);
-      columnBlockOffsets.optimizeGPU(stream);
-      columnNumBlocks.optimizeGPU(stream);
-      minBlockK.optimizeGPU(stream);
-      maxBlockK.optimizeGPU(stream);
-      kBegin.optimizeGPU(stream);
-      i.optimizeGPU(stream);
-      j.optimizeGPU(stream);
       // Cached values
       colSize = nColumns;
       colSetSize = nColumnSets;
