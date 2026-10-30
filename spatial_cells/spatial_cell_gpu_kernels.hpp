@@ -301,6 +301,55 @@ __global__ void update_vmesh_and_blockparameters_kernel (
    }
 }
 
+/** GPU kernel for resizing vmesh GlobalToLocalMap and blockcontainer
+    based on vmesh localToGlobalMap contents (and size).
+    Also populates block parameters.
+    Assumes capacity is already large enough.
+ */
+__global__ void update_vmesh_and_blockparameters_multicell_kernel (
+   vmesh::VelocityMesh **dev_vmesh,
+   vmesh::VelocityBlockContainer **dev_blockContainer,
+   const uint *nLIDs, // newSize
+   const uint cellIterationOffset
+   ) {
+   //const int gpuBlocks = gridDim.x;
+   const int blocki = blockIdx.x;
+   const int cellIndex = blockIdx.y + cellIterationOffset;
+   const int blockSize = blockDim.x*blockDim.y*blockDim.z;
+   const uint ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
+   // if (dev_blockContainer[cellIndex]->size() != nLIDs[cellindex]) {
+   //    dev_blockContainer[cellIndex]->setNewSize(nLIDs[cellindex]);
+   // }
+
+   Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *map = dev_vmesh[cellIndex]->gpu_expose_map();
+   split::SplitVector<vmesh::GlobalID> *list = dev_vmesh[cellIndex]->getGrid();
+
+   #ifdef USE_WARPACCESSORS
+   const uint w_tid = ti % GPUTHREADS;
+   const vmesh::LocalID LID = ti/GPUTHREADS + blocki*blockSize;
+   #else
+   const uint w_tid = 0;
+   const vmesh::LocalID LID = ti + blocki*blockSize;
+   #endif
+
+   if (LID < nLIDs[cellIndex]) {
+      // Set velocity block parameters:
+      const vmesh::GlobalID GID = (*list)[LID];
+
+      #ifdef USE_WARPACCESSORS
+      // Add this GID to the velocity_block_with_content_map.
+      map->warpInsert_V<true>(GID,LID, w_tid);
+      #else
+      map->set_element<true>(GID,LID);
+      #endif
+      // Write in block parameters
+      if (w_tid==0) {
+         Real* blockParameters = dev_blockContainer[cellIndex]->getParameters(LID);
+         dev_vmesh[cellIndex]->getBlockInfo(GID, blockParameters + BlockParams::VXCRD);
+      }
+   }
+}
+
 /** Mini-kernel for checking list sizes and attempting to adjust vmesh and VBC size on-device */
 __global__ void resize_vbc_kernel_pre(
    vmesh::VelocityMesh *vmesh,
