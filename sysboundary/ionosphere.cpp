@@ -1765,12 +1765,12 @@ namespace SBC {
 
             if(rank==0) {
                cerr << "(IONOSPHERE) external input file longitude range: [" << lon_grid[0] << ".." << lon_grid[nlon-1] <<"]: ";
-               for(int i=0; i<nlon; i++) {
+               for(unsigned int i=0; i<nlon; i++) {
                   cerr << lon_grid[i] << ",";
                }
                cerr << endl;
                cerr << "(IONOSPHERE) external input file latitude range: [" << lat_grid[0] << ".." << lat_grid[nlat-1] <<"]: ";
-               for(int i=0; i<nlat; i++) {
+               for(unsigned int i=0; i<nlat; i++) {
                   cerr << lat_grid[i] << ",";
                }
                cerr << endl;
@@ -1832,15 +1832,14 @@ namespace SBC {
                   node_longitude += 360.;
                }
                for(j=0; j<nlon; j++) {
-                  if(node_longitude < lon_grid[(j+1)%nlon]) {
-                     unsigned int j2 = (j+1)%nlon;
-                     
-                     double l1 = lon_grid[j];
-                     double l2 = lon_grid[j2];
-                     if(l2 < l1) {
-                        // Wrap around
-                        l2 += 360.;
-                     } 
+                  unsigned int j2 = (j+1)%nlon;
+                  double l1 = lon_grid[j];
+                  double l2 = lon_grid[j2];
+                  if(l2 < l1) {
+                     // Wrap around across the 0/360 seam
+                     l2 += 360.;
+                  }
+                  if(node_longitude < l2) {
                      a = (node_longitude - l1) / (l2 - l1);
                      if(a > 1) {
                         cerr << "Node " << n << "lon = " << node_longitude << ", grid is " << l1 << ".." << l2 << endl;
@@ -1863,15 +1862,19 @@ namespace SBC {
                   //}
 
                   // Interpolate conductivities to the nodes
-                  sigmaH =(1.-a)*(1.-b)* sigmaHfromFile[i     * nlat + j] +
-                              a *(1.-b)* sigmaHfromFile[(i+1) * nlat + j] +
-                          (1.-a)*    b * sigmaHfromFile[i     * nlat + j+1] +
-                              a *    b * sigmaHfromFile[(i+1) * nlat + j+1];
+                  // File layout after hyperslab read {1,nlon,nlat,1} of GITM's
+                  // (time, lon, lat, lev) arrays is C order and longitude-major:
+                  // sigma*fromFile[lonIdx * nlat + latIdx]
+                  unsigned int jj = (j+1) % nlon; // Longitude wraps at the seam
+                  sigmaH =(1.-a)*(1.-b)* sigmaHfromFile[j  * nlat + i    ] +
+                              a *(1.-b)* sigmaHfromFile[jj * nlat + i    ] +
+                          (1.-a)*    b * sigmaHfromFile[j  * nlat + (i+1)] +
+                              a *    b * sigmaHfromFile[jj * nlat + (i+1)];
 
-                  sigmaP =(1.-a)*(1.-b)* sigmaPfromFile[i     * nlat + j] +
-                              a *(1.-b)* sigmaPfromFile[(i+1) * nlat + j] +
-                          (1.-a)*    b * sigmaPfromFile[i     * nlat + j+1] +
-                              a *    b * sigmaPfromFile[(i+1) * nlat + j+1];
+                  sigmaP =(1.-a)*(1.-b)* sigmaPfromFile[j  * nlat + i    ] +
+                              a *(1.-b)* sigmaPfromFile[jj * nlat + i    ] +
+                          (1.-a)*    b * sigmaPfromFile[j  * nlat + (i+1)] +
+                              a *    b * sigmaPfromFile[jj * nlat + (i+1)];
 
                   if(sigmaH < minH) {
                      minH = sigmaH;
