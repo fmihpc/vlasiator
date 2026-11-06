@@ -22,8 +22,8 @@ endif
 #======== Library directory ===========
 LIBRARY_PREFIX = $(CURDIR)/libraries-lumi_2503
 
-CMP = CC
-LNK = CC
+CMP = CC -fopenmp
+LNK = CC -fopenmp
 
 #======= Compiler and compilation flags =========
 # NOTES on compiler flags:
@@ -75,7 +75,7 @@ INC_VLSV = -I$(LIBRARY_PREFIX)/include
 LIB_VLSV = -lvlsv
 
 INC_PROFILE = -I$(LIBRARY_PREFIX)/include 
-LIB_PROFILE = -L$(LIBRARY_PREFIX)/lib -lphiprof -Wl,-rpath=$(LIBRARY_PREFIX)/lib
+LIB_PROFILE = -L$(LIBRARY_PREFIX)/lib -Wl,-rpath=$(LIBRARY_PREFIX)/lib -Wl,-rpath=/scratch/project_462001504/AndrewY/nesmik/lib64/
 
 #ASTERIX
 LIB_ZFP = -lzfp
