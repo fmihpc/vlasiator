@@ -151,9 +151,11 @@ void initializeGrids(
    if (!P::isRestart) {
       // Note call to project.refineSpatialCells below
       if (P::amrMaxSpatialRefLevel > 0 && project.refineSpatialCells(mpiGrid)) {
+	      phiprof::Timer postRefTimer{"(grid.cpp) post refineSpatialCells"};
          mpiGrid.balance_load();
          recalculateLocalCellsCache(mpiGrid);
          mapRefinement(mpiGrid, technical.view(), fsgrid);
+	 postRefTimer.stop();
       }
    } else {
       if (myRank == MASTER_RANK) logFile << "(INIT): Reading grid structure from " << P::restartFileName << endl << writeVerbose;
@@ -1111,6 +1113,7 @@ SHIFT_P_X   xo
 */
 
 void initializeStencils(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid){
+	phiprof::Timer timer{"(grid) initializeStencils"};
    // set reduced neighborhoods
    typedef dccrg::Types<3>::neighborhood_item_t neigh_t;
 

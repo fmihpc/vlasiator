@@ -597,6 +597,7 @@ namespace projects {
 
       std::vector<CellID> cells = getLocalCells();
 
+      phiprof::Timer L1timer{"(proj/Mag) L1 refinement."};
       // L1 refinement.
       if (P::amrMaxSpatialRefLevel > 0 && P::amrMaxAllowedSpatialRefLevel > 0) {
          //#pragma omp parallel for
@@ -623,10 +624,13 @@ namespace projects {
          }
          #endif //DEBUG_VLASIATOR
       }
+      L1timer.stop();
 
+      phiprof::Timer L2timer{"(proj/Mag) L2 refinement."};
       // L2 refinement.
       if (P::amrMaxSpatialRefLevel > 1 && P::amrMaxAllowedSpatialRefLevel > 1) {
          //#pragma omp parallel for
+	 // following loop seems to take negligible time
          for (uint i = 0; i < cells.size(); ++i) {
             CellID id = cells[i];
             std::array<double,3> xyz = mpiGrid.get_center(id);
@@ -650,7 +654,9 @@ namespace projects {
          #endif //DEBUG_VLASIATOR
 
       }
+      L2timer.stop();
 
+      phiprof::Timer L3timer{"(proj/Mag) L3 refinement."};
       // L3 refinement.
       if (P::amrMaxSpatialRefLevel > 2 && P::amrMaxAllowedSpatialRefLevel > 2) {
          //#pragma omp parallel for
@@ -676,6 +682,7 @@ namespace projects {
          }
          #endif //DEBUG_VLASIATOR
       }
+      L3timer.stop();
 
       // L4 refinement.
       if (P::amrMaxSpatialRefLevel > 3 && P::amrMaxAllowedSpatialRefLevel > 3) {
