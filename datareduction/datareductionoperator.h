@@ -201,6 +201,25 @@ namespace DRO {
       const Real *data;
    };
 
+   class DataReductionOperatorCellMomentSet: public DataReductionOperator {
+   public:
+      DataReductionOperatorCellMomentSet(const std::string& name,const unsigned int byteOffsetOfStruct,const unsigned int vectorSize, const std::string& RVT);
+      virtual ~DataReductionOperatorCellMomentSet();
+
+      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual std::string getName() const;
+      virtual bool reduceData(const SpatialCell* cell,char* buffer);
+      virtual bool reduceDiagnostic(const SpatialCell* cell,Real * result);
+      virtual bool setSpatialCell(const SpatialCell* cell);
+
+   protected:
+      uint _byteOffsetOfStruct;
+      uint vectorSize;
+      std::string variableName;
+      std::string _RVT;
+      const Real *data;
+   };
+
    class DataReductionOperatorDerivatives: public DataReductionOperatorCellParams {
    public:
       DataReductionOperatorDerivatives(const std::string& name,const unsigned int parameterIndex,const unsigned int vectorSize);

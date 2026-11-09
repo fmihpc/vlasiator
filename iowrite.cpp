@@ -36,6 +36,7 @@
 #include <algorithm>
 #include <limits>
 #include <initializer_list>
+#include "common.h"
 #include "object_wrapper.h"
 
 
@@ -2247,38 +2248,20 @@ bool writeRestart(
    // write out DROs we need for restarts
    DataReducer restartReducer;
 
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("densities",CellParams::RHOM,2));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("rhom",CellParams::RHOM,1));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("rhoq",CellParams::RHOQ,1));
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("pressure",CellParams::P_11,6));
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("bulkvelocities",CellParams::VX,3));
 
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("densities_dt2",CellParams::RHOM_DT2,2));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("rhom_dt2",CellParams::RHOM_DT2,1));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("rhoq_dt2",CellParams::RHOQ_DT2,1));
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("pressure_dt2",CellParams::P_11_DT2,6));
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("bulkvelocities_dt2",CellParams::VX_DT2,3));
 
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("densities_r",CellParams::RHOM_R,2));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("pressure_r",CellParams::P_11_R,6));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("bulkvelocities_r",CellParams::VX_R,3));
-
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("densities_v",CellParams::RHOM_V,2));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("pressure_v",CellParams::P_11_V,6));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("bulkvelocities_v",CellParams::VX_V,3));
-
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("densities_r_prev",CellParams::RHOM_R_PREV,2));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("pressure_r_prev",CellParams::P_11_R_PREV,6));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("bulkvelocities_r_prev",CellParams::VX_R_PREV,3));
-
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("densities_v_prev",CellParams::RHOM_V_PREV,2));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("pressure_v_prev",CellParams::P_11_V_PREV,6));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("bulkvelocities_v_prev",CellParams::VX_V_PREV,3));
-
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("densities_r_prev_prev",CellParams::RHOM_R_PREV_PREV,2));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("pressure_r_prev_prev",CellParams::P_11_R_PREV_PREV,6));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("bulkvelocities_r_prev_prev",CellParams::VX_R_PREV_PREV,3));
-
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("densities_v_prev_prev",CellParams::RHOM_V_PREV,2));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("pressure_v_prev_prev",CellParams::P_11_V_PREV_PREV,6));
-   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("bulkvelocities_v_prev_prev",CellParams::VX_V_PREV_PREV,3));
-
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellMomentSet("moments_r",0,13, "R"));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellMomentSet("moments_v",0,13, "V"));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellMomentSet("truemomentsvector",0,13 * P::tcInterpolationPoints, "ALL"));   
+  
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("timeclass",CellParams::TIMECLASS,1));
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("timeclass_dt",CellParams::TIMECLASSDT,1));
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("LB_weight",CellParams::LBWEIGHTCOUNTER,1));

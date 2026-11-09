@@ -88,29 +88,22 @@ void calculateCellMoments(
 void calculateInterpolatedVelocityMoments(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const int cp_rhom,
-   const int cp_vx,
-   const int cp_vy,
-   const int cp_vz,
    const int cp_rhoq,
    const int cp_p11,
-   const int cp_p22,
-   const int cp_p33,
-   const int cp_p23,
-   const int cp_p13,
-   const int cp_p12,
+   const int cp_vx,
    const int cp_t
 );
+
+void calculateTrueMomentsPostTranslation(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
+void calculateTrueMomentsPostAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
+
+void initializeTrueMomentSets(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
 
 /*!
   \brief Function for interpolating y(x) with y_0(x_0) and y_1(x_1) given.
 */
-double linearInterpolation(double x0, double y0, double x1, double y1, double x);
+Real interpolation(const std::vector<Real> x, const std::vector<Real> y, const Real t, const std::string interpolationType = "linear");
 
-double lagrangeInterpolation3(double x0, double y0, double x1, double y1, double x2, double y2, double x);
-
-double lagrangeInterpolation4(double x0, double y0, double x1, double y1, double x2, double y2, double x3, double y3, double x);
-
-double cubicHermiteSplineInterpolation(double x0, double y0, double x1, double y1, double x2, double y2, double x3, double y3, double x);
 
 /*!
   \brief Function for interpolating moments for field solver with moments from vlasov solver, combatible with timeclasses.
@@ -120,21 +113,12 @@ void interpolateMomentsForTimeclasses(
    const Real target_time,
    const int cp_rhom,
    const int cp_rhoq,
-   const int cp_p11,
-   const int cp_p22,
-   const int cp_p33,
-   const int cp_p23,
-   const int cp_p13,
-   const int cp_p12,
    const int cp_vx,
-   const int cp_vy,
-   const int cp_vz,
-   const int cp_t,
-   const bool dt2,
-   const bool lastUpdateWasTranslation
+   const int cp_p11,
+   const int cp_t
 );
 
-void updateParticlePopulations(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, const bool lastUpdateWasTranslation, const Real target_time);
+void updateParticlePopulations(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, const Real target_time);
 
 /*!
   \brief Compute 0th, 1st and 2nd velocity moments (RHO,VX,VY,VZ,P_11,P_22,P_33 and *_DT2) for all cells in the grid directly from distribution function. The simulation should be at a true time-step! This is at the moment only called at initialisation.
@@ -146,6 +130,5 @@ void calculateInitialVelocityMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_G
 /*!
   \brief Update _V_PREV buffers with the values from _V. Compatible with timeclass turns.
 */
-void updatePreviousVMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, bool isInitialization);
 
 #endif

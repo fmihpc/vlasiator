@@ -382,116 +382,28 @@ namespace SBC {
    ) {
       if (popID == 0) {
          if (copy_V_moments) {
-            to->parameters[CellParams::RHOM_V] = from->parameters[CellParams::RHOM_V];
-            to->parameters[CellParams::VX_V] = from->parameters[CellParams::VX_V];
-            to->parameters[CellParams::VY_V] = from->parameters[CellParams::VY_V];
-            to->parameters[CellParams::VZ_V] = from->parameters[CellParams::VZ_V];
-            to->parameters[CellParams::RHOQ_V] = from->parameters[CellParams::RHOQ_V];
-            to->parameters[CellParams::P_11_V] = from->parameters[CellParams::P_11_V];
-            to->parameters[CellParams::P_22_V] = from->parameters[CellParams::P_22_V];
-            to->parameters[CellParams::P_33_V] = from->parameters[CellParams::P_33_V];
-            to->parameters[CellParams::P_23_V] = from->parameters[CellParams::P_23_V];
-            to->parameters[CellParams::P_13_V] = from->parameters[CellParams::P_13_V];
-            to->parameters[CellParams::P_12_V] = from->parameters[CellParams::P_12_V];
-
-            to->parameters[CellParams::RHOM_V_PREV] = from->parameters[CellParams::RHOM_V_PREV];
-            to->parameters[CellParams::VX_V_PREV] = from->parameters[CellParams::VX_V_PREV];
-            to->parameters[CellParams::VY_V_PREV] = from->parameters[CellParams::VY_V_PREV];
-            to->parameters[CellParams::VZ_V_PREV] = from->parameters[CellParams::VZ_V_PREV];
-            to->parameters[CellParams::RHOQ_V_PREV] = from->parameters[CellParams::RHOQ_V_PREV];
-            to->parameters[CellParams::P_11_V_PREV] = from->parameters[CellParams::P_11_V_PREV];
-            to->parameters[CellParams::P_22_V_PREV] = from->parameters[CellParams::P_22_V_PREV];
-            to->parameters[CellParams::P_33_V_PREV] = from->parameters[CellParams::P_33_V_PREV];
-            to->parameters[CellParams::P_23_V_PREV] = from->parameters[CellParams::P_23_V_PREV];
-            to->parameters[CellParams::P_13_V_PREV] = from->parameters[CellParams::P_13_V_PREV];
-            to->parameters[CellParams::P_12_V_PREV] = from->parameters[CellParams::P_12_V_PREV];
-
-            to->parameters[CellParams::RHOM_V_PREV_PREV] = from->parameters[CellParams::RHOM_V_PREV_PREV];
-            to->parameters[CellParams::VX_V_PREV_PREV] = from->parameters[CellParams::VX_V_PREV_PREV];
-            to->parameters[CellParams::VY_V_PREV_PREV] = from->parameters[CellParams::VY_V_PREV_PREV];
-            to->parameters[CellParams::VZ_V_PREV_PREV] = from->parameters[CellParams::VZ_V_PREV_PREV];
-            to->parameters[CellParams::RHOQ_V_PREV_PREV] = from->parameters[CellParams::RHOQ_V_PREV_PREV];
-            to->parameters[CellParams::P_11_V_PREV_PREV] = from->parameters[CellParams::P_11_V_PREV_PREV];
-            to->parameters[CellParams::P_22_V_PREV_PREV] = from->parameters[CellParams::P_22_V_PREV_PREV];
-            to->parameters[CellParams::P_33_V_PREV_PREV] = from->parameters[CellParams::P_33_V_PREV_PREV];
-            to->parameters[CellParams::P_23_V_PREV_PREV] = from->parameters[CellParams::P_23_V_PREV_PREV];
-            to->parameters[CellParams::P_13_V_PREV_PREV] = from->parameters[CellParams::P_13_V_PREV_PREV];
-            to->parameters[CellParams::P_12_V_PREV_PREV] = from->parameters[CellParams::P_12_V_PREV_PREV];
-
+            to->moments_V = from->moments_V;
          } else {
-            to->parameters[CellParams::RHOM_R] = from->parameters[CellParams::RHOM_R];
-            to->parameters[CellParams::VX_R] = from->parameters[CellParams::VX_R];
-            to->parameters[CellParams::VY_R] = from->parameters[CellParams::VY_R];
-            to->parameters[CellParams::VZ_R] = from->parameters[CellParams::VZ_R];
-            to->parameters[CellParams::RHOQ_R] = from->parameters[CellParams::RHOQ_R];
-            to->parameters[CellParams::P_11_R] = from->parameters[CellParams::P_11_R];
-            to->parameters[CellParams::P_22_R] = from->parameters[CellParams::P_22_R];
-            to->parameters[CellParams::P_33_R] = from->parameters[CellParams::P_33_R];
-            to->parameters[CellParams::P_23_R] = from->parameters[CellParams::P_23_R];
-            to->parameters[CellParams::P_13_R] = from->parameters[CellParams::P_13_R];
-            to->parameters[CellParams::P_12_R] = from->parameters[CellParams::P_12_R];
-
-            to->parameters[CellParams::RHOM_R_PREV] = from->parameters[CellParams::RHOM_R_PREV];
-            to->parameters[CellParams::VX_R_PREV] = from->parameters[CellParams::VX_R_PREV];
-            to->parameters[CellParams::VY_R_PREV] = from->parameters[CellParams::VY_R_PREV];
-            to->parameters[CellParams::VZ_R_PREV] = from->parameters[CellParams::VZ_R_PREV];
-            to->parameters[CellParams::RHOQ_R_PREV] = from->parameters[CellParams::RHOQ_R_PREV];
-            to->parameters[CellParams::P_11_R_PREV] = from->parameters[CellParams::P_11_R_PREV];
-            to->parameters[CellParams::P_22_R_PREV] = from->parameters[CellParams::P_22_R_PREV];
-            to->parameters[CellParams::P_33_R_PREV] = from->parameters[CellParams::P_33_R_PREV];
-            to->parameters[CellParams::P_23_R_PREV] = from->parameters[CellParams::P_23_R_PREV];
-            to->parameters[CellParams::P_13_R_PREV] = from->parameters[CellParams::P_13_R_PREV];
-            to->parameters[CellParams::P_12_R_PREV] = from->parameters[CellParams::P_12_R_PREV];
-
-            to->parameters[CellParams::RHOM_R_PREV_PREV] = from->parameters[CellParams::RHOM_R_PREV_PREV];
-            to->parameters[CellParams::VX_R_PREV_PREV] = from->parameters[CellParams::VX_R_PREV_PREV];
-            to->parameters[CellParams::VY_R_PREV_PREV] = from->parameters[CellParams::VY_R_PREV_PREV];
-            to->parameters[CellParams::VZ_R_PREV_PREV] = from->parameters[CellParams::VZ_R_PREV_PREV];
-            to->parameters[CellParams::RHOQ_R_PREV_PREV] = from->parameters[CellParams::RHOQ_R_PREV_PREV];
-            to->parameters[CellParams::P_11_R_PREV_PREV] = from->parameters[CellParams::P_11_R_PREV_PREV];
-            to->parameters[CellParams::P_22_R_PREV_PREV] = from->parameters[CellParams::P_22_R_PREV_PREV];
-            to->parameters[CellParams::P_33_R_PREV_PREV] = from->parameters[CellParams::P_33_R_PREV_PREV];
-            to->parameters[CellParams::P_23_R_PREV_PREV] = from->parameters[CellParams::P_23_R_PREV_PREV];
-            to->parameters[CellParams::P_13_R_PREV_PREV] = from->parameters[CellParams::P_13_R_PREV_PREV];
-            to->parameters[CellParams::P_12_R_PREV_PREV] = from->parameters[CellParams::P_12_R_PREV_PREV];
-            
+            to->moments_R = from->moments_R;
          }
       }
 
       if(copyMomentsOnly) {
-         to->get_population(popID).RHO = from->get_population(popID).RHO;         
-         if (copy_V_moments) {
-            to->get_population(popID).RHO_V = from->get_population(popID).RHO_V;
-            to->get_population(popID).RHO_V_PREV = from->get_population(popID).RHO_V_PREV;
-            to->get_population(popID).RHO_V_PREV_PREV = from->get_population(popID).RHO_V_PREV_PREV;
-         } else {
-            to->get_population(popID).RHO_R = from->get_population(popID).RHO_R;
-            to->get_population(popID).RHO_R_PREV = from->get_population(popID).RHO_R_PREV;
-            to->get_population(popID).RHO_R_PREV_PREV = from->get_population(popID).RHO_R_PREV_PREV;
-         }
+         to->get_population(popID).RHO = from->get_population(popID).RHO;       
+         to->get_population(popID).T = from->get_population(popID).T;  
          for (uint i=0; i<3; i++) {
             to->get_population(popID).V[i] = from->get_population(popID).V[i];
-            if (copy_V_moments) {
-               to->get_population(popID).V_V[i] = from->get_population(popID).V_V[i];
-               to->get_population(popID).V_V_PREV[i] = from->get_population(popID).V_V_PREV[i];
-               to->get_population(popID).V_V_PREV_PREV[i] = from->get_population(popID).V_V_PREV_PREV[i];
-            } else {
-               to->get_population(popID).V_R[i] = from->get_population(popID).V_R[i];
-               to->get_population(popID).V_R_PREV[i] = from->get_population(popID).V_R_PREV[i];
-               to->get_population(popID).V_R_PREV_PREV[i] = from->get_population(popID).V_R_PREV_PREV[i];
-            }
          }
          for (uint i=0; i<6; i++) {
             to->get_population(popID).P[i] = from->get_population(popID).P[i];
-            if (copy_V_moments) {
-               to->get_population(popID).P_V[i] = from->get_population(popID).P_V[i];
-               to->get_population(popID).P_V_PREV[i] = from->get_population(popID).P_V_PREV[i];
-               to->get_population(popID).P_V_PREV_PREV[i] = from->get_population(popID).P_V_PREV_PREV[i];
-            } else {
-               to->get_population(popID).P_R[i] = from->get_population(popID).P_R[i];
-               to->get_population(popID).P_R_PREV[i] = from->get_population(popID).P_R_PREV[i];
-               to->get_population(popID).P_R_PREV_PREV[i] = from->get_population(popID).P_R_PREV_PREV[i];
-            }
+         }
+
+         to->get_population(popID).populationTrueMoments = from->get_population(popID).populationTrueMoments;
+
+         if (copy_V_moments) {
+            to->get_population(popID).moments_V = from->get_population(popID).moments_V;
+         } else {
+            to->get_population(popID).moments_R = from->get_population(popID).moments_R;
          }
       } else {
          to->set_population(from->get_population(popID), popID);

@@ -4138,22 +4138,23 @@ namespace SBC {
       calculateCellMoments(&templateCell, true, false, true);
 
       // WARNING Time-independence assumed here. Normal moments computed in setProjectCell
-      templateCell.parameters[CellParams::RHOM_R] = templateCell.parameters[CellParams::RHOM];
-      templateCell.parameters[CellParams::VX_R] = templateCell.parameters[CellParams::VX];
-      templateCell.parameters[CellParams::VY_R] = templateCell.parameters[CellParams::VY];
-      templateCell.parameters[CellParams::VZ_R] = templateCell.parameters[CellParams::VZ];
-      templateCell.parameters[CellParams::RHOQ_R] = templateCell.parameters[CellParams::RHOQ];
-      templateCell.parameters[CellParams::P_11_R] = templateCell.parameters[CellParams::P_11];
-      templateCell.parameters[CellParams::P_22_R] = templateCell.parameters[CellParams::P_22];
-      templateCell.parameters[CellParams::P_33_R] = templateCell.parameters[CellParams::P_33];
-      templateCell.parameters[CellParams::RHOM_V] = templateCell.parameters[CellParams::RHOM];
-      templateCell.parameters[CellParams::VX_V] = templateCell.parameters[CellParams::VX];
-      templateCell.parameters[CellParams::VY_V] = templateCell.parameters[CellParams::VY];
-      templateCell.parameters[CellParams::VZ_V] = templateCell.parameters[CellParams::VZ];
-      templateCell.parameters[CellParams::RHOQ_V] = templateCell.parameters[CellParams::RHOQ];
-      templateCell.parameters[CellParams::P_11_V] = templateCell.parameters[CellParams::P_11];
-      templateCell.parameters[CellParams::P_22_V] = templateCell.parameters[CellParams::P_22];
-      templateCell.parameters[CellParams::P_33_V] = templateCell.parameters[CellParams::P_33];
+
+      templateCell.moments_R.rhom = templateCell.parameters[CellParams::RHOM];
+      templateCell.moments_R.rhoq = templateCell.parameters[CellParams::RHOQ];
+      templateCell.moments_R.t = templateCell.parameters[CellParams::T];
+
+      templateCell.moments_V.rhom = templateCell.parameters[CellParams::RHOM];
+      templateCell.moments_V.rhoq = templateCell.parameters[CellParams::RHOQ];
+      templateCell.moments_V.t = templateCell.parameters[CellParams::T];
+      
+      for (uint i=0; i<3; i++) {
+         templateCell.moments_R.V[i] = templateCell.parameters[CellParams::VX+i];
+         templateCell.moments_V.V[i] = templateCell.parameters[CellParams::VX+i];
+      }
+      for (uint i=0; i<6; i++) {
+         templateCell.moments_R.P[i] = templateCell.parameters[CellParams::P_11+i];
+         templateCell.moments_V.P[i] = templateCell.parameters[CellParams::P_11+i];
+      }
    }
 
    void Ionosphere::setCellFromTemplate(SpatialCell* cell, const uint popID) {

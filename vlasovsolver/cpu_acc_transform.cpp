@@ -97,13 +97,13 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
 
    // scale rho for hall term, if user requests
    const Real EPSILON = 1e10 * numeric_limits<Real>::min();
-   const Real rhoq = spatial_cell->parameters[CellParams::RHOQ_V] + EPSILON;
+   const Real rhoq = spatial_cell->moments_V.rhoq + EPSILON;
    const Real hallRhoq =  (rhoq <= Parameters::hallMinimumRhoq ) ? Parameters::hallMinimumRhoq : rhoq ;
    const Real hallPrefactor = 1.0 / (physicalconstants::MU_0 * hallRhoq );
 
-   Eigen::Matrix<Real,3,1> bulk_velocity(spatial_cell->parameters[CellParams::VX_V],
-                                         spatial_cell->parameters[CellParams::VY_V],
-                                         spatial_cell->parameters[CellParams::VZ_V]);
+   Eigen::Matrix<Real,3,1> bulk_velocity(spatial_cell->moments_V.V[0],
+                                         spatial_cell->moments_V.V[1],
+                                         spatial_cell->moments_V.V[2]);
 
    // compute total transformation
    Transform<Real,3,Affine> total_transform(Matrix<Real, 4, 4>::Identity()); //CONTINUE

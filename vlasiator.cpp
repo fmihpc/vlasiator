@@ -906,8 +906,6 @@ int simulate(int argn,char* args[]) {
 
       propagateHalfTimer.stop();
 
-      updatePreviousVMoments(mpiGrid, true); // TODO Shouldn't this go after boundary update?
-
       // Apply boundary conditions
       if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration ) {
          phiprof::Timer updateBoundariesTimer {("update system boundaries (Vlasov post-acceleration)")};
@@ -921,20 +919,13 @@ int simulate(int argn,char* args[]) {
       calculateInterpolatedVelocityMoments( // This is fine for initial moments
          mpiGrid,
          CellParams::RHOM,
-         CellParams::VX,
-         CellParams::VY,
-         CellParams::VZ,
          CellParams::RHOQ,
          CellParams::P_11,
-         CellParams::P_22,
-         CellParams::P_33,
-         CellParams::P_23,
-         CellParams::P_13,
-         CellParams::P_12,
+         CellParams::VX,
          CellParams::T
       );
 
-      updateParticlePopulations(mpiGrid, false, 0);
+      initializeTrueMomentSets(mpiGrid);
 
       computeMomentsTimer.stop();
    } else { // if we are restaring, make sure global timeclass settings are set
@@ -1517,17 +1508,8 @@ int simulate(int argn,char* args[]) {
             CellParams::RHOM,
             CellParams::RHOQ,
             CellParams::P_11,
-            CellParams::P_22,
-            CellParams::P_33,
-            CellParams::P_23,
-            CellParams::P_13,
-            CellParams::P_12,
             CellParams::VX,
-            CellParams::VY,
-            CellParams::VZ,
-            CellParams::T,
-            false,
-            false
+            CellParams::T
          );
          timer.stop();
          addTimedBarrier("barrier-boundary-conditions");
@@ -1558,17 +1540,8 @@ int simulate(int argn,char* args[]) {
          CellParams::RHOM,
          CellParams::RHOQ,
          CellParams::P_11,
-         CellParams::P_22,
-         CellParams::P_33,
-         CellParams::P_23,
-         CellParams::P_13,
-         CellParams::P_12,
          CellParams::VX,
-         CellParams::VY,
-         CellParams::VZ,
-         CellParams::T,
-         false,
-         true
+         CellParams::T
       );
 
       interpolateMomentsForTimeclasses(
@@ -1577,20 +1550,11 @@ int simulate(int argn,char* args[]) {
          CellParams::RHOM_DT2,
          CellParams::RHOQ_DT2,
          CellParams::P_11_DT2,
-         CellParams::P_22_DT2,
-         CellParams::P_33_DT2,
-         CellParams::P_23_DT2,
-         CellParams::P_13_DT2,
-         CellParams::P_12_DT2,
          CellParams::VX_DT2,
-         CellParams::VY_DT2,
-         CellParams::VZ_DT2,
-         CellParams::T_DT2,
-         true,
-         true
+         CellParams::T_DT2
       );
 
-      updateParticlePopulations(mpiGrid, true, P::t);
+      updateParticlePopulations(mpiGrid, P::t);
 
       momentsTimer.stop();
 
@@ -1675,9 +1639,6 @@ int simulate(int argn,char* args[]) {
          globalflags::ionosphereJustSolved = true;
       }
 
-      // updating _V_PREV moments here, before _V moments are updated 
-      updatePreviousVMoments(mpiGrid, false);
-
       // Get the new timeghosts after translations
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          for (CellID c : getLocalCells()){
@@ -1712,28 +1673,17 @@ int simulate(int argn,char* args[]) {
          addTimedBarrier("barrier-boundary-conditions");
       }
 
-
-      //we interpolate here for output data reasons
       interpolateMomentsForTimeclasses(
          mpiGrid,
-         P::t+P::dt,
+         P::t + P::dt,
          CellParams::RHOM,
          CellParams::RHOQ,
          CellParams::P_11,
-         CellParams::P_22,
-         CellParams::P_33,
-         CellParams::P_23,
-         CellParams::P_13,
-         CellParams::P_12,
          CellParams::VX,
-         CellParams::VY,
-         CellParams::VZ,
-         CellParams::T,
-         false,
-         false
+         CellParams::T
       );
       
-      updateParticlePopulations(mpiGrid, false, P::t+P::dt);
+      updateParticlePopulations(mpiGrid, P::t+P::dt);
 
       // momentsTimer.stop();
 
