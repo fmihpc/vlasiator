@@ -20,6 +20,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#include <cstdint>
 #include <unordered_set>
 
 #include "spatial_cell_wrapper.hpp"
@@ -51,6 +52,41 @@ namespace spatial_cell {
       // reset spatial cell parameters
       for (unsigned int i = 0; i < CellParams::N_SPATIAL_CELL_PARAMS; i++) {
          this->parameters[i]=0.0;
+      }
+
+      this->moments_R.rhom = 0.0;
+      this->moments_V.rhom = 0.0; 
+
+      this->moments_R.rhoq = 0.0;      
+      this->moments_V.rhoq = 0.0;
+
+      this->moments_R.t = 0.0;
+      this->moments_V.t = 0.0;
+
+      for (uint coord=0; coord<3; coord++) {
+         this->moments_R.V[coord] = 0.0;
+         this->moments_V.V[coord] = 0.0;
+      }
+      for (uint coord=0; coord<6; coord++) {
+         this->moments_R.P[coord] = 0.0;
+         this->moments_V.P[coord] = 0.0;
+      }
+
+      // initialize moment sets to 0
+      for (uint p=0; p<(uint)P::tcInterpolationPoints; p++) {
+         this->cellTrueMoments.push_back(MomentSet());
+
+         this->cellTrueMoments[p].rhom = 0.0;
+         this->cellTrueMoments[p].rhoq = 0.0;
+
+         this->cellTrueMoments[p].t = 0.0;
+
+         for (uint coord=0; coord<3; coord++) {
+            this->cellTrueMoments[p].V[coord] = 0.0;
+         }
+         for (uint coord=0; coord<6; coord++) {
+            this->cellTrueMoments[p].P[coord] = 0.0;
+         }
       }
 
       // reset BVOL derivatives
@@ -113,6 +149,9 @@ namespace spatial_cell {
       for (unsigned int i=0; i<CellParams::N_SPATIAL_CELL_PARAMS; ++i) {
          parameters[i] = other.parameters[i];
       }
+      cellTrueMoments = other.cellTrueMoments;
+      moments_R = other.moments_R;
+      moments_V = other.moments_V;
       for (unsigned int i=0; i<WID3; ++i) {
          null_block_data[i] = 0.0;
       }
@@ -151,6 +190,9 @@ namespace spatial_cell {
       for (unsigned int i=0; i<CellParams::N_SPATIAL_CELL_PARAMS; ++i) {
          parameters[i] = other.parameters[i];
       }
+      cellTrueMoments = other.cellTrueMoments;
+      moments_R = other.moments_R;
+      moments_V = other.moments_V;
       for (unsigned int i=0; i<WID3; ++i) {
          null_block_data[i] = 0.0;
       }
@@ -322,6 +364,11 @@ namespace spatial_cell {
       std::vector<SpatialCell*> neighbor_ptrs;
       update_velocity_block_content_lists(popID, timeclass);
       adjust_velocity_blocks(neighbor_ptrs,popID,doDeleteEmpty,timeclass);
+   }
+
+   void SpatialCell::addNewMomentSet(const MomentSet momentSet) {
+      std::rotate(this->cellTrueMoments.begin(), this->cellTrueMoments.begin() + 1, this->cellTrueMoments.end());
+      this->cellTrueMoments.back() = momentSet;
    }
 
    /*!
@@ -841,6 +888,18 @@ namespace spatial_cell {
 
             displacements.push_back((uint8_t*) &(this->parameters[0]) - (uint8_t*) this);
             block_lengths.push_back(sizeof(Real) * CellParams::N_SPATIAL_CELL_PARAMS);
+
+            // also send here the cell's momentSets_R and _V and the vector of true moments
+
+            displacements.push_back((uint8_t*) &(this->moments_R) - (uint8_t*) this);
+            block_lengths.push_back(sizeof(MomentSet));
+
+            displacements.push_back((uint8_t*) &(this->moments_V) - (uint8_t*) this);
+            block_lengths.push_back(sizeof(MomentSet));
+
+            displacements.push_back((uint8_t*) &(this->cellTrueMoments[0]) - (uint8_t*) this);
+            block_lengths.push_back(sizeof(MomentSet) * this->cellTrueMoments.size());
+
          }
 
          // send spatial cell dimensions and coordinates

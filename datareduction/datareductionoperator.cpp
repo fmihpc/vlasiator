@@ -20,6 +20,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#include <cstddef>
 #include <cstdlib>
 #include <mpi.h>
 #include <iostream>
@@ -106,6 +107,64 @@ namespace DRO {
          }
       }
       data  = &(cell->parameters[_parameterIndex]);
+      return true;
+   }
+
+   DataReductionOperatorCellMomentSet::DataReductionOperatorCellMomentSet(const std::string& name,const unsigned int byteOffsetOfStruct,const unsigned int _vectorSize, const std::string& RVT) :
+      DataReductionOperator(), _byteOffsetOfStruct {byteOffsetOfStruct}, vectorSize {_vectorSize}, variableName {name}, _RVT {RVT} {}
+   DataReductionOperatorCellMomentSet::~DataReductionOperatorCellMomentSet() { }
+
+   bool DataReductionOperatorCellMomentSet::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& _vectorSize) const {
+      dataType = "float";
+      dataSize =  sizeof(Real);
+      _vectorSize = vectorSize;
+      return true;
+   }
+
+   std::string DataReductionOperatorCellMomentSet::getName() const {return variableName;}
+
+   bool DataReductionOperatorCellMomentSet::reduceData(const SpatialCell* cell,char* buffer) {
+      const char* ptr = reinterpret_cast<const char*>(data);
+      for (uint i = 0; i < vectorSize*sizeof(Real); ++i){
+         buffer[i] = ptr[i];
+      }
+      return true;
+   }
+
+   bool DataReductionOperatorCellMomentSet::reduceDiagnostic(const SpatialCell* cell,Real* buffer){
+      //If vectorSize is >1 it still works, we just give the first value and no other ones..
+      *buffer=data[0];
+      return true;
+   }
+   bool DataReductionOperatorCellMomentSet::setSpatialCell(const SpatialCell* cell) {
+      
+      const char* momentSetPtr;
+      // get pointer to the wanted moment set
+      if (_RVT == "R") {
+         momentSetPtr = reinterpret_cast<const char*>(&(cell->moments_R));      
+      } else if (_RVT == "V") {
+         momentSetPtr = reinterpret_cast<const char*>(&(cell->moments_V));      
+      } else if (_RVT == "LAST") {
+         momentSetPtr = reinterpret_cast<const char*>(&(cell->cellTrueMoments[cell->cellTrueMoments.size()-1]));      
+      } else if (_RVT == "ALL") {
+         momentSetPtr = reinterpret_cast<const char*>(&(cell->cellTrueMoments[0]));      
+      } else {
+         momentSetPtr = nullptr;
+         string message = "Invalid moment set specified!\n";
+         bailout(true, message, __FILE__, __LINE__);
+      }
+
+      const Real* momentPtr = reinterpret_cast<const Real*>(
+         momentSetPtr + _byteOffsetOfStruct
+      );
+
+      for (uint i=0; i<vectorSize; i++) {
+         if(!std::isfinite(momentPtr[i])) {
+            string message = "The DataReductionOperator " + this->getName() + " returned a nan or an inf in its " + std::to_string(i) + "-component.";
+            bailout(true, message, __FILE__, __LINE__);
+         }
+      }
+      data = momentPtr;
       return true;
    }
 
@@ -2318,10 +2377,12 @@ namespace DRO {
       epsilon = 0.0;
 
       // get rho and bulk speed
-      rho = cell->get_population(popID).RHO_V;
-      V0[0] = cell->get_population(popID).V_V[0];
-      V0[1] = cell->get_population(popID).V_V[1];
-      V0[2] = cell->get_population(popID).V_V[2];
+      rho = cell->get_population(popID).moments_V.rho;
+
+      for (uint i = 0; i<3; i++) {
+         V0[i] = cell->get_population(popID).moments_V.V[i];
+      }
+
 
       // calculate temperature from the pressure tensor
       Real PTensor[3] = {};

@@ -116,6 +116,7 @@ bool P::tcVMomentPropagation = false;
 int P::timeclassExactHaloExtent = 2;
 int P::timeclassOuterHaloExtent = 1;
 int P::timeclassFullHaloExtent = P::timeclassExactHaloExtent + P::timeclassOuterHaloExtent;
+int P::tcInterpolationPoints = 4;
 
 Realf P::tcBoxHalfWidthX = 2e7;
 Realf P::tcBoxHalfWidthY = 2e7;
@@ -435,6 +436,7 @@ bool P::addParameters() {
       "What interpolation method is used in moment Interpolation. -1 is cubic C^1 Hermite spline, 1 is linear, 2 is lagrange 2nd order, 3 is lagrange 3rd order.", 
       P::tcMomentInterpolationType);
    RP::add("timeclasses.tcVMomentPropagation", "If Vx, Vy, Vz moments are propagated, instead of being interpolated", P::tcVMomentPropagation);
+   RP::add("timeclasses.tcInterpolationPoints", "Number of TC interpolation points", P::tcInterpolationPoints);
    RP::add("timeclasses.timeclassExactHaloExtent", "Exact halo extent for timeclass halos", P::timeclassExactHaloExtent);
    RP::add("timeclasses.timeclassOuterHaloExtent", "Outer halo extent for timeclass halos", P::timeclassOuterHaloExtent);
    RP::add("timeclasses.tcDebugBox", "Use a forced timeclass box.", P::tcDebugBox);
