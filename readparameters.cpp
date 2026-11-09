@@ -354,6 +354,12 @@ void Readparameters::parse(std::vector<std::string>& invalid, std::vector<std::s
       const std::vector<std::string> tokens = make_tokens(argc-1, argv+1); // skip the program name in argv[0]
       configFileName = finalizeFileName(tokens);
 
+      if (!std::filesystem::is_regular_file(filename)) {
+         std::cerr << "The given filename is not a file!\n";
+         MPI_Finalize();
+         exit(1);
+      }
+
       applyConfigFile(configFileName, extras, invalid);
       applyArgTokens(tokens, extras, invalid, filenames);
       if (!extras && !invalid.empty()) {
