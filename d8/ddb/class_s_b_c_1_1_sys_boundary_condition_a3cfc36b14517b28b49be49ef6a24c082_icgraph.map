@@ -1,0 +1,5 @@
+<map id="SBC::SysBoundaryCondition::vlasovBoundaryCopyFromTheClosestL1OutflowNbr" name="SBC::SysBoundaryCondition::vlasovBoundaryCopyFromTheClosestL1OutflowNbr">
+<area shape="rect" id="Node000001" title=" " alt="" coords="267,5,539,67"/>
+<area shape="rect" id="Node000002" href="$d5/d71/class_s_b_c_1_1_outflow.html#a588e93aff17a561cc0705e806102b3eb" title=" " alt="" coords="5,14,219,58"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="248,36,219,39,219,34,254,36"/>
+</map>

@@ -1,0 +1,13 @@
+<map id="SBC::Ionosphere::getIndex" name="SBC::Ionosphere::getIndex">
+<area shape="rect" id="Node000001" title=" " alt="" coords="493,65,686,93"/>
+<area shape="rect" id="Node000002" href="$dd/d3d/class_sys_boundary.html#aae6f74a26c74f9541acf0537d82fb068" title="Get this class&#39; parameters." alt="" coords="234,5,445,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="512,62,400,36,401,31,517,61"/>
+<area shape="rect" id="Node000005" href="$da/d6b/class_s_b_c_1_1_ionosphere.html#a7accd9cc1e87f231e801de21f93fd136" title=" " alt="" coords="240,57,440,102"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="475,79,440,82,440,77,480,79"/>
+<area shape="rect" id="Node000006" href="$da/d6b/class_s_b_c_1_1_ionosphere.html#a66dd6c8d7e5b91522b6b05c51910d982" title=" " alt="" coords="243,126,436,171"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="525,97,423,128,422,123,520,98"/>
+<area shape="rect" id="Node000003" href="$d4/d5b/vlasiator_8cpp.html#acfd343080edd07ae79384688a7e48693" title=" " alt="" coords="108,5,186,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="216,20,187,22,186,17,221,18"/>
+<area shape="rect" id="Node000004" href="$d4/d5b/vlasiator_8cpp.html#a54790573f350e250ccca3cbb94733391" title=" " alt="" coords="5,5,60,33"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="90,21,61,22,59,17,94,17"/>
+</map>

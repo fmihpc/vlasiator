@@ -1,0 +1,9 @@
+<map id="projects::Dispersion::calcCellParameters" name="projects::Dispersion::calcCellParameters">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,40,160,85"/>
+<area shape="rect" id="Node000002" href="$db/d19/classprojects_1_1_project.html#a4edca85a367571de52d58b772c08191b" title=" " alt="" coords="210,5,358,50"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="159,46,197,42,192,44,161,52"/>
+<area shape="rect" id="Node000003" href="$db/d19/classprojects_1_1_project.html#ab9a03adce38eac8b87af5e07e3b0ebe1" title=" " alt="" coords="208,75,360,119"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="160,73,195,81,190,82,160,78"/>
+<area shape="rect" id="Node000004" href="$db/d19/classprojects_1_1_project.html#a9fa1ae6ea89d3e235f5ad25c5fe87e66" title=" " alt="" coords="408,75,542,119"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="360,94,395,97,390,97,360,100"/>
+</map>

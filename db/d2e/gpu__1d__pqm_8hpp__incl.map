@@ -1,0 +1,21 @@
+<map id="vlasovsolver/gpu_1d_pqm.hpp" name="vlasovsolver/gpu_1d_pqm.hpp">
+<area shape="rect" id="Node000001" title=" " alt="" coords="30,5,186,50"/>
+<area shape="rect" id="Node000002" href="$dc/d9d/arch__device__api_8h.html" title=" " alt="" coords="43,249,186,294"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="80,53,53,82,25,119,15,139,9,160,9,180,16,200,32,221,54,240,49,242,28,225,11,203,4,181,4,159,10,137,20,116,49,78,82,48"/>
+<area shape="rect" id="Node000005" href="$d7/d8b/gpu__slope__limiters_8hpp.html" title=" " alt="" coords="26,174,198,201"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="110,48,114,158,109,158,108,53"/>
+<area shape="rect" id="Node000006" href="$d3/d94/gpu__face__estimates_8hpp.html" title=" " alt="" coords="146,98,326,126"/>
+<area shape="poly" id="edge6_Node000001_Node000006" title=" " alt="" coords="142,48,205,88,200,90,142,53"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="221,342,291,370"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="153,292,223,333,218,335,151,297"/>
+<area shape="rect" id="Node000004" href="$d9/d13/arch__device__host_8h.html" title=" " alt="" coords="41,342,188,370"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="116,292,117,327,112,325,113,296"/>
+<area shape="poly" id="edge5_Node000005_Node000002" title=" " alt="" coords="113,199,116,234,111,233,111,204"/>
+<area shape="poly" id="edge11_Node000006_Node000002" title=" " alt="" coords="236,124,231,163,223,183,213,203,193,225,171,243,168,238,190,221,208,200,219,181,226,161,234,129"/>
+<area shape="poly" id="edge7_Node000006_Node000005" title=" " alt="" coords="212,128,149,168,145,163,216,124"/>
+<area shape="rect" id="Node000007" href="$d6/dc2/definitions_8h.html" title=" " alt="" coords="274,174,387,201"/>
+<area shape="poly" id="edge8_Node000006_Node000007" title=" " alt="" coords="253,124,305,164,299,164,253,129"/>
+<area shape="poly" id="edge9_Node000007_Node000003" title=" " alt="" coords="322,200,292,251,276,290,264,329,260,325,271,288,287,248,318,203"/>
+<area shape="rect" id="Node000008" title=" " alt="" coords="301,258,360,286"/>
+<area shape="poly" id="edge10_Node000007_Node000008" title=" " alt="" coords="332,200,333,244,328,241,329,204"/>
+</map>

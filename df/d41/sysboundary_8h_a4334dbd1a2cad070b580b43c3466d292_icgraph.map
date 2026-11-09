@@ -1,0 +1,18 @@
+<map id="getBoundaryCellList" name="getBoundaryCellList">
+<area shape="rect" id="Node000001" title=" " alt="" coords="978,44,1130,72"/>
+<area shape="rect" id="Node000002" href="$dd/d3d/class_sys_boundary.html#af6a2ecc415f39459e7579179de3ed66a" title="Apply the Vlasov system boundary conditions to all system boundary cells at time t." alt="" coords="393,5,628,50"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="960,54,628,37,628,32,965,53"/>
+<area shape="rect" id="Node000006" href="$dd/d3d/class_sys_boundary.html#af9e7b1e340c0ceab176430d67ae8637b" title=" " alt="" coords="676,65,930,110"/>
+<area shape="poly" id="edge6_Node000001_Node000006" title=" " alt="" coords="965,69,930,75,930,70,960,69"/>
+<area shape="rect" id="Node000003" href="$d7/d70/grid_8cpp.html#a9e9166bda148ddef07e30ac56e3b7085" title="Initialize DCCRG and fsgrids." alt="" coords="234,43,345,71"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="375,46,346,52,345,47,381,45"/>
+<area shape="rect" id="Node000004" href="$d4/d5b/vlasiator_8cpp.html#acfd343080edd07ae79384688a7e48693" title=" " alt="" coords="108,43,186,71"/>
+<area shape="poly" id="edge5_Node000002_Node000004" title=" " alt="" coords="375,23,306,27,234,34,187,46,186,41,234,29,306,22,380,22"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="215,57,187,60,186,54,221,57"/>
+<area shape="rect" id="Node000005" href="$d4/d5b/vlasiator_8cpp.html#a54790573f350e250ccca3cbb94733391" title=" " alt="" coords="5,43,60,71"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="89,58,61,60,59,54,94,56"/>
+<area shape="rect" id="Node000007" href="$d7/d70/grid_8cpp.html#ad1bdb09168de4bf51ffe7b6fada86915" title="Balance load." alt="" coords="459,74,562,102"/>
+<area shape="poly" id="edge7_Node000006_Node000007" title=" " alt="" coords="658,88,563,90,562,85,663,88"/>
+<area shape="poly" id="edge8_Node000007_Node000003" title=" " alt="" coords="441,79,346,67,346,62,446,78"/>
+<area shape="poly" id="edge9_Node000007_Node000004" title=" " alt="" coords="441,91,344,94,234,85,186,73,187,68,234,80,344,89,446,91"/>
+</map>

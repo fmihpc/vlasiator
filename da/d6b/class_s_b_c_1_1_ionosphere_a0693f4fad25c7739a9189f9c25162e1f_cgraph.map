@@ -1,0 +1,11 @@
+<map id="SBC::Ionosphere::initSysBoundary" name="SBC::Ionosphere::initSysBoundary">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,36,185,81"/>
+<area shape="rect" id="Node000002" href="$d8/ddb/class_s_b_c_1_1_sys_boundary_condition.html#a2548b1ca9fc2c8344aecf3855dcd587f" title=" " alt="" coords="233,5,435,50"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="185,44,220,42,214,43,186,49"/>
+<area shape="rect" id="Node000003" href="$d8/dbc/vectorclass__fallback_8h.html#a92b2075c51472d120e4ef0a663e3814b" title=" " alt="" coords="309,74,359,102"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="185,67,296,82,291,83,185,72"/>
+<area shape="rect" id="Node000004" href="$d7/d8b/class_vec_simple.html#a145923009b9b82410c5a072b8f8127f0" title=" " alt="" coords="483,74,617,102"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="359,85,470,88,465,88,359,90"/>
+<area shape="rect" id="Node000005" href="$d7/d8b/class_vec_simple.html#ae16798cf2ee14257d0706c60613cd733" title=" " alt="" coords="665,74,831,102"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="618,85,652,88,647,88,618,90"/>
+</map>

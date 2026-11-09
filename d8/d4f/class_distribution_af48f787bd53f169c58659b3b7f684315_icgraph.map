@@ -1,0 +1,23 @@
+<map id="Distribution::Distribution" name="Distribution::Distribution">
+<area shape="rect" id="Node000001" title=" " alt="" coords="452,177,633,205"/>
+<area shape="rect" id="Node000002" href="$db/d3e/class_kappa.html#af1e4545c6261d30abca85d03656b9a89" title=" " alt="" coords="237,31,348,58"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="516,165,468,119,436,94,403,74,376,62,349,55,348,50,377,57,405,69,440,90,471,115,522,166"/>
+<area shape="rect" id="Node000003" href="$db/d3e/class_kappa.html#af152dd21929a0a9d92fb498a29b6119b" title=" " alt="" coords="237,83,348,110"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="502,169,456,147,403,124,349,109,348,104,405,119,458,142,507,169"/>
+<area shape="rect" id="Node000008" href="$db/d12/class_maxwell___boltzmann.html#ad4e8ce5282880f42d2f8f359e6323520" title=" " alt="" coords="212,134,373,179"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="434,177,374,170,373,165,440,176"/>
+<area shape="rect" id="Node000009" href="$db/d12/class_maxwell___boltzmann.html#a33985183ca13ca57e74ac406445311ac" title=" " alt="" coords="212,204,373,248"/>
+<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="434,206,374,217,373,212,440,205"/>
+<area shape="rect" id="Node000010" href="$d9/d72/class_monoenergetic.html#aad7f236ea7dcdd21dd30f3e53f9ff787" title=" " alt="" coords="181,272,404,300"/>
+<area shape="poly" id="edge9_Node000001_Node000010" title=" " alt="" coords="507,212,458,240,405,263,369,274,367,269,403,258,456,235,502,214"/>
+<area shape="rect" id="Node000011" href="$d9/d72/class_monoenergetic.html#ac0fcf13f34fea9a094ac714736143a87" title=" " alt="" coords="181,324,404,352"/>
+<area shape="poly" id="edge10_Node000001_Node000011" title=" " alt="" coords="522,216,471,267,440,292,405,314,374,326,373,321,403,309,436,288,468,263,517,218"/>
+<area shape="rect" id="Node000004" href="$d5/d16/class_kappa2.html#acd442b27741d3e262edea0b3612f632c" title=" " alt="" coords="5,5,133,33"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="219,83,180,72,155,61,131,48,106,36,104,31,134,43,158,56,182,67,224,81"/>
+<area shape="rect" id="Node000005" href="$d5/d16/class_kappa2.html#a786c3c66aff9d1d8c47f596c18dd4f27" title=" " alt="" coords="5,57,133,85"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="219,90,134,81,132,76,223,87"/>
+<area shape="rect" id="Node000006" href="$d9/d76/class_kappa6.html#affbe2f73a1672f00889ba0a8f56efe8d" title=" " alt="" coords="5,109,133,137"/>
+<area shape="poly" id="edge5_Node000003_Node000006" title=" " alt="" coords="219,107,134,118,132,113,223,103"/>
+<area shape="rect" id="Node000007" href="$d9/d76/class_kappa6.html#aba684b9d3426d18c12100e21cc9ff54e" title=" " alt="" coords="5,161,133,189"/>
+<area shape="poly" id="edge6_Node000003_Node000007" title=" " alt="" coords="219,111,182,124,158,137,134,151,107,163,104,159,131,146,155,132,180,119,224,108"/>
+</map>

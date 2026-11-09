@@ -1,0 +1,57 @@
+\documentclass{article}
+\usepackage{iftex}
+\usepackage{ifthen}
+\usepackage{epsfig}
+\usepackage[utf8]{inputenc}
+\usepackage{xcolor}
+\color{white}
+\pagecolor{black}
+\ifPDFTeX
+\usepackage{newunicodechar}
+  \makeatletter
+    \def\doxynewunicodechar#1#2{%
+    \@tempswafalse
+    \edef\nuc@tempa{\detokenize{#1}}%
+    \if\relax\nuc@tempa\relax
+      \nuc@emptyargerr
+    \else
+      \edef\@tempb{\expandafter\@car\nuc@tempa\@nil}%
+      \nuc@check
+      \if@tempswa
+        \@namedef{u8:\nuc@tempa}{#2}%
+      \fi
+    \fi
+  }
+  \makeatother
+  \doxynewunicodechar{⁻}{${}^{-}$}% Superscript minus
+  \doxynewunicodechar{²}{${}^{2}$}% Superscript two
+  \doxynewunicodechar{³}{${}^{3}$}% Superscript three
+
+\fi
+\pagestyle{empty}
+\begin{document}
+$ p $
+\pagebreak
+
+$ p \neq 0 $
+\pagebreak
+
+$ \|X_1 - X_2\|_p = \left[\sum_i |X_1(i) - X_2(i)|^p\right]^{1/p}$
+\pagebreak
+
+$ \|X_1 - X_2\|_p = \left[\sum_i |X_1(i) - X_2(i)|^p\right]^{1/p} / \|X_1\|_p $
+\pagebreak
+
+$ p = 0 $
+\pagebreak
+
+$ \infty $
+\pagebreak
+
+$ \|X_1 - X_2\|_\infty = \max_i\left(|X_1(i) - X_2(i)|\right)$
+\pagebreak
+
+$ \|X_1 - X_2\|_\infty = \max_i\left(|X_1(i) - X_2(i)|\right) / \|X_1\|_\infty $
+\pagebreak
+
+\end{document}

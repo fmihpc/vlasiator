@@ -1,0 +1,11 @@
+<map id="SBC::Inflow::initSysBoundary" name="SBC::Inflow::initSysBoundary">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,44,213,72"/>
+<area shape="rect" id="Node000002" href="$de/d6a/class_s_b_c_1_1_inflow.html#a50f1c94a64073a2333fa0389dfcf8ba1" title=" " alt="" coords="261,5,480,50"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="213,43,248,42,242,43,214,49"/>
+<area shape="rect" id="Node000004" href="$de/d6a/class_s_b_c_1_1_inflow.html#aa89d0cf86c972cc898bec18b6d10235b" title=" " alt="" coords="274,74,467,102"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="213,67,261,75,256,75,213,73"/>
+<area shape="rect" id="Node000003" href="$d8/ddb/class_s_b_c_1_1_sys_boundary_condition.html#a2548b1ca9fc2c8344aecf3855dcd587f" title=" " alt="" coords="528,5,730,50"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="480,25,515,27,510,28,480,30"/>
+<area shape="rect" id="Node000005" href="$de/d6a/class_s_b_c_1_1_inflow.html#ae501081636f36cd11e53f0fb4d1d4d97" title=" " alt="" coords="553,74,705,102"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="467,85,540,88,535,88,467,90"/>
+</map>

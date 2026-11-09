@@ -1,0 +1,27 @@
+<map id="DRO::VariablePTensorThermalDiagonal::reduceData" name="DRO::VariablePTensorThermalDiagonal::reduceData">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,213,221,258"/>
+<area shape="rect" id="Node000002" href="$db/d48/namespace_d_r_o.html#a52d86cee7ef279930db199747125a464" title=" " alt="" coords="269,213,512,258"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="220,233,256,235,251,237,222,238"/>
+<area shape="rect" id="Node000003" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#ae0f93c317e351510eeaeaf8a57bf3f79" title=" " alt="" coords="583,5,772,50"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="406,211,467,137,510,96,559,60,572,55,568,58,561,65,514,100,471,141,409,215"/>
+<area shape="rect" id="Node000005" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a0a70ad5e1571d0fec973183d1b236682" title=" " alt="" coords="560,75,795,119"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="422,210,484,170,559,129,579,124,574,126,561,134,486,174,425,215"/>
+<area shape="rect" id="Node000006" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a1dc25bb724906fa5d6dd76096cb7b9a4" title=" " alt="" coords="591,144,764,189"/>
+<area shape="poly" id="edge6_Node000002_Node000006" title=" " alt="" coords="485,210,578,190,573,192,487,215"/>
+<area shape="rect" id="Node000007" href="$dd/df7/classvmesh_1_1_velocity_block_container.html#ab577ace09cdc66074a7cdc3d79394cfb" title=" " alt="" coords="566,213,790,258"/>
+<area shape="poly" id="edge8_Node000002_Node000007" title=" " alt="" coords="512,233,552,235,547,236,513,238"/>
+<area shape="rect" id="Node000008" href="$d4/d0b/ionosphere_solver_tests_2main_8cpp.html#a9bf4cdc41d466e8710b8aa33a33d32e0" title=" " alt="" coords="608,282,747,310"/>
+<area shape="poly" id="edge9_Node000002_Node000008" title=" " alt="" coords="501,256,596,278,591,278,500,261"/>
+<area shape="rect" id="Node000009" href="$dd/df7/classvmesh_1_1_velocity_block_container.html#ab492eded4908cb97927ddc54a0f3d9d3" title=" " alt="" coords="566,333,790,378"/>
+<area shape="poly" id="edge10_Node000002_Node000009" title=" " alt="" coords="432,256,493,288,561,319,582,328,576,328,559,323,490,292,432,261"/>
+<area shape="rect" id="Node000010" href="$d9/d6a/namespacearch.html#a8b44f7f5126702d29110d539cdfbd7e8" title=" " alt="" coords="599,402,756,430"/>
+<area shape="poly" id="edge11_Node000002_Node000010" title=" " alt="" coords="411,256,473,323,515,358,561,388,587,401,582,400,559,393,512,363,470,327,409,261"/>
+<area shape="rect" id="Node000004" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a0b5ae6d60c03a10b43a732a20bf20625" title=" " alt="" coords="843,75,1034,119"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="764,48,840,70,834,70,765,53"/>
+<area shape="poly" id="edge5_Node000005_Node000004" title=" " alt="" coords="795,94,830,96,825,98,797,100"/>
+<area shape="poly" id="edge7_Node000006_Node000004" title=" " alt="" coords="764,141,840,123,835,125,765,146"/>
+<area shape="rect" id="Node000011" href="$d9/d6a/namespacearch.html#a1abb9041b9a239a324e1644be2b0cc7e" title=" " alt="" coords="860,393,1017,438"/>
+<area shape="poly" id="edge12_Node000010_Node000011" title=" " alt="" coords="757,413,847,416,842,416,757,418"/>
+<area shape="rect" id="Node000012" href="$d9/d6a/namespacearch.html#aa41d352375890d1d4dcf7a0b7ede03c5" title=" " alt="" coords="1082,393,1251,438"/>
+<area shape="poly" id="edge13_Node000011_Node000012" title=" " alt="" coords="1017,413,1069,416,1064,416,1017,418"/>
+</map>

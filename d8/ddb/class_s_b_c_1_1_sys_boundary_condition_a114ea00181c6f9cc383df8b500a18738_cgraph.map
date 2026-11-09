@@ -1,0 +1,23 @@
+<map id="SBC::SysBoundaryCondition::vlasovBoundaryCopyFromAllClosestNbrs" name="SBC::SysBoundaryCondition::vlasovBoundaryCopyFromAllClosestNbrs">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,126,301,171"/>
+<area shape="rect" id="Node000002" href="$d9/df9/common_8cpp.html#a3ccffabea3435cf184592d88e6a470c8" title=" " alt="" coords="433,83,520,110"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="295,123,420,105,415,107,297,128"/>
+<area shape="rect" id="Node000003" href="$d4/de8/namespace_s_b_c.html#af17aaa1a3240e7366b450798a94d613f" title=" " alt="" coords="395,135,559,162"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="301,146,381,148,376,149,302,151"/>
+<area shape="rect" id="Node000008" href="$d8/ddb/class_s_b_c_1_1_sys_boundary_condition.html#a287db96725fef05e252a15c46492f3dc" title=" " alt="" coords="349,221,605,266"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="232,169,386,215,381,217,232,174"/>
+<area shape="rect" id="Node000004" href="$d6/dc2/definitions_8h.html#a2e8c5518a905b923f4fe0800f0928023" title=" " alt="" coords="704,5,775,33"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="559,139,582,131,603,120,620,102,627,83,634,62,651,42,669,32,692,26,687,28,672,37,655,47,639,65,632,85,624,105,607,124,584,136,560,144"/>
+<area shape="rect" id="Node000005" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#ac3e9c10c72c754b3ca8586d8811ad6d4" title=" " alt="" coords="653,57,826,102"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="553,131,604,119,655,107,660,106,606,124,554,137"/>
+<area shape="rect" id="Node000006" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a4530e51baa36317061126f602576f816" title=" " alt="" coords="653,126,826,171"/>
+<area shape="poly" id="edge5_Node000003_Node000006" title=" " alt="" coords="559,146,640,148,635,149,560,151"/>
+<area shape="rect" id="Node000007" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a168bfb50291c93e939ac6a85c616bd0f" title=" " alt="" coords="653,196,826,240"/>
+<area shape="poly" id="edge6_Node000003_Node000007" title=" " alt="" coords="532,160,641,191,635,191,532,166"/>
+<area shape="rect" id="Node000009" href="$d8/dbc/vectorclass__fallback_8h.html#a1896c5fbdb17de74189d1d18cdd4cf29" title=" " alt="" coords="716,264,763,292"/>
+<area shape="poly" id="edge8_Node000008_Node000009" title=" " alt="" coords="606,257,704,273,698,273,605,263"/>
+<area shape="rect" id="Node000010" href="$d7/d8b/class_vec_simple.html#a145923009b9b82410c5a072b8f8127f0" title=" " alt="" coords="874,264,1009,292"/>
+<area shape="poly" id="edge9_Node000009_Node000010" title=" " alt="" coords="763,275,862,278,856,278,763,280"/>
+<area shape="rect" id="Node000011" href="$d7/d8b/class_vec_simple.html#ae16798cf2ee14257d0706c60613cd733" title=" " alt="" coords="1057,264,1222,292"/>
+<area shape="poly" id="edge10_Node000010_Node000011" title=" " alt="" coords="1009,275,1044,278,1038,278,1009,280"/>
+</map>

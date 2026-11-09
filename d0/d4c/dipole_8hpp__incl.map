@@ -1,0 +1,20 @@
+<map id="backgroundfield/dipole.hpp" name="backgroundfield/dipole.hpp">
+<area shape="rect" id="Node000001" title=" " alt="" coords="100,5,298,33"/>
+<area shape="rect" id="Node000002" href="$de/dea/fieldfunction_8hpp.html" title=" " alt="" coords="134,81,264,109"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="200,31,202,66,197,65,198,36"/>
+<area shape="rect" id="Node000003" href="$db/d1a/functions_8hpp.html" title=" " alt="" coords="86,157,195,184"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="190,107,162,146,158,143,187,111"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="5,232,92,260"/>
+<area shape="poly" id="edge9_Node000002_Node000004" title=" " alt="" coords="148,111,111,130,92,143,76,158,60,187,53,218,48,216,55,185,72,155,89,139,108,125,152,107"/>
+<area shape="rect" id="Node000008" title=" " alt="" coords="220,157,299,184"/>
+<area shape="poly" id="edge7_Node000002_Node000008" title=" " alt="" coords="210,107,241,144,236,145,209,112"/>
+<area shape="rect" id="Node000009" title=" " alt="" coords="323,157,387,184"/>
+<area shape="poly" id="edge8_Node000002_Node000009" title=" " alt="" coords="227,107,316,149,311,151,227,112"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="123,187,78,225,75,221,126,183"/>
+<area shape="rect" id="Node000005" href="$d6/dc2/definitions_8h.html" title=" " alt="" coords="116,232,229,260"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="147,182,163,218,158,218,145,187"/>
+<area shape="rect" id="Node000006" title=" " alt="" coords="93,308,164,336"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="167,259,146,296,142,293,162,262"/>
+<area shape="rect" id="Node000007" title=" " alt="" coords="187,308,246,336"/>
+<area shape="poly" id="edge6_Node000005_Node000007" title=" " alt="" coords="182,258,204,295,198,294,179,263"/>
+</map>

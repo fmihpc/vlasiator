@@ -1,0 +1,13 @@
+<map id="SBC::getR" name="SBC::getR">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,57,91,85"/>
+<area shape="rect" id="Node000002" href="$d9/df9/common_8cpp.html#a3ccffabea3435cf184592d88e6a470c8" title=" " alt="" coords="139,5,226,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="85,54,132,37,128,41,87,59"/>
+<area shape="rect" id="Node000003" href="$d8/dbc/vectorclass__fallback_8h.html#a92b2075c51472d120e4ef0a663e3814b" title=" " alt="" coords="157,57,208,85"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="91,69,144,70,140,73,91,74"/>
+<area shape="rect" id="Node000006" href="$de/d31/_dispersion_8m.html#af276a2aede715061015c735080cf65df" title=" " alt="" coords="159,109,206,137"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="86,83,147,108,142,110,86,88"/>
+<area shape="rect" id="Node000004" href="$d7/d8b/class_vec_simple.html#a145923009b9b82410c5a072b8f8127f0" title=" " alt="" coords="274,57,408,85"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="208,69,261,71,256,72,208,74"/>
+<area shape="rect" id="Node000005" href="$d7/d8b/class_vec_simple.html#ae16798cf2ee14257d0706c60613cd733" title=" " alt="" coords="456,57,622,85"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="408,69,443,71,438,71,409,74"/>
+</map>

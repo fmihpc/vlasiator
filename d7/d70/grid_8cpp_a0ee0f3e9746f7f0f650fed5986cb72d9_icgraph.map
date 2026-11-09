@@ -1,0 +1,22 @@
+<map id="recalculateLocalCellsCache" name="recalculateLocalCellsCache">
+<area shape="rect" id="Node000001" title=" " alt="" coords="737,81,936,109"/>
+<area shape="rect" id="Node000002" href="$d7/d70/grid_8cpp.html#a7f1e42e11ccc6dccce8e4b9bd9d2f415" title=" " alt="" coords="393,5,527,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="777,76,688,54,605,39,527,28,527,23,605,33,690,49,782,76"/>
+<area shape="rect" id="Node000003" href="$d7/d70/grid_8cpp.html#a9e9166bda148ddef07e30ac56e3b7085" title="Initialize DCCRG and fsgrids." alt="" coords="234,95,345,122"/>
+<area shape="poly" id="edge12_Node000001_Node000003" title=" " alt="" coords="719,91,566,92,394,98,346,103,345,97,393,93,566,87,724,91"/>
+<area shape="rect" id="Node000006" href="$d7/d70/grid_8cpp.html#ad1bdb09168de4bf51ffe7b6fada86915" title="Balance load." alt="" coords="408,159,512,186"/>
+<area shape="poly" id="edge6_Node000001_Node000006" title=" " alt="" coords="789,115,740,134,690,148,596,164,512,172,512,167,595,159,688,143,739,129,784,116"/>
+<area shape="rect" id="Node000007" href="$de/deb/ioread_8cpp.html#a9aa38d9398d0a2c9a2e9d231e02203f1" title="Read in state from a vlsv file in order to restart simulations." alt="" coords="575,107,689,134"/>
+<area shape="poly" id="edge9_Node000001_Node000007" title=" " alt="" coords="724,109,690,116,689,111,719,110"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="417,39,395,54,317,97,314,92,392,49,413,41"/>
+<area shape="rect" id="Node000004" href="$d4/d5b/vlasiator_8cpp.html#acfd343080edd07ae79384688a7e48693" title=" " alt="" coords="108,95,186,122"/>
+<area shape="poly" id="edge5_Node000002_Node000004" title=" " alt="" coords="390,39,235,86,187,100,186,95,233,81,395,37"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="215,109,187,111,186,106,221,108"/>
+<area shape="rect" id="Node000005" href="$d4/d5b/vlasiator_8cpp.html#a54790573f350e250ccca3cbb94733391" title=" " alt="" coords="5,95,60,122"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="90,110,61,111,59,106,94,107"/>
+<area shape="poly" id="edge7_Node000006_Node000003" title=" " alt="" coords="404,153,328,125,329,120,409,153"/>
+<area shape="poly" id="edge8_Node000006_Node000004" title=" " alt="" coords="391,164,233,136,186,123,187,118,235,131,396,162"/>
+<area shape="rect" id="Node000008" href="$de/deb/ioread_8cpp.html#afff6cc7dffb5b49f5127ab47605ad6f0" title="Read in state from a vlsv file in order to restart simulations." alt="" coords="421,107,499,134"/>
+<area shape="poly" id="edge10_Node000007_Node000008" title=" " alt="" coords="557,121,499,123,499,118,562,120"/>
+<area shape="poly" id="edge11_Node000008_Node000003" title=" " alt="" coords="404,117,346,115,346,110,409,116"/>
+</map>

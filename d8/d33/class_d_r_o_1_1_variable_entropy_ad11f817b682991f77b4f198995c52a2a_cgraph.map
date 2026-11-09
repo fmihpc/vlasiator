@@ -1,0 +1,23 @@
+<map id="DRO::VariableEntropy::reduceData" name="DRO::VariableEntropy::reduceData">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,179,167,223"/>
+<area shape="rect" id="Node000002" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#ae0f93c317e351510eeaeaf8a57bf3f79" title=" " alt="" coords="238,5,427,50"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="100,177,146,119,178,87,213,60,226,55,222,59,216,65,181,91,150,122,104,180"/>
+<area shape="rect" id="Node000004" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a0a70ad5e1571d0fec973183d1b236682" title=" " alt="" coords="215,75,450,119"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="122,176,166,152,214,129,234,123,230,126,216,134,168,157,126,180"/>
+<area shape="rect" id="Node000005" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a1dc25bb724906fa5d6dd76096cb7b9a4" title=" " alt="" coords="246,144,419,189"/>
+<area shape="poly" id="edge5_Node000001_Node000005" title=" " alt="" coords="166,187,232,179,228,182,168,192"/>
+<area shape="rect" id="Node000006" href="$dd/df7/classvmesh_1_1_velocity_block_container.html#ab577ace09cdc66074a7cdc3d79394cfb" title=" " alt="" coords="220,213,444,258"/>
+<area shape="poly" id="edge7_Node000001_Node000006" title=" " alt="" coords="167,210,207,217,202,219,168,215"/>
+<area shape="rect" id="Node000007" href="$dd/df7/classvmesh_1_1_velocity_block_container.html#ab492eded4908cb97927ddc54a0f3d9d3" title=" " alt="" coords="220,283,444,327"/>
+<area shape="poly" id="edge8_Node000001_Node000007" title=" " alt="" coords="124,221,168,245,216,268,235,277,230,277,214,273,166,250,124,226"/>
+<area shape="rect" id="Node000008" href="$d9/d6a/namespacearch.html#a8b44f7f5126702d29110d539cdfbd7e8" title=" " alt="" coords="254,351,411,379"/>
+<area shape="poly" id="edge9_Node000001_Node000008" title=" " alt="" coords="102,221,149,281,180,312,216,337,242,351,236,350,213,342,177,316,145,284,101,226"/>
+<area shape="rect" id="Node000003" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a0b5ae6d60c03a10b43a732a20bf20625" title=" " alt="" coords="498,75,688,119"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="419,48,494,69,489,71,420,53"/>
+<area shape="poly" id="edge4_Node000004_Node000003" title=" " alt="" coords="450,94,485,96,480,98,451,100"/>
+<area shape="poly" id="edge6_Node000005_Node000003" title=" " alt="" coords="418,141,494,123,489,125,420,146"/>
+<area shape="rect" id="Node000009" href="$d9/d6a/namespacearch.html#a1abb9041b9a239a324e1644be2b0cc7e" title=" " alt="" coords="514,343,672,387"/>
+<area shape="poly" id="edge10_Node000008_Node000009" title=" " alt="" coords="411,362,502,365,496,365,412,368"/>
+<area shape="rect" id="Node000010" href="$d9/d6a/namespacearch.html#aa41d352375890d1d4dcf7a0b7ede03c5" title=" " alt="" coords="736,343,906,387"/>
+<area shape="poly" id="edge11_Node000009_Node000010" title=" " alt="" coords="672,362,724,365,718,365,672,368"/>
+</map>

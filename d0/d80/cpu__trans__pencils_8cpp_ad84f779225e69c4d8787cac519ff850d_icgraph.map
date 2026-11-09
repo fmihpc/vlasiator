@@ -1,0 +1,21 @@
+<map id="findNeighborhoodCells" name="findNeighborhoodCells">
+<area shape="rect" id="Node000001" title=" " alt="" coords="1007,56,1176,84"/>
+<area shape="rect" id="Node000002" href="$d0/d80/cpu__trans__pencils_8cpp.html#a3d161d64037fff7cd3d94ae3870790e7" title=" " alt="" coords="754,48,959,92"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="989,70,960,72,960,67,994,70"/>
+<area shape="rect" id="Node000003" href="$d7/d70/grid_8cpp.html#ac97e5f9a920c5a795a3dfc807ec15cac" title=" " alt="" coords="575,56,706,84"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="736,70,706,72,706,67,741,70"/>
+<area shape="rect" id="Node000004" href="$d7/d70/grid_8cpp.html#a7f1e42e11ccc6dccce8e4b9bd9d2f415" title=" " alt="" coords="393,5,527,33"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="571,51,512,36,512,31,577,51"/>
+<area shape="rect" id="Node000005" href="$d7/d70/grid_8cpp.html#a9e9166bda148ddef07e30ac56e3b7085" title="Initialize DCCRG and fsgrids." alt="" coords="234,56,345,84"/>
+<area shape="poly" id="edge11_Node000003_Node000005" title=" " alt="" coords="557,70,346,72,345,67,562,69"/>
+<area shape="rect" id="Node000008" href="$d7/d70/grid_8cpp.html#ad1bdb09168de4bf51ffe7b6fada86915" title="Balance load." alt="" coords="408,107,512,134"/>
+<area shape="poly" id="edge8_Node000003_Node000008" title=" " alt="" coords="577,88,512,109,511,103,571,89"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="399,37,339,58,338,53,394,39"/>
+<area shape="rect" id="Node000006" href="$d4/d5b/vlasiator_8cpp.html#acfd343080edd07ae79384688a7e48693" title=" " alt="" coords="108,56,186,84"/>
+<area shape="poly" id="edge7_Node000004_Node000006" title=" " alt="" coords="375,25,308,35,235,47,187,60,185,54,233,42,307,30,381,24"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="215,70,187,72,186,67,221,69"/>
+<area shape="rect" id="Node000007" href="$d4/d5b/vlasiator_8cpp.html#a54790573f350e250ccca3cbb94733391" title=" " alt="" coords="5,56,60,84"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="90,71,61,72,59,67,94,68"/>
+<area shape="poly" id="edge9_Node000008_Node000005" title=" " alt="" coords="394,102,338,87,339,82,399,102"/>
+<area shape="poly" id="edge10_Node000008_Node000006" title=" " alt="" coords="390,116,316,111,233,98,186,85,186,80,235,93,317,106,395,116"/>
+</map>

@@ -1,0 +1,36 @@
+<map id="SBC::SphericalTriGrid::solve" name="SBC::SphericalTriGrid::solve">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,169,163,214"/>
+<area shape="rect" id="Node000002" href="$d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#a69454c9f66f9fe884a4cb853a0df5214" title=" " alt="" coords="211,139,368,183"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="162,178,197,173,193,177,165,182"/>
+<area shape="rect" id="Node000010" href="$d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#aafc6eaeba1866e6ea6d08341aa2b3d7d" title=" " alt="" coords="678,264,835,309"/>
+<area shape="poly" id="edge9_Node000001_Node000010" title=" " alt="" coords="163,200,664,271,661,276,163,205"/>
+<area shape="rect" id="Node000003" href="$d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#a7120890dd640ec6076873bfcce3091fd" title=" " alt="" coords="416,109,620,154"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="367,148,403,146,398,148,370,153"/>
+<area shape="rect" id="Node000004" href="$d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#afdae6126de6c2ab1b13208ddeb4f0520" title=" " alt="" coords="668,40,845,85"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="596,106,665,89,660,91,598,111"/>
+<area shape="rect" id="Node000005" href="$d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#afbcfd8fe5bde206bebd221f733431367" title=" " alt="" coords="678,109,835,154"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="620,129,665,131,660,132,621,134"/>
+<area shape="rect" id="Node000006" href="$d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#a21cffde4ce9f0b0cba515f2ab52e7cef" title=" " alt="" coords="893,5,1050,50"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="819,106,843,95,867,78,891,60,899,59,904,56,894,65,870,82,846,99,821,111"/>
+<area shape="rect" id="Node000007" href="$d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#a22ce5b162f5a0d425247686b356c228f" title=" " alt="" coords="893,144,1050,189"/>
+<area shape="poly" id="edge6_Node000005_Node000007" title=" " alt="" coords="835,142,880,151,875,152,836,147"/>
+<area shape="rect" id="Node000009" href="$d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#a01fdb07b4e49a1adb404966d1f814e27" title=" " alt="" coords="893,75,1050,119"/>
+<area shape="poly" id="edge8_Node000005_Node000009" title=" " alt="" coords="835,116,880,111,875,113,836,122"/>
+<area shape="rect" id="Node000008" href="$de/d31/_dispersion_8m.html#af276a2aede715061015c735080cf65df" title=" " alt="" coords="1142,183,1188,211"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="1050,176,1130,191,1124,191,1051,181"/>
+<area shape="poly" id="edge12_Node000010_Node000007" title=" " alt="" coords="795,261,891,205,911,197,916,195,894,210,797,266"/>
+<area shape="poly" id="edge18_Node000010_Node000008" title=" " alt="" coords="835,263,892,249,1129,203,1124,204,893,254,836,268"/>
+<area shape="rect" id="Node000011" href="$d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#ae0aa9b8de44c78a2d822d1816916af03" title=" " alt="" coords="893,264,1050,309"/>
+<area shape="poly" id="edge10_Node000010_Node000011" title=" " alt="" coords="835,284,880,286,875,287,836,289"/>
+<area shape="rect" id="Node000012" href="$d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#ab0c808748c141f849bdddd512392c208" title=" " alt="" coords="893,333,1050,378"/>
+<area shape="poly" id="edge11_Node000010_Node000012" title=" " alt="" coords="828,307,888,328,883,328,828,312"/>
+<area shape="rect" id="Node000013" href="$d8/dbc/vectorclass__fallback_8h.html#a92b2075c51472d120e4ef0a663e3814b" title=" " alt="" coords="946,402,996,430"/>
+<area shape="poly" id="edge13_Node000010_Node000013" title=" " alt="" coords="783,306,833,348,894,388,934,406,929,405,891,393,829,352,781,312"/>
+<area shape="rect" id="Node000016" href="$d8/dbc/vectorclass__fallback_8h.html#a1896c5fbdb17de74189d1d18cdd4cf29" title=" " alt="" coords="948,454,994,482"/>
+<area shape="poly" id="edge16_Node000010_Node000016" title=" " alt="" coords="773,307,823,372,856,408,894,439,936,460,931,459,891,443,853,412,818,376,771,312"/>
+<area shape="rect" id="Node000014" href="$d7/d8b/class_vec_simple.html#a145923009b9b82410c5a072b8f8127f0" title=" " alt="" coords="1098,427,1232,455"/>
+<area shape="poly" id="edge14_Node000013_Node000014" title=" " alt="" coords="997,416,1085,430,1080,430,997,422"/>
+<area shape="rect" id="Node000015" href="$d7/d8b/class_vec_simple.html#ae16798cf2ee14257d0706c60613cd733" title=" " alt="" coords="1280,427,1446,455"/>
+<area shape="poly" id="edge15_Node000014_Node000015" title=" " alt="" coords="1233,438,1267,441,1262,441,1233,444"/>
+<area shape="poly" id="edge17_Node000016_Node000014" title=" " alt="" coords="995,462,1080,453,1085,452,995,467"/>
+</map>

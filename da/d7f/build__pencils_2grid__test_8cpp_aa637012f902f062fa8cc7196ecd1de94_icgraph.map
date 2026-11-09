@@ -1,0 +1,8 @@
+<map id="getMyChildren" name="getMyChildren">
+<area shape="rect" id="Node000001" title=" " alt="" coords="255,29,371,57"/>
+<area shape="rect" id="Node000002" href="$da/d7f/build__pencils_2grid__test_8cpp.html#a770580032385a8536160a52d28f9abc7" title=" " alt="" coords="108,29,207,57"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="237,43,207,46,207,41,242,43"/>
+<area shape="poly" id="edge2_Node000002_Node000002" title=" " alt="" coords="176,13,170,10,157,8,145,10,138,14,137,20,140,30,135,28,131,20,134,11,143,5,157,3,172,5,182,14"/>
+<area shape="rect" id="Node000003" href="$da/d7f/build__pencils_2grid__test_8cpp.html#a0ddf1224851353fc92bfbff6f499fa97" title=" " alt="" coords="5,29,60,57"/>
+<area shape="poly" id="edge3_Node000002_Node000003" title=" " alt="" coords="89,44,60,46,60,41,94,42"/>
+</map>

@@ -1,0 +1,15 @@
+<map id="spatial_cell::SpatialCell::get_velocity_grid_block_size" name="spatial_cell::SpatialCell::get_velocity_grid_block_size">
+<area shape="rect" id="Node000001" title=" " alt="" coords="539,75,755,119"/>
+<area shape="rect" id="Node000002" href="$dc/d2c/classprojects_1_1_tri_axis_search.html#a10106fe679bbce733a8f5692d667e5ad" title="Find blocks above the threshold centred isotropically around a bulk velocity." alt="" coords="308,40,476,85"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="521,81,477,76,477,71,526,80"/>
+<area shape="rect" id="Node000003" href="$d4/de8/namespace_s_b_c.html#a0cea5d5845a2d12ad49a0b3b048460be" title="SBC::findMaxwellianBlocksToInitialize returns a list of blocks to construct the VDF with." alt="" coords="294,109,491,154"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="521,114,492,121,491,116,526,113"/>
+<area shape="rect" id="Node000004" href="$dd/d8a/class_s_b_c_1_1_copysphere.html#a489a1683d7537fb427aafbb3528387b5" title=" " alt="" coords="26,5,225,50"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="303,103,292,99,268,82,244,65,218,53,217,48,247,60,271,77,295,95,308,103"/>
+<area shape="rect" id="Node000005" href="$da/d6b/class_s_b_c_1_1_ionosphere.html#a66dd6c8d7e5b91522b6b05c51910d982" title=" " alt="" coords="29,75,222,119"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="276,118,223,112,222,107,281,116"/>
+<area shape="rect" id="Node000006" href="$da/ddf/class_s_b_c_1_1_maxwellian.html#a833c7cf658faf049300eec716cc4b8c7" title="Generate the template cell for the face corresponding to the index passed. This function generates a ..." alt="" coords="27,144,224,189"/>
+<area shape="poly" id="edge5_Node000003_Node000006" title=" " alt="" coords="276,147,225,156,224,151,281,146"/>
+<area shape="rect" id="Node000007" href="$da/d6b/class_s_b_c_1_1_ionosphere.html#ac904b9ee61069aa1314aa2b638a2f4e9" title=" " alt="" coords="5,213,246,258"/>
+<area shape="poly" id="edge6_Node000003_Node000007" title=" " alt="" coords="337,161,247,203,213,215,211,210,245,199,332,162"/>
+</map>

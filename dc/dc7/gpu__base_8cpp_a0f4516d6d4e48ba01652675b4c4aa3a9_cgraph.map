@@ -1,0 +1,9 @@
+<map id="gpu_acc_allocate" name="gpu_acc_allocate">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,5,139,33"/>
+<area shape="rect" id="Node000002" href="$dc/dc7/gpu__base_8cpp.html#a270f24244eff686a05c8681b8b872b71" title=" " alt="" coords="187,5,390,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="139,17,173,19,168,19,139,22"/>
+<area shape="rect" id="Node000003" href="$dc/dc7/gpu__base_8cpp.html#ab486ab7b847223a57ec2238a3b25ced4" title=" " alt="" coords="438,5,558,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="390,17,425,19,420,19,390,22"/>
+<area shape="rect" id="Node000004" href="$dc/dc7/gpu__base_8cpp.html#ad379894802da0a7fb52e17ae9b0f897b" title=" " alt="" coords="606,5,725,33"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="559,17,593,19,588,19,559,22"/>
+</map>

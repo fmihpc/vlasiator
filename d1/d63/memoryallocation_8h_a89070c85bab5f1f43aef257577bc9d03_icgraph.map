@@ -1,0 +1,17 @@
+<map id="aligned_malloc" name="aligned_malloc">
+<area shape="rect" id="Node000001" title=" " alt="" coords="830,83,950,111"/>
+<area shape="rect" id="Node000002" href="$d8/dd1/classaligned__allocator.html#a19bc4b4eaaaa8db9ab48d06b0949e743" title=" " alt="" coords="596,5,782,50"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="830,78,756,53,756,48,836,78"/>
+<area shape="rect" id="Node000003" href="$db/df3/cpu__trans__map_8cpp.html#ad97321be498b1a9fd44b9c2414b4be01" title=" " alt="" coords="597,75,781,119"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="811,97,782,100,781,94,817,97"/>
+<area shape="rect" id="Node000004" href="$da/d92/cpu__trans__map__amr_8cpp.html#aec60d63aa106aaf578203f1246d85dc4" title=" " alt="" coords="597,144,781,189"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="836,116,757,146,755,141,831,117"/>
+<area shape="rect" id="Node000005" href="$d5/d5d/vlasovmover_8cpp.html#afbb2eb92643919d19733d48bada33359" title=" " alt="" coords="352,152,548,180"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="579,166,549,169,549,164,584,166"/>
+<area shape="rect" id="Node000006" href="$d5/d5d/vlasovmover_8cpp.html#aacc4f1870b12e805320d6b001af33133" title=" " alt="" coords="108,126,304,154"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="334,154,305,153,305,148,339,154"/>
+<area shape="rect" id="Node000007" href="$d4/d5b/vlasiator_8cpp.html#acfd343080edd07ae79384688a7e48693" title=" " alt="" coords="167,178,245,206"/>
+<area shape="poly" id="edge6_Node000005_Node000007" title=" " alt="" coords="339,178,246,190,245,185,334,178"/>
+<area shape="rect" id="Node000008" href="$d4/d5b/vlasiator_8cpp.html#a54790573f350e250ccca3cbb94733391" title=" " alt="" coords="5,178,60,206"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="151,194,60,194,60,189,151,189"/>
+</map>

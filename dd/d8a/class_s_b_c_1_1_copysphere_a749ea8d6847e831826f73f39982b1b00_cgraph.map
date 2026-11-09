@@ -1,0 +1,19 @@
+<map id="SBC::Copysphere::assignSysBoundary" name="SBC::Copysphere::assignSysBoundary">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,49,211,94"/>
+<area shape="rect" id="Node000002" href="$dd/d8a/class_s_b_c_1_1_copysphere.html#af5d9e8799d97d31347033e33480ba41e" title=" " alt="" coords="259,5,456,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="210,47,275,36,270,38,212,52"/>
+<area shape="rect" id="Node000003" href="$d4/d5b/vlasiator_8cpp.html#a0e89e9e9c29d929027088b0a8dd56585" title=" " alt="" coords="303,57,412,85"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="211,69,290,70,285,72,212,74"/>
+<area shape="rect" id="Node000004" href="$d4/de8/namespace_s_b_c.html#acff2a580e1234d2ba50d942108b5c1a4" title=" " alt="" coords="315,109,400,137"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="211,90,302,110,297,112,211,95"/>
+<area shape="rect" id="Node000005" href="$d9/df9/common_8cpp.html#a3ccffabea3435cf184592d88e6a470c8" title=" " alt="" coords="504,57,591,85"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="400,109,455,94,486,88,492,87,457,99,401,114"/>
+<area shape="rect" id="Node000006" href="$d8/dbc/vectorclass__fallback_8h.html#a92b2075c51472d120e4ef0a663e3814b" title=" " alt="" coords="522,109,573,137"/>
+<area shape="poly" id="edge5_Node000004_Node000006" title=" " alt="" coords="400,121,510,123,504,123,400,126"/>
+<area shape="rect" id="Node000009" href="$de/d31/_dispersion_8m.html#af276a2aede715061015c735080cf65df" title=" " alt="" coords="524,161,571,189"/>
+<area shape="poly" id="edge8_Node000004_Node000009" title=" " alt="" coords="401,132,512,165,507,165,400,137"/>
+<area shape="rect" id="Node000007" href="$d7/d8b/class_vec_simple.html#a145923009b9b82410c5a072b8f8127f0" title=" " alt="" coords="639,109,774,137"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="573,121,626,123,621,123,574,126"/>
+<area shape="rect" id="Node000008" href="$d7/d8b/class_vec_simple.html#ae16798cf2ee14257d0706c60613cd733" title=" " alt="" coords="822,109,987,137"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="774,121,809,123,803,123,774,126"/>
+</map>

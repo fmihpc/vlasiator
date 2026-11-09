@@ -1,0 +1,9 @@
+<map id="slope_limiter_minmod_amr" name="slope_limiter_minmod_amr">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,5,206,33"/>
+<area shape="rect" id="Node000002" href="$d8/dbc/vectorclass__fallback_8h.html#a1896c5fbdb17de74189d1d18cdd4cf29" title=" " alt="" coords="254,5,300,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="206,17,241,19,235,19,206,22"/>
+<area shape="rect" id="Node000003" href="$d7/d8b/class_vec_simple.html#a145923009b9b82410c5a072b8f8127f0" title=" " alt="" coords="348,5,482,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="301,17,335,19,330,19,301,22"/>
+<area shape="rect" id="Node000004" href="$d7/d8b/class_vec_simple.html#ae16798cf2ee14257d0706c60613cd733" title=" " alt="" coords="530,5,696,33"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="483,17,517,19,512,19,483,22"/>
+</map>

@@ -1,0 +1,92 @@
+<map id="vmesh::VelocityMesh::size" name="vmesh::VelocityMesh::size">
+<area shape="rect" id="Node000001" title=" " alt="" coords="1250,804,1411,849"/>
+<area shape="rect" id="Node000002" href="$dd/d0c/arch__moments_8cpp.html#a300b85f8883f7d99fb64048a34acf1d5" title=" " alt="" coords="1025,320,1191,348"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="1314,788,1267,663,1200,505,1154,416,1117,351,1119,346,1159,413,1205,503,1272,661,1319,790"/>
+<area shape="rect" id="Node000012" href="$db/d19/classprojects_1_1_project.html#afb2a412ae6cedce4e914650ea35b8f42" title="Set the perturbed fields and distribution of a cell according to the default simulation settings...." alt="" coords="779,519,913,563"/>
+<area shape="poly" id="edge49_Node000001_Node000012" title=" " alt="" coords="1322,787,1311,733,1289,666,1273,633,1253,601,1229,573,1201,550,1167,532,1131,520,1093,513,1054,510,979,514,915,525,912,520,978,509,1054,505,1093,508,1132,515,1169,527,1204,545,1233,569,1257,598,1277,630,1293,664,1316,732,1327,790"/>
+<area shape="rect" id="Node000017" href="$dd/d0c/arch__moments_8cpp.html#a33a1f4baa6be3ff197548d3e8353ffab" title=" " alt="" coords="767,707,924,735"/>
+<area shape="poly" id="edge23_Node000001_Node000017" title=" " alt="" coords="1304,791,1261,743,1233,720,1201,702,1180,696,1151,693,1079,694,926,711,924,706,1079,689,1151,688,1181,691,1203,697,1236,715,1264,739,1309,792"/>
+<area shape="rect" id="Node000020" href="$dd/d0c/arch__moments_8cpp.html#af61da976e7df283186c306e9e1aed8b7" title=" " alt="" coords="767,651,924,679"/>
+<area shape="poly" id="edge28_Node000001_Node000020" title=" " alt="" coords="1308,790,1290,762,1265,730,1236,701,1201,678,1167,664,1131,655,1056,645,984,646,921,653,919,648,983,641,1056,640,1132,649,1168,659,1204,673,1239,697,1269,727,1294,759,1313,791"/>
+<area shape="rect" id="Node000023" href="$dc/d39/classvmesh_1_1_velocity_mesh.html#a8746939efb3ba9a11cd2819047410526" title=" " alt="" coords="1028,916,1188,961"/>
+<area shape="poly" id="edge35_Node000001_Node000023" title=" " alt="" coords="1286,856,1204,906,1177,918,1175,913,1201,901,1281,858"/>
+<area shape="rect" id="Node000024" href="$dc/d39/classvmesh_1_1_velocity_mesh.html#a581fb60560bd48675e94c63e9ca0e192" title=" " alt="" coords="1028,985,1188,1030"/>
+<area shape="poly" id="edge36_Node000001_Node000024" title=" " alt="" coords="1309,860,1264,920,1236,949,1204,975,1183,987,1181,982,1201,971,1232,945,1260,916,1304,863"/>
+<area shape="rect" id="Node000025" href="$dc/d39/classvmesh_1_1_velocity_mesh.html#a3ef394141e4c5db6a41aa8e9e60e3c5c" title=" " alt="" coords="1028,1055,1188,1099"/>
+<area shape="poly" id="edge37_Node000001_Node000025" title=" " alt="" coords="1318,862,1301,906,1277,954,1244,1002,1204,1044,1186,1057,1184,1052,1201,1040,1240,999,1272,951,1297,904,1314,865"/>
+<area shape="rect" id="Node000026" href="$dc/d39/classvmesh_1_1_velocity_mesh.html#ac019d1441a3de3338e9d1fdbebd38bb4" title=" " alt="" coords="1028,1124,1188,1169"/>
+<area shape="poly" id="edge38_Node000001_Node000026" title=" " alt="" coords="1324,862,1311,919,1287,986,1252,1054,1230,1085,1204,1114,1187,1126,1185,1121,1201,1110,1226,1082,1248,1051,1282,983,1306,917,1320,866"/>
+<area shape="rect" id="Node000027" href="$dc/d39/classvmesh_1_1_velocity_mesh.html#aef78dd9f037373f0c133516f63dc6553" title=" " alt="" coords="1028,1193,1188,1238"/>
+<area shape="poly" id="edge39_Node000001_Node000027" title=" " alt="" coords="1328,862,1318,932,1297,1017,1281,1061,1260,1105,1235,1146,1204,1183,1188,1195,1186,1190,1200,1179,1231,1143,1255,1103,1276,1059,1292,1015,1313,931,1324,866"/>
+<area shape="rect" id="Node000028" href="$dc/d39/classvmesh_1_1_velocity_mesh.html#a4e886c9a02e1d2617bbcb9f9b487fcbc" title=" " alt="" coords="1028,1263,1188,1307"/>
+<area shape="poly" id="edge40_Node000001_Node000028" title=" " alt="" coords="1330,862,1325,944,1306,1047,1290,1102,1268,1156,1240,1207,1204,1252,1189,1265,1187,1260,1200,1248,1235,1204,1263,1153,1285,1100,1301,1045,1320,943,1327,866"/>
+<area shape="rect" id="Node000029" href="$db/db8/gpu__acc__map_8cpp.html#aba0515f11e02075756808f2acd4028fc" title="This function performs the semi&#45;Lagrangian acceleration for a provided list of spatial cells,..." alt="" coords="1042,812,1175,840"/>
+<area shape="poly" id="edge41_Node000001_Node000029" title=" " alt="" coords="1232,827,1176,829,1175,824,1237,826"/>
+<area shape="rect" id="Node000030" href="$d5/d9e/gpu__acc__semilag_8cpp.html#a2f3ac063bfdc2b3e88a844b929ff924a" title="Propagates the distribution function in velocity space of given list of real space cells using a semi..." alt="" coords="767,762,924,790"/>
+<area shape="poly" id="edge44_Node000001_Node000030" title=" " alt="" coords="1232,807,1202,804,1055,789,926,781,925,776,1055,783,1203,798,1238,806"/>
+<area shape="rect" id="Node000031" href="$da/d47/gpu__moments_8cpp.html#a9af60871305c35d9c64d8fcf6a137997" title=" " alt="" coords="1014,711,1202,739"/>
+<area shape="poly" id="edge45_Node000001_Node000031" title=" " alt="" coords="1276,796,1201,759,1156,742,1156,737,1203,755,1281,796"/>
+<area shape="rect" id="Node000032" href="$da/d47/gpu__moments_8cpp.html#a539efa95ca49c28ec1dcecb35c7425cc" title=" " alt="" coords="1014,559,1202,587"/>
+<area shape="poly" id="edge47_Node000001_Node000032" title=" " alt="" coords="1315,789,1298,748,1274,699,1241,650,1201,607,1172,590,1172,585,1204,603,1245,646,1278,696,1303,746,1320,791"/>
+<area shape="rect" id="Node000033" href="$da/d92/cpu__trans__map__amr_8cpp.html#a6f5bc1b63513193062e69487bb1fef80" title=" " alt="" coords="1035,864,1181,892"/>
+<area shape="poly" id="edge50_Node000001_Node000033" title=" " alt="" coords="1233,849,1171,866,1170,861,1238,848"/>
+<area shape="rect" id="Node000003" href="$d5/d5d/vlasovmover_8cpp.html#a96670c2221f80397fea84660fb97ff40" title="Compute 0th, 1st and 2nd velocity moments (RHO,VX,VY,VZ,P_11,P_22,P_33 and *_DT2) for all cells in th..." alt="" coords="476,453,645,498"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="1079,361,1032,401,1000,421,967,437,884,461,798,475,716,481,647,482,644,477,716,476,797,469,883,456,965,432,998,416,1029,397,1083,357"/>
+<area shape="rect" id="Node000004" href="$d7/d70/grid_8cpp.html#a9e9166bda148ddef07e30ac56e3b7085" title="Initialize DCCRG and fsgrids." alt="" coords="259,567,370,595"/>
+<area shape="poly" id="edge13_Node000002_Node000004" title=" " alt="" coords="1062,356,1018,377,967,393,915,400,850,403,698,404,621,405,550,411,489,423,465,432,445,443,433,454,426,465,420,489,414,515,408,529,397,543,379,558,359,568,355,565,376,553,393,539,403,526,409,514,415,488,421,463,429,450,442,439,463,427,488,418,549,406,621,400,698,398,850,398,915,395,965,388,1017,372,1066,354"/>
+<area shape="rect" id="Node000007" href="$db/d19/classprojects_1_1_project.html#af44d068807a3bc0122e4b2615d9272a7" title="Boxcar filters spatial cells that were recently refined." alt="" coords="779,283,913,327"/>
+<area shape="poly" id="edge6_Node000002_Node000007" title=" " alt="" coords="1007,324,914,315,913,310,1012,322"/>
+<area shape="rect" id="Node000009" href="$dd/d8a/class_s_b_c_1_1_copysphere.html#a489a1683d7537fb427aafbb3528387b5" title=" " alt="" coords="747,5,945,50"/>
+<area shape="poly" id="edge10_Node000002_Node000009" title=" " alt="" coords="1097,305,1081,254,1055,189,1016,122,992,91,964,64,946,52,945,46,968,60,996,87,1021,119,1060,186,1086,252,1103,306"/>
+<area shape="rect" id="Node000010" href="$da/d6b/class_s_b_c_1_1_ionosphere.html#a66dd6c8d7e5b91522b6b05c51910d982" title=" " alt="" coords="749,75,942,119"/>
+<area shape="poly" id="edge11_Node000002_Node000010" title=" " alt="" coords="1092,306,1073,268,1045,221,1008,174,964,134,943,121,942,116,968,130,1012,170,1049,218,1078,266,1098,307"/>
+<area shape="rect" id="Node000011" href="$da/ddf/class_s_b_c_1_1_maxwellian.html#a833c7cf658faf049300eec716cc4b8c7" title="Generate the template cell for the face corresponding to the index passed. This function generates a ..." alt="" coords="748,144,944,189"/>
+<area shape="poly" id="edge12_Node000002_Node000011" title=" " alt="" coords="1083,308,1033,256,1000,228,965,203,942,192,941,186,967,199,1004,223,1037,252,1089,308"/>
+<area shape="poly" id="edge14_Node000002_Node000012" title=" " alt="" coords="1090,359,1039,426,1005,461,967,493,915,521,912,517,965,488,1002,457,1035,423,1087,363"/>
+<area shape="rect" id="Node000014" href="$d7/d70/grid_8cpp.html#ab889fc28d268ff8b7f32654247817acb" title=" " alt="" coords="788,351,904,379"/>
+<area shape="poly" id="edge17_Node000002_Node000014" title=" " alt="" coords="1007,347,906,361,903,356,1012,345"/>
+<area shape="rect" id="Node000016" href="$da/d6b/class_s_b_c_1_1_ionosphere.html#ac904b9ee61069aa1314aa2b638a2f4e9" title=" " alt="" coords="726,213,966,258"/>
+<area shape="poly" id="edge22_Node000002_Node000016" title=" " alt="" coords="1062,314,965,273,932,261,931,256,967,268,1067,313"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="459,505,444,513,387,541,340,569,336,565,384,536,442,508,463,502"/>
+<area shape="rect" id="Node000005" href="$d4/d5b/vlasiator_8cpp.html#acfd343080edd07ae79384688a7e48693" title=" " alt="" coords="108,606,186,634"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="242,599,188,613,185,609,245,595"/>
+<area shape="rect" id="Node000006" href="$d4/d5b/vlasiator_8cpp.html#a54790573f350e250ccca3cbb94733391" title=" " alt="" coords="5,606,60,634"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="90,622,62,622,58,618,94,618"/>
+<area shape="rect" id="Node000008" href="$d7/d70/grid_8cpp.html#a7f1e42e11ccc6dccce8e4b9bd9d2f415" title=" " alt="" coords="494,299,627,327"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="761,309,629,314,627,309,766,306"/>
+<area shape="poly" id="edge8_Node000008_Node000004" title=" " alt="" coords="477,324,445,342,418,367,394,396,358,462,334,523,322,568,317,566,329,521,353,459,390,394,414,363,442,337,481,320"/>
+<area shape="poly" id="edge9_Node000008_Node000005" title=" " alt="" coords="477,330,444,342,380,367,331,389,286,418,236,464,207,501,184,540,155,606,150,605,179,538,203,498,232,461,283,414,328,385,378,362,442,337,481,326"/>
+<area shape="poly" id="edge16_Node000012_Node000004" title=" " alt="" coords="761,565,678,582,594,589,510,591,372,587,370,582,510,586,594,584,677,577,766,562"/>
+<area shape="rect" id="Node000013" href="$d5/d71/class_s_b_c_1_1_outflow.html#ad84f9747b6fc7215052b5b4940a59896" title=" " alt="" coords="468,523,653,567"/>
+<area shape="poly" id="edge15_Node000012_Node000013" title=" " alt="" coords="761,543,654,546,652,541,765,541"/>
+<area shape="poly" id="edge18_Node000014_Node000008" title=" " alt="" coords="770,353,628,328,627,323,775,351"/>
+<area shape="rect" id="Node000015" href="$d7/d70/grid_8cpp.html#ad1bdb09168de4bf51ffe7b6fada86915" title="Balance load." alt="" coords="509,351,612,379"/>
+<area shape="poly" id="edge19_Node000014_Node000015" title=" " alt="" coords="770,366,614,367,612,363,775,364"/>
+<area shape="poly" id="edge20_Node000015_Node000004" title=" " alt="" coords="492,376,469,386,445,399,424,424,390,473,327,568,323,566,385,470,419,421,442,395,467,381,496,373"/>
+<area shape="poly" id="edge21_Node000015_Node000005" title=" " alt="" coords="492,380,444,399,356,451,275,511,209,567,165,607,161,604,205,563,272,507,353,447,442,395,496,377"/>
+<area shape="rect" id="Node000018" href="$dd/d3d/class_sys_boundary.html#af6a2ecc415f39459e7579179de3ed66a" title="Apply the Vlasov system boundary conditions to all system boundary cells at time t." alt="" coords="443,643,678,687"/>
+<area shape="poly" id="edge24_Node000017_Node000018" title=" " alt="" coords="754,704,678,691,677,685,759,703"/>
+<area shape="rect" id="Node000019" href="$d5/d5d/vlasovmover_8cpp.html#aacc4f1870b12e805320d6b001af33133" title=" " alt="" coords="462,814,659,842"/>
+<area shape="poly" id="edge27_Node000017_Node000019" title=" " alt="" coords="750,740,727,753,713,764,704,777,695,791,679,803,651,816,649,811,676,799,691,787,700,774,709,761,724,748,754,737"/>
+<area shape="poly" id="edge25_Node000018_Node000004" title=" " alt="" coords="476,638,359,598,357,593,481,636"/>
+<area shape="poly" id="edge26_Node000018_Node000005" title=" " alt="" coords="426,652,188,626,186,621,430,649"/>
+<area shape="poly" id="edge29_Node000020_Node000018" title=" " alt="" coords="749,666,679,668,677,662,754,664"/>
+<area shape="rect" id="Node000021" href="$d5/d5d/vlasovmover_8cpp.html#a95b050f52235f371f937b7746c575025" title=" " alt="" coords="480,762,641,790"/>
+<area shape="poly" id="edge30_Node000020_Node000021" title=" " alt="" coords="751,685,727,698,713,709,704,721,694,734,679,746,638,763,635,759,676,741,691,730,699,718,709,705,724,693,755,682"/>
+<area shape="rect" id="Node000022" href="$d5/d5d/vlasovmover_8cpp.html#a72de3eb0ed9d5985acc51e471edfb808" title=" " alt="" coords="234,711,395,739"/>
+<area shape="poly" id="edge34_Node000020_Node000022" title=" " alt="" coords="767,684,678,702,528,718,397,725,395,720,528,712,677,697,772,682"/>
+<area shape="poly" id="edge32_Node000021_Node000004" title=" " alt="" coords="519,754,442,702,377,645,330,598,330,593,380,641,445,698,525,753"/>
+<area shape="poly" id="edge33_Node000021_Node000005" title=" " alt="" coords="462,791,409,794,349,790,289,777,233,753,202,727,178,694,161,661,153,636,153,631,166,659,182,691,205,723,235,748,290,772,350,784,409,789,467,788"/>
+<area shape="poly" id="edge31_Node000021_Node000022" title=" " alt="" coords="473,759,386,742,384,737,478,757"/>
+<area shape="poly" id="edge42_Node000029_Node000030" title=" " alt="" coords="1023,811,921,793,921,787,1029,810"/>
+<area shape="poly" id="edge43_Node000030_Node000021" title=" " alt="" coords="749,777,642,778,641,773,754,775"/>
+<area shape="poly" id="edge46_Node000031_Node000017" title=" " alt="" coords="996,724,925,725,924,720,1001,723"/>
+<area shape="poly" id="edge48_Node000032_Node000020" title=" " alt="" coords="1048,594,1015,608,888,653,886,648,1013,602,1053,591"/>
+<area shape="rect" id="Node000034" href="$d5/d5d/vlasovmover_8cpp.html#abd17456fd1479e26bc468ec9f84f89ab" title=" " alt="" coords="729,814,963,842"/>
+<area shape="poly" id="edge51_Node000033_Node000034" title=" " alt="" coords="1017,862,922,845,921,839,1022,861"/>
+<area shape="rect" id="Node000035" href="$d5/d5d/vlasovmover_8cpp.html#afbb2eb92643919d19733d48bada33359" title=" " alt="" coords="748,866,944,894"/>
+<area shape="poly" id="edge53_Node000033_Node000035" title=" " alt="" coords="1017,879,945,882,944,877,1022,878"/>
+<area shape="poly" id="edge52_Node000034_Node000019" title=" " alt="" coords="711,829,660,830,658,825,716,827"/>
+<area shape="poly" id="edge55_Node000035_Node000005" title=" " alt="" coords="738,897,626,906,560,905,491,898,422,886,354,866,290,837,232,798,214,779,198,758,173,712,157,668,151,637,151,631,162,666,178,710,202,755,218,776,236,794,293,832,356,861,423,881,492,893,560,899,626,900,743,895"/>
+<area shape="poly" id="edge54_Node000035_Node000019" title=" " alt="" coords="748,863,641,845,640,840,753,862"/>
+</map>

@@ -1,0 +1,5 @@
+<map id="bailout" name="bailout">
+<area shape="rect" id="Node000001" title="A function to stop the simulation if the boolean condition is true. Raises a flag which gets MPI_Redu..." alt="" coords="5,5,72,33"/>
+<area shape="rect" id="Node000002" href="$d9/df9/common_8cpp.html#a6167b9f510c4eef8b16fa67bf3d5566e" title="A function to stop the simulation if the boolean condition is true. Raises a flag which gets MPI_Redu..." alt="" coords="120,5,186,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="72,17,107,19,101,20,72,22"/>
+</map>

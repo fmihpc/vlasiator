@@ -1,0 +1,106 @@
+<map id="vmesh::VelocityBlockContainer::getParameters" name="vmesh::VelocityBlockContainer::getParameters">
+<area shape="rect" id="Node000001" title=" " alt="" coords="1053,862,1277,907"/>
+<area shape="rect" id="Node000002" href="$d6/dd0/namespacespatial__cell.html#a09abe82eda5dfaf3d086bc260783b0cf" title=" " alt="" coords="784,206,960,251"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="1156,846,1137,716,1105,541,1084,453,1059,374,1032,309,1018,284,1003,265,983,250,962,240,960,235,986,246,1007,261,1022,281,1037,306,1064,372,1089,452,1110,540,1143,715,1161,847"/>
+<area shape="rect" id="Node000003" href="$db/d0f/cpu__acc__map_8cpp.html#a8c90dd9e31d52e181a30076b9a170b16" title=" " alt="" coords="805,275,939,302"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="1156,846,1136,726,1102,566,1081,486,1057,414,1031,356,1003,317,973,299,940,291,938,286,975,294,1006,313,1036,353,1062,412,1086,485,1108,565,1141,725,1161,848"/>
+<area shape="rect" id="Node000012" href="$d8/d6b/arch__moments_8h.html#ab616c26d5769b0e1425c4a41a2749a5d" title=" " alt="" coords="773,327,971,354"/>
+<area shape="poly" id="edge5_Node000001_Node000012" title=" " alt="" coords="1162,846,1156,750,1148,687,1135,620,1115,551,1087,484,1050,423,1003,369,987,358,972,350,970,345,990,354,1006,365,1055,419,1092,482,1120,550,1140,619,1154,687,1162,749,1167,848"/>
+<area shape="rect" id="Node000029" href="$d8/d6b/arch__moments_8h.html#a4ca86baf13cf6ffae8bea8b8bc14c850" title=" " alt="" coords="764,379,980,406"/>
+<area shape="poly" id="edge20_Node000001_Node000029" title=" " alt="" coords="1160,846,1152,758,1143,702,1129,642,1109,581,1082,522,1047,467,1003,420,981,405,980,400,1006,416,1051,464,1086,519,1113,579,1134,641,1148,701,1157,758,1165,848"/>
+<area shape="rect" id="Node000030" href="$db/d48/namespace_d_r_o.html#a52d86cee7ef279930db199747125a464" title=" " alt="" coords="750,430,994,475"/>
+<area shape="poly" id="edge24_Node000001_Node000030" title=" " alt="" coords="1157,846,1144,772,1117,675,1097,624,1071,575,1040,529,1003,489,988,478,988,473,1006,485,1045,526,1076,572,1102,622,1122,673,1149,770,1162,848"/>
+<area shape="rect" id="Node000033" href="$db/d48/namespace_d_r_o.html#a52c6728e661e56288611a96cf1c25d80" title=" " alt="" coords="741,500,1003,544"/>
+<area shape="poly" id="edge27_Node000001_Node000033" title=" " alt="" coords="1153,846,1136,784,1107,706,1087,665,1063,626,1035,590,1003,559,987,547,987,542,1006,554,1039,586,1068,623,1092,663,1112,704,1142,783,1159,848"/>
+<area shape="rect" id="Node000036" href="$dd/dd9/arch__dt_8cpp.html#a91c3d47e8a99bd266434965800f07a53" title=" " alt="" coords="804,568,940,596"/>
+<area shape="poly" id="edge30_Node000001_Node000036" title=" " alt="" coords="1151,847,1132,794,1101,728,1059,663,1033,634,1003,609,973,594,941,586,939,581,975,589,1006,605,1036,630,1063,660,1106,726,1136,792,1156,848"/>
+<area shape="rect" id="Node000038" href="$de/db3/class_d_r_o_1_1_variable_energy_density.html#afaf7b171c44df092dcb2e7f9affe02ee" title=" " alt="" coords="769,620,975,664"/>
+<area shape="poly" id="edge32_Node000001_Node000038" title=" " alt="" coords="1143,848,1120,809,1088,763,1049,717,1003,679,976,664,975,659,1006,674,1053,713,1093,760,1125,807,1148,849"/>
+<area shape="rect" id="Node000039" href="$d8/d33/class_d_r_o_1_1_variable_entropy.html#ad11f817b682991f77b4f198995c52a2a" title=" " alt="" coords="791,689,953,734"/>
+<area shape="poly" id="edge33_Node000001_Node000039" title=" " alt="" coords="1131,851,1075,799,1041,771,1003,748,954,729,952,723,1006,743,1044,767,1079,795,1136,851"/>
+<area shape="rect" id="Node000040" href="$d9/d02/class_d_r_o_1_1_variable_heat_flux_vector.html#a757f682124a3be8ede1aed44a9b3942f" title=" " alt="" coords="766,758,978,803"/>
+<area shape="poly" id="edge34_Node000001_Node000040" title=" " alt="" coords="1100,856,1004,818,968,806,967,801,1006,813,1105,855"/>
+<area shape="rect" id="Node000041" href="$d5/dc9/class_d_r_o_1_1_variable_mu_space.html#a6428de05a5d75559e5731c55e0b5fdc9" title=" " alt="" coords="787,828,957,872"/>
+<area shape="poly" id="edge35_Node000001_Node000041" title=" " alt="" coords="1034,870,959,862,957,857,1039,868"/>
+<area shape="rect" id="Node000042" href="$d6/d12/class_d_r_o_1_1_variable_non_maxwellianess.html#a76d29e525750d7e05ac4422a578ffda7" title=" " alt="" coords="755,897,989,942"/>
+<area shape="poly" id="edge36_Node000001_Node000042" title=" " alt="" coords="1035,901,991,908,989,903,1040,898"/>
+<area shape="rect" id="Node000043" href="$db/d16/class_d_r_o_1_1_variable_non_maxwellianity.html#ab022303e10bc89144e83952b581bb0ef" title=" " alt="" coords="757,966,987,1011"/>
+<area shape="poly" id="edge37_Node000001_Node000043" title=" " alt="" coords="1100,915,1006,956,969,968,966,963,1004,951,1105,912"/>
+<area shape="rect" id="Node000044" href="$dd/d55/class_d_r_o_1_1_variable_precipitation_diff_flux.html#ab196e65f7820268554e89a1614c82b7b" title=" " alt="" coords="775,1036,969,1080"/>
+<area shape="poly" id="edge38_Node000001_Node000044" title=" " alt="" coords="1136,916,1079,974,1044,1002,1006,1026,971,1040,968,1036,1003,1021,1041,998,1075,970,1132,920"/>
+<area shape="rect" id="Node000045" href="$db/d62/class_d_r_o_1_1_variable_precipitation_line_diff_flux.html#af93f48e206bc3ea61dc1d10490cd5539" title=" " alt="" coords="775,1105,969,1150"/>
+<area shape="poly" id="edge39_Node000001_Node000045" title=" " alt="" coords="1147,919,1125,962,1093,1009,1053,1056,1006,1095,971,1112,968,1108,1003,1090,1049,1052,1088,1006,1120,960,1144,923"/>
+<area shape="rect" id="Node000046" href="$de/dfd/class_d_r_o_1_1_variable_p_tensor_diagonal.html#ad1a2db2e02752d3b2692ae3dd7e88cef" title=" " alt="" coords="762,1174,982,1219"/>
+<area shape="poly" id="edge40_Node000001_Node000046" title=" " alt="" coords="1154,920,1135,977,1104,1042,1062,1108,1036,1138,1006,1164,983,1178,981,1173,1003,1160,1032,1134,1057,1105,1100,1040,1130,975,1151,924"/>
+<area shape="rect" id="Node000047" href="$d1/d43/class_d_r_o_1_1_variable_p_tensor_off_diagonal.html#a0581e11beeca2b0ce1ca359aa043e13e" title=" " alt="" coords="753,1244,991,1288"/>
+<area shape="poly" id="edge41_Node000001_Node000047" title=" " alt="" coords="1159,920,1144,989,1115,1073,1095,1117,1070,1160,1041,1199,1006,1233,988,1245,986,1241,1003,1229,1037,1195,1066,1157,1090,1115,1110,1071,1139,988,1156,924"/>
+<area shape="rect" id="Node000048" href="$d4/d9e/class_d_r_o_1_1_variable_relative_entropy.html#a0296899ad0046ff0801dadb245adb821" title=" " alt="" coords="764,1313,980,1358"/>
+<area shape="poly" id="edge42_Node000001_Node000048" title=" " alt="" coords="1162,920,1151,1002,1125,1104,1104,1158,1078,1211,1046,1260,1006,1303,981,1319,978,1315,1003,1298,1042,1256,1074,1208,1099,1156,1120,1103,1146,1001,1159,924"/>
+<area shape="rect" id="Node000049" href="$db/d48/namespace_d_r_o.html#aee822912aab9606485c338aef20c84dc" title=" " alt="" coords="757,1381,987,1409"/>
+<area shape="poly" id="edge43_Node000001_Node000049" title=" " alt="" coords="1165,920,1159,1014,1150,1073,1136,1136,1116,1201,1089,1264,1052,1322,1006,1372,988,1384,986,1380,1003,1368,1048,1318,1084,1261,1111,1199,1131,1135,1145,1072,1154,1014,1162,924"/>
+<area shape="rect" id="Node000052" href="$db/d16/class_d_r_o_1_1_variable_non_maxwellianity.html#a20f1e60cb924583ad613fef221905dda" title=" " alt="" coords="757,1433,987,1478"/>
+<area shape="poly" id="edge46_Node000001_Node000052" title=" " alt="" coords="1165,920,1162,1022,1154,1087,1140,1157,1120,1228,1092,1299,1055,1365,1007,1422,989,1436,986,1431,1003,1419,1050,1362,1088,1297,1115,1227,1135,1155,1149,1086,1156,1022,1163,925"/>
+<area shape="rect" id="Node000053" href="$d6/d26/spatial__cell__gpu__kernels_8hpp.html#ae3764f0016b1a303dea99b5566df2ccc" title=" " alt="" coords="739,1502,1005,1547"/>
+<area shape="poly" id="edge47_Node000001_Node000053" title=" " alt="" coords="1160,920,1142,1050,1109,1221,1088,1306,1063,1384,1036,1448,1007,1492,991,1504,989,1499,1003,1488,1032,1446,1058,1382,1083,1305,1104,1220,1137,1049,1157,925"/>
+<area shape="rect" id="Node000054" href="$db/d48/namespace_d_r_o.html#a4665b4ea30292022d8c8d81b83e6813f" title=" " alt="" coords="763,1589,981,1617"/>
+<area shape="poly" id="edge48_Node000001_Node000054" title=" " alt="" coords="1161,920,1144,1063,1112,1253,1091,1350,1066,1438,1038,1511,1023,1539,1007,1561,985,1579,959,1591,957,1586,982,1574,1003,1557,1018,1536,1033,1508,1061,1436,1086,1349,1107,1252,1139,1062,1158,925"/>
+<area shape="rect" id="Node000004" href="$db/d0f/cpu__acc__map_8cpp.html#ab4ba4dbc0e3448cd62e30e546e347908" title=" " alt="" coords="536,99,609,126"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="787,281,738,266,688,234,643,195,585,130,584,124,647,192,691,229,740,261,792,279"/>
+<area shape="rect" id="Node000005" href="$d7/d31/cpu__acc__semilag_8cpp.html#aef3052717c19e2b16a6c4cf93e24ffcc" title=" " alt="" coords="210,5,360,33"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="524,93,468,70,404,47,361,35,358,30,406,42,470,65,529,91"/>
+<area shape="rect" id="Node000013" href="$dd/d0c/arch__moments_8cpp.html#a300b85f8883f7d99fb64048a34acf1d5" title=" " alt="" coords="489,275,655,302"/>
+<area shape="poly" id="edge6_Node000012_Node000013" title=" " alt="" coords="771,325,657,305,655,300,775,322"/>
+<area shape="rect" id="Node000025" href="$dd/d0c/arch__moments_8cpp.html#a33a1f4baa6be3ff197548d3e8353ffab" title=" " alt="" coords="494,327,651,354"/>
+<area shape="poly" id="edge18_Node000012_Node000025" title=" " alt="" coords="756,342,652,343,650,338,760,339"/>
+<area shape="rect" id="Node000028" href="$dd/d0c/arch__moments_8cpp.html#af61da976e7df283186c306e9e1aed8b7" title=" " alt="" coords="494,379,651,406"/>
+<area shape="poly" id="edge19_Node000012_Node000028" title=" " alt="" coords="771,359,653,381,650,377,775,356"/>
+<area shape="rect" id="Node000014" href="$d5/d5d/vlasovmover_8cpp.html#a96670c2221f80397fea84660fb97ff40" title="Compute 0th, 1st and 2nd velocity moments (RHO,VX,VY,VZ,P_11,P_22,P_33 and *_DT2) for all cells in th..." alt="" coords="200,297,370,342"/>
+<area shape="poly" id="edge7_Node000013_Node000014" title=" " alt="" coords="471,301,371,312,368,308,475,297"/>
+<area shape="rect" id="Node000009" href="$d7/d70/grid_8cpp.html#a9e9166bda148ddef07e30ac56e3b7085" title="Initialize DCCRG and fsgrids." alt="" coords="5,305,117,333"/>
+<area shape="poly" id="edge13_Node000013_Node000009" title=" " alt="" coords="472,280,327,275,246,278,165,287,129,296,98,306,94,303,128,291,164,282,245,273,327,270,476,276"/>
+<area shape="rect" id="Node000015" href="$db/d19/classprojects_1_1_project.html#af44d068807a3bc0122e4b2615d9272a7" title="Boxcar filters spatial cells that were recently refined." alt="" coords="218,436,352,480"/>
+<area shape="poly" id="edge9_Node000013_Node000015" title=" " alt="" coords="473,304,455,317,443,330,436,342,431,369,426,397,419,411,407,425,381,442,354,451,350,447,379,437,403,421,415,408,421,396,426,368,431,340,439,326,451,313,476,300"/>
+<area shape="rect" id="Node000017" href="$dd/d8a/class_s_b_c_1_1_copysphere.html#a489a1683d7537fb427aafbb3528387b5" title=" " alt="" coords="186,505,384,550"/>
+<area shape="poly" id="edge10_Node000013_Node000017" title=" " alt="" coords="473,303,455,317,439,338,431,359,430,381,431,403,431,449,423,472,407,494,387,509,382,506,403,491,419,469,426,448,426,403,424,381,426,358,434,335,451,313,476,298"/>
+<area shape="rect" id="Node000018" href="$da/d6b/class_s_b_c_1_1_ionosphere.html#a66dd6c8d7e5b91522b6b05c51910d982" title=" " alt="" coords="188,574,382,619"/>
+<area shape="poly" id="edge11_Node000013_Node000018" title=" " alt="" coords="473,302,455,317,434,347,426,376,426,406,431,437,435,468,436,500,428,532,407,564,384,581,380,578,403,560,423,530,431,499,430,469,425,438,421,407,421,376,429,344,451,313,476,298"/>
+<area shape="rect" id="Node000019" href="$da/ddf/class_s_b_c_1_1_maxwellian.html#a833c7cf658faf049300eec716cc4b8c7" title="Generate the template cell for the face corresponding to the index passed. This function generates a ..." alt="" coords="187,57,383,102"/>
+<area shape="poly" id="edge12_Node000013_Node000019" title=" " alt="" coords="550,263,491,190,450,150,404,116,383,104,380,100,406,112,453,146,495,187,556,262"/>
+<area shape="rect" id="Node000020" href="$db/d19/classprojects_1_1_project.html#afb2a412ae6cedce4e914650ea35b8f42" title="Set the perturbed fields and distribution of a cell according to the default simulation settings...." alt="" coords="218,366,352,411"/>
+<area shape="poly" id="edge14_Node000013_Node000020" title=" " alt="" coords="473,308,454,318,440,327,431,336,421,346,406,356,354,376,350,372,404,351,418,342,427,332,437,322,452,313,476,304"/>
+<area shape="rect" id="Node000022" href="$d7/d70/grid_8cpp.html#ab889fc28d268ff8b7f32654247817acb" title=" " alt="" coords="227,125,343,153"/>
+<area shape="poly" id="edge16_Node000013_Node000022" title=" " alt="" coords="543,265,483,215,445,189,404,167,374,156,345,148,342,144,375,151,406,162,447,184,486,211,548,263"/>
+<area shape="rect" id="Node000024" href="$da/d6b/class_s_b_c_1_1_ionosphere.html#ac904b9ee61069aa1314aa2b638a2f4e9" title=" " alt="" coords="165,177,405,222"/>
+<area shape="poly" id="edge17_Node000013_Node000024" title=" " alt="" coords="509,271,360,224,358,220,513,268"/>
+<area shape="poly" id="edge8_Node000014_Node000009" title=" " alt="" coords="183,321,119,321,116,317,187,317"/>
+<area shape="poly" id="edge15_Node000020_Node000009" title=" " alt="" coords="201,367,164,356,105,336,102,331,165,351,205,364"/>
+<area shape="poly" id="edge21_Node000029_Node000013" title=" " alt="" coords="751,374,738,368,722,356,713,342,704,329,690,317,657,303,655,298,693,313,708,326,717,339,726,352,741,364,756,372"/>
+<area shape="poly" id="edge22_Node000029_Node000025" title=" " alt="" coords="771,377,652,357,650,352,775,374"/>
+<area shape="poly" id="edge23_Node000029_Node000028" title=" " alt="" coords="746,394,653,395,650,390,751,391"/>
+<area shape="rect" id="Node000031" href="$de/dd1/class_d_r_o_1_1_variable_p_tensor_nonthermal_diagonal.html#a12b79665c139384a797e0c95a57bff40" title=" " alt="" coords="453,500,691,544"/>
+<area shape="poly" id="edge25_Node000030_Node000031" title=" " alt="" coords="755,481,673,501,670,497,760,477"/>
+<area shape="rect" id="Node000032" href="$d0/dc0/class_d_r_o_1_1_variable_p_tensor_thermal_diagonal.html#a9fc98f5e8da0e87079da2c329e99a95d" title=" " alt="" coords="464,430,680,475"/>
+<area shape="poly" id="edge26_Node000030_Node000032" title=" " alt="" coords="732,454,682,455,679,450,737,451"/>
+<area shape="rect" id="Node000034" href="$d1/de4/class_d_r_o_1_1_variable_p_tensor_nonthermal_off_diagonal.html#aa1c7d07e73c56e2e434b2388de6c7406" title=" " alt="" coords="453,638,691,683"/>
+<area shape="poly" id="edge28_Node000033_Node000034" title=" " alt="" coords="745,554,741,559,725,575,718,592,710,610,693,628,673,640,669,636,690,624,705,607,713,590,721,572,738,554,749,550"/>
+<area shape="rect" id="Node000035" href="$d1/de8/class_d_r_o_1_1_variable_p_tensor_thermal_off_diagonal.html#aaf0ad6d93e2b89abad47d71ff88cfa0b" title=" " alt="" coords="464,569,680,614"/>
+<area shape="poly" id="edge29_Node000033_Node000035" title=" " alt="" coords="755,550,673,570,670,566,760,547"/>
+<area shape="rect" id="Node000037" href="$d4/d5b/vlasiator_8cpp.html#ad79ae080f7e2c08dcc1c856c5d86043f" title=" " alt="" coords="488,707,657,734"/>
+<area shape="poly" id="edge31_Node000036_Node000037" title=" " alt="" coords="787,588,764,597,741,609,730,619,724,629,718,652,711,675,693,697,659,714,655,710,690,693,706,673,713,650,719,627,726,616,738,605,762,592,791,585"/>
+<area shape="rect" id="Node000050" href="$dc/dab/class_d_r_o_1_1_variable_rho_nonthermal.html#a12bae96561440553fa08c3c8d5065d0d" title=" " alt="" coords="466,1373,679,1418"/>
+<area shape="poly" id="edge44_Node000049_Node000050" title=" " alt="" coords="739,1396,680,1398,679,1393,744,1394"/>
+<area shape="rect" id="Node000051" href="$d9/d24/class_d_r_o_1_1_variable_rho_thermal.html#ae2ebb9e970d0c84dbe539159761f613c" title=" " alt="" coords="477,1304,667,1348"/>
+<area shape="poly" id="edge45_Node000049_Node000051" title=" " alt="" coords="773,1378,739,1372,656,1351,655,1346,740,1367,779,1377"/>
+<area shape="rect" id="Node000055" href="$d6/d5d/class_d_r_o_1_1_variable_v_nonthermal.html#aa6d4f037292e18c33ccd846ddda7ec0d" title=" " alt="" coords="474,1650,671,1695"/>
+<area shape="poly" id="edge49_Node000054_Node000055" title=" " alt="" coords="792,1622,672,1652,670,1647,797,1620"/>
+<area shape="rect" id="Node000056" href="$d0/d75/class_d_r_o_1_1_variable_v_thermal.html#a39fafb68508d0d6ebc9fb55d282f863f" title=" " alt="" coords="485,1720,659,1764"/>
+<area shape="poly" id="edge50_Node000054_Node000056" title=" " alt="" coords="840,1625,772,1669,692,1710,661,1722,659,1716,690,1705,770,1664,835,1627"/>
+<area shape="rect" id="Node000057" href="$de/dd1/class_d_r_o_1_1_variable_p_tensor_nonthermal_diagonal.html#aeb1bf23342fcdeb511c7fd249e889793" title=" " alt="" coords="453,1789,691,1834"/>
+<area shape="poly" id="edge51_Node000054_Node000057" title=" " alt="" coords="853,1628,787,1704,742,1744,693,1779,668,1791,667,1786,690,1774,739,1740,783,1700,848,1630"/>
+<area shape="rect" id="Node000058" href="$d1/de4/class_d_r_o_1_1_variable_p_tensor_nonthermal_off_diagonal.html#a09255a9c48776fcc8db0e68a0425d884" title=" " alt="" coords="453,1442,691,1487"/>
+<area shape="poly" id="edge52_Node000054_Node000058" title=" " alt="" coords="786,1584,762,1575,738,1561,722,1546,713,1530,705,1515,690,1501,670,1490,670,1485,693,1497,709,1512,718,1528,726,1543,741,1557,764,1571,792,1584"/>
+<area shape="rect" id="Node000059" href="$d0/dc0/class_d_r_o_1_1_variable_p_tensor_thermal_diagonal.html#ac4f3ad08111b62709c4f1ad0b4770d4a" title=" " alt="" coords="464,1512,680,1556"/>
+<area shape="poly" id="edge53_Node000054_Node000059" title=" " alt="" coords="791,1586,672,1559,672,1554,796,1585"/>
+<area shape="rect" id="Node000060" href="$d1/de8/class_d_r_o_1_1_variable_p_tensor_thermal_off_diagonal.html#a3bd55ffced2c5d0eaaca36d1f3202904" title=" " alt="" coords="464,1581,680,1626"/>
+<area shape="poly" id="edge54_Node000054_Node000060" title=" " alt="" coords="745,1604,681,1606,680,1601,750,1603"/>
+</map>

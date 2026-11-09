@@ -1,0 +1,9 @@
+<map id="shockReflectivityScenario" name="shockReflectivityScenario">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,205,195,233"/>
+<area shape="rect" id="Node000002" href="$da/dab/struct_scenario.html" title=" " alt="" coords="17,82,95,110"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="68,123,98,204,93,205,64,126"/>
+<area shape="rect" id="Node000003" href="$d9/dff/class_linear_histogram2_d.html" title=" " alt="" coords="118,82,266,110"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="176,122,112,207,108,203,170,122"/>
+<area shape="rect" id="Node000004" href="$d4/dc7/class_histogram2_d.html" title=" " alt="" coords="138,5,246,33"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="193,46,195,83,189,81,191,51"/>
+</map>

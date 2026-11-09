@@ -1,0 +1,28 @@
+<map id="SBC::Outflow::vlasovBoundaryCondition" name="SBC::Outflow::vlasovBoundaryCondition">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,64,223,108"/>
+<area shape="rect" id="Node000002" href="$d9/df9/common_8cpp.html#a3ccffabea3435cf184592d88e6a470c8" title=" " alt="" coords="698,24,786,52"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="155,61,209,37,270,18,326,9,384,5,498,5,602,13,686,27,680,28,601,19,498,10,384,10,327,15,271,23,211,42,158,66"/>
+<area shape="rect" id="Node000003" href="$d8/ddb/class_s_b_c_1_1_sys_boundary_condition.html#a21ef1eac4a2a5bdf92387b866714ea35" title="Function used to determine on which face(s) if any the cell at given coordinates is." alt="" coords="317,33,520,78"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="222,73,304,66,300,68,224,78"/>
+<area shape="rect" id="Node000004" href="$d5/d71/class_s_b_c_1_1_outflow.html#ad65daed9627fb528481d14420b094790" title=" " alt="" coords="334,102,503,129"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="223,94,320,105,316,107,223,99"/>
+<area shape="rect" id="Node000005" href="$d8/ddb/class_s_b_c_1_1_sys_boundary_condition.html#a22555e61519bda622a660b60d2a85b97" title=" " alt="" coords="271,153,566,198"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="176,106,271,138,302,148,297,149,270,143,176,112"/>
+<area shape="poly" id="edge5_Node000005_Node000002" title=" " alt="" coords="535,150,565,138,589,122,613,104,696,60,701,58,615,108,592,127,567,143,536,155"/>
+<area shape="rect" id="Node000006" href="$d8/ddb/class_s_b_c_1_1_sys_boundary_condition.html#a9bae328740bdbd87689286e4a78a4532" title=" " alt="" coords="641,118,843,163"/>
+<area shape="poly" id="edge6_Node000005_Node000006" title=" " alt="" coords="566,157,628,153,623,154,567,162"/>
+<area shape="rect" id="Node000009" href="$d8/ddb/class_s_b_c_1_1_sys_boundary_condition.html#a0cb6b360a4cba5a9de53faa2aabf2e11" title=" " alt="" coords="614,188,870,232"/>
+<area shape="poly" id="edge9_Node000005_Node000009" title=" " alt="" coords="567,189,601,195,596,195,567,194"/>
+<area shape="rect" id="Node000007" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#ac3e9c10c72c754b3ca8586d8811ad6d4" title=" " alt="" coords="960,49,1133,94"/>
+<area shape="poly" id="edge7_Node000006_Node000007" title=" " alt="" coords="843,115,942,95,947,94,844,120"/>
+<area shape="rect" id="Node000008" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a0cd7b26f72d55d4735500850e5a48316" title=" " alt="" coords="960,118,1133,163"/>
+<area shape="poly" id="edge8_Node000006_Node000008" title=" " alt="" coords="844,138,947,141,942,141,844,143"/>
+<area shape="rect" id="Node000010" href="$d8/ddb/class_s_b_c_1_1_sys_boundary_condition.html#a287db96725fef05e252a15c46492f3dc" title=" " alt="" coords="918,188,1175,232"/>
+<area shape="poly" id="edge10_Node000009_Node000010" title=" " alt="" coords="871,207,906,210,900,210,871,213"/>
+<area shape="rect" id="Node000011" href="$d8/dbc/vectorclass__fallback_8h.html#a1896c5fbdb17de74189d1d18cdd4cf29" title=" " alt="" coords="1223,196,1269,224"/>
+<area shape="poly" id="edge11_Node000010_Node000011" title=" " alt="" coords="1175,207,1210,210,1204,210,1175,213"/>
+<area shape="rect" id="Node000012" href="$d7/d8b/class_vec_simple.html#a145923009b9b82410c5a072b8f8127f0" title=" " alt="" coords="1317,196,1451,224"/>
+<area shape="poly" id="edge12_Node000011_Node000012" title=" " alt="" coords="1270,207,1304,210,1299,210,1270,213"/>
+<area shape="rect" id="Node000013" href="$d7/d8b/class_vec_simple.html#ae16798cf2ee14257d0706c60613cd733" title=" " alt="" coords="1499,196,1665,224"/>
+<area shape="poly" id="edge13_Node000012_Node000013" title=" " alt="" coords="1452,207,1486,210,1481,210,1452,213"/>
+</map>

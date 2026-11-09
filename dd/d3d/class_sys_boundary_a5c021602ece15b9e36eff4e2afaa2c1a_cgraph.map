@@ -1,0 +1,19 @@
+<map id="SysBoundary::classifyCells" name="SysBoundary::classifyCells">
+<area shape="rect" id="Node000001" title="Classify all simulation cells with respect to the system boundary conditions." alt="" coords="5,188,200,216"/>
+<area shape="rect" id="Node000002" href="$d9/dd6/sysboundary_8cpp.html#a18848ac515aa03bb200419345d4e0027" title=" " alt="" coords="302,5,424,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="110,186,162,117,201,77,246,44,289,28,285,32,249,48,204,81,166,121,115,189"/>
+<area shape="rect" id="Node000003" href="$dd/d3d/class_sys_boundary.html#a678aa5b8ba878672ba702373f0da640e" title="Boolean check if queried sysboundarycondition exists Note: this queries against the parsed list of na..." alt="" coords="248,57,478,85"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="117,186,172,141,208,116,247,95,270,88,265,92,249,100,211,121,175,145,121,189"/>
+<area shape="rect" id="Node000004" href="$dd/d12/grid_glue_8cpp.html#a2b359ed2ef6d44040421862e3e2efed2" title=" " alt="" coords="273,109,452,137"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="139,185,247,147,282,140,277,143,248,152,141,190"/>
+<area shape="rect" id="Node000005" href="$d4/d5b/vlasiator_8cpp.html#a0e89e9e9c29d929027088b0a8dd56585" title=" " alt="" coords="309,161,417,189"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="199,189,295,181,291,184,201,194"/>
+<area shape="rect" id="Node000006" href="$d4/d0b/ionosphere_solver_tests_2main_8cpp.html#a9bf4cdc41d466e8710b8aa33a33d32e0" title=" " alt="" coords="293,213,432,241"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="200,209,280,218,275,220,201,214"/>
+<area shape="rect" id="Node000007" href="$dd/d3d/class_sys_boundary.html#a270a16c6fa16823d572a515ec27404cb" title=" " alt="" coords="275,265,451,293"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="141,214,248,250,282,261,277,262,247,255,141,219"/>
+<area shape="rect" id="Node000008" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#ab3b5bf63a685b711ee0fbfb093fd971b" title=" " alt="" coords="275,317,450,362"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="120,213,176,257,211,281,249,302,265,311,259,311,246,307,209,286,173,261,120,219"/>
+<area shape="rect" id="Node000009" href="$dd/d3d/class_sys_boundary.html#a0d673c62a21b245766a79881c8799a3f" title=" " alt="" coords="264,385,462,413"/>
+<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="112,213,133,248,163,291,202,335,249,372,259,379,254,378,246,376,199,339,159,294,129,251,111,219"/>
+</map>

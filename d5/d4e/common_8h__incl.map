@@ -1,0 +1,21 @@
+<map id="common.h" name="common.h">
+<area shape="rect" id="Node000001" title=" " alt="" coords="132,5,222,33"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="93,157,151,184"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="129,25,100,32,68,42,37,59,14,83,9,93,9,103,23,123,49,139,80,154,76,156,46,144,19,126,4,105,3,92,9,79,34,54,66,37,99,27,133,22"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="24,81,82,109"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="153,36,89,75,86,71,156,31"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="106,81,168,109"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="171,32,153,69,149,66,168,36"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="192,81,244,109"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="185,31,206,67,200,67,183,36"/>
+<area shape="rect" id="Node000006" href="$d6/dc2/definitions_8h.html" title=" " alt="" coords="269,81,370,109"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="203,31,283,73,278,74,202,36"/>
+<area shape="rect" id="Node000008" href="$dc/d9d/arch__device__api_8h.html" title=" " alt="" coords="394,81,565,109"/>
+<area shape="poly" id="edge8_Node000001_Node000008" title=" " alt="" coords="222,29,412,75,408,78,222,34"/>
+<area shape="poly" id="edge7_Node000006_Node000002" title=" " alt="" coords="287,109,167,155,165,150,281,109"/>
+<area shape="rect" id="Node000007" title=" " alt="" coords="298,157,368,184"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="323,107,330,143,325,140,320,111"/>
+<area shape="poly" id="edge9_Node000008_Node000007" title=" " alt="" coords="456,109,373,152,371,147,451,110"/>
+<area shape="rect" id="Node000009" href="$d9/d13/arch__device__host_8h.html" title=" " alt="" coords="406,157,553,184"/>
+<area shape="poly" id="edge10_Node000008_Node000009" title=" " alt="" coords="481,107,481,143,477,139,477,111"/>
+</map>

@@ -1,0 +1,7 @@
+<map id="SBC::SphericalTriGrid::Atimes" name="SBC::SphericalTriGrid::Atimes">
+<area shape="rect" id="Node000001" title=" " alt="" coords="416,5,573,50"/>
+<area shape="rect" id="Node000002" href="$d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#aafc6eaeba1866e6ea6d08341aa2b3d7d" title=" " alt="" coords="211,5,368,50"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="398,28,369,30,369,25,403,28"/>
+<area shape="rect" id="Node000003" href="$d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#afbfcea50d70a04c78edc90ada05f9a0a" title=" " alt="" coords="5,5,163,50"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="193,28,163,30,163,25,198,27"/>
+</map>

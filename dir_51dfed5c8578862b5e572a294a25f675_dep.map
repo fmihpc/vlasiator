@@ -1,0 +1,25 @@
+<map id="mini&#45;apps" name="mini&#45;apps">
+<area shape="rect" id="node2" href="dir_b2e6fcb143160f329d0cac5a53141ce9.html" title="acceleration" alt="" coords="136,27,237,54"/>
+<area shape="rect" id="node3" href="dir_dae095c0a225a01a74f4af2d524b9846.html" title="acceleration&#45;vlasiator" alt="" coords="262,27,424,54"/>
+<area shape="rect" id="node13" href="dir_c151978dc0afc1b8cb6d4656e0516851.html" title="vlasovsolver" alt="" coords="380,102,484,130"/>
+<area shape="poly" id="edge1" href="dir_000001_000049.html" alt="" coords="360,52,407,93,402,92,358,57"/>
+<area shape="rect" id="edge1-headlabel" href="dir_000001_000049.html" title="4" alt="" coords="403,75,411,92"/>
+<area shape="rect" id="node4" href="dir_0e87d3c8fbd9297d9d947e31e33af5a0.html" title="amr_reconstruction" alt="" coords="448,27,595,54"/>
+<area shape="poly" id="edge2" href="dir_000003_000049.html" alt="" coords="508,54,461,95,458,90,503,56"/>
+<area shape="rect" id="edge2-headlabel" href="dir_000003_000049.html" title="2" alt="" coords="463,88,471,105"/>
+<area shape="rect" id="node5" href="dir_2dc2f4fc3e4d6bc1d868f5db1b7eab90.html" title="balsaraFsgrid" alt="" coords="619,27,728,54"/>
+<area shape="rect" id="node10" href="dir_3bab0a1fcaeb8de3d4e17a25272119f5.html" title="fieldsolver" alt="" coords="629,102,718,130"/>
+<area shape="poly" id="edge3" href="dir_000006_000012.html" alt="" coords="675,53,675,88,671,85,671,57"/>
+<area shape="rect" id="edge3-headlabel" href="dir_000006_000012.html" title="2" alt="" coords="678,75,686,92"/>
+<area shape="rect" id="node6" href="dir_6a64a6458219130155754bed14e412e4.html" title="build_pencils" alt="" coords="752,27,858,54"/>
+<area shape="rect" id="node7" href="dir_054a7b08affbd34eaa3eb51e0f8fba51.html" title="ionosphereSolverTests" alt="" coords="883,27,1050,54"/>
+<area shape="rect" id="node11" href="dir_6394816b87381dc44c84126aa7a65687.html" title="datareduction" alt="" coords="844,102,956,130"/>
+<area shape="poly" id="edge4" href="dir_000018_000008.html" alt="" coords="957,54,923,93,921,88,952,56"/>
+<area shape="rect" id="edge4-headlabel" href="dir_000018_000008.html" title="1" alt="" coords="926,86,934,103"/>
+<area shape="rect" id="node12" href="dir_adc70fd45042a3f07038437af6ccfa0f.html" title="sysboundary" alt="" coords="980,102,1084,130"/>
+<area shape="poly" id="edge5" href="dir_000018_000037.html" alt="" coords="979,52,1013,92,1008,90,977,57"/>
+<area shape="rect" id="edge5-headlabel" href="dir_000018_000037.html" title="2" alt="" coords="1011,74,1019,91"/>
+<area shape="rect" id="node8" href="dir_ea8791d7c4b626791b10183875593b83.html" title="simple&#45;grid&#45;test" alt="" coords="1075,27,1200,54"/>
+<area shape="rect" id="node9" href="dir_9c9b2c0797743cb695445351d6d29a9a.html" title="translation_pencils" alt="" coords="1224,27,1368,54"/>
+<area shape="rect" id="clust1" href="dir_51dfed5c8578862b5e572a294a25f675.html" alt="" coords="16,16,1379,65"/>
+</map>

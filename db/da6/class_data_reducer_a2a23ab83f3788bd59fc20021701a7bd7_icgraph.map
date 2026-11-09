@@ -1,0 +1,20 @@
+<map id="DataReducer::size" name="DataReducer::size">
+<area shape="rect" id="Node000001" title=" " alt="" coords="450,109,590,137"/>
+<area shape="rect" id="Node000002" href="$da/d47/datareducer_8cpp.html#ac7f98ac6b8fd00d10cd2dfcd88d05f8a" title=" " alt="" coords="234,5,402,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="486,100,447,74,401,48,372,36,372,31,403,43,450,70,491,100"/>
+<area shape="rect" id="Node000005" href="$d4/d0b/ionosphere_solver_tests_2main_8cpp.html#a3c04138a5bfe5d72780bb7e82a18e627" title=" " alt="" coords="291,57,345,85"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="446,105,346,81,346,75,451,104"/>
+<area shape="rect" id="Node000006" href="$da/daf/iowrite_8cpp.html#a74aed0c404d5ffe2ac37c3f6a02cffeb" title="Write out simulation diagnostics into diagnostic.txt." alt="" coords="256,109,380,137"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="432,124,380,126,380,121,438,123"/>
+<area shape="rect" id="Node000007" href="$da/daf/iowrite_8cpp.html#a10cc5a5af4d327af60e9f6c42480b333" title="Write out system into a vlsv file." alt="" coords="278,161,359,189"/>
+<area shape="poly" id="edge7_Node000001_Node000007" title=" " alt="" coords="451,141,360,167,358,162,446,142"/>
+<area shape="rect" id="Node000008" href="$da/daf/iowrite_8cpp.html#a5531f0481d1489a9c4fa85ef54be0b1f" title="Write out a restart of the simulation into a vlsv file. All block data in remote cells will be reset." alt="" coords="268,213,369,241"/>
+<area shape="poly" id="edge9_Node000001_Node000008" title=" " alt="" coords="491,146,450,176,403,203,370,216,369,211,401,198,447,172,486,147"/>
+<area shape="rect" id="Node000003" href="$d4/d5b/vlasiator_8cpp.html#acfd343080edd07ae79384688a7e48693" title=" " alt="" coords="108,136,186,164"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="242,41,236,48,211,69,189,93,158,137,154,134,185,90,207,65,232,44,246,38"/>
+<area shape="rect" id="Node000004" href="$d4/d5b/vlasiator_8cpp.html#a54790573f350e250ccca3cbb94733391" title=" " alt="" coords="5,136,60,164"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="90,151,61,152,59,147,94,148"/>
+<area shape="poly" id="edge6_Node000006_Node000003" title=" " alt="" coords="239,136,187,146,186,141,243,134"/>
+<area shape="poly" id="edge8_Node000007_Node000003" title=" " alt="" coords="259,168,186,158,186,153,265,166"/>
+<area shape="poly" id="edge10_Node000008_Node000003" title=" " alt="" coords="250,208,233,203,169,167,170,162,235,198,256,208"/>
+</map>

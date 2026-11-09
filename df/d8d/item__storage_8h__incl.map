@@ -1,0 +1,13 @@
+<map id="item_storage.h" name="item_storage.h">
+<area shape="rect" id="Node000001" title=" " alt="" coords="50,5,169,33"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="5,81,56,109"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="94,36,58,72,54,68,96,31"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="80,81,138,109"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="110,31,112,66,107,65,108,36"/>
+<area shape="rect" id="Node000004" href="$d6/dc2/definitions_8h.html" title=" " alt="" coords="162,81,264,109"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="128,31,185,71,180,73,127,36"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="134,157,204,184"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="208,108,187,145,183,141,203,111"/>
+<area shape="rect" id="Node000006" title=" " alt="" coords="228,157,286,184"/>
+<area shape="poly" id="edge5_Node000004_Node000006" title=" " alt="" coords="222,107,244,144,239,143,220,112"/>
+</map>

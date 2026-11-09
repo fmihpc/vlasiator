@@ -1,0 +1,19 @@
+<map id="readScalarParameter" name="readScalarParameter">
+<area shape="rect" id="Node000001" title=" " alt="" coords="895,56,1053,84"/>
+<area shape="rect" id="Node000002" href="$de/deb/ioread_8cpp.html#aacd9547e6eb976d8eb293f05a7d1ae1b" title=" " alt="" coords="681,5,847,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="896,52,824,36,825,31,902,52"/>
+<area shape="rect" id="Node000003" href="$de/deb/ioread_8cpp.html#a9aa38d9398d0a2c9a2e9d231e02203f1" title="Read in state from a vlsv file in order to restart simulations." alt="" coords="519,56,633,84"/>
+<area shape="poly" id="edge7_Node000001_Node000003" title=" " alt="" coords="877,70,634,72,633,67,882,70"/>
+<area shape="rect" id="Node000008" href="$de/deb/ioread_8cpp.html#a087172a2cd3d5dd939ee03db92988197" title=" " alt="" coords="692,107,837,134"/>
+<area shape="poly" id="edge8_Node000001_Node000008" title=" " alt="" coords="902,88,825,109,824,103,896,88"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="698,37,631,58,629,53,693,38"/>
+<area shape="rect" id="Node000004" href="$de/deb/ioread_8cpp.html#afff6cc7dffb5b49f5127ab47605ad6f0" title="Read in state from a vlsv file in order to restart simulations." alt="" coords="393,56,471,84"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="501,70,471,72,471,67,506,70"/>
+<area shape="rect" id="Node000005" href="$d7/d70/grid_8cpp.html#a9e9166bda148ddef07e30ac56e3b7085" title="Initialize DCCRG and fsgrids." alt="" coords="234,56,345,84"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="375,70,346,72,345,67,380,70"/>
+<area shape="rect" id="Node000006" href="$d4/d5b/vlasiator_8cpp.html#acfd343080edd07ae79384688a7e48693" title=" " alt="" coords="108,56,186,84"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="215,70,187,72,186,67,221,69"/>
+<area shape="rect" id="Node000007" href="$d4/d5b/vlasiator_8cpp.html#a54790573f350e250ccca3cbb94733391" title=" " alt="" coords="5,56,60,84"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="90,71,61,72,59,67,94,68"/>
+<area shape="poly" id="edge9_Node000008_Node000003" title=" " alt="" coords="693,102,630,87,630,82,698,102"/>
+</map>
