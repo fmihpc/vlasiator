@@ -302,9 +302,6 @@ void initializeGrids(
       #pragma omp parallel for schedule(static)
       for (size_t i = 0; i < cells.size(); ++i) {
          mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] = 0;
-
-         mpiGrid[cells[i]]->parameters[CellParams::T_R] = 0;
-         mpiGrid[cells[i]]->parameters[CellParams::T_V] = 0;
       }
 
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {

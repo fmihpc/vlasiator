@@ -1280,6 +1280,62 @@ static bool _readCellParamsVariable(vlsv::ParallelReader& file, const vector<uin
    return success;
 }
 
+template <typename fileReal>
+static bool _readCellMomentSet(vlsv::ParallelReader& file, const vector<uint64_t>& fileCells,
+                                    const uint64_t localCellStartOffset, const uint64_t localCells,
+                                    const string& variableName,
+                                    const size_t expectedVectorSize,
+                                    dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid) {
+   uint64_t arraySize;
+   uint64_t vectorSize;
+   vlsv::datatype::type dataType;
+   uint64_t byteSize;
+   list<pair<string, string>> attribs;
+   fileReal* buffer;
+   bool success = true;
+
+   attribs.push_back(make_pair("name", variableName));
+   attribs.push_back(make_pair("mesh", "SpatialGrid"));
+
+   if (file.getArrayInfo("VARIABLE", attribs, arraySize, vectorSize, dataType, byteSize) == false) {
+      logFile << "(RESTART)  ERROR: Failed to read DCCRG ArrayInfo" << endl << write;
+      return false;
+   }
+
+   if (vectorSize != expectedVectorSize) {
+      logFile << "(RESTART)  vectorsize wrong " << endl << write;
+      return false;
+   }
+
+   buffer = ::new fileReal[vectorSize * localCells];
+   if (file.readArray("VARIABLE", attribs, localCellStartOffset, localCells, (char*)buffer) == false) {
+      logFile << "(RESTART)  ERROR: Failed to read " << variableName << endl << write;
+      return false;
+   }
+
+   for (uint i = 0; i < localCells; i++) {
+      uint cell = fileCells[localCellStartOffset + i];
+      // get pointer to appropriate cell set
+      fileReal* ptrToMomentSet;
+      if (variableName=="moments_r") {
+         ptrToMomentSet = reinterpret_cast<fileReal*>(&(mpiGrid[cell]->moments_R));     
+      } else if (variableName=="moments_v") {
+         ptrToMomentSet = reinterpret_cast<fileReal*>(&(mpiGrid[cell]->moments_V));     
+      } else if (variableName=="truemomentsvector") {
+         ptrToMomentSet = reinterpret_cast<fileReal*>(&(mpiGrid[cell]->cellTrueMoments[0]));      
+      } else {
+         logFile << "ERROR READING MOMENTSET\n";
+         return false;
+      }
+      for (uint j = 0; j < vectorSize; j++) {
+         ptrToMomentSet[j] = buffer[i * vectorSize + j];
+      }
+   }
+
+   delete[] buffer;
+   return success;
+}
+
 /*! Reads cell parameters from the file and saves them in the right place in mpiGrid
  \param file Some parallel vlsv reader with a file open
  \param fileCells List of all cell ids
@@ -1337,6 +1393,181 @@ bool readCellParamsVariable(vlsv::ParallelReader& file, const vector<CellID>& fi
       }
    } else {
       logFile << "(RESTART)  ERROR: Failed to read data type at readCellParamsVariable" << endl << write;
+      return false;
+   }
+   // For compiler purposes
+   return false;
+}
+
+
+template <typename fileReal>
+static bool _readCellMomentSetFromCellParams(vlsv::ParallelReader& file, const vector<uint64_t>& fileCells,
+                                    const uint64_t localCellStartOffset, const uint64_t localCells,
+                                    const string& variableName, const size_t cellParamsIndex,
+                                    const size_t expectedVectorSize,
+                                    dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid) {
+   uint64_t arraySize;
+   uint64_t vectorSize;
+   vlsv::datatype::type dataType;
+   uint64_t byteSize;
+   list<pair<string, string>> attribs;
+   fileReal* buffer;
+   bool success = true;
+
+   attribs.push_back(make_pair("name", variableName));
+   attribs.push_back(make_pair("mesh", "SpatialGrid"));
+
+   if (file.getArrayInfo("VARIABLE", attribs, arraySize, vectorSize, dataType, byteSize) == false) {
+      logFile << "(RESTART)  ERROR: Failed to read DCCRG ArrayInfo" << endl << write;
+      return false;
+   }
+
+   if (vectorSize != expectedVectorSize) {
+      logFile << "(RESTART)  vectorsize wrong " << endl << write;
+      return false;
+   }
+
+   buffer = ::new fileReal[vectorSize * localCells];
+   if (file.readArray("VARIABLE", attribs, localCellStartOffset, localCells, (char*)buffer) == false) {
+      logFile << "(RESTART)  ERROR: Failed to read " << variableName << endl << write;
+      return false;
+   }
+
+   // !! this does not set timestamps, as that data does not exist in cellparams necessaraly. needs to be done somewhere else
+
+   for (uint i = 0; i < localCells; i++) {
+      uint cell = fileCells[localCellStartOffset + i];
+      for (uint j = 0; j < vectorSize; j++) {
+         //mpiGrid[cell]->parameters[cellParamsIndex + j] = buffer[i * vectorSize + j];
+         for (uint mset = 0; mset < (uint)P::tcInterpolationPoints; mset++) {
+            switch (cellParamsIndex) {
+               case CellParams::RHOM:
+                  mpiGrid[cell]->cellTrueMoments[mset].rhom = buffer[i * vectorSize + j];
+                  break;
+               case CellParams::RHOQ:
+                  mpiGrid[cell]->cellTrueMoments[mset].rhoq = buffer[i * vectorSize + j];
+                  break;
+               case CellParams::VX:
+                  mpiGrid[cell]->cellTrueMoments[mset].V[j] = buffer[i * vectorSize + j];
+                  break;
+               case CellParams::P_11:
+                  mpiGrid[cell]->cellTrueMoments[mset].P[j] = buffer[i * vectorSize + j];
+                  break;
+            }
+         }
+      }
+   }
+
+   delete[] buffer;
+   return success;
+}
+
+// for reading a restart file that has a set of true moments in the cell params: reads that data and fills the 
+// cell's true moment set vector's appropriate place with that data
+// !! cant read _R or _V parameters, however
+
+bool readCellMomentSetFromCellParams(vlsv::ParallelReader& file, const vector<CellID>& fileCells,
+                            const uint64_t localCellStartOffset, const uint64_t localCells, const string& variableName,
+                            const size_t cellParamsIndex, const size_t expectedVectorSize,
+                            dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid) {
+   uint64_t arraySize;
+   uint64_t vectorSize;
+   vlsv::datatype::type dataType;
+   uint64_t byteSize;
+   list<pair<string, string>> attribs;
+
+   attribs.push_back(make_pair("name", variableName));
+   attribs.push_back(make_pair("mesh", "SpatialGrid"));
+
+   if (file.getArrayInfo("VARIABLE", attribs, arraySize, vectorSize, dataType, byteSize) == false) {
+      logFile << "(RESTART)  ERROR: Failed to read DCCRG ArrayInfo" << endl << write;
+      return false;
+   }
+
+   // Call _readCellParamsVariable
+   if (dataType == vlsv::datatype::type::FLOAT) {
+      switch (byteSize) {
+      case sizeof(double):
+         return _readCellMomentSetFromCellParams<double>(file, fileCells, localCellStartOffset, localCells, variableName, cellParamsIndex, expectedVectorSize, mpiGrid);
+         break;
+      case sizeof(float):
+         return _readCellMomentSetFromCellParams<float>(file, fileCells, localCellStartOffset, localCells, variableName, cellParamsIndex, expectedVectorSize, mpiGrid);
+         break;
+      }
+   // } else if (dataType == vlsv::datatype::type::UINT) {
+   //    switch (byteSize) {
+   //    case sizeof(uint32_t):
+   //       return _readCellParamsVariable<uint32_t>(file, fileCells, localCellStartOffset, localCells, variableName, cellParamsIndex, expectedVectorSize, mpiGrid);
+   //       break;
+   //    case sizeof(uint64_t):
+   //       return _readCellParamsVariable<uint64_t>(file, fileCells, localCellStartOffset, localCells, variableName, cellParamsIndex, expectedVectorSize, mpiGrid);
+   //       break;
+   //    }
+   // } else if (dataType == vlsv::datatype::type::INT) {
+   //    switch (byteSize) {
+   //    case sizeof(int32_t):
+   //       return _readCellParamsVariable<int32_t>(file, fileCells, localCellStartOffset, localCells, variableName, cellParamsIndex, expectedVectorSize, mpiGrid);
+   //       break;
+   //    case sizeof(int64_t):
+   //       return _readCellParamsVariable<int64_t>(file, fileCells, localCellStartOffset, localCells, variableName, cellParamsIndex, expectedVectorSize, mpiGrid);
+   //       break;
+   //    }
+   } else {
+      logFile << "(RESTART)  ERROR: Failed to read data type at readCellMomentSetFromCellParams" << endl << write;
+      return false;
+   }
+   // For compiler purposes
+   return false;
+}
+
+bool readCellMomentSet(vlsv::ParallelReader& file, const vector<CellID>& fileCells,
+                            const uint64_t localCellStartOffset, const uint64_t localCells, const string& variableName,
+                            const size_t expectedVectorSize,
+                            dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid) {
+   uint64_t arraySize;
+   uint64_t vectorSize;
+   vlsv::datatype::type dataType;
+   uint64_t byteSize;
+   list<pair<string, string>> attribs;
+
+   attribs.push_back(make_pair("name", variableName));
+   attribs.push_back(make_pair("mesh", "SpatialGrid"));
+
+   if (file.getArrayInfo("VARIABLE", attribs, arraySize, vectorSize, dataType, byteSize) == false) {
+      logFile << "(RESTART)  ERROR: Failed to read DCCRG ArrayInfo" << endl << write;
+      return false;
+   }
+
+   // Call _readCellParamsVariable
+   if (dataType == vlsv::datatype::type::FLOAT) {
+      switch (byteSize) {
+      case sizeof(double):
+         return _readCellMomentSet<double>(file, fileCells, localCellStartOffset, localCells, variableName, expectedVectorSize, mpiGrid);
+         break;
+      case sizeof(float):
+         return _readCellMomentSet<float>(file, fileCells, localCellStartOffset, localCells, variableName, expectedVectorSize, mpiGrid);
+         break;
+      }
+   // } else if (dataType == vlsv::datatype::type::UINT) {
+   //    switch (byteSize) {
+   //    case sizeof(uint32_t):
+   //       return _readCellMomentSet<uint32_t>(file, fileCells, localCellStartOffset, localCells, variableName, cellParamsIndex, expectedVectorSize, mpiGrid);
+   //       break;
+   //    case sizeof(uint64_t):
+   //       return _readCellMomentSet<uint64_t>(file, fileCells, localCellStartOffset, localCells, variableName, cellParamsIndex, expectedVectorSize, mpiGrid);
+   //       break;
+   //    }
+   // } else if (dataType == vlsv::datatype::type::INT) {
+   //    switch (byteSize) {
+   //    case sizeof(int32_t):
+   //       return _readCellMomentSet<int32_t>(file, fileCells, localCellStartOffset, localCells, variableName, cellParamsIndex, expectedVectorSize, mpiGrid);
+   //       break;
+   //    case sizeof(int64_t):
+   //       return _readCellMomentSet<int64_t>(file, fileCells, localCellStartOffset, localCells, variableName, cellParamsIndex, expectedVectorSize, mpiGrid);
+   //       break;
+   //    }
+   } else {
+      logFile << "(RESTART)  ERROR: Failed to read data type at readCellMomentSet" << endl << write;
       return false;
    }
    // For compiler purposes
@@ -1822,37 +2053,19 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid
 
    //todo, check file datatype, and do not just use double
    phiprof::Timer readParametersTimer {"readCellParameters"};
-   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"densities",CellParams::RHOM,2,mpiGrid); }
+   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"rhom",CellParams::RHOM,1,mpiGrid); }
+   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"rhoq",CellParams::RHOQ,1,mpiGrid); }
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"pressure",CellParams::P_11,6,mpiGrid); }
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"bulkvelocities",CellParams::VX,3,mpiGrid); }
 
-   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"densities_dt2",CellParams::RHOM_DT2,2,mpiGrid); }
+   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"rhom_dt2",CellParams::RHOM_DT2,1,mpiGrid); }
+   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"rhoq_dt2",CellParams::RHOQ_DT2,1,mpiGrid); }
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"pressure_dt2",CellParams::P_11_DT2,6,mpiGrid); }
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"bulkvelocities_dt2",CellParams::VX_DT2,3,mpiGrid); }
 
-   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"densities_r",CellParams::RHOM_R,2,mpiGrid); }
-   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"pressure_r",CellParams::P_11_R,6,mpiGrid); }
-   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"bulkvelocities_r",CellParams::VX_R,3,mpiGrid); }
-
-   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"densities_v",CellParams::RHOM_V,2,mpiGrid); }
-   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"pressure_v",CellParams::P_11_V,6,mpiGrid); }
-   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"bulkvelocities_v",CellParams::VX_V,3,mpiGrid); }
-
-   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"densities_r_prev",CellParams::RHOM_R_PREV,2,mpiGrid); }
-   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"pressure_r_prev",CellParams::P_11_R_PREV,6,mpiGrid); }
-   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"bulkvelocities_r_prev",CellParams::VX_R_PREV,3,mpiGrid); }
-
-   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"densities_v_prev",CellParams::RHOM_V_PREV,2,mpiGrid); }
-   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"pressure_v_prev",CellParams::P_11_V_PREV,6,mpiGrid); }
-   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"bulkvelocities_v_prev",CellParams::VX_V_PREV,3,mpiGrid); }
-
-   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"densities_r_prev_prev",CellParams::RHOM_R_PREV_PREV,2,mpiGrid); }
-   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"pressure_r_prev_prev",CellParams::P_11_R_PREV_PREV,6,mpiGrid); }
-   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"bulkvelocities_r_prev_prev",CellParams::VX_R_PREV_PREV,3,mpiGrid); }
-
-   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"densities_v_prev_prev",CellParams::RHOM_V_PREV_PREV,2,mpiGrid); }
-   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"pressure_v_prev_prev",CellParams::P_11_V_PREV_PREV,6,mpiGrid); }
-   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"bulkvelocities_v_prev_prev",CellParams::VX_V_PREV_PREV,3,mpiGrid); }
+   if(success) { success=readCellMomentSet(file,fileCells,localCellStartOffset,localCells,"moments_r",13,mpiGrid); }
+   if(success) { success=readCellMomentSet(file,fileCells,localCellStartOffset,localCells,"moments_v",13,mpiGrid); }
+   if(success) { success=readCellMomentSet(file,fileCells,localCellStartOffset,localCells,"truemomentsvector",13 * P::tcInterpolationPoints,mpiGrid); }
 
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"LB_weight",CellParams::LBWEIGHTCOUNTER,1,mpiGrid); }
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"timeclass",CellParams::TIMECLASS,1,mpiGrid); }

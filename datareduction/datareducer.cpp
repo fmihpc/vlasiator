@@ -20,6 +20,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#include <cstddef>
 #include <cstdlib>
 #include <iostream>
 
@@ -186,28 +187,14 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          }
       }
       if(P::systemWriteAllDROs || lowercase == "vg_rhom_r" || lowercase == "rhom_r") { // Overall mass density _r value (summed over all populations)
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_rhom_r",CellParams::RHOM_R,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellMomentSet("vg_rhom_r",offsetof(MomentSet, rhom),1,"R"));
          outputReducer->addMetadata(outputReducer->size()-1,"kg/m^3","$\\mathrm{kg}\\,\\mathrm{m}^{-3}$","$\\rho_\\mathrm{m}$","1.0");
          if(!P::systemWriteAllDROs) {
             continue;
          }
       }
-      if(P::systemWriteAllDROs || lowercase == "vg_rhom_r_prev" || lowercase == "rhom_r_prev") { // Overall mass density _r_prev value (summed over all populations)
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_rhom_r_prev",CellParams::RHOM_R_PREV,1));
-         outputReducer->addMetadata(outputReducer->size()-1,"kg/m^3","$\\mathrm{kg}\\,\\mathrm{m}^{-3}$","$\\rho_\\mathrm{m}$","1.0");
-         if(!P::systemWriteAllDROs) {
-            continue;
-         }
-      }
-      if(P::systemWriteAllDROs || lowercase == "vg_rhom_v" || lowercase == "rhom_v") { // Overall mass density _v value (summed over all populations)
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_rhom_v",CellParams::RHOM_V,1));
-         outputReducer->addMetadata(outputReducer->size()-1,"kg/m^3","$\\mathrm{kg}\\,\\mathrm{m}^{-3}$","$\\rho_\\mathrm{m}$","1.0");
-         if(!P::systemWriteAllDROs) {
-            continue;
-         }
-      }
-      if(P::systemWriteAllDROs || lowercase == "vg_rhom_v_prev" || lowercase == "rhom_v_prev") { // Overall mass density _r_prev value (summed over all populations)
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_rhom_v_prev",CellParams::RHOM_V_PREV,1));
+      if(P::systemWriteAllDROs || lowercase == "vg_rhom_v" || lowercase == "rhom_v") { // Overall mass density _r_prev value (summed over all populations)
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellMomentSet("vg_rhom_v",offsetof(MomentSet, rhom),1,"V"));
          outputReducer->addMetadata(outputReducer->size()-1,"kg/m^3","$\\mathrm{kg}\\,\\mathrm{m}^{-3}$","$\\rho_\\mathrm{m}$","1.0");
          if(!P::systemWriteAllDROs) {
             continue;
@@ -300,28 +287,14 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          }
       }
       if(P::systemWriteAllDROs || lowercase == "v_r" || lowercase == "vg_v_r") { // Overall effective bulk density defining the center-of-mass frame from all populations
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_v_r",CellParams::VX_R,3));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellMomentSet("vg_v_r",offsetof(MomentSet, V[0]),3, "R"));
          outputReducer->addMetadata(outputReducer->size()-1,"m/s","$\\mathrm{m}\\,\\mathrm{s}^{-1}$","$V$","1.0");
          if(!P::systemWriteAllDROs) {
             continue;
          }
       }
       if(P::systemWriteAllDROs || lowercase == "v_v" || lowercase == "vg_v_v") { // Overall effective bulk density defining the center-of-mass frame from all populations
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_v_v",CellParams::VX_V,3));
-         outputReducer->addMetadata(outputReducer->size()-1,"m/s","$\\mathrm{m}\\,\\mathrm{s}^{-1}$","$V$","1.0");
-         if(!P::systemWriteAllDROs) {
-            continue;
-         }
-      }
-      if(P::systemWriteAllDROs || lowercase == "v_v_prev" || lowercase == "vg_v_v_prev") { // Overall effective bulk density defining the center-of-mass frame from all populations
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_v_v_prev",CellParams::VX_V_PREV,3));
-         outputReducer->addMetadata(outputReducer->size()-1,"m/s","$\\mathrm{m}\\,\\mathrm{s}^{-1}$","$V$","1.0");
-         if(!P::systemWriteAllDROs) {
-            continue;
-         }
-      }
-      if(P::systemWriteAllDROs || lowercase == "v_r_prev" || lowercase == "vg_v_r_prev") { // Overall effective bulk density defining the center-of-mass frame from all populations
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_v_r_prev",CellParams::VX_R_PREV,3));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellMomentSet("vg_v_v",offsetof(MomentSet, V[0]),3, "V"));
          outputReducer->addMetadata(outputReducer->size()-1,"m/s","$\\mathrm{m}\\,\\mathrm{s}^{-1}$","$V$","1.0");
          if(!P::systemWriteAllDROs) {
             continue;
@@ -498,9 +471,9 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_t",CellParams::T,1));
          outputReducer->addMetadata(outputReducer->size()-1,"s","$\\mathrm{s}$","$t_\\mathrm{vg}$","1.0");
 
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_t_r",CellParams::T_R,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellMomentSet("vg_t_r",offsetof(MomentSet, t),1, "R"));
          outputReducer->addMetadata(outputReducer->size()-1,"s","$\\mathrm{s}$","$t_\\mathrm{vg,r}$","1.0");
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_t_v",CellParams::T_V,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellMomentSet("vg_t_v",offsetof(MomentSet, t),1, "V"));
          outputReducer->addMetadata(outputReducer->size()-1,"s","$\\mathrm{s}$","$t_\\mathrm{vg,v}$","1.0");
 
          if(!P::systemWriteAllDROs) {
@@ -520,13 +493,13 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
                species::Species& species=getObjectWrapper().particleSpecies[i];
                const std::string& pop = species.name;
-               outputReducer->addOperator(new DRO::DataReductionOperatorPopulations<Real>(pop + ss.str() + "/vg_t_r", i, offsetof(spatial_cell::Population, T_R), 1, timeclass));
+               outputReducer->addOperator(new DRO::DataReductionOperatorPopulations<Real>(pop + ss.str() + "/vg_t_r", i, (offsetof(spatial_cell::Population, moments_R) + offsetof(MomentSet, t)), 1, timeclass));
                outputReducer->addMetadata(outputReducer->size()-1,"s","$\\mathrm{s}$","$t_\\mathrm{r,"+pop+ss.str()+"}$","1.0");
             }
             for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
                species::Species& species=getObjectWrapper().particleSpecies[i];
                const std::string& pop = species.name;
-               outputReducer->addOperator(new DRO::DataReductionOperatorPopulations<Real>(pop + ss.str() + "/vg_t_v", i, offsetof(spatial_cell::Population, T_V), 1, timeclass));
+               outputReducer->addOperator(new DRO::DataReductionOperatorPopulations<Real>(pop + ss.str() + "/vg_t_v", i, (offsetof(spatial_cell::Population, moments_V) + offsetof(MomentSet, t)), 1, timeclass));
                outputReducer->addMetadata(outputReducer->size()-1,"s","$\\mathrm{s}$","$t_\\mathrm{v,"+pop+ss.str()+"}$","1.0");
             }
             for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
@@ -573,10 +546,10 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       //    }
       // }
       if(P::systemWriteAllDROs || lowercase == "timeclass_t" || lowercase == "vg_timeclass_t") {
-         // per-rank timeclass 
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_timeclass_t_r",CellParams::T_R,1));
+         //per-rank timeclass 
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellMomentSet("vg_timeclass_t_r",offsetof(MomentSet, t),1, "R"));
 	      outputReducer->addMetadata(outputReducer->size()-1,"s","$\\mathrm{s}$","$\\t_mathrm{tc,r}$","1.0");
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_timeclass_t_v",CellParams::T_V,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellMomentSet("vg_timeclass_t_v",offsetof(MomentSet, t),1, "V"));
 	      outputReducer->addMetadata(outputReducer->size()-1,"s","$\\mathrm{s}$","$\\t_mathrm{tc,v}$","1.0");
          if(!P::systemWriteAllDROs) {
             continue;

@@ -84,6 +84,7 @@ struct Parameters {
    static int tcOverrideTimeclass;  // Set fixed timeclass everywhere [debugging, default -1 i.e. off]
    //static bool tcRankwise;          // are cell timeclasses chosen by MPI rank? 
    static bool forcedConvection;
+   static int tcInterpolationPoints;
 
    static Realf tcBoxHalfWidthX;
    static Realf tcBoxHalfWidthY;
