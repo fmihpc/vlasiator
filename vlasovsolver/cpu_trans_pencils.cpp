@@ -1059,6 +1059,7 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
             }
          }
       }
+
       if(!P::vlasovSolverGhostTranslate){
          /*!
       	  Find the cell (or, potentially, multiple cells) that can be encountered by hopping
