@@ -811,11 +811,12 @@ namespace DRO {
    }
 
    /*! \brief Relative Entropy
-    * Calculate for a population the relative entropy as defined by Cassak et al. *2023) as
+    * Calculate for a population the relative entropy similar to the definition by Cassak et al. *2023) as
     *     sigma_M = integral f log (f/f_M) d3v
     * where
     *    f: measured VDF for a population
-    *    f_M: a Maxwellian with same density n, flow speed U and three component temperature T
+    *    f_M: a with the same density n, flow speed U and three component temperature T
+    * Unlike Cassak at al. anisotropy is permitted in f_m and doesn't count as extra entropy
     * No extra parameters need to be set in cfg file.
     */
    VariableRelativeEntropy::VariableRelativeEntropy(cuint _popID): DataReductionOperator(),popID(_popID) {
@@ -872,7 +873,11 @@ namespace DRO {
          Real sum = 0.0;
          Real density = this->density;
          Real averageVX = this->averageVX, averageVY = this->averageVY, averageVZ = this->averageVZ;
-         Real* Temperature = this->Temperature;
+         // Device lambdas must not dereference host member arrays
+         // Cassak et al. (2023) use an isotropic scalar T
+         // const Real Tiso = (Temperature[0] + Temperature[1] + Temperature[2]) / 3.0;
+         // const Real Tx = Tiso, Ty = Tiso, Tz = Tiso;
+         const Real Tx = Temperature[0], Ty = Temperature[1], Tz = Temperature[2];
 
          if (cell->get_number_of_velocity_blocks(popID) != 0)
          arch::parallel_reduce<arch::sum>({WID, WID, WID, (uint)cell->get_number_of_velocity_blocks(popID)},
@@ -886,13 +891,13 @@ namespace DRO {
                                              const Real DV3 = block_parameters[BlockParams::DVX]
                                                 * block_parameters[BlockParams::DVY] * block_parameters[BlockParams::DVZ];
 
-                                             Real theta_x = (VX-averageVX) * (VX-averageVX) / (2.*Temperature[0]);
-                                             Real theta_y = (VY-averageVY) * (VY-averageVY) / (2.*Temperature[1]);
-                                             Real theta_z = (VZ-averageVZ) * (VZ-averageVZ) / (2.*Temperature[2]);
+                                             Real theta_x = (VX-averageVX) * (VX-averageVX) / (2.*Tx);
+                                             Real theta_y = (VY-averageVY) * (VY-averageVY) / (2.*Ty);
+                                             Real theta_z = (VZ-averageVZ) * (VZ-averageVZ) / (2.*Tz);
                                              Real fM = density *
-                                                       sqrt(1./(2.*M_PI*Temperature[0])) *
-                                                       sqrt(1./(2.*M_PI*Temperature[1])) *
-                                                       sqrt(1./(2.*M_PI*Temperature[2])) *
+                                                       sqrt(1./(2.*M_PI*Tx)) *
+                                                       sqrt(1./(2.*M_PI*Ty)) *
+                                                       sqrt(1./(2.*M_PI*Tz)) *
                                                        exp(-theta_x - theta_y - theta_z);
 
                                              Real inc = 0.0;
@@ -911,10 +916,12 @@ namespace DRO {
    }
 
    bool VariableRelativeEntropy::setSpatialCell(const SpatialCell* cell) {
-      density   = cell-> parameters[CellParams::RHOM] / speciesMass;
-      averageVX = cell-> parameters[CellParams::VX];
-      averageVY = cell-> parameters[CellParams::VY];
-      averageVZ = cell-> parameters[CellParams::VZ];
+      // CellParams moments are all-population and time-interpolated; f is at the _V level
+      const spatial_cell::Population& pop = cell->get_population(popID);
+      density   = pop.RHO_V;
+      averageVX = pop.V_V[0];
+      averageVY = pop.V_V[1];
+      averageVZ = pop.V_V[2];
       for(int i = 0; i < 3; i++) {
          Temperature[i] = 0.0;
       }
@@ -923,11 +930,12 @@ namespace DRO {
    }
 
    /*! \brief Non-Maxwellianess
-    * Calculate for a population the relative entropy per density as defined by Cassak et al. *2023) as
+    * Calculate for a population the relative entropy per density similar to the definition of Cassak et al. *2023) as
     *     sigma_M = integral f log (f/f_M) d3v / n
     * where
     *    f: measured VDF for a population
-    *    f_M: a Maxwellian with same density n, flow speed U and three component temperature T
+    *    f_M: a Maxwellian with the same density n, flow speed U and three component temperature T
+    * The result allows for an-isotropy in f_M and doesn't count that as non-Maxwellianess
     * No extra parameters need to be set in cfg file.
     */
    VariableNonMaxwellianess::VariableNonMaxwellianess(cuint _popID): DataReductionOperator(),popID(_popID) {
@@ -984,7 +992,11 @@ namespace DRO {
          Real sum = 0.0;
          Real density = this->density;
          Real averageVX = this->averageVX, averageVY = this->averageVY, averageVZ = this->averageVZ;
-         Real* Temperature = this->Temperature;
+         // Device lambdas must not dereference host member arrays
+         // Cassak et al. (2023) use an isotropic scalar T
+         // const Real Tiso = (Temperature[0] + Temperature[1] + Temperature[2]) / 3.0;
+         // const Real Tx = Tiso, Ty = Tiso, Tz = Tiso;
+         const Real Tx = Temperature[0], Ty = Temperature[1], Tz = Temperature[2];
 
          if (cell->get_number_of_velocity_blocks(popID) != 0)
          arch::parallel_reduce<arch::sum>({WID, WID, WID, (uint)cell->get_number_of_velocity_blocks(popID)},
@@ -998,13 +1010,13 @@ namespace DRO {
                                              const Real DV3 = block_parameters[BlockParams::DVX]
                                                 * block_parameters[BlockParams::DVY] * block_parameters[BlockParams::DVZ];
 
-                                             Real theta_x = (VX-averageVX) * (VX-averageVX) / (2.*Temperature[0]);
-                                             Real theta_y = (VY-averageVY) * (VY-averageVY) / (2.*Temperature[1]);
-                                             Real theta_z = (VZ-averageVZ) * (VZ-averageVZ) / (2.*Temperature[2]);
+                                             Real theta_x = (VX-averageVX) * (VX-averageVX) / (2.*Tx);
+                                             Real theta_y = (VY-averageVY) * (VY-averageVY) / (2.*Ty);
+                                             Real theta_z = (VZ-averageVZ) * (VZ-averageVZ) / (2.*Tz);
                                              Real fM = density *
-                                                       sqrt(1./(2.*M_PI*Temperature[0])) *
-                                                       sqrt(1./(2.*M_PI*Temperature[1])) *
-                                                       sqrt(1./(2.*M_PI*Temperature[2])) *
+                                                       sqrt(1./(2.*M_PI*Tx)) *
+                                                       sqrt(1./(2.*M_PI*Ty)) *
+                                                       sqrt(1./(2.*M_PI*Tz)) *
                                                        exp(-theta_x - theta_y - theta_z);
 
                                              Real inc = 0.0;
@@ -1024,10 +1036,12 @@ namespace DRO {
    }
 
    bool VariableNonMaxwellianess::setSpatialCell(const SpatialCell* cell) {
-      density   = cell-> parameters[CellParams::RHOM] / speciesMass;
-      averageVX = cell-> parameters[CellParams::VX];
-      averageVY = cell-> parameters[CellParams::VY];
-      averageVZ = cell-> parameters[CellParams::VZ];
+      // CellParams moments are all-population and time-interpolated; f is at the _V level
+      const spatial_cell::Population& pop = cell->get_population(popID);
+      density   = pop.RHO_V;
+      averageVX = pop.V_V[0];
+      averageVY = pop.V_V[1];
+      averageVZ = pop.V_V[2];
       for(int i = 0; i < 3; i++) {
          Temperature[i] = 0.0;
       }
@@ -2298,19 +2312,15 @@ namespace DRO {
       b_par[1] = BY / norm_par;
       b_par[2] = BZ / norm_par;
 
-      // perpendicular unit vector 1 (bulk velocity perpendicular to b)
-      Real BV0 = sqrt(b_par[0] * V0[0] + b_par[1] * V0[1] + b_par[2] * V0[2]);
-      b_perp1[0] = V0[0] - BV0 * b_par[0];
-      b_perp1[1] = V0[1] - BV0 * b_par[1];
-      b_perp1[2] = V0[2] - BV0 * b_par[2];
-      Real norm_perp1 = sqrt(b_perp1[0] * b_perp1[0] + b_perp1[1] * b_perp1[1] + b_perp1[2] * b_perp1[2]);
-      if (!(norm_perp1 > 0.0)) {
-         // if V0 is aligned with b, take arbitrary perpendicular vector
-         b_perp1[0] = +b_par[1] + b_par[2];
-         b_perp1[1] = +b_par[2] - b_par[0];
-         b_perp1[2] = -b_par[0] - b_par[1];
-         norm_perp1 = sqrt(b_perp1[0] * b_perp1[0] + b_perp1[1] * b_perp1[1] + b_perp1[2] * b_perp1[2]);
-      }
+      // perpendicular unit vector 1
+      // g and T_perp are gyrotropic, so any perpendicular pair works; the least-aligned axis keeps |b x e| >= sqrt(2/3)
+      Real e_axis[3] = {0.0, 0.0, 0.0};
+      const Real abx = fabs(b_par[0]), aby = fabs(b_par[1]), abz = fabs(b_par[2]);
+      e_axis[(abx <= aby && abx <= abz) ? 0 : (aby <= abz ? 1 : 2)] = 1.0;
+      b_perp1[0] = b_par[1] * e_axis[2] - b_par[2] * e_axis[1];
+      b_perp1[1] = b_par[2] * e_axis[0] - b_par[0] * e_axis[2];
+      b_perp1[2] = b_par[0] * e_axis[1] - b_par[1] * e_axis[0];
+      const Real norm_perp1 = sqrt(b_perp1[0] * b_perp1[0] + b_perp1[1] * b_perp1[1] + b_perp1[2] * b_perp1[2]);
       b_perp1[0] /= norm_perp1;
       b_perp1[1] /= norm_perp1;
       b_perp1[2] /= norm_perp1;
