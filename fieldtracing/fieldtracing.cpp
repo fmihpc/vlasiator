@@ -27,6 +27,8 @@
 #include "../fieldsolver/fs_common.h"
 #include "fieldtracing.h"
 
+#include "phiprof.h"
+
 #include <Eigen/Dense>
 
 #define Vec3d Eigen::Vector3d
@@ -45,6 +47,7 @@ namespace FieldTracing {
                    fsgrids::constdperbspan dperb,
                    dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                    std::vector<SBC::SphericalTriGrid::Node>& nodes) {
+       phiprof::Timer timer{"(fieldtracing) reduceData"};
       if (fieldTracingParameters.doTraceOpenClosed) {
          traceOpenClosedConnection(technical, fsgrid, perb, dperb, nodes);
       }
@@ -62,6 +65,7 @@ namespace FieldTracing {
                                           fsgrids::perbspan perb,
                                           fsgrids::constdperbspan dperb,
                                           std::vector<SBC::SphericalTriGrid::Node>& nodes, creal couplingRadius) {
+       phiprof::Timer timerMain{"(fieldtracing) calculateIonosphereFsgridCoupling"};
 
       // we don't need to do anything if we have no nodes
       if (nodes.size() == 0) {
@@ -77,6 +81,7 @@ namespace FieldTracing {
       std::vector<Real> nodeDistance(nodes.size(), std::numeric_limits<Real>::max()); // For reduction of node coordinate in case of multiple hits
       std::vector<int> nodeNeedsContinuedTracing(nodes.size(), 1); // Flag, whether tracing needs to continue on another task
       std::vector<std::array<Real, 3>> nodeTracingCoordinates(nodes.size()); // In-flight node upmapping coordinates (for global reduction)
+      phiprof::Timer timer1{"(fieldtracing) potential 1"};
       for (uint n = 0; n < nodes.size(); n++) {
          nodeTracingCoordinates.at(n) = nodes.at(n).x;
          nodes.at(n).haveCouplingData = 0;
@@ -283,6 +288,7 @@ namespace FieldTracing {
          no.xMapped[1] = reducedxMapped[3*n+1] / reducedCouplingNum[n];
          no.xMapped[2] = reducedxMapped[3*n+2] / reducedCouplingNum[n];
       }
+ timer1.stop();
    }
 
    /*! Calculate mapping between ionospheric nodes and Vlasov grid cells.
@@ -298,6 +304,7 @@ namespace FieldTracing {
       std::vector<SBC::SphericalTriGrid::Node>& nodes,
       creal couplingRadius
    ) {
+       phiprof::Timer timer{"(fieldtracing) calculateIonosphereVlasovGridCoupling"};
 
       std::array<std::pair<int, Real>, 3> coupling;
 
@@ -472,6 +479,7 @@ namespace FieldTracing {
                                   fsgrids::perbspan perb,
                                   fsgrids::constdperbspan dperb,
                                   std::vector<SBC::SphericalTriGrid::Node>& nodes) {
+       phiprof::Timer timer{"(fieldtracing) traceOpenClosedConnection"};
 
       // we don't need to do anything if we have no nodes
       if (nodes.size() == 0) {
@@ -648,6 +656,8 @@ namespace FieldTracing {
                                  std::vector<TReal>& cellTracingStepSize, std::vector<TReal>& cellRunningDistance,
                                  std::vector<TReal>& cellMaxExtension, std::vector<signed char>& cellConnection,
                                  bool& warnMaxDistanceExceeded, const TReal maxTracingDistance, cuint DIRECTION) {
+       phiprof::Timer timer{"(fieldtracing) stepCellAcrossTaskDomain"};
+
       std::array<TReal, 3> x = cellTracingCoordinates[n];
       std::array<TReal, 3> v({0,0,0});
       while (true) {
@@ -805,6 +815,8 @@ namespace FieldTracing {
                                            fsgrids::perbspan perb,
                                            fsgrids::constdperbspan dperb,
                                            dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid) {
+       phiprof::Timer timer{"(fieldtracing) traceFullBoxConnectionAndFluxRopes"};
+
       phiprof::Timer fluxTracingTimer {"fieldtracing-fullAndFluxTracing"};
 
       std::vector<CellID> localDccrgCells = getLocalCells();
