@@ -365,11 +365,11 @@ endif
 # Make executable
 vlasiator: $(OBJS) $(OBJS_FSOLVER)
 	@echo "[LINK] ${EXE}"
-	$(SILENT)$(LNK) ${LDFLAGS} -o ${EXE} $(OBJS) $(LIBS) -lphiprof $(OBJS_FSOLVER)
+	$(SILENT)$(LNK) ${LDFLAGS} -o ${EXE} $(OBJS) $(LIBS) $(OBJS_FSOLVER)
 
 vlasiator-nesmik: $(OBJS) $(OBJS_FSOLVER)
 	@echo "[LINK] $@"
-	$(SILENT)$(LNK) ${LDFLAGS} -o ${EXE}-nesmik $(OBJS) $(LIBS) -lnesmikprof $(OBJS_FSOLVER)
+	$(SILENT)$(LNK) ${LDFLAGS} -o ${EXE}-nesmik $(OBJS) $(subst -lphiprof, -lnesmikprof, $(LIBS)) $(OBJS_FSOLVER)
 
 #/// TOOLS section/////
 

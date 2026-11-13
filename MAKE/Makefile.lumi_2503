@@ -75,7 +75,7 @@ INC_VLSV = -I$(LIBRARY_PREFIX)/include
 LIB_VLSV = -lvlsv
 
 INC_PROFILE = -I$(LIBRARY_PREFIX)/include 
-LIB_PROFILE = -L$(LIBRARY_PREFIX)/lib -Wl,-rpath=$(LIBRARY_PREFIX)/lib -Wl,-rpath=/scratch/project_462001504/AndrewY/nesmik/lib64/
+LIB_PROFILE = -L$(LIBRARY_PREFIX)/lib -Wl,-rpath=$(LIBRARY_PREFIX)/lib -Wl,-rpath=/scratch/project_462001504/AndrewY/nesmik/lib64/ -lphiprof
 
 #ASTERIX
 LIB_ZFP = -lzfp
