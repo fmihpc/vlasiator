@@ -40,9 +40,9 @@ tasks=$SLURM_NTASKS
 export OMP_NUM_THREADS=$t
 
 #command for running stuff
-run_command="srun --mpi=pmi2 -n $tasks "
-small_run_command="srun --mpi=pmi2 -n 1 -N 1 "
-run_command_tools="srun --mpi=pmi2 -n 1 "
+run_command="srun --mpi=cray_shasta -n $tasks "
+small_run_command="srun --mpi=cray_shasta -n 1 -N 1 "
+run_command_tools="srun --mpi=cray_shasta -n 1 "
 
 # # Placement debugging commands
 # lscpu | grep NUMA
