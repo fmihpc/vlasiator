@@ -42,6 +42,7 @@
 int gpuMultiProcessorCount = 0;
 int blocksPerMP = 0;
 int threadsPerMP = 0;
+int maxCellsPerIteration = 65535;
 
 extern Logger logFile;
 int myDevice;
