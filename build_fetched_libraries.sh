@@ -59,6 +59,9 @@ elif [[ $PLATFORM == "-roihu_cpu" || $PLATFORM == "-roihu_cpu_aocc" ]]; then
 elif [[ $PLATFORM == "-roihu_gpu" ]]; then
    sed -i 's/-lnvToolsExt//' Makefile
    make -j $PARALLEL CC=nvcc CCC="nvcc -ccbin mpic++ -I$CUDA_HOME/include/nvtx3 -L$CUDA_HOME/lib"
+elif [[ $PLATFORM == "-roihu_gpu_nvhpc" ]]; then
+   sed -i 's/-lnvToolsExt//' Makefile
+   make -j $PARALLEL CC=mpic++ CCC="mpic++ -I/appl/soft/manual/general/aarch64/nvhpc/Linux_aarch64/26.3/cuda/13.1/targets/sbsa-linux/include/nvtx3/ -L$CUDA_HOME/lib"
 else
    make -j $PARALLEL CCC=mpic++
 fi
@@ -79,6 +82,8 @@ if [[ $PLATFORM == "-leonardo_dcgp_intel" ]]; then
    make ARCH=arch CMP="mpiicpc -cxx=icpx"
 elif [[ $PLATFORM == "-hile_cpu" || $PLATFORM == "-hile_gpu" || $PLATFORM == "-lumi_hipcc" || $PLATFORM == "-lumi_2503" ]]; then
    make ARCH=arch CMP=CC
+elif [[ $PLATFORM == "-roihu_gpu_nvhpc" ]]; then
+   make ARCH=arch CMP=mpic++ CXXFLAGS="-O3 -std=c++17 -Wall "
 else
    make ARCH=arch
 fi

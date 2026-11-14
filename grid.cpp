@@ -1,6 +1,7 @@
 /*
  * This file is part of Vlasiator.
  * Copyright 2010-2016 Finnish Meteorological Institute
+ * Copyright 2026 CSC - IT Center for Science Ltd. <www.csc.fi>
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
  * at http://www.physics.helsinki.fi/vlasiator/
@@ -589,15 +590,28 @@ void transferInParts(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGr
 
          int prepareReceives {phiprof::initializeTimer("Preparing receives")};
          int receives = 0;
-         #pragma omp parallel for schedule(guided)
-         for (const CellID cell_id : incoming_cells_list) {
-            SpatialCell* cell = mpiGrid[cell_id];
-            if (get_transfer_part(mpiGrid, num_part_transfers, cell_id) == transfer_part) {
-               receives++;
-               // reserve space for velocity block data in arriving remote cells
-               phiprof::Timer timer {prepareReceives};
-               cell->prepare_to_receive_blocks(popID);
-               timer.stop(1, "Spatial cells");
+         // Snapshot pointer+size before the parallel region instead of letting
+         // the omp-outlined region capture incoming_cells_list (the vector
+         // object) directly across the outlining boundary - only plain
+         // scalars/pointers cross it this way.
+         const size_t nIncoming = incoming_cells_list.size();
+         const CellID* const incomingCellsPtr = incoming_cells_list.data();
+         // Guard against nIncoming==0: nvc++'s nvomp runtime has shown
+         // inconsistent (crash/hang) behavior for a zero-trip-count
+         // "#pragma omp parallel for" in this codebase - skip the region
+         // entirely rather than rely on it correctly doing nothing.
+         if (nIncoming > 0) {
+            #pragma omp parallel for schedule(guided)
+            for (size_t i = 0; i < nIncoming; ++i) {
+               const CellID cell_id = incomingCellsPtr[i];
+               SpatialCell* cell = mpiGrid[cell_id];
+               if (get_transfer_part(mpiGrid, num_part_transfers, cell_id) == transfer_part) {
+                  receives++;
+                  // reserve space for velocity block data in arriving remote cells
+                  phiprof::Timer timer {prepareReceives};
+                  cell->prepare_to_receive_blocks(popID);
+                  timer.stop(1, "Spatial cells");
+               }
             }
          }
          if (receives == 0) {

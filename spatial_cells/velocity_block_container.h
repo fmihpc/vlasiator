@@ -1,6 +1,7 @@
 /*
  * This file is part of Vlasiator.
  * Copyright 2010-2024 Finnish Meteorological Institute and University of Helsinki
+ * Copyright 2026 CSC - IT Center for Science Ltd. <www.csc.fi>
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
  * at http://www.physics.helsinki.fi/vlasiator/
@@ -186,11 +187,10 @@ namespace vmesh {
          printf("VBC CHECK ERROR: capacity %lu vs cached value %lu in %s : %d\n",currentCapacity,cachedCapacity,__FILE__,__LINE__);
       }
       #endif
-      #if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
-      return cachedCapacity;
-      #else
-      return block_data.capacity() / WID3;
-      #endif
+      VLASIATOR_IF_DEVICE(
+         (return block_data.capacity() / WID3;),
+         (return cachedCapacity;)
+      );
 #else
       return block_data.capacity() / WID3;
 #endif
@@ -204,11 +204,10 @@ namespace vmesh {
          printf("VBC CHECK ERROR: capacity, %lu vs cached value %lu in %s : %d\n",currentCapacity,cachedCapacity,__FILE__,__LINE__);
       }
       #endif
-      #if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
-      return cachedCapacity*WID3*sizeof(Realf) + cachedCapacity*BlockParams::N_VELOCITY_BLOCK_PARAMS*sizeof(Real);
-      #else
-      return block_data.capacity()*sizeof(Realf) + parameters.capacity()*BlockParams::N_VELOCITY_BLOCK_PARAMS*sizeof(Real);
-      #endif
+      VLASIATOR_IF_DEVICE(
+         (return block_data.capacity()*sizeof(Realf) + parameters.capacity()*BlockParams::N_VELOCITY_BLOCK_PARAMS*sizeof(Real);),
+         (return cachedCapacity*WID3*sizeof(Realf) + cachedCapacity*BlockParams::N_VELOCITY_BLOCK_PARAMS*sizeof(Real);)
+      );
 #else
       return block_data.capacity()*sizeof(Realf) + parameters.capacity()*BlockParams::N_VELOCITY_BLOCK_PARAMS*sizeof(Real);
 #endif
@@ -241,12 +240,14 @@ namespace vmesh {
 
    inline ARCH_HOSTDEV void VelocityBlockContainer::move(const vmesh::LocalID source,const vmesh::LocalID target) {
 #ifdef USE_GPU
-      #if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
-      gpuStream_t stream = gpu_getStream();
-      const vmesh::LocalID numberOfBlocks = cachedSize;
-      #else
-      const vmesh::LocalID numberOfBlocks = block_data.size()/WID3;
-      #endif
+      vmesh::LocalID numberOfBlocks;
+      VLASIATOR_IF_DEVICE(
+         (numberOfBlocks = block_data.size()/WID3;),
+         (
+            gpuStream_t stream = gpu_getStream();
+            numberOfBlocks = cachedSize;
+         )
+      );
 #else
       const vmesh::LocalID numberOfBlocks = block_data.size()/WID3;
 #endif
@@ -271,18 +272,21 @@ namespace vmesh {
          if (currentCapacityP != currentCapacity) ok = false;
          if (numberOfBlocksP != numberOfBlocks) ok = false;
          if (ok == false) {
-            #if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
-            std::stringstream ss;
-            ss << "VBC ERROR: invalid source LID=" << source << " in copy, target=" << target << " #blocks=" << numberOfBlocks << " capacity=" << currentCapacity << std::endl;
-            ss << "or sizes are wrong, data->size()=" << block_data.size() << " parameters.size()=" << parameters.size() << std::endl;
-            std::cerr << ss.str();
-            sleep(1);
-            exit(1);
-            #else
-            printf("VBC error: invalid source LID=%u in copy, target=%u #blocks=%u capacity=%u \n or sizes are wrong, data->size()=%u parameters.size()=%u \n",
-                   source,target,numberOfBlocks,currentCapacity, (vmesh::LocalID)block_data.size(),(vmesh::LocalID)parameters.size());
-            assert(0);
-            #endif
+            VLASIATOR_IF_DEVICE(
+               (
+                  printf("VBC error: invalid source LID=%u in copy, target=%u #blocks=%u capacity=%u \n or sizes are wrong, data->size()=%u parameters.size()=%u \n",
+                         source,target,numberOfBlocks,currentCapacity, (vmesh::LocalID)block_data.size(),(vmesh::LocalID)parameters.size());
+                  assert(0);
+               ),
+               (
+                  std::stringstream ss;
+                  ss << "VBC ERROR: invalid source LID=" << source << " in copy, target=" << target << " #blocks=" << numberOfBlocks << " capacity=" << currentCapacity << std::endl;
+                  ss << "or sizes are wrong, data->size()=" << block_data.size() << " parameters.size()=" << parameters.size() << std::endl;
+                  std::cerr << ss.str();
+                  sleep(1);
+                  exit(1);
+               )
+            );
          }
       #endif
 
@@ -338,15 +342,18 @@ namespace vmesh {
    inline ARCH_HOSTDEV Realf* VelocityBlockContainer::getData(const vmesh::LocalID blockLID) {
       #ifdef DEBUG_VBC
          const vmesh::LocalID numberOfBlocks = block_data.size()/WID3;
-         #if defined(USE_GPU) && (defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__))
-         if (blockLID >= numberOfBlocks) {
-            exitInvalidLocalID(blockLID);
-         }
-         #else
-         if (blockLID >= numberOfBlocks) {
-            exitInvalidLocalID(blockLID,"getData");
-         }
-         #endif
+         VLASIATOR_IF_DEVICE(
+            (
+               if (blockLID >= numberOfBlocks) {
+                  exitInvalidLocalID(blockLID);
+               }
+            ),
+            (
+               if (blockLID >= numberOfBlocks) {
+                  exitInvalidLocalID(blockLID,"getData");
+               }
+            )
+         );
       #endif
       return block_data.data() + blockLID*WID3;
    }
@@ -354,15 +361,18 @@ namespace vmesh {
    inline ARCH_HOSTDEV const Realf* VelocityBlockContainer::getData(const vmesh::LocalID blockLID) const {
       #ifdef DEBUG_VBC
          const vmesh::LocalID numberOfBlocks = block_data.size()/WID3;
-         #if defined(USE_GPU) && (defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__))
-         if (blockLID >= numberOfBlocks) {
-            exitInvalidLocalID(blockLID);
-         }
-         #else
-         if (blockLID >= numberOfBlocks) {
-            exitInvalidLocalID(blockLID,"const getData const");
-         }
-         #endif
+         VLASIATOR_IF_DEVICE(
+            (
+               if (blockLID >= numberOfBlocks) {
+                  exitInvalidLocalID(blockLID);
+               }
+            ),
+            (
+               if (blockLID >= numberOfBlocks) {
+                  exitInvalidLocalID(blockLID,"const getData const");
+               }
+            )
+         );
       #endif
       return block_data.data() + blockLID*WID3;
    }
@@ -378,18 +388,21 @@ namespace vmesh {
    inline ARCH_HOSTDEV Real* VelocityBlockContainer::getParameters(const vmesh::LocalID blockLID) {
       #ifdef DEBUG_VBC
          const vmesh::LocalID numberOfBlocks = block_data.size()/WID3;
-         #if defined(USE_GPU) && (defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__))
-         if (blockLID >= numberOfBlocks) {
-            exitInvalidLocalID(blockLID);
-         }
-         #else
-         if (blockLID >= numberOfBlocks) {
-            exitInvalidLocalID(blockLID,"getParameters");
-         }
-         if (blockLID >= parameters.size()/BlockParams::N_VELOCITY_BLOCK_PARAMS) {
-            exitInvalidLocalID(blockLID,"getParameters 2");
-         }
-         #endif
+         VLASIATOR_IF_DEVICE(
+            (
+               if (blockLID >= numberOfBlocks) {
+                  exitInvalidLocalID(blockLID);
+               }
+            ),
+            (
+               if (blockLID >= numberOfBlocks) {
+                  exitInvalidLocalID(blockLID,"getParameters");
+               }
+               if (blockLID >= parameters.size()/BlockParams::N_VELOCITY_BLOCK_PARAMS) {
+                  exitInvalidLocalID(blockLID,"getParameters 2");
+               }
+            )
+         );
       #endif
       return parameters.data() + blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS;
    }
@@ -397,29 +410,32 @@ namespace vmesh {
    inline ARCH_HOSTDEV const Real* VelocityBlockContainer::getParameters(const vmesh::LocalID blockLID) const {
       #ifdef DEBUG_VBC
          const vmesh::LocalID numberOfBlocks = block_data.size()/WID3;
-         #if defined(USE_GPU) && (defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__))
-         if (blockLID >= numberOfBlocks) {
-            exitInvalidLocalID(blockLID);
-         }
-         #else
-         if (blockLID >= numberOfBlocks) {
-            exitInvalidLocalID(blockLID,"const getParameters const");
-         }
-         if (blockLID >= parameters.size()/BlockParams::N_VELOCITY_BLOCK_PARAMS) {
-            exitInvalidLocalID(blockLID,"const getParameters const 2");
-         }
-         #endif
+         VLASIATOR_IF_DEVICE(
+            (
+               if (blockLID >= numberOfBlocks) {
+                  exitInvalidLocalID(blockLID);
+               }
+            ),
+            (
+               if (blockLID >= numberOfBlocks) {
+                  exitInvalidLocalID(blockLID,"const getParameters const");
+               }
+               if (blockLID >= parameters.size()/BlockParams::N_VELOCITY_BLOCK_PARAMS) {
+                  exitInvalidLocalID(blockLID,"const getParameters const 2");
+               }
+            )
+         );
       #endif
       return parameters.data() + blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS;
    }
 
    inline ARCH_HOSTDEV void VelocityBlockContainer::pop() {
 #ifdef USE_GPU
-      #if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
-      const vmesh::LocalID numberOfBlocks = cachedSize;
-      #else
-      const vmesh::LocalID numberOfBlocks = block_data.size()/WID3;
-      #endif
+      vmesh::LocalID numberOfBlocks;
+      VLASIATOR_IF_DEVICE(
+         (numberOfBlocks = block_data.size()/WID3;),
+         (numberOfBlocks = cachedSize;)
+      );
 #else
       const vmesh::LocalID numberOfBlocks = block_data.size()/WID3;
 #endif
@@ -439,51 +455,62 @@ namespace vmesh {
    /** Grows the size of the VBC, does not touch data */
    inline ARCH_HOSTDEV vmesh::LocalID VelocityBlockContainer::push_back() {
 #ifdef USE_GPU
-      #if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
-      gpuStream_t stream = gpu_getStream();
-      const vmesh::LocalID numberOfBlocks = cachedSize;
-      #else
-      const vmesh::LocalID numberOfBlocks = block_data.size()/WID3;
-      #endif
+      gpuStream_t stream;
+      vmesh::LocalID numberOfBlocks;
+      VLASIATOR_IF_DEVICE(
+         (numberOfBlocks = block_data.size()/WID3;),
+         (
+            stream = gpu_getStream();
+            numberOfBlocks = cachedSize;
+         )
+      );
 #else
       const vmesh::LocalID numberOfBlocks = block_data.size()/WID3;
 #endif
       vmesh::LocalID newIndex = numberOfBlocks;
 
-      #if defined(USE_GPU) && (defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__))
-      const vmesh::LocalID currentCapacityD = block_data.capacity()/WID3;
-      if (newIndex >= currentCapacityD) {
-         assert(0 && "ERROR! Attempting to grow block container on-device beyond capacity (::push_back).");
-      }
-      block_data.device_resize((numberOfBlocks+1)*WID3);
-      parameters.device_resize((numberOfBlocks+1)*BlockParams::N_VELOCITY_BLOCK_PARAMS);
-      #elif defined(USE_GPU)
-      setNewCapacity(numberOfBlocks+1,stream);
-      block_data.resize((numberOfBlocks+1)*WID3,true,stream);
-      parameters.resize((numberOfBlocks+1)*BlockParams::N_VELOCITY_BLOCK_PARAMS,true,stream);
-      #else
+#ifdef USE_GPU
+      VLASIATOR_IF_DEVICE(
+         (
+            const vmesh::LocalID currentCapacityD = block_data.capacity()/WID3;
+            if (newIndex >= currentCapacityD) {
+               assert(0 && "ERROR! Attempting to grow block container on-device beyond capacity (::push_back).");
+            }
+            block_data.device_resize((numberOfBlocks+1)*WID3);
+            parameters.device_resize((numberOfBlocks+1)*BlockParams::N_VELOCITY_BLOCK_PARAMS);
+         ),
+         (
+            setNewCapacity(numberOfBlocks+1,stream);
+            block_data.resize((numberOfBlocks+1)*WID3,true,stream);
+            parameters.resize((numberOfBlocks+1)*BlockParams::N_VELOCITY_BLOCK_PARAMS,true,stream);
+         )
+      );
+#else
       setNewCapacity(numberOfBlocks+1);
       block_data.resize((numberOfBlocks+1)*WID3,true);
       parameters.resize((numberOfBlocks+1)*BlockParams::N_VELOCITY_BLOCK_PARAMS,true);
-      #endif
+#endif
 
       #ifdef DEBUG_VBC
       const vmesh::LocalID currentCapacity = block_data.capacity()/WID3;
       const vmesh::LocalID currentCapacityP = parameters.capacity()/BlockParams::N_VELOCITY_BLOCK_PARAMS;
       if (newIndex >= currentCapacity || newIndex >= currentCapacityP) {
-         #if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
-         std::stringstream ss;
-         ss << "VBC ERROR in push_back, LID=" << newIndex << " for new block is out of bounds" << std::endl;
-         ss << "\t data->size()=" << block_data.size()  << " parameters.size()=" << parameters.size() << std::endl;
-         ss << "\t data->capacity()=" << block_data.capacity()  << " parameters.capacity()=" << parameters.capacity() << std::endl;
-         std::cerr << ss.str();
-         sleep(1);
-         exit(1);
-         #else
-         printf("VBC ERROR in device push_back, LID=%u for new block is out of bounds\n  data->size()=%u parameters.size()=%u\n",
-                newIndex,(vmesh::LocalID)block_data.size(),(vmesh::LocalID)parameters.size());
-         assert(0);
-         #endif
+         VLASIATOR_IF_DEVICE(
+            (
+               printf("VBC ERROR in device push_back, LID=%u for new block is out of bounds\n  data->size()=%u parameters.size()=%u\n",
+                      newIndex,(vmesh::LocalID)block_data.size(),(vmesh::LocalID)parameters.size());
+               assert(0);
+            ),
+            (
+               std::stringstream ss;
+               ss << "VBC ERROR in push_back, LID=" << newIndex << " for new block is out of bounds" << std::endl;
+               ss << "\t data->size()=" << block_data.size()  << " parameters.size()=" << parameters.size() << std::endl;
+               ss << "\t data->capacity()=" << block_data.capacity()  << " parameters.capacity()=" << parameters.capacity() << std::endl;
+               std::cerr << ss.str();
+               sleep(1);
+               exit(1);
+            )
+         );
       }
       #endif
 
@@ -496,51 +523,62 @@ namespace vmesh {
    /** Grows the size of the VBC, sets data to zero */
    inline ARCH_HOSTDEV vmesh::LocalID VelocityBlockContainer::push_back_and_zero() {
 #ifdef USE_GPU
-      #if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
-      gpuStream_t stream = gpu_getStream();
-      const vmesh::LocalID numberOfBlocks = cachedSize;
-      #else
-      const vmesh::LocalID numberOfBlocks = block_data.size()/WID3;
-      #endif
+      gpuStream_t stream;
+      vmesh::LocalID numberOfBlocks;
+      VLASIATOR_IF_DEVICE(
+         (numberOfBlocks = block_data.size()/WID3;),
+         (
+            stream = gpu_getStream();
+            numberOfBlocks = cachedSize;
+         )
+      );
 #else
       const vmesh::LocalID numberOfBlocks = block_data.size()/WID3;
 #endif
       const vmesh::LocalID newIndex = numberOfBlocks;
 
-      #if defined(USE_GPU) && (defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__))
-      const vmesh::LocalID currentCapacityD = block_data.capacity()/WID3;
-      if (newIndex >= currentCapacityD) {
-         assert(0 && "ERROR! Attempting to grow block container on-device beyond capacity (::push_back_and_zero).");
-      }
-      block_data.device_resize((numberOfBlocks+1)*WID3, false); //construct=false don't construct or set to zero (performed below)
-      parameters.device_resize((numberOfBlocks+1)*BlockParams::N_VELOCITY_BLOCK_PARAMS, false); //construct=false don't construct or set to zero (performed below)
-      #elif defined(USE_GPU)
-      setNewCapacity(numberOfBlocks+1,stream);
-      block_data.resize((numberOfBlocks+1)*WID3,true,stream);
-      parameters.resize((numberOfBlocks+1)*BlockParams::N_VELOCITY_BLOCK_PARAMS,true,stream);
-      #else
+#ifdef USE_GPU
+      VLASIATOR_IF_DEVICE(
+         (
+            const vmesh::LocalID currentCapacityD = block_data.capacity()/WID3;
+            if (newIndex >= currentCapacityD) {
+               assert(0 && "ERROR! Attempting to grow block container on-device beyond capacity (::push_back_and_zero).");
+            }
+            block_data.device_resize((numberOfBlocks+1)*WID3, false); //construct=false don't construct or set to zero (performed below)
+            parameters.device_resize((numberOfBlocks+1)*BlockParams::N_VELOCITY_BLOCK_PARAMS, false); //construct=false don't construct or set to zero (performed below)
+         ),
+         (
+            setNewCapacity(numberOfBlocks+1,stream);
+            block_data.resize((numberOfBlocks+1)*WID3,true,stream);
+            parameters.resize((numberOfBlocks+1)*BlockParams::N_VELOCITY_BLOCK_PARAMS,true,stream);
+         )
+      );
+#else
       setNewCapacity(numberOfBlocks+1);
       block_data.resize((numberOfBlocks+1)*WID3);
       parameters.resize((numberOfBlocks+1)*BlockParams::N_VELOCITY_BLOCK_PARAMS);
-      #endif
+#endif
 
       #ifdef DEBUG_VBC
       const vmesh::LocalID currentCapacity = block_data.capacity()/WID3;
       const vmesh::LocalID currentCapacityP = parameters.capacity()/BlockParams::N_VELOCITY_BLOCK_PARAMS;
       if (newIndex >= currentCapacity || newIndex >= currentCapacityP) {
-         #if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
-         std::stringstream ss;
-         ss << "VBC ERROR in push_back_and_zero, LID=" << newIndex << " for new block is out of bounds" << std::endl;
-         ss << "\t data->size()=" << block_data.size()  << " parameters.size()=" << parameters.size() << std::endl;
-         ss << "\t data->capacity()=" << block_data.capacity()  << " parameters.capacity()=" << parameters.capacity() << std::endl;
-         std::cerr << ss.str();
-         sleep(1);
-         exit(1);
-         #else
-         printf("VBC ERROR in device push_back_and_zero, LID=%u for new block is out of bounds \n data->size()=%u parameters.size()=%u \n",
-                newIndex,(vmesh::LocalID)block_data.size(),(vmesh::LocalID)parameters.size());
-         assert(0);
-         #endif
+         VLASIATOR_IF_DEVICE(
+            (
+               printf("VBC ERROR in device push_back_and_zero, LID=%u for new block is out of bounds \n data->size()=%u parameters.size()=%u \n",
+                      newIndex,(vmesh::LocalID)block_data.size(),(vmesh::LocalID)parameters.size());
+               assert(0);
+            ),
+            (
+               std::stringstream ss;
+               ss << "VBC ERROR in push_back_and_zero, LID=" << newIndex << " for new block is out of bounds" << std::endl;
+               ss << "\t data->size()=" << block_data.size()  << " parameters.size()=" << parameters.size() << std::endl;
+               ss << "\t data->capacity()=" << block_data.capacity()  << " parameters.capacity()=" << parameters.capacity() << std::endl;
+               std::cerr << ss.str();
+               sleep(1);
+               exit(1);
+            )
+         );
       }
       #endif
 
@@ -559,35 +597,46 @@ namespace vmesh {
    /** Grows the size of the VBC, does not touch data */
    inline ARCH_HOSTDEV vmesh::LocalID VelocityBlockContainer::push_back(const uint32_t N_blocks) {
 #ifdef USE_GPU
-      #if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
-      gpuStream_t stream = gpu_getStream();
-      const vmesh::LocalID numberOfBlocks = cachedSize;
-      const vmesh::LocalID currentCapacity = cachedCapacity;
-      #else
-      const vmesh::LocalID numberOfBlocks = block_data.size()/WID3;
-      const vmesh::LocalID currentCapacity = block_data.capacity()/WID3;
-      #endif
+      gpuStream_t stream;
+      vmesh::LocalID numberOfBlocks;
+      vmesh::LocalID currentCapacity;
+      VLASIATOR_IF_DEVICE(
+         (
+            numberOfBlocks = block_data.size()/WID3;
+            currentCapacity = block_data.capacity()/WID3;
+         ),
+         (
+            stream = gpu_getStream();
+            numberOfBlocks = cachedSize;
+            currentCapacity = cachedCapacity;
+         )
+      );
 #else
       const vmesh::LocalID numberOfBlocks = block_data.size()/WID3;
       //const vmesh::LocalID currentCapacity = block_data.capacity()/WID3;
 #endif
       const vmesh::LocalID newIndex = numberOfBlocks;
 
-      #if defined(USE_GPU) && (defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__))
-      if (newIndex + N_blocks >= currentCapacity-1) {
-         assert(0 && "ERROR! Attempting to grow block container on-device beyond capacity (::push_back N_blocks).");
-      }
-      block_data.device_resize((numberOfBlocks+N_blocks)*WID3);
-      parameters.device_resize((numberOfBlocks+N_blocks)*BlockParams::N_VELOCITY_BLOCK_PARAMS);
-      #elif defined(USE_GPU)
-      setNewCapacity(numberOfBlocks+N_blocks,stream);
-      block_data.resize((numberOfBlocks+N_blocks)*WID3,true,stream);
-      parameters.resize((numberOfBlocks+N_blocks)*BlockParams::N_VELOCITY_BLOCK_PARAMS,true,stream);
-      #else
+#ifdef USE_GPU
+      VLASIATOR_IF_DEVICE(
+         (
+            if (newIndex + N_blocks >= currentCapacity-1) {
+               assert(0 && "ERROR! Attempting to grow block container on-device beyond capacity (::push_back N_blocks).");
+            }
+            block_data.device_resize((numberOfBlocks+N_blocks)*WID3);
+            parameters.device_resize((numberOfBlocks+N_blocks)*BlockParams::N_VELOCITY_BLOCK_PARAMS);
+         ),
+         (
+            setNewCapacity(numberOfBlocks+N_blocks,stream);
+            block_data.resize((numberOfBlocks+N_blocks)*WID3,true,stream);
+            parameters.resize((numberOfBlocks+N_blocks)*BlockParams::N_VELOCITY_BLOCK_PARAMS,true,stream);
+         )
+      );
+#else
       setNewCapacity(numberOfBlocks+N_blocks);
       block_data.resize((numberOfBlocks+N_blocks)*WID3);
       parameters.resize((numberOfBlocks+N_blocks)*BlockParams::N_VELOCITY_BLOCK_PARAMS);
-      #endif
+#endif
 
 #ifdef USE_GPU
       cachedSize += N_blocks; // Note: if called from inside GPU kernel, cached size must be updated separately
@@ -598,46 +647,70 @@ namespace vmesh {
    /** Grows the size of the VBC, sets data to zero */
    inline ARCH_HOSTDEV vmesh::LocalID VelocityBlockContainer::push_back_and_zero(const uint32_t N_blocks) {
 #ifdef USE_GPU
-      #if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
-      gpuStream_t stream = gpu_getStream();
-      const vmesh::LocalID numberOfBlocks = cachedSize;
-      const vmesh::LocalID currentCapacity = cachedCapacity;
-      #else
-      const vmesh::LocalID numberOfBlocks = block_data.size()/WID3;
-      const vmesh::LocalID currentCapacity = block_data.capacity()/WID3;
-      #endif
+      gpuStream_t stream;
+      vmesh::LocalID numberOfBlocks;
+      vmesh::LocalID currentCapacity;
+      VLASIATOR_IF_DEVICE(
+         (
+            numberOfBlocks = block_data.size()/WID3;
+            currentCapacity = block_data.capacity()/WID3;
+         ),
+         (
+            stream = gpu_getStream();
+            numberOfBlocks = cachedSize;
+            currentCapacity = cachedCapacity;
+         )
+      );
 #else
       const vmesh::LocalID numberOfBlocks = block_data.size()/WID3;
       //const vmesh::LocalID currentCapacity = block_data.capacity()/WID3;
 #endif
       const vmesh::LocalID newIndex = numberOfBlocks;
 
-      #if defined(USE_GPU) && (defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__))
-      if (newIndex + N_blocks >= currentCapacity-1) {
-         assert(0 && "ERROR! Attempting to grow block container on-device beyond capacity (::push_back_and_zero N_blocks).");
-      }
-      block_data.device_resize((numberOfBlocks+N_blocks)*WID3, false); //construct=false don't construct or set to zero (performed below)
-      parameters.device_resize((numberOfBlocks+N_blocks)*BlockParams::N_VELOCITY_BLOCK_PARAMS, false); //construct=false don't construct or set to zero (performed below)
-      #elif defined(USE_GPU)
-      setNewCapacity(numberOfBlocks+N_blocks,stream);
-      block_data.resize((numberOfBlocks+N_blocks)*WID3,true,stream);
-      parameters.resize((numberOfBlocks+N_blocks)*BlockParams::N_VELOCITY_BLOCK_PARAMS,true,stream);
-      #else
+#ifdef USE_GPU
+      VLASIATOR_IF_DEVICE(
+         (
+            if (newIndex + N_blocks >= currentCapacity-1) {
+               assert(0 && "ERROR! Attempting to grow block container on-device beyond capacity (::push_back_and_zero N_blocks).");
+            }
+            block_data.device_resize((numberOfBlocks+N_blocks)*WID3, false); //construct=false don't construct or set to zero (performed below)
+            parameters.device_resize((numberOfBlocks+N_blocks)*BlockParams::N_VELOCITY_BLOCK_PARAMS, false); //construct=false don't construct or set to zero (performed below)
+         ),
+         (
+            setNewCapacity(numberOfBlocks+N_blocks,stream);
+            block_data.resize((numberOfBlocks+N_blocks)*WID3,true,stream);
+            parameters.resize((numberOfBlocks+N_blocks)*BlockParams::N_VELOCITY_BLOCK_PARAMS,true,stream);
+         )
+      );
+#else
       setNewCapacity(numberOfBlocks+N_blocks);
       block_data.resize((numberOfBlocks+N_blocks)*WID3);
       parameters.resize((numberOfBlocks+N_blocks)*BlockParams::N_VELOCITY_BLOCK_PARAMS);
-      #endif
+#endif
 
-      #if defined(USE_GPU) && !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
-      // Clear velocity block data to zero values
-      Realf* zero_blocks = block_data.data();
-      Real* zero_parameters = parameters.data();
-      // block_data.optimizeGPU(stream);
-      // parameters.optimizeGPU(stream);
-      CHK_ERR( gpuMemsetAsync(zero_blocks + newIndex*WID3, 0, WID3*N_blocks*sizeof(Realf), stream) );
-      CHK_ERR( gpuMemsetAsync(zero_parameters + newIndex*BlockParams::N_VELOCITY_BLOCK_PARAMS, 0, BlockParams::N_VELOCITY_BLOCK_PARAMS*N_blocks*sizeof(Real), stream) );
-      CHK_ERR( gpuStreamSynchronize(stream) );
-      #else
+#ifdef USE_GPU
+      VLASIATOR_IF_DEVICE(
+         (
+            // Clear velocity block data to zero values
+            for (size_t i=0; i<WID3*N_blocks; ++i) {
+               block_data[newIndex*WID3+i] = 0.0;
+            }
+            for (size_t i=0; i<BlockParams::N_VELOCITY_BLOCK_PARAMS*N_blocks; ++i) {
+               parameters[newIndex*BlockParams::N_VELOCITY_BLOCK_PARAMS+i] = 0.0;
+            }
+         ),
+         (
+            // Clear velocity block data to zero values
+            Realf* zero_blocks = block_data.data();
+            Real* zero_parameters = parameters.data();
+            // block_data.optimizeGPU(stream);
+            // parameters.optimizeGPU(stream);
+            CHK_ERR( gpuMemsetAsync(zero_blocks + newIndex*WID3, 0, WID3*N_blocks*sizeof(Realf), stream) );
+            CHK_ERR( gpuMemsetAsync(zero_parameters + newIndex*BlockParams::N_VELOCITY_BLOCK_PARAMS, 0, BlockParams::N_VELOCITY_BLOCK_PARAMS*N_blocks*sizeof(Real), stream) );
+            CHK_ERR( gpuStreamSynchronize(stream) );
+         )
+      );
+#else
       // Clear velocity block data to zero values
       for (size_t i=0; i<WID3*N_blocks; ++i) {
          block_data[newIndex*WID3+i] = 0.0;
@@ -645,7 +718,7 @@ namespace vmesh {
       for (size_t i=0; i<BlockParams::N_VELOCITY_BLOCK_PARAMS*N_blocks; ++i) {
          parameters[newIndex*BlockParams::N_VELOCITY_BLOCK_PARAMS+i] = 0.0;
       }
-      #endif
+#endif
 
 #ifdef USE_GPU
       cachedSize += N_blocks; // Note: if called from inside GPU kernel, cached size must be updated separately
@@ -737,17 +810,20 @@ namespace vmesh {
    inline ARCH_HOSTDEV bool VelocityBlockContainer::setNewSize(const vmesh::LocalID newSize) {
       // Does not set new added blocks to zero
 #ifdef USE_GPU
-      #if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
-      gpuStream_t stream = gpu_getStream();
-      setNewCapacity(newSize,stream);
-      parameters.resize((newSize)*BlockParams::N_VELOCITY_BLOCK_PARAMS,true,stream);
-      block_data.resize((newSize)*WID3,true,stream);
-      #else
-      const vmesh::LocalID currentCapacity = block_data.capacity()/WID3;
-      assert(newSize <= currentCapacity && "ERROR! Attempting to grow block container on-device beyond capacity (::setNewSize).");
-      block_data.device_resize((newSize)*WID3,false); //construct=false don't construct or set to zero
-      parameters.device_resize((newSize)*BlockParams::N_VELOCITY_BLOCK_PARAMS,false); //construct=false don't construct or set to zero
-      #endif
+      VLASIATOR_IF_DEVICE(
+         (
+            const vmesh::LocalID currentCapacity = block_data.capacity()/WID3;
+            assert(newSize <= currentCapacity && "ERROR! Attempting to grow block container on-device beyond capacity (::setNewSize).");
+            block_data.device_resize((newSize)*WID3,false); //construct=false don't construct or set to zero
+            parameters.device_resize((newSize)*BlockParams::N_VELOCITY_BLOCK_PARAMS,false); //construct=false don't construct or set to zero
+         ),
+         (
+            gpuStream_t stream = gpu_getStream();
+            setNewCapacity(newSize,stream);
+            parameters.resize((newSize)*BlockParams::N_VELOCITY_BLOCK_PARAMS,true,stream);
+            block_data.resize((newSize)*WID3,true,stream);
+         )
+      );
 #else
       setNewCapacity(newSize);
       block_data.resize((newSize)*WID3);
@@ -764,17 +840,18 @@ namespace vmesh {
     * @return Number of existing velocity blocks.*/
    inline ARCH_HOSTDEV vmesh::LocalID VelocityBlockContainer::size() const {
 #ifdef USE_GPU
-      #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-      return block_data.size() / WID3;
-      #else
-      #ifdef DEBUG_VBC
-      const size_t currentSize = block_data.size() / WID3;
-      if (currentSize != cachedSize) {
-         printf("VBC CHECK ERROR: cached size mismatch, %lu vs %lu in %s : %d\n",currentSize,cachedSize,__FILE__,__LINE__);
-      }
-      #endif
-      return cachedSize;
-      #endif
+      VLASIATOR_IF_DEVICE(
+         (return block_data.size() / WID3;),
+         (
+            #ifdef DEBUG_VBC
+            const size_t currentSize = block_data.size() / WID3;
+            if (currentSize != cachedSize) {
+               printf("VBC CHECK ERROR: cached size mismatch, %lu vs %lu in %s : %d\n",currentSize,cachedSize,__FILE__,__LINE__);
+            }
+            #endif
+            return cachedSize;
+         )
+      );
 #else
       return block_data.size() / WID3;
 #endif
@@ -782,17 +859,18 @@ namespace vmesh {
 
    inline ARCH_HOSTDEV size_t VelocityBlockContainer::sizeInBytes() const {
 #ifdef USE_GPU
-      #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-      return block_data.size()*sizeof(Realf) + parameters.size()*sizeof(Real);
-      #else
-      #ifdef DEBUG_VBC
-      const size_t currentSize = block_data.size() / WID3;
-      if (currentSize != cachedSize) {
-         printf("VBC CHECK ERROR: cached size mismatch, %lu vs %lu in %s : %d\n",currentSize,cachedSize,__FILE__,__LINE__);
-      }
-      #endif
-      return cachedSize*WID3*sizeof(Realf) + cachedSize*BlockParams::N_VELOCITY_BLOCK_PARAMS*sizeof(Real);
-      #endif
+      VLASIATOR_IF_DEVICE(
+         (return block_data.size()*sizeof(Realf) + parameters.size()*sizeof(Real);),
+         (
+            #ifdef DEBUG_VBC
+            const size_t currentSize = block_data.size() / WID3;
+            if (currentSize != cachedSize) {
+               printf("VBC CHECK ERROR: cached size mismatch, %lu vs %lu in %s : %d\n",currentSize,cachedSize,__FILE__,__LINE__);
+            }
+            #endif
+            return cachedSize*WID3*sizeof(Realf) + cachedSize*BlockParams::N_VELOCITY_BLOCK_PARAMS*sizeof(Real);
+         )
+      );
 #else
       return block_data.size()*sizeof(Realf) + parameters.size()*sizeof(Real);
 #endif
