@@ -58,6 +58,9 @@ COMPFLAGS += -D OMPI_SKIP_MPICXX
 # Allow MCA io to be set to ompio, otherwise the code is overriding and setting ^ompio. (OpenMPI only, no effect with other MPI implementations.)
 # COMPFLAGS += -DVLASIATOR_ALLOW_MCA_OMPIO
 
+# Support for external ionosphere/thermosphere models
+COMPFLAGS += -DIONOSPHERE_EXTERNAL_COUPLING
+
 #is profiling on?
 COMPFLAGS += -DPROFILE
 
@@ -197,6 +200,7 @@ LIBS += ${LIB_PAPI}
 LIBS += ${LIB_OCTREE_COMPRESSOR}
 LIBS += ${LIB_ZFP}
 LIBS += ${LIB_NN_COMPRESSOR}
+LIBS += -lhdf5
 
 # Define common dependencies
 DEPS_COMMON = common.h common.cpp definitions.h mpiconversion.h logger.h object_wrapper.h
