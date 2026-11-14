@@ -142,7 +142,7 @@ namespace DRO {
 
       std::vector<float> varBufferFloat;
       const std::vector<double> varBuffer = lambda(fieldSolverData);
-      const auto* localSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+      const auto* localSize = fieldSolverData.fsgrid.getLocalSize().data();
       const auto totalSize = localSize[0] * localSize[1] * localSize[2];
       const auto vectorSize = totalSize == 0 ? 0 : varBuffer.size() / totalSize;
 

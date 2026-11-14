@@ -433,7 +433,7 @@ namespace spatial_cell {
 
          // send  spatial cell parameters
          if ((SpatialCell::mpi_transfer_type & Transfer::CELL_PARAMETERS)!=0){
-            displacements.push_back((uint8_t*) &(this->parameters[0]) - (uint8_t*) this);
+            displacements.push_back((uint8_t*) this->parameters.data() - (uint8_t*) this);
             block_lengths.push_back(sizeof(Real) * CellParams::N_SPATIAL_CELL_PARAMS);
          }
 
@@ -475,7 +475,7 @@ namespace spatial_cell {
 
          // send  spatial cell BVOL derivatives
          if ((SpatialCell::mpi_transfer_type & Transfer::CELL_BVOL_DERIVATIVES)!=0){
-            displacements.push_back((uint8_t*) &(this->derivativesBVOL[0]) - (uint8_t*) this);
+            displacements.push_back((uint8_t*) this->derivativesBVOL.data() - (uint8_t*) this);
             block_lengths.push_back(sizeof(Real) * bvolderivatives::N_BVOL_DERIVATIVES);
          }
 
@@ -538,8 +538,8 @@ namespace spatial_cell {
          count = 1;
          MPI_Type_create_hindexed(
             displacements.size(),
-            &block_lengths[0],
-            &displacements[0],
+            block_lengths.data(),
+            displacements.data(),
             MPI_BYTE,
             &datatype
          );

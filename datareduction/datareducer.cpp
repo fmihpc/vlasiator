@@ -53,7 +53,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(P::systemWriteAllDROs || lowercase == "fg_b" || lowercase == "b") { // Bulk magnetic field at Yee-Lattice locations
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_b",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]*3);
 
                // Iterate through fsgrid cells and extract total magnetic field
@@ -77,7 +77,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(P::systemWriteAllDROs || lowercase == "fg_backgroundb" || lowercase == "backgroundb" || lowercase == "fg_b_background") { // Static (typically dipole) magnetic field part
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_b_background",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]*3);
 
                // Iterate through fsgrid cells and extract background B
@@ -101,7 +101,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(P::systemWriteAllDROs || lowercase == "fg_backgroundbvol" || lowercase == "backgroundbvol" || lowercase == "fg_b_background_vol") { // Static (typically dipole) magnetic field part, volume-averaged
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_b_background_vol",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-            const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+            const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
             std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]*3);
 
             // Iterate through fsgrid cells and extract total BVOL
@@ -126,7 +126,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(P::systemWriteAllDROs || lowercase == "fg_perturbedb" || lowercase == "perturbedb" || lowercase == "fg_b_perturbed") { // Fluctuating magnetic field part
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_b_perturbed",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]*3);
 
                // Iterate through fsgrid cells and extract values
@@ -150,7 +150,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(P::systemWriteAllDROs || lowercase == "fg_e" || lowercase == "e") { // Bulk electric field at Yee-lattice locations
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_e",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]*3);
 
                // Iterate through fsgrid cells and extract E values
@@ -188,7 +188,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(P::systemWriteAllDROs || lowercase == "fg_rhom") { // Overall mass density (summed over all populations)
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_rhom",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                // Iterate through fsgrid cells and extract rho valuesg
@@ -217,7 +217,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(P::systemWriteAllDROs || lowercase == "fg_rhoq") { // Overall charge density (summed over all populations)
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_rhoq",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                // Iterate through fsgrid cells and extract charge density
@@ -258,7 +258,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(P::systemWriteAllDROs || lowercase == "fg_v") { // Overall effective bulk density defining the center-of-mass frame from all populations
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_v",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]*3);
 
                // Iterate through fsgrid cells and extract bulk Velocity
@@ -486,7 +486,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          // Maximum timestep constraint as calculated by the fieldsolver
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(
             "fg_maxdt_fieldsolver", [](const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                // Iterate through fsgrid cells and extract field solver timestep limit
@@ -517,7 +517,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          // Map of spatial decomposition of the FsGrid into MPI ranks
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_rank",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2], fieldSolverData.fsgrid.getRank());
                return retval;
              }
@@ -531,7 +531,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          // Map of spatial decomposition of the FsGrid into MPI ranks
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_amr_level",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                // Iterate through fsgrid cells and extract corresponding AMR level
@@ -562,7 +562,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          // Type of boundarycells as stored in FSGrid
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_boundarytype",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                // Iterate through fsgrid cells and extract boundary flag
@@ -593,7 +593,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          // Type of boundarycells as stored in FSGrid
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_boundarylayer",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                // Iterate through fsgrid cells and extract boundary layer
@@ -679,7 +679,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(P::systemWriteAllDROs || lowercase == "fg_vole" || lowercase == "fg_e_vol" || lowercase == "fg_evol") { // Volume-averaged E field from the fieldSolver grid
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_e_vol",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]*3);
 
                // Iterate through fsgrid cells and extract EVOL
@@ -705,7 +705,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             std::string reducer_name = "fg_e_hall_" + std::to_string(index);
             outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid(reducer_name,[index](
                 const FieldSolverData& fieldSolverData)->std::vector<double> {
-                   const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+                   const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                    std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                   // Iterate through fsgrid cells and extract EHall
@@ -744,7 +744,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(P::systemWriteAllDROs || lowercase == "fg_volb" || lowercase == "fg_bvol" || lowercase == "fg_b_vol") { // Static (typically dipole) magnetic field part
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_b_vol",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]*3);
 
                // Iterate through fsgrid cells and extract total BVOL
@@ -791,7 +791,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          // Overall scalar pressure from all populations
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_pressure", [](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                // Iterate through fsgrid cells and extract boundary flag
@@ -897,7 +897,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(P::systemWriteAllDROs || lowercase == "fg_derivs") {
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_dperbxdy",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -913,7 +913,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$\\Delta B_{X,\\mathrm{per,fg}} (\\Delta Y)^{-1}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_dperbxdz",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -929,7 +929,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$\\Delta B_{X,\\mathrm{per,fg}} (\\Delta Z)^{-1}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_dperbydx",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -945,7 +945,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$\\Delta B_{Y,\\mathrm{per,fg}} (\\Delta X)^{-1}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_dperbydz",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -961,7 +961,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$\\Delta B_{Y,\\mathrm{per,fg}} (\\Delta Z)^{-1}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_dperbzdx",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -977,7 +977,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$\\Delta B_{Z,\\mathrm{per,fg}} (\\Delta X)^{-1}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_dperbzdy",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -993,7 +993,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$\\Delta B_{Z,\\mathrm{per,fg}} (\\Delta Y)^{-1}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_dperbxdyy",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -1009,7 +1009,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-2}$","$\\Delta B_{X,\\mathrm{per,fg}} (\\Delta Y)^{-2}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_dperbxdzz",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -1025,7 +1025,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-2}$","$\\Delta B_{X,\\mathrm{per,fg}} (\\Delta Z)^{-2}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_dperbxdyz",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -1041,7 +1041,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-2}$","$\\Delta B_{X,\\mathrm{per,fg}} (\\Delta Y \\Delta Z)^{-1}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_dperbydxx",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -1057,7 +1057,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-2}$","$\\Delta B_{Y,\\mathrm{per,fg}} (\\Delta X)^{-2}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_dperbydzz",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -1073,7 +1073,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-2}$","$\\Delta B_{Y,\\mathrm{per,fg}} (\\Delta Z)^{-2}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_dperbydxz",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -1089,7 +1089,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-2}$","$\\Delta B_{Y,\\mathrm{per,fg}} (\\Delta X \\Delta Z)^{-1}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_dperbzdxx",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -1105,7 +1105,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-2}$","$\\Delta B_{Z,\\mathrm{per,fg}} (\\Delta Z)^{-2}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_dperbzdyy",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -1121,7 +1121,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-2}$","$\\Delta B_{Z,\\mathrm{per,fg}} (\\Delta Y)^{-2}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_dperbzdxy",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -1137,7 +1137,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-2}$","$\\Delta B_{Z,\\mathrm{per,fg}} (\\Delta X \\Delta Y)^{-1}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_drhomdx",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -1153,7 +1153,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1,"kg/m^4","$\\mathrm{kg}\\mathrm{m}^{-4}$","$\\Delta \\rho_{m,\\mathrm{fg}} (\\Delta X)^{-1}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_drhomdy",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -1169,7 +1169,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1,"kg/m^4","$\\mathrm{kg}\\mathrm{m}^{-4}$","$\\Delta \\rho_{m,\\mathrm{fg}} (\\Delta Y)^{-1}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_drhomdz",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -1185,7 +1185,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1,"kg/m^4","$\\mathrm{kg}\\mathrm{m}^{-4}$","$\\Delta \\rho_{m,\\mathrm{fg}} (\\Delta Z)^{-1}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_drhoqdx",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -1201,7 +1201,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1,"C/m^4","$\\mathrm{C}\\mathrm{m}^{-4}$","$\\Delta \\rho_{q,\\mathrm{fg}} (\\Delta X)^{-1}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_drhoqdy",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -1217,7 +1217,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1,"C/m^4","$\\mathrm{C}\\mathrm{m}^{-4}$","$\\Delta \\rho_{q,\\mathrm{fg}} (\\Delta Y)^{-1}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_drhoqdz",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -1233,7 +1233,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1,"C/m^4","$\\mathrm{C}\\mathrm{m}^{-4}$","$\\Delta \\rho_{q,\\mathrm{fg}} (\\Delta Z)^{-1}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_dp11dx",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -1249,7 +1249,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1,"Pa/m","$\\mathrm{Pa}\\mathrm{m}^{-1}$","$\\Delta P_{11,\\mathrm{fg}} (\\Delta X)^{-1}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_dp11dy",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -1265,7 +1265,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1,"Pa/m","$\\mathrm{Pa}\\mathrm{m}^{-1}$","$\\Delta P_{11,\\mathrm{fg}} (\\Delta Y)^{-1}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_dp11dz",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -1281,7 +1281,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1,"Pa/m","$\\mathrm{Pa}\\mathrm{m}^{-1}$","$\\Delta P_{11,\\mathrm{fg}} (\\Delta Z)^{-1}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_dp22dx",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -1297,7 +1297,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1,"Pa/m","$\\mathrm{Pa}\\mathrm{m}^{-1}$","$\\Delta P_{22,\\mathrm{fg}} (\\Delta X)^{-1}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_dp22dy",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -1313,7 +1313,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1,"Pa/m","$\\mathrm{Pa}\\mathrm{m}^{-1}$","$\\Delta P_{22,\\mathrm{fg}} (\\Delta Y)^{-1}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_dp22dz",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -1329,7 +1329,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1,"Pa/m","$\\mathrm{Pa}\\mathrm{m}^{-1}$","$\\Delta P_{22,\\mathrm{fg}} (\\Delta Z)^{-1}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_dp33dx",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -1345,7 +1345,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1,"Pa/m","$\\mathrm{Pa}\\mathrm{m}^{-1}$","$\\Delta P_{33,\\mathrm{fg}} (\\Delta X)^{-1}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_dp33dy",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -1361,7 +1361,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1,"Pa/m","$\\mathrm{Pa}\\mathrm{m}^{-1}$","$\\Delta P_{33,\\mathrm{fg}} (\\Delta Y)^{-1}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_dp33dz",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -1377,7 +1377,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1,"Pa/m","$\\mathrm{Pa}\\mathrm{m}^{-1}$","$\\Delta P_{33,\\mathrm{fg}} (\\Delta Z)^{-1}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_dvxdx",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -1393,7 +1393,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1,"1/s","$\\mathrm{s}^{-1}$","$\\Delta V_{X,\\mathrm{fg}} (\\Delta X)^{-1}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_dvxdy",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -1409,7 +1409,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1,"1/s","$\\mathrm{s}^{-1}$","$\\Delta V_{X,\\mathrm{fg}} (\\Delta Y)^{-1}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_dvxdz",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -1425,7 +1425,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1,"1/s","$\\mathrm{s}^{-1}$","$\\Delta V_{X,\\mathrm{fg}} (\\Delta Z)^{-1}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_dvydx",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -1441,7 +1441,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1,"1/s","$\\mathrm{s}^{-1}$","$\\Delta V_{Y,\\mathrm{fg}} (\\Delta X)^{-1}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_dvydy",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -1457,7 +1457,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1,"1/s","$\\mathrm{s}^{-1}$","$\\Delta V_{Y,\\mathrm{fg}} (\\Delta Y)^{-1}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_dvydz",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -1473,7 +1473,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1,"1/s","$\\mathrm{s}^{-1}$","$\\Delta V_{Y,\\mathrm{fg}} (\\Delta Z)^{-1}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_dvzdx",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -1489,7 +1489,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1,"1/s","$\\mathrm{s}^{-1}$","$\\Delta V_{Z,\\mathrm{fg}} (\\Delta X)^{-1}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_dvzdy",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -1505,7 +1505,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1,"1/s","$\\mathrm{s}^{-1}$","$\\Delta V_{Z,\\mathrm{fg}} (\\Delta Y)^{-1}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_dvzdz",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -1521,7 +1521,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1,"1/s","$\\mathrm{s}^{-1}$","$\\Delta V_{Z,\\mathrm{fg}} (\\Delta Z)^{-1}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_dpedx",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -1537,7 +1537,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1,"Pa/m","$\\mathrm{Pa}\\mathrm{m}^{-1}$","$\\Delta P_\\mathrm{e,fg} (\\Delta X)^{-1}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_dpedy",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -1553,7 +1553,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1,"Pa/m","$\\mathrm{Pa}\\mathrm{m}^{-1}$","$\\Delta P_\\mathrm{e,fg} (\\Delta Y)^{-1}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_dpedz",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -1569,7 +1569,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1,"Pa/m","$\\mathrm{Pa}\\mathrm{m}^{-1}$","$\\Delta P_\\mathrm{e,fg} (\\Delta Z)^{-1}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_dperbxvoldx",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -1585,7 +1585,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\mathrm{m}^{-1}$","$\\Delta B_{X,\\mathrm{per,vol,fg}} (\\Delta X)^{-1}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_dperbxvoldy",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -1601,7 +1601,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\mathrm{m}^{-1}$","$\\Delta B_{X,\\mathrm{per,vol,fg}} (\\Delta Y)^{-1}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_dperbxvoldz",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -1617,7 +1617,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\mathrm{m}^{-1}$","$\\Delta B_{X,\\mathrm{per,vol,fg}} (\\Delta Z)^{-1}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_dperbyvoldx",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -1633,7 +1633,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\mathrm{m}^{-1}$","$\\Delta B_{Y,\\mathrm{per,vol,fg}} (\\Delta X)^{-1}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_dperbyvoldy",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -1649,7 +1649,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\mathrm{m}^{-1}$","$\\Delta B_{Y,\\mathrm{per,vol,fg}} (\\Delta Y)^{-1}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_dperbyvoldz",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -1665,7 +1665,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\mathrm{m}^{-1}$","$\\Delta B_{Y,\\mathrm{per,vol,fg}} (\\Delta Z)^{-1}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_dperbzvoldx",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -1681,7 +1681,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\mathrm{m}^{-1}$","$\\Delta B_{Z,\\mathrm{per,vol,fg}} (\\Delta X)^{-1}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_dperbzvoldy",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -1697,7 +1697,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\mathrm{m}^{-1}$","$\\Delta B_{Z,\\mathrm{per,vol,fg}} (\\Delta Y)^{-1}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_dperbzvoldz",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -1726,7 +1726,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(P::systemWriteAllDROs || lowercase == "fg_derivs_b_background") { // includes all face and volume-averaged derivatives of BGB on fg
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_dbgbxdy",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -1743,7 +1743,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
 
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_dbgbxdz",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -1760,7 +1760,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
 
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_dbgbydx",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -1777,7 +1777,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
 
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_dbgbydz",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -1794,7 +1794,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
 
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_dbgbzdx",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -1811,7 +1811,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
 
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_dbgbzdy",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -1828,7 +1828,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
 
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_dbgbxvoldx",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -1845,7 +1845,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
 
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_dbgbxvoldy",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -1862,7 +1862,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
 
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_dbgbxvoldz",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -1879,7 +1879,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
 
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_dbgbyvoldx",[](
                const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -1896,7 +1896,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
 
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_dbgbyvoldy",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -1913,7 +1913,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
 
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_dbgbyvoldz",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -1930,7 +1930,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
 
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_dbgbzvoldx",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -1947,7 +1947,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
 
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_dbgbzvoldy",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -1964,7 +1964,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
 
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_derivatives/fg_dbgbzvoldz",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
@@ -2006,7 +2006,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(P::systemWriteAllDROs || lowercase == "fg_gridcoordinates") {
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_x",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                // Iterate through fsgrid cells and extract X coordinate
@@ -2022,7 +2022,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1,"m","$\\mathrm{m}$","$X_\\mathrm{fg}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_y",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                // Iterate through fsgrid cells and extract Y coordinate
@@ -2038,7 +2038,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1,"m","$\\mathrm{m}$","$Y_\\mathrm{fg}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_z",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
 
                // Iterate through fsgrid cells and extract Z coordinate
@@ -2054,7 +2054,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1,"m","$\\mathrm{m}$","$Z_\\mathrm{fg}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dx",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2], fieldSolverData.fsgrid.getGridSpacing()[0]);
                return retval;
          }
@@ -2062,7 +2062,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1,"m","$\\mathrm{m}$","$\\delta X_\\mathrm{fg}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dy",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2], fieldSolverData.fsgrid.getGridSpacing()[1]);
                return retval;
          }
@@ -2070,7 +2070,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1,"m","$\\mathrm{m}$","$\\delta Y_\\mathrm{fg}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dz",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2], fieldSolverData.fsgrid.getGridSpacing()[2]);
                return retval;
          }
@@ -2789,7 +2789,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          Parameters::computeCurvature = true;
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_curvature",[](
             const FieldSolverData& fieldSolverData)->std::vector<double> {
-               const auto* gridSize = &fieldSolverData.fsgrid.getLocalSize()[0];
+               const auto* gridSize = fieldSolverData.fsgrid.getLocalSize().data();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]*3);
 
                fieldSolverData.fsgrid.serial_for([](int timerId) -> phiprof::Timer { return phiprof::Timer{timerId}; },
