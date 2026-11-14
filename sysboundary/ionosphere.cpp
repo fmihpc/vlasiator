@@ -118,7 +118,7 @@ namespace SBC {
       int southNum = 0;
 
       for (uint n = 0; n < nodes.size(); n++) {
-         if (nodes[n].x[2] > 0) {
+         if (magneticZ(nodes[n].x) > 0) {
             northSum += nodes[n].parameters[ionosphereParameters::SOURCE];
             northNum++;
          } else {
@@ -131,7 +131,7 @@ namespace SBC {
       southSum /= southNum;
 
       for (uint n = 0; n < nodes.size(); n++) {
-         if (nodes[n].x[2] > 0) {
+         if (magneticZ(nodes[n].x) > 0) {
             nodes[n].parameters[ionosphereParameters::SOURCE] -= northSum;
          } else {
             nodes[n].parameters[ionosphereParameters::SOURCE] -= southSum;
@@ -1077,6 +1077,35 @@ namespace SBC {
       }
    }
 
+   /*!< Set the dipole axis and the solar-magnetic noon/dusk directions derived from it.
+    * The Sun is at +x. */
+   void SphericalTriGrid::setDipoleAxis(const std::array<Real, 3>& axis) {
+      const Real norm = sqrt(axis[0] * axis[0] + axis[1] * axis[1] + axis[2] * axis[2]);
+      if (!(norm > 0)) {
+         cerr << __FILE__ << ":" << __LINE__ << ": dipole axis must be a nonzero vector." << endl;
+         abort();
+      }
+      dipoleAxis = {axis[0] / norm, axis[1] / norm, axis[2] / norm};
+      dipoleAxisTilted = !(dipoleAxis[0] == 0 && dipoleAxis[1] == 0 && dipoleAxis[2] == 1);
+      if (!dipoleAxisTilted) {
+         magneticNoonAxis = {1, 0, 0};
+         magneticDuskAxis = {0, 1, 0};
+         return;
+      }
+      // Noon = Sun direction projected onto the magnetic equatorial plane.
+      std::array<Real, 3> noon = {1 - dipoleAxis[0] * dipoleAxis[0], -dipoleAxis[0] * dipoleAxis[1], -dipoleAxis[0] * dipoleAxis[2]};
+      Real noonNorm = sqrt(noon[0] * noon[0] + noon[1] * noon[1] + noon[2] * noon[2]);
+      if (noonNorm < 1e-12) {
+         // Axis along the Sun line: magnetic noon is undefined, any perpendicular will do.
+         noon = {0, 0, dipoleAxis[0] > 0 ? -1. : 1.};
+         noonNorm = 1;
+      }
+      magneticNoonAxis = {noon[0] / noonNorm, noon[1] / noonNorm, noon[2] / noonNorm};
+      magneticDuskAxis = {dipoleAxis[1] * magneticNoonAxis[2] - dipoleAxis[2] * magneticNoonAxis[1],
+                          dipoleAxis[2] * magneticNoonAxis[0] - dipoleAxis[0] * magneticNoonAxis[2],
+                          dipoleAxis[0] * magneticNoonAxis[1] - dipoleAxis[1] * magneticNoonAxis[0]};
+   }
+
    /*!< Store the value of the magnetic field at the node.*/
    void SphericalTriGrid::storeNodeB() {
       for (uint n = 0; n < nodes.size(); n++) {
@@ -1200,7 +1229,7 @@ namespace SBC {
 
             for (uint n = 0; n < nodes.size(); n++) {
 
-               Real MLT = atan2(nodes[n].x[1], nodes[n].x[0]);
+               Real MLT = magneticLocalTimeAngle(nodes[n].x);
 
                // Calculate FAC density through this node
                Real area = 0;
@@ -1430,7 +1459,7 @@ namespace SBC {
                Eigen::Vector3d rotatedVJ = Eigen::Quaterniond::FromTwoVectors(Eigen::Vector3d::UnitZ(), barycentre.normalized()).toRotationMatrix() * Eigen::Vector3d(vJ[2 * el], vJ[2 * el + 1], 0);
                elementCurlFreeCurrent[el] = rotatedVJ;
 
-               Real MLT = atan2(barycentre[1], barycentre[0]) * 12 / M_PI + 12;
+               Real MLT = magneticLocalTimeAngle(barycentre) * 12 / M_PI + 12;
 
                // Note: The coefficients want to be looked up in A/km, so we multiply by 1000
                Real correction = pow(c4H(MLT) / c4P(MLT) * 1000 * elementCurlFreeCurrent[el].norm(), 1. / (1. + c5P(MLT) - c5H(MLT))) / (1000 * elementCurlFreeCurrent[el].norm());
@@ -1483,7 +1512,7 @@ namespace SBC {
                }
                J /= totalA;
 
-               Real MLT = atan2(x[1], x[0]) * 12 / M_PI + 12;
+               Real MLT = magneticLocalTimeAngle(x) * 12 / M_PI + 12;
 
                // Formula 33 from Juusola et al 2025
                // (in A/km)
@@ -1619,7 +1648,7 @@ namespace SBC {
 
                Eigen::Vector3d b(nodes[n].x.data());
                b.normalized();
-               if (nodes[n].x[2] >= 0) {
+               if (magneticZ(nodes[n].x) >= 0) {
                   b *= -1;
                }
                for (int i = 0; i < 3; i++) {
@@ -1647,7 +1676,7 @@ namespace SBC {
 
                Eigen::Vector3d b(nodes[n].x.data());
                b.normalized();
-               if (nodes[n].x[2] >= 0) {
+               if (magneticZ(nodes[n].x) >= 0) {
                   b *= -1;
                }
                for (int i = 0; i < 3; i++) {
@@ -1758,7 +1787,7 @@ namespace SBC {
          // No longitudinal conductivity
          if (Ionosphere::conductivityModel == Ionosphere::GUMICS) {
             std::array<Real, 3> b = {x[0] / Ionosphere::innerRadius, x[1] / Ionosphere::innerRadius, x[2] / Ionosphere::innerRadius};
-            if (x[2] >= 0) {
+            if (magneticZ(x) >= 0) {
                b[0] *= -1;
                b[1] *= -1;
                b[2] *= -1;
@@ -2006,7 +2035,7 @@ namespace SBC {
             // By definition, a downwards current into the ionosphere has a positive FAC value,
             // as it corresponds to positive divergence of horizontal current in the ionospheric plane.
             // To make sure we match that, flip FAC sign on the southern hemisphere
-            if (nodes[n].x[2] < 0) {
+            if (magneticZ(nodes[n].x) < 0) {
                FACinput[n] *= -1;
             }
 
@@ -2073,7 +2102,7 @@ namespace SBC {
          // Adjust densities by the loss-cone filling factor.
          // This is an empirical smooothstep function that artificially reduces
          // downmapped density below auroral latitudes.
-         Real theta = acos(nodes[n].x[2] / sqrt(nodes[n].x[0] * nodes[n].x[0] + nodes[n].x[1] * nodes[n].x[1] + nodes[n].x[2] * nodes[n].x[2])); // Latitude
+         Real theta = acos(magneticZ(nodes[n].x) / sqrt(nodes[n].x[0] * nodes[n].x[0] + nodes[n].x[1] * nodes[n].x[1] + nodes[n].x[2] * nodes[n].x[2])); // Magnetic colatitude
          if (theta > M_PI / 2.) {
             theta = M_PI - theta;
          }
@@ -2222,8 +2251,8 @@ namespace SBC {
          }
       } else if (ionosphereGrid.gaugeFixing == Equator) {
          // note that the second term in the first and second line involve different nodes!
-         if ((!transposed && fabs(nodes[node1].x[2]) < Ionosphere::innerRadius * sin(Ionosphere::shieldingLatitude * M_PI / 180.0)) ||
-              (transposed && fabs(nodes[node2].x[2]) < Ionosphere::innerRadius * sin(Ionosphere::shieldingLatitude * M_PI / 180.0))) {
+         if ((!transposed && fabs(magneticZ(nodes[node1].x)) < Ionosphere::innerRadius * sin(Ionosphere::shieldingLatitude * M_PI / 180.0)) ||
+              (transposed && fabs(magneticZ(nodes[node2].x)) < Ionosphere::innerRadius * sin(Ionosphere::shieldingLatitude * M_PI / 180.0))) {
             if (node1 == node2) {
                coeff = 1;
             } else {
@@ -2563,7 +2592,7 @@ namespace SBC {
 
          SphericalTriGrid::Node& N = ionosphereGrid.nodes[n];
 
-         if (fabs(N.x[2]) < Ionosphere::innerRadius * sin(Ionosphere::shieldingLatitude * M_PI / 180.0)) {
+         if (fabs(magneticZ(N.x)) < Ionosphere::innerRadius * sin(Ionosphere::shieldingLatitude * M_PI / 180.0)) {
             N.parameters[ionosphereParameters::SOLUTION] = 0;
          }
       }
@@ -2579,7 +2608,7 @@ namespace SBC {
                potentialSolverMatrix.insert(n, nodes[n].dependingNodes[m]) = nodes[n].dependingCoeffs[m];
             }
             // Row already pinned in addMatrixDependency; nonzero RHS would pin to SOURCE/diag, not 0.
-            const bool pinned = gaugeFixing == Equator && fabs(nodes[n].x[2]) < zPin;
+            const bool pinned = gaugeFixing == Equator && fabs(magneticZ(nodes[n].x)) < zPin;
             vRightHand[n] = pinned ? 0. : nodes[n].parameters[ionosphereParameters::SOURCE];
          }
 
@@ -2603,7 +2632,7 @@ namespace SBC {
 
             Node& N = nodes[n];
 
-            if (N.x[2] >= 0) {
+            if (magneticZ(N.x) >= 0) {
                if (N.parameters.at(ionosphereParameters::SOLUTION) < minPotentialN) {
                   minPotentialN = N.parameters.at(ionosphereParameters::SOLUTION);
                }
@@ -2678,7 +2707,7 @@ namespace SBC {
             // Set gauge-pinned nodes to their fixed potential
             // if(ionosphereGrid.gaugeFixing == Pole && n == 0) {
             //   effectiveSource[n] = 0;
-            //} else if(ionosphereGrid.gaugeFixing == Equator && fabs(N.x[2]) < Ionosphere::innerRadius * sin(Ionosphere::shieldingLatitude * M_PI / 180.0)) {
+            //} else if(ionosphereGrid.gaugeFixing == Equator && fabs(magneticZ(N.x)) < Ionosphere::innerRadius * sin(Ionosphere::shieldingLatitude * M_PI / 180.0)) {
             //   effectiveSource[n] = 0;
             //}  else {
             iSolverReal source = N.parameters[ionosphereParameters::SOURCE];
@@ -2873,7 +2902,7 @@ namespace SBC {
                N.parameters[ionosphereParameters::SOLUTION] += ak * N.parameters[ionosphereParameters::PPARAM];
                if (ionosphereGrid.gaugeFixing == Pole && n == 0) {
                   N.parameters[ionosphereParameters::SOLUTION] = 0;
-               } else if (ionosphereGrid.gaugeFixing == Equator && fabs(N.x[2]) < Ionosphere::innerRadius * sin(Ionosphere::shieldingLatitude * M_PI / 180.0)) {
+               } else if (ionosphereGrid.gaugeFixing == Equator && fabs(magneticZ(N.x)) < Ionosphere::innerRadius * sin(Ionosphere::shieldingLatitude * M_PI / 180.0)) {
                   N.parameters[ionosphereParameters::SOLUTION] = 0;
                }
             }
@@ -2929,7 +2958,7 @@ namespace SBC {
                // when iteration counts are high (because, for example, mesh node count is high and the matrix condition is bad).
                // See https://en.wikipedia.org/wiki/Conjugate_gradient_method#Explicit_residual_calculation
                iSolverReal newresid = effectiveSource[n] - Atimes(n, ionosphereParameters::SOLUTION);
-               if ((ionosphereGrid.gaugeFixing == Pole && n == 0) || (ionosphereGrid.gaugeFixing == Equator && fabs(N.x[2]) < Ionosphere::innerRadius * sin(Ionosphere::shieldingLatitude * M_PI / 180.0))) {
+               if ((ionosphereGrid.gaugeFixing == Pole && n == 0) || (ionosphereGrid.gaugeFixing == Equator && fabs(magneticZ(N.x)) < Ionosphere::innerRadius * sin(Ionosphere::shieldingLatitude * M_PI / 180.0))) {
                   // Don't calculate residual for gauge-pinned nodes
                   N.parameters[ionosphereParameters::RESIDUAL] = 0;
                   N.parameters[ionosphereParameters::RRESIDUAL] = 0;
@@ -3009,7 +3038,7 @@ namespace SBC {
             for (uint n = 0; n < nodes.size(); n++) {
                Node& N = nodes.at(n);
                N.parameters.at(ionosphereParameters::SOLUTION) = N.parameters.at(ionosphereParameters::BEST_SOLUTION);
-               if (N.x.at(2) > 0) {
+               if (magneticZ(N.x) > 0) {
                   minPotentialN = min(minPotentialN, N.parameters.at(ionosphereParameters::SOLUTION));
                   maxPotentialN = max(maxPotentialN, N.parameters.at(ionosphereParameters::SOLUTION));
                } else {
@@ -3225,9 +3254,9 @@ namespace SBC {
 
          for (uint i = 0; i < numElems; i++) {
             Real mean_z = 0;
-            mean_z = ionosphereGrid.nodes[ionosphereGrid.elements[i].corners[0]].x[2];
-            mean_z += ionosphereGrid.nodes[ionosphereGrid.elements[i].corners[1]].x[2];
-            mean_z += ionosphereGrid.nodes[ionosphereGrid.elements[i].corners[2]].x[2];
+            mean_z =  ionosphereGrid.magneticZ(ionosphereGrid.nodes[ionosphereGrid.elements[i].corners[0]].x);
+            mean_z += ionosphereGrid.magneticZ(ionosphereGrid.nodes[ionosphereGrid.elements[i].corners[1]].x);
+            mean_z += ionosphereGrid.magneticZ(ionosphereGrid.nodes[ionosphereGrid.elements[i].corners[2]].x);
             mean_z /= 3.;
 
             if (fabs(mean_z) >= sin(phi1 * M_PI / 180.) * Ionosphere::innerRadius && fabs(mean_z) <= sin(phi2 * M_PI / 180.) * Ionosphere::innerRadius) {
@@ -3777,7 +3806,9 @@ namespace SBC {
       Vec3d vn = cross_product(Omega, r);
 
       Real radius = vector_length(r);
-      if (radius / physicalconstants::R_E <= Ionosphere::plasmapauseL * (r[0] * r[0] + r[1] * r[1]) / (radius * radius)) {
+      // Earth rotates about z, but L is a dipole coordinate.
+      const std::array<Real, 3> rSM = ionosphereGrid.toSolarMagnetic(r);
+      if (radius / physicalconstants::R_E <= Ionosphere::plasmapauseL * (rSM[0] * rSM[0] + rSM[1] * rSM[1]) / (radius * radius)) {
          E -= cross_product(vn, B);
       }
 

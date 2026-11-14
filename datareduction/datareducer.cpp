@@ -2177,9 +2177,10 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                      std::vector<Real> retval(grid.nodes.size());
 
                      for(uint n=0; n<grid.nodes.size(); n++) {
-                        Real theta = acos(grid.nodes[n].x[2] / sqrt(grid.nodes[n].x[0] * grid.nodes[n].x[0] +
+                        // Must match the loss-cone filling factor in SphericalTriGrid (magnetic colatitude).
+                        Real theta = acos(grid.magneticZ(grid.nodes[n].x) / sqrt(grid.nodes[n].x[0] * grid.nodes[n].x[0] +
                                                                     grid.nodes[n].x[1] * grid.nodes[n].x[1] +
-                                                                    grid.nodes[n].x[2] * grid.nodes[n].x[2])); // Latitude
+                                                                    grid.nodes[n].x[2] * grid.nodes[n].x[2]));
                         if(theta > M_PI/2.) {
                            theta = M_PI - theta;
                         }
