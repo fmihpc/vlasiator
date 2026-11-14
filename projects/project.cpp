@@ -36,6 +36,7 @@
 #include "Flowthrough/Flowthrough.h"
 #include "Fluctuations/Fluctuations.h"
 #include "Harris/Harris.h"
+#include "GEMReconnection/GEMReconnection.h"
 #include "KHB/KHB.h"
 #include "Larmor/Larmor.h"
 #include "Magnetosphere/Magnetosphere.h"
@@ -634,6 +635,7 @@ Project* createProject() {
         projects::LossCone* _Losscone=new projects::LossCone();
         projects::test_fp* _test_fp=new projects::test_fp();
         projects::Harris* _Harris = new projects::Harris();
+        projects::GEMReconnection* _GEMReconnection = new projects::GEMReconnection();
         projects::Riemann1* _Riemann1 = new projects::Riemann1();
         projects::TestHall* _TestHall = new projects::TestHall();
         projects::Larmor* _Larmor = new projects::Larmor();
@@ -654,6 +656,7 @@ Project* createProject() {
         _test_fp->addParameters();
         _Distributions->addParameters();
         _Harris->addParameters();
+        _GEMReconnection->addParameters();
         _Riemann1->addParameters();
         _TestHall->addParameters();
         _Larmor->addParameters();
@@ -691,6 +694,9 @@ Project* createProject() {
 
     } else if (Parameters::projectName=="Harris") {
         project=new projects::Harris();
+
+    } else if (Parameters::projectName=="GEMReconnection") {
+        project=new projects::GEMReconnection();
 
     } else if (Parameters::projectName=="Riemann1") {
         project=new projects::Riemann1();
