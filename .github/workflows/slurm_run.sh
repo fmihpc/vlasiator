@@ -12,6 +12,7 @@ fi
 declare -A core_flags
 core_flags["turso-amd_GNU_MPICH"]="-n 1 -c 16"
 core_flags["ukko_dgx"]="-n 1 -c 64"
+core_flags["turso-v100_GNU_MPICH"]="-n 1 -c 16"
 core_flags["pioneer"]="-n 1 -c 64"
 core_flags["hile_gpu"]="-n 1 -c 16"
 core_flags["hile_cpu"]="-n 1 -c 16"
@@ -25,6 +26,7 @@ fi
 declare -A lib_flags
 lib_flags["turso-amd_GNU_MPICH"]="-n 1 -c 16 --mem=64G"
 lib_flags["ukko_dgx"]="-n 1 -c 16 --mem=64G"
+lib_flags["turso-v100_GNU_MPICH"]="-n 1 -c 16 --mem=64G"
 lib_flags["pioneer"]="-n 1 -c 16 --mem=64G"
 lib_flags["hile_gpu"]="-n 1 -c 16 --mem=64G"
 lib_flags["hile_cpu"]="-n 1 -c 16 --mem=64G"
@@ -39,6 +41,7 @@ fi
 declare -A constraint
 constraint["turso-amd_GNU_MPICH"]="--constraint=amd"
 constraint["ukko_dgx"]="--constraint=amd -G 1"  # "Give me a GPU, whichever it may be"
+constraint["turso-v100_GNU_MPICH"]="--gres=gpu:V100:1"
 constraint["pioneer"]="-p pioneer -t 01:00:00" #not sure if pty needed for pioneer
 constraint["hile_gpu"]="-C g"
 constraint["hile_cpu"]="-C c"
@@ -53,6 +56,7 @@ fi
 declare -A constraint_small
 constraint_small["turso-amd_GNU_MPICH"]="--constraint=amd"
 constraint_small["ukko_dgx"]="--constraint=amd"
+constraint_small["turso-v100_GNU_MPICH"]="--constraint=V100"  # we need to build on a machine with a GPU because linking with the CUDA-aware MPICH needs the NVIDIA driver
 constraint_small["pioneer"]="-p pioneer -t 01:00:00"
 constraint_small["hile_gpu"]="-C g"
 constraint_small["hile_cpu"]="-C c"
@@ -69,6 +73,7 @@ declare -A mem_flags
 #Could be unified with core_flags but it's nice to have them here separately and maybe this separation has a future use
 mem_flags["turso-amd_GNU_MPICH"]="--mem=40G"
 mem_flags["ukko_dgx"]="--mem=64G"
+mem_flags["turso-v100_GNU_MPICH"]="--mem=64G"  # ~4G per parallel nvcc job
 mem_flags["pioneer"]=" "
 mem_flags["hile_gpu"]="--mem=32G"
 mem_flags["hile_cpu"]="--mem=32G"

@@ -45,6 +45,7 @@ jobs:
     strategy: &strategy
       fail-fast: false
       matrix:
+        #Each (arch, name) pair must be unique: together they name the uploaded artifacts
         include:
           - name: prod
             runner: hile       #Tag of the github runner to run on
@@ -87,6 +88,13 @@ jobs:
             compile_tp: true
             run_tp: false
             debug: true
+
+          - name: prod
+            runner: ukko
+            arch: turso-v100_GNU_MPICH
+            compile_tp: false
+            run_tp: false
+            debug: false
 
           - name: testpackage run
             runner: carrington
@@ -193,7 +201,7 @@ jobs:
       name: Upload tools binaries
       uses: actions/upload-artifact@v4
       with:
-        name: vlasiator-tools-${{ matrix.arch }}
+        name: vlasiator-tools-${{ matrix.arch }}-${{ matrix.name }}
         path: |
           vlsvextract_DP
           vlsvdiff_DP
@@ -203,14 +211,14 @@ jobs:
       name: Upload testpackage binary
       uses: actions/upload-artifact@v4
       with:
-        name: vlasiator-testpackage
+        name: vlasiator-testpackage-${{ matrix.arch }}-${{ matrix.name }}
         path: vlasiator
         if-no-files-found: error
     - &uploadLibs
       name: Upload libraries as artifact
       uses: actions/upload-artifact@v4
       with:
-        name: libraries-${{ matrix.arch }}
+        name: libraries-${{ matrix.arch }}-${{ matrix.name }}
         path: libraries-${{ matrix.arch }}.tar.gz
         retention-days: 5
         if-no-files-found: error
