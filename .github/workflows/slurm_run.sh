@@ -37,8 +37,8 @@ fi
 
 #Constraints for compiling stuff
 declare -A constraint
-constraint["turso-amd_GNU_MPICH"]="--constraint=amd"
-constraint["turso-v100_GNU_MPICH"]="--gres=gpu:V100:1"
+constraint["turso-amd_GNU_MPICH"]="--constraint=amd -t 0:30:00"
+constraint["turso-v100_GNU_MPICH"]="--gres=gpu:V100:1 -t 0:30:00"
 constraint["pioneer"]="-p pioneer -t 01:00:00" #not sure if pty needed for pioneer
 constraint["hile_gpu"]="-C g"
 constraint["hile_cpu"]="-C c"

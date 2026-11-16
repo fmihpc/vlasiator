@@ -25,7 +25,7 @@ cd library-build
 # Some platforms allow for nice parallel builds.
 if [[ $PLATFORM == "-pioneer" ]]; then
    PARALLEL=64
-elif [[ $PLATFORM == "-hile_cpu" || $PLATFORM == "-hile_gpu" || $PLATFORM == "-lumi_2503"  || $PLATFORM == "-frankenstein_hopper2_cuda" || $PLATFORM != "-roihu_gpu" || $PLATFORM == "-turso-amd_GNU_MPICH" ]]; then
+elif [[ $PLATFORM == "-hile_cpu" || $PLATFORM == "-hile_gpu" || $PLATFORM == "-lumi_2503"  || $PLATFORM == "-frankenstein_hopper2_cuda" || $PLATFORM == "-turso-amd_GNU_MPICH" || $PLATFORM == "-turso-v100_GNU_MPICH" ]]; then
    PARALLEL=128
 else
    # Otherwise we are friendly to other users and limit our parallelism
@@ -33,7 +33,7 @@ else
 fi
 
 # If we are in a Slurm job and we know the cores we have, we can just use that many cores
-if [[ -z $SLURM_CPUS_PER_TASK ]]; then
+if [[ -n $SLURM_CPUS_PER_TASK ]]; then
    PARALLEL=$SLURM_CPUS_PER_TASK
 fi
 
