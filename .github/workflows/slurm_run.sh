@@ -16,6 +16,7 @@ core_flags["pioneer"]="-n 1 -c 64"
 core_flags["hile_gpu"]="-n 1 -c 16"
 core_flags["hile_cpu"]="-n 1 -c 16"
 core_flags["lumi_2503"]="-n 1 -c 16"
+core_flags["lumi_2503_gpu"]="-n 1 -c 16"
 
 if [[ -z ${core_flags[$VLASIATOR_ARCH]} ]]; then
   echo "No matching core_flags (and likely no constraints, etc) for VLASIATOR_ARCH $VLASIATOR_ARCH!"
@@ -29,6 +30,7 @@ lib_flags["pioneer"]="-n 1 -c 16 --mem=64G"
 lib_flags["hile_gpu"]="-n 1 -c 16 --mem=64G"
 lib_flags["hile_cpu"]="-n 1 -c 16 --mem=64G"
 lib_flags["lumi_2503"]="-n 1 -c 16 --mem=64G"
+lib_flags["lumi_2503_gpu"]="-n 1 -c 16 --mem=64G"
 
 if [[ -z ${lib_flags[$VLASIATOR_ARCH]} ]]; then
   echo "No matching lib_flags for VLASIATOR_ARCH $VLASIATOR_ARCH!"
@@ -43,6 +45,7 @@ constraint["pioneer"]="-p pioneer -t 01:00:00" #not sure if pty needed for pione
 constraint["hile_gpu"]="-C g"
 constraint["hile_cpu"]="-C c"
 constraint["lumi_2503"]="--partition=standard --account=project_462001599 -t 01:00:00"
+constraint["lumi_2503_gpu"]="--partition=small-g --account=project_462001599 --gpus-per-node=1 -t 01:00:00" # GPU node for a guaranteed ROCm install; the build itself needs no GPU
 
 if [[ -z ${constraint[$VLASIATOR_ARCH]} ]]; then
   echo "No matching constraint for VLASIATOR_ARCH $VLASIATOR_ARCH!"
@@ -57,6 +60,7 @@ constraint_small["pioneer"]="-p pioneer -t 01:00:00"
 constraint_small["hile_gpu"]="-C g"
 constraint_small["hile_cpu"]="-C c"
 constraint_small["lumi_2503"]="--partition=standard --account=project_462001599 -t 00:15:00"
+constraint_small["lumi_2503_gpu"]="--partition=small-g --account=project_462001599 --gpus-per-node=1 -t 00:15:00"
 
 if [[ -z ${constraint_small[$VLASIATOR_ARCH]} ]]; then
   echo "No matching constraint_small for VLASIATOR_ARCH $VLASIATOR_ARCH!"
@@ -73,6 +77,7 @@ mem_flags["pioneer"]=" "
 mem_flags["hile_gpu"]="--mem=32G"
 mem_flags["hile_cpu"]="--mem=32G"
 mem_flags["lumi_2503"]="--mem=220G"
+mem_flags["lumi_2503_gpu"]="--mem=64G"
 
 if [[ -z ${mem_flags[$VLASIATOR_ARCH]} ]]; then
   echo "No matching mem_flags for VLASIATOR_ARCH $VLASIATOR_ARCH!"
@@ -123,7 +128,7 @@ fi
 #0++++++++++++++++++++++++++++++0
 if [[ $1 == "BUILD_TOOLS" ]]; then
   #not constraint small since some platforms used gpu partition here but not build libs previously
-  srun ${constraint[$VLASIATOR_ARCH]} --job-name CI_TOOLS_COMPILE --interactive --nodes=1 -n 1 -c 1 --mem=4G -t 0:10:0 bash -lc "$modules ; make vlsvextract vlsvdiff fluxfunction ; RC=$?; sleep 10s; exit $RC"
+  srun ${constraint[$VLASIATOR_ARCH]} --job-name CI_TOOLS_COMPILE --interactive --nodes=1 -n 1 -c 1 --mem=4G -t 0:10:0 bash -lc "$modules ; make vlsvextract vlsvdiff fluxfunction ; RC=\$?; sleep 10s; exit \$RC"
   exit $?
 fi
 
@@ -133,7 +138,7 @@ COMPILE_STRING="$modules ; make -j $(echo ${core_flags[$VLASIATOR_ARCH]} | grep 
 #|         COMPILE PROD         |
 #0++++++++++++++++++++++++++++++0
 if [[ $1 == "COMPILE_PROD" ]]; then
-  srun ${constraint[$VLASIATOR_ARCH]} --job-name CI_PROD_COMPILE --interactive ${mem_flags[$VLASIATOR_ARCH]} ${core_flags[$VLASIATOR_ARCH]} -t 0:30:0 bash -lc "${compile_flags_prod[$VLASIATOR_ARCH]} $COMPILE_STRING ; RC=$?; sleep 10s; exit $RC"
+  srun ${constraint[$VLASIATOR_ARCH]} --job-name CI_PROD_COMPILE --interactive ${mem_flags[$VLASIATOR_ARCH]} ${core_flags[$VLASIATOR_ARCH]} -t 0:30:0 bash -lc "${compile_flags_prod[$VLASIATOR_ARCH]} $COMPILE_STRING ; RC=\$?; sleep 10s; exit \$RC"
   exit $?
 fi
 
@@ -141,7 +146,7 @@ fi
 #|         COMPILE TP           |
 #0++++++++++++++++++++++++++++++0
 if [[ $1 == "COMPILE_TP" ]]; then
-  srun ${constraint[$VLASIATOR_ARCH]} --job-name CI_TP_COMPILE --interactive ${mem_flags[$VLASIATOR_ARCH]} ${core_flags[$VLASIATOR_ARCH]} -t 0:30:0 bash -lc "${compile_flags_tp[$VLASIATOR_ARCH]} $COMPILE_STRING testpackage ; RC=$?; sleep 10s; exit $RC"
+  srun ${constraint[$VLASIATOR_ARCH]} --job-name CI_TP_COMPILE --interactive ${mem_flags[$VLASIATOR_ARCH]} ${core_flags[$VLASIATOR_ARCH]} -t 0:30:0 bash -lc "${compile_flags_tp[$VLASIATOR_ARCH]} $COMPILE_STRING testpackage ; RC=\$?; sleep 10s; exit \$RC"
   exit $?
 fi
 

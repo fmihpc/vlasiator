@@ -109,11 +109,20 @@ jobs:
             run_tp: true
             debug: true
 
+          - name: lumi-g
+            runner: lumi
+            arch: lumi_2503_gpu
+            compile_tp: false
+            run_tp: false
+            debug: false
+
     runs-on: ${{ matrix.runner }}
     needs: get_git_diff
     if: github.repository_owner == 'fmihpc'
     env:
       VLASIATOR_ARCH: ${{ matrix.arch }}
+      # upload-artifact@v4 names must be unique per run; arch alone repeats (ukko_dgx).
+      ARTIFACT_TAG: ${{ matrix.arch }}-${{ matrix.compile_tp && 'tp' || 'prod' }}${{ matrix.debug && '-debug' || '' }}
     steps:
       #The & tags can be reused in other job steps with `- *tagname` scroll down for examples on how *checkoutSource has been used
     - &checkoutSource
@@ -193,7 +202,7 @@ jobs:
       name: Upload tools binaries
       uses: actions/upload-artifact@v4
       with:
-        name: vlasiator-tools-${{ matrix.arch }}
+        name: vlasiator-tools-${{ env.ARTIFACT_TAG }}
         path: |
           vlsvextract_DP
           vlsvdiff_DP
@@ -203,14 +212,14 @@ jobs:
       name: Upload testpackage binary
       uses: actions/upload-artifact@v4
       with:
-        name: vlasiator-testpackage
+        name: vlasiator-${{ env.ARTIFACT_TAG }}
         path: vlasiator
         if-no-files-found: error
     - &uploadLibs
       name: Upload libraries as artifact
       uses: actions/upload-artifact@v4
       with:
-        name: libraries-${{ matrix.arch }}
+        name: libraries-${{ env.ARTIFACT_TAG }}
         path: libraries-${{ matrix.arch }}.tar.gz
         retention-days: 5
         if-no-files-found: error
