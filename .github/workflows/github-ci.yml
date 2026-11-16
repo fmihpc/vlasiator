@@ -46,6 +46,7 @@ jobs:
       fail-fast: false
       matrix:
         #Each (arch, name) pair must be unique: together they name the uploaded artifacts
+        #At most one run_tp: true entry per arch: the testpackage output artifact is named by arch alone
         include:
           - name: prod
             runner: hile       #Tag of the github runner to run on
@@ -67,28 +68,6 @@ jobs:
             run_tp: true
             debug: false
 
-          # commented for now because why do we need this?
-          # - name: testpackage
-          #   runner: ukko
-          #   arch: ukko_dgx
-          #   compile_tp: true
-          #   run_tp: false
-          #   debug: false
-
-          - name: prod_WA_debug
-            runner: ukko
-            arch: ukko_dgx
-            compile_tp: false
-            run_tp: false
-            debug: true
-
-          - name: testpackage_debug
-            runner: ukko
-            arch: ukko_dgx
-            compile_tp: true
-            run_tp: false
-            debug: true
-
           - name: prod
             runner: ukko
             arch: turso-v100_GNU_MPICH
@@ -96,12 +75,33 @@ jobs:
             run_tp: false
             debug: false
 
+          - name: prod_debug
+            runner: ukko
+            arch: turso-v100_GNU_MPICH
+            compile_tp: false
+            run_tp: false
+            debug: true
+
+          - name: testpackage_debug
+            runner: ukko
+            arch: turso-v100_GNU_MPICH
+            compile_tp: true
+            run_tp: true
+            debug: true
+
           - name: testpackage run
             runner: carrington
             arch: turso-amd_GNU_MPICH
             compile_tp: true
             run_tp: true
             debug: false
+
+          - name: prod_debug
+            runner: carrington
+            arch: turso-amd_GNU_MPICH
+            compile_tp: false
+            run_tp: false
+            debug: true
 
           - name: prod
             runner: risc-v
@@ -188,10 +188,11 @@ jobs:
       name: Upload testpackage output
       continue-on-error: true
       uses: actions/upload-artifact@v4
-      if: always()
+      # Fixed per-arch name: pr_report*.yml download it by name.
+      if: ${{ always() && matrix.run_tp }}
       with:
-        name: testpackage-output
-        path: testpackage-output.tar.gz
+        name: testpackage-output-${{ matrix.arch }}
+        path: testpackage-output-${{ matrix.arch }}.tar.gz
     - &fluxTest
       name: Run fluxfunction test
       if: ${{ matrix.run_tp && needs.get_git_diff.outputs.RUN_TP != 'False' }}

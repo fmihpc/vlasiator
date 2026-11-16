@@ -16,13 +16,13 @@ jobs:
         # *different* workflow here.
         uses: ursg/action-download-artifact@v2
         with:
-          name: testpackage-output-HILE-C
+          name: testpackage-output-hile_cpu
           workflow: ${{ github.event.workflow.id }}
           run_id: ${{ github.event.workflow_run.id }}
       - name: unpack and process pr output
         id: unpack
         run: |
-          tar -xzvf testpackage-output-HILE-C.tar.gz
+          tar -xzvf testpackage-output-hile_cpu.tar.gz
           cat testpackage_output_variables.txt >> $GITHUB_OUTPUT
           # Limit Report filesize, as github only allows 64k PR reports
           truncate --size='<60K' testpackage_check_description.txt
