@@ -389,7 +389,7 @@ void adjust_velocity_blocks_in_cells(
          batch_update_velocity_halo_kernel<<<grid_vel_halo, 26*32, 0, priorityStream>>> (
             GET_POINTER(gpuMemoryManager, vmesh::VelocityMesh*, dev_vmeshes),
             GET_POINTER(gpuMemoryManager, split::SplitVector<vmesh::GlobalID>*, dev_vbwcl_vec),
-            GET_POINTER(gpuMemoryManager, SINGLE_ARG(Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>*), dev_allMaps) // Needs both content and no content maps,
+            GET_POINTER(gpuMemoryManager, SINGLE_ARG(Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>*), dev_allMaps), // Needs both content and no content maps,
             cellIterationOffset
             );
          CHK_ERR( gpuPeekAtLastError() );
