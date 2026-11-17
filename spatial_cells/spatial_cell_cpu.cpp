@@ -351,6 +351,7 @@ namespace spatial_cell {
 
       std::vector<MPI_Aint> displacements;
       std::vector<int> block_lengths;
+      Population& pop = get_population(activePopId);
 
       // create datatype for actual data if we are in the first two
       // layers around a boundary, or if we send for the whole system
@@ -360,10 +361,10 @@ namespace spatial_cell {
          //add data to send/recv to displacement and block length lists
          if ((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_LIST_STAGE1) != 0) {
             //first copy values in case this is the send operation
-            populations[activePopID].N_blocks = populations[activePopID].blockContainer->size();
+            pop.N_blocks = pop.blockContainer->size();
 
             // send velocity block list size
-            displacements.push_back((uint8_t*) &(populations[activePopID].N_blocks) - (uint8_t*) this);
+            displacements.push_back((uint8_t*) &(pop.N_blocks) - (uint8_t*) this);
             block_lengths.push_back(sizeof(vmesh::LocalID));
          }
 
@@ -371,16 +372,16 @@ namespace spatial_cell {
             // STAGE1 should have been done, otherwise we have problems...
             if (receiving) {
                //mpi_number_of_blocks transferred earlier
-               populations[activePopID].vmesh->setNewSize(populations[activePopID].N_blocks);
+               pop.vmesh->setNewSize(pop.N_blocks);
             } else {
-                //resize to correct size (it will avoid reallocation if it is big enough, I assume)
-                populations[activePopID].N_blocks = populations[activePopID].blockContainer->size();
+               //resize to correct size (it will avoid reallocation if it is big enough, I assume)
+               pop.N_blocks = pop.blockContainer->size();
             }
 
             // send velocity block list
-            if(populations[activePopID].vmesh->size() > 0) {
-               displacements.push_back((uint8_t*) populations[activePopID].vmesh->getGrid()->data() - (uint8_t*) this);
-               block_lengths.push_back(sizeof(vmesh::GlobalID) * populations[activePopID].vmesh->size());
+            if(pop.vmesh->size() > 0) {
+               displacements.push_back((uint8_t*) pop.vmesh->getGrid()->data() - (uint8_t*) this);
+               block_lengths.push_back(sizeof(vmesh::GlobalID) * pop.vmesh->size());
             } else {
                displacements.push_back(0);
                block_lengths.push_back(0);
@@ -388,14 +389,6 @@ namespace spatial_cell {
          }
 
          if ((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_WITH_CONTENT_STAGE1) !=0) {
-<<<<<<< HEAD
-=======
-               transfer << "VEL_BLOCK_WITH_CONTENT_STAGE1 ";
-            if(!receiving){
-               transfer << pop.velocity_block_with_content_list_size;
-            }
-
->>>>>>> 2e86fc04d (Handling moved, compiles, runs.)
             //Communicate size of list so that buffers can be allocated on receiving side
             if (!receiving) {
                pop.velocity_block_with_content_list_size = pop.velocity_block_with_content_list->size();
@@ -419,8 +412,8 @@ namespace spatial_cell {
          }
 
          if ((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_DATA) !=0) {
-            displacements.push_back((uint8_t*) get_data(activePopID) - (uint8_t*) this);
-            block_lengths.push_back(sizeof(Realf) * WID3 * populations[activePopID].blockContainer->size());
+            displacements.push_back((uint8_t*) pop.blockContainer->getData() - (uint8_t*) this);
+            block_lengths.push_back(sizeof(Realf) * WID3 * pop.blockContainer->size());
          }
 
          if ((SpatialCell::mpi_transfer_type & Transfer::NEIGHBOR_VEL_BLOCK_DATA) != 0) {
@@ -565,7 +558,7 @@ namespace spatial_cell {
          int myRank;
          MPI_Type_size(datatype,&mpiSize);
          MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-         cout << myRank << " get_mpi_datatype: " << cellID << " " << sender_rank << " " << receiver_rank << " " << mpiSize << ", Nblocks = " << populations[activePopID].N_blocks << ", nbr Nblocks =";
+         cout << myRank << " get_mpi_datatype: " << cellID << " " << sender_rank << " " << receiver_rank << " " << mpiSize << ", Nblocks = " << pop.N_blocks << ", nbr Nblocks =";
          for (uint i = 0; i < MAX_NEIGHBORS_PER_DIM; ++i) {
             const set<int>& ranks = this->face_neighbor_ranks[neighborhood];
             if ( receiving || ranks.find(receiver_rank) != ranks.end()) {
@@ -683,7 +676,6 @@ namespace spatial_cell {
 
    /** Update the two lists containing blocks with content, and blocks without content.
     * @see adjustVelocityBlocks */
-<<<<<<< HEAD
    void SpatialCell::update_velocity_block_content_lists(const uint popID) {
       debug_ghostpopulation_check(popID);
       Population& pop = get_population(popID);
