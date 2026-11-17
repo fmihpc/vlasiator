@@ -153,7 +153,7 @@ namespace spatial_cell {
          }
 
          // velocity_block_contents lists to be owned by pops
-         velocity_block_with_content_list = new std::vector<vmesh::GlobalID>(*(other.velocity_block_with_no_content_list));
+         velocity_block_with_content_list = new std::vector<vmesh::GlobalID>(*(other.velocity_block_with_content_list));
          velocity_block_with_no_content_list = new std::vector<vmesh::GlobalID>(*(other.velocity_block_with_no_content_list));
          velocity_block_with_content_list_size = other.velocity_block_with_content_list_size;
       }

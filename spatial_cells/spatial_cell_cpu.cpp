@@ -351,7 +351,7 @@ namespace spatial_cell {
 
       std::vector<MPI_Aint> displacements;
       std::vector<int> block_lengths;
-      Population& pop = get_population(activePopId);
+      Population& pop = get_population(activePopID);
 
       // create datatype for actual data if we are in the first two
       // layers around a boundary, or if we send for the whole system
@@ -361,7 +361,9 @@ namespace spatial_cell {
          //add data to send/recv to displacement and block length lists
          if ((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_LIST_STAGE1) != 0) {
             //first copy values in case this is the send operation
-            pop.N_blocks = pop.blockContainer->size();
+            if(!receiving){
+               pop.N_blocks = pop.blockContainer->size();
+            }
 
             // send velocity block list size
             displacements.push_back((uint8_t*) &(pop.N_blocks) - (uint8_t*) this);
@@ -677,7 +679,7 @@ namespace spatial_cell {
    /** Update the two lists containing blocks with content, and blocks without content.
     * @see adjustVelocityBlocks */
    void SpatialCell::update_velocity_block_content_lists(const uint popID) {
-      debug_ghostpopulation_check(popID);
+      debug_population_check(popID);
       Population& pop = get_population(popID);
       pop.velocity_block_with_content_list->clear();
       pop.velocity_block_with_no_content_list->clear();
