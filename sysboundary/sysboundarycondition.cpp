@@ -390,6 +390,10 @@ namespace SBC {
             to->parameters[CellParams::P_11_V] = from->parameters[CellParams::P_11_V];
             to->parameters[CellParams::P_22_V] = from->parameters[CellParams::P_22_V];
             to->parameters[CellParams::P_33_V] = from->parameters[CellParams::P_33_V];
+            to->parameters[CellParams::P_23_V] = from->parameters[CellParams::P_23_V];
+            to->parameters[CellParams::P_13_V] = from->parameters[CellParams::P_13_V];
+            to->parameters[CellParams::P_12_V] = from->parameters[CellParams::P_12_V];
+            to->parameters[CellParams::T_V] = from->parameters[CellParams::T_V];
          } else {
             to->parameters[CellParams::RHOM_R] = from->parameters[CellParams::RHOM_R];
             to->parameters[CellParams::VX_R] = from->parameters[CellParams::VX_R];
@@ -399,31 +403,47 @@ namespace SBC {
             to->parameters[CellParams::P_11_R] = from->parameters[CellParams::P_11_R];
             to->parameters[CellParams::P_22_R] = from->parameters[CellParams::P_22_R];
             to->parameters[CellParams::P_33_R] = from->parameters[CellParams::P_33_R];
+            to->parameters[CellParams::P_23_R] = from->parameters[CellParams::P_23_R];
+            to->parameters[CellParams::P_13_R] = from->parameters[CellParams::P_13_R];
+            to->parameters[CellParams::P_12_R] = from->parameters[CellParams::P_12_R];
+            to->parameters[CellParams::T_R] = from->parameters[CellParams::T_R];
          }
       }
+      
 
       if(copyMomentsOnly) {
-         to->get_population(popID).RHO = from->get_population(popID).RHO;
-         if (copy_V_moments) {
-            to->get_population(popID).RHO_V = from->get_population(popID).RHO_V;
-         } else {
-            to->get_population(popID).RHO_R = from->get_population(popID).RHO_R;
-         }
+         to->get_population(popID).RHO = from->get_population(popID).RHO;       
+         to->get_population(popID).T = from->get_population(popID).T;  
          for (uint i=0; i<3; i++) {
             to->get_population(popID).V[i] = from->get_population(popID).V[i];
-            if (copy_V_moments) {
-               to->get_population(popID).V_V[i] = from->get_population(popID).V_V[i];
-            } else {
-               to->get_population(popID).V_R[i] = from->get_population(popID).V_R[i];
-            }
          }
          for (uint i=0; i<6; i++) {
             to->get_population(popID).P[i] = from->get_population(popID).P[i];
-            if (copy_V_moments) {
+         }
+
+         to->get_population(popID).popTrueRho = from->get_population(popID).popTrueRho;
+         to->get_population(popID).popTrueV = from->get_population(popID).popTrueV;
+         to->get_population(popID).popTrueP = from->get_population(popID).popTrueP;
+         to->get_population(popID).popTimestamp = from->get_population(popID).popTimestamp;
+
+         if (copy_V_moments) {
+            to->get_population(popID).RHO_V = from->get_population(popID).RHO_V;
+            for (uint i=0; i<3; i++) {
+               to->get_population(popID).V_V[i] = from->get_population(popID).V_V[i];
+            }
+            for (uint i=0; i<6; i++) {
                to->get_population(popID).P_V[i] = from->get_population(popID).P_V[i];
-            } else {
+            }
+            to->get_population(popID).T_V = from->get_population(popID).T_V;
+         } else {
+            to->get_population(popID).RHO_R = from->get_population(popID).RHO_R;
+            for (uint i=0; i<3; i++) {
+               to->get_population(popID).V_R[i] = from->get_population(popID).V_R[i];
+            }
+            for (uint i=0; i<6; i++) {
                to->get_population(popID).P_R[i] = from->get_population(popID).P_R[i];
             }
+            to->get_population(popID).T_R = from->get_population(popID).T_R;
          }
       } else {
          to->set_population(from->get_population(popID), popID);

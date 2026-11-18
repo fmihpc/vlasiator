@@ -177,7 +177,7 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
 */
 void calculateMoments_R(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-   const std::vector<CellID>& cells,
+   const std::vector<CellID>& allcells,
    const bool& computeSecond,
    const bool initialCompute) {
 
@@ -189,6 +189,11 @@ void calculateMoments_R(
    #endif
 
    phiprof::Timer computeMomentsTimer {"Compute _R moments"};
+   std::vector<CellID> cells;
+   for (size_t c=0; c<allcells.size(); ++c) {
+      SpatialCell* cell = mpiGrid[allcells[c]];
+      if (cell->get_timeclass_turn_r()) cells.push_back(allcells[c]);
+   } 
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
       #pragma omp parallel for schedule(dynamic,1)
       for (size_t c=0; c<cells.size(); ++c) {
@@ -200,19 +205,16 @@ void calculateMoments_R(
          if (cell->sysBoundaryFlag == sysboundarytype::OUTFLOW && cell->sysBoundaryLayer != 1 && !initialCompute) { // these should have been handled by the boundary code
             continue;
          }
-         // Clear old moments to zero value
+         // Clear old moments to zero value and push the prev-moments downstream
          if (popID == 0) {
-            cell->parameters[CellParams::RHOM_R  ] = 0.0;
-            cell->parameters[CellParams::VX_R] = 0.0;
-            cell->parameters[CellParams::VY_R] = 0.0;
-            cell->parameters[CellParams::VZ_R] = 0.0;
-            cell->parameters[CellParams::RHOQ_R  ] = 0.0;
-            cell->parameters[CellParams::P_11_R] = 0.0;
-            cell->parameters[CellParams::P_22_R] = 0.0;
-            cell->parameters[CellParams::P_33_R] = 0.0;
-            cell->parameters[CellParams::P_23_R] = 0.0;
-            cell->parameters[CellParams::P_13_R] = 0.0;
-            cell->parameters[CellParams::P_12_R] = 0.0;
+            cell->parameters[CellParams::RHOM_R] = 0.0;
+            cell->parameters[CellParams::RHOQ_R] = 0.0;
+            for (int i=0; i<3; ++i) {
+               cell->parameters[CellParams::VX_R+i] = 0.0;
+            }
+            for (int i=0; i<nMom2; ++i) {
+               cell->parameters[CellParams::P_11_R+i] = 0.0;
+            }
          }
 
          #ifdef USE_GPU
@@ -246,15 +248,16 @@ void calculateMoments_R(
                                    nBlocks);
          // Store species' contribution to bulk velocity moments
          pop.RHO_R = array[0];
-         pop.V_R[0] = divideIfNonZero(array[1], array[0]);
-         pop.V_R[1] = divideIfNonZero(array[2], array[0]);
-         pop.V_R[2] = divideIfNonZero(array[3], array[0]);
+         for (uint i=0; i<3; i++) {
+            pop.V_R[i] = divideIfNonZero(array[i+1], array[0]);
+         }
 
-         cell->parameters[CellParams::RHOM_R  ] += array[0]*mass;
-         cell->parameters[CellParams::VX_R] += array[1]*mass;
-         cell->parameters[CellParams::VY_R] += array[2]*mass;
-         cell->parameters[CellParams::VZ_R] += array[3]*mass;
-         cell->parameters[CellParams::RHOQ_R  ] += array[0]*charge;
+         cell->parameters[CellParams::RHOM_R] += array[0]*mass;
+         for (uint i=0; i<3; i++) {
+            cell->parameters[CellParams::VX_R+i] += array[i+1]*mass;
+         }
+         cell->parameters[CellParams::RHOQ_R] += array[0]*charge;
+
       } // for-loop over spatial cells
    } // for-loop over particle species
 
@@ -267,9 +270,9 @@ void calculateMoments_R(
       if (cell->sysBoundaryFlag == sysboundarytype::OUTFLOW && cell->sysBoundaryLayer != 1 && !initialCompute) { // these should have been handled by the boundary code
          continue;
       }
-      cell->parameters[CellParams::VX_R] = divideIfNonZero(cell->parameters[CellParams::VX_R], cell->parameters[CellParams::RHOM_R]);
-      cell->parameters[CellParams::VY_R] = divideIfNonZero(cell->parameters[CellParams::VY_R], cell->parameters[CellParams::RHOM_R]);
-      cell->parameters[CellParams::VZ_R] = divideIfNonZero(cell->parameters[CellParams::VZ_R], cell->parameters[CellParams::RHOM_R]);
+      for (uint i=0; i<3; i++) {
+         cell->parameters[CellParams::VX_R+i] = divideIfNonZero(cell->parameters[CellParams::VX_R+i], cell->parameters[CellParams::RHOM_R]);
+      }
    }
 
    // Compute second moments only if requested.
@@ -318,12 +321,9 @@ void calculateMoments_R(
             pop.P_R[i] = mass * array[i];
          }
 
-         cell->parameters[CellParams::P_11_R] += pop.P_R[0];
-         cell->parameters[CellParams::P_22_R] += pop.P_R[1];
-         cell->parameters[CellParams::P_33_R] += pop.P_R[2];
-         cell->parameters[CellParams::P_23_R] += pop.P_R[3];
-         cell->parameters[CellParams::P_13_R] += pop.P_R[4];
-         cell->parameters[CellParams::P_12_R] += pop.P_R[5];
+         for (size_t i = 0; i < nMom2; ++i) {
+            cell->parameters[CellParams::P_11_R+i] += pop.P_R[i];
+         }
       } // for-loop over spatial cells
    } // for-loop over particle species
 }
@@ -353,12 +353,20 @@ void calculateMoments_V(
    #endif
 
    phiprof::Timer computeMomentsTimer {"Compute _V moments"};
+   std::vector<CellID> cells_on_turn;
+   for (size_t c=0; c<cells.size(); ++c) {
+         SpatialCell* cell = mpiGrid[cells[c]];
+         if (cell->get_timeclass_turn_v()){
+            cells_on_turn.push_back(cells[c]);
+         }
+   } 
    // Loop over all particle species
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-      #pragma omp parallel for schedule(dynamic,1)
-      for (size_t c=0; c<cells.size(); ++c) {
-         SpatialCell* cell = mpiGrid[cells[c]];
-
+#pragma omp parallel for schedule(dynamic,1)
+      for (size_t c=0; c<cells_on_turn.size(); ++c) {
+         SpatialCell* cell = mpiGrid[cells_on_turn[c]];
+         phiprof::Timer computeMomentsCellTimer {"compute-moments-V-cell"};
+         
          if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
             continue;
          }
@@ -368,17 +376,15 @@ void calculateMoments_V(
 
          // Clear old moments to zero value
          if (popID == 0) {
-            cell->parameters[CellParams::RHOM_V  ] = 0.0;
-            cell->parameters[CellParams::VX_V] = 0.0;
-            cell->parameters[CellParams::VY_V] = 0.0;
-            cell->parameters[CellParams::VZ_V] = 0.0;
-            cell->parameters[CellParams::RHOQ_V  ] = 0.0;
-            cell->parameters[CellParams::P_11_V] = 0.0;
-            cell->parameters[CellParams::P_22_V] = 0.0;
-            cell->parameters[CellParams::P_33_V] = 0.0;
-            cell->parameters[CellParams::P_23_V] = 0.0;
-            cell->parameters[CellParams::P_13_V] = 0.0;
-            cell->parameters[CellParams::P_12_V] = 0.0;
+
+            cell->parameters[CellParams::RHOM_V] = 0.0;
+            cell->parameters[CellParams::RHOQ_V] = 0.0;
+            for (int i=0; i<3; ++i) {
+               cell->parameters[CellParams::VX_V+i]=0.0;
+            }
+            for (int i=0; i<nMom2; ++i) {
+               cell->parameters[CellParams::P_11_V+i]=0.0;
+            }
          }
 
          #ifdef USE_GPU
@@ -413,31 +419,34 @@ void calculateMoments_V(
                                    nBlocks);
          // Store species' contribution to bulk velocity moments
          pop.RHO_V = array[0];
-         pop.V_V[0] = divideIfNonZero(array[1], array[0]);
-         pop.V_V[1] = divideIfNonZero(array[2], array[0]);
-         pop.V_V[2] = divideIfNonZero(array[3], array[0]);
 
-         cell->parameters[CellParams::RHOM_V  ] += array[0]*mass;
-         cell->parameters[CellParams::VX_V] += array[1]*mass;
-         cell->parameters[CellParams::VY_V] += array[2]*mass;
-         cell->parameters[CellParams::VZ_V] += array[3]*mass;
-         cell->parameters[CellParams::RHOQ_V  ] += array[0]*charge;
+         for (uint i=0; i<3; i++) {
+            pop.V_V[i] = divideIfNonZero(array[i+1], array[0]);
+         }
+
+         cell->parameters[CellParams::RHOM_V] += array[0]*mass;
+         for (uint i=0; i<3; i++) {
+            cell->parameters[CellParams::VX_V+i] += array[i+1] * mass;
+         }
+         cell->parameters[CellParams::RHOQ_V] += array[0]*charge;
 
       } // for-loop over spatial cells
    } // for-loop over particle species
 
-   #pragma omp parallel for schedule(static)
-   for (size_t c=0; c<cells.size(); ++c) {
-      SpatialCell* cell = mpiGrid[cells[c]];
+#pragma omp parallel for schedule(static)
+   for (size_t c=0; c<cells_on_turn.size(); ++c) {
+      SpatialCell* cell = mpiGrid[cells_on_turn[c]];
       if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
          continue;
       }
       if (cell->sysBoundaryFlag == sysboundarytype::OUTFLOW && cell->sysBoundaryLayer != 1 && !initialCompute) { // these should have been handled by the boundary code
          continue;
       }
-      cell->parameters[CellParams::VX_V] = divideIfNonZero(cell->parameters[CellParams::VX_V], cell->parameters[CellParams::RHOM_V]);
-      cell->parameters[CellParams::VY_V] = divideIfNonZero(cell->parameters[CellParams::VY_V], cell->parameters[CellParams::RHOM_V]);
-      cell->parameters[CellParams::VZ_V] = divideIfNonZero(cell->parameters[CellParams::VZ_V], cell->parameters[CellParams::RHOM_V]);
+
+      for (uint i=0; i<3; i++) {
+         cell->parameters[CellParams::VX_V+i] = divideIfNonZero(cell->parameters[CellParams::VX_V+i], cell->parameters[CellParams::RHOM_V]);
+      }
+
    }
 
    // Compute second moments only if requested
@@ -488,12 +497,9 @@ void calculateMoments_V(
             pop.P_V[i] = mass * array[i];
          }
 
-         cell->parameters[CellParams::P_11_V] += pop.P_V[0];
-         cell->parameters[CellParams::P_22_V] += pop.P_V[1];
-         cell->parameters[CellParams::P_33_V] += pop.P_V[2];
-         cell->parameters[CellParams::P_23_V] += pop.P_V[3];
-         cell->parameters[CellParams::P_13_V] += pop.P_V[4];
-         cell->parameters[CellParams::P_12_V] += pop.P_V[5];
+         for (size_t i = 0; i < nMom2; ++i) {
+            cell->parameters[CellParams::P_11_V+i] += pop.P_V[i];
+         }
       } // for-loop over spatial cells
    } // for-loop over particle species
 }

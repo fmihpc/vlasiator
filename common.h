@@ -28,6 +28,7 @@
 #include <vector>
 #include <span>
 #include "definitions.h"
+#include <iostream>
 
 // Include architecture specific definitions
 #include "arch/arch_device_api.h"
@@ -66,7 +67,6 @@ void bailout(
 
 #define MASTER_RANK 0
 
-
 /* Maximum number of blocks in each dimension in velocity space. The
    size of velocity space defined in cfg can at maximum be this large
 */
@@ -97,10 +97,23 @@ namespace Neighborhoods {
       VLASOV_SOLVER_Z_GHOST, /*!< up to third(PPM+ghost) neighbor in z face directions */
       VLASOV_SOLVER_GHOST, /*!< all required neighbors for ghost translation */
       VLASOV_SOLVER_GHOST_REQNEIGH, /*!< all ghost translation neighbors which require own neighbor information */
+      VLASOV_SOLVER_TIMEGHOST_EXACT_HALO,
+      VLASOV_SOLVER_TIMEGHOST_OUTER_HALO,
+      VLASOV_SOLVER_TIMEGHOST_REQ,
+      VLASOV_SOLVER_TIMEGHOST_HALODIFF,
+      VLASOV_SOLVER_X_GHOST_TIMECLASS,
+      VLASOV_SOLVER_Y_GHOST_TIMECLASS,
+      VLASOV_SOLVER_Z_GHOST_TIMECLASS,
       N_NEIGHBORHOODS
    };
 }
 
+namespace Timeclasses {
+   enum {
+      TIC, // Flag indicating the start of a timeclass propagation - targets larger halos, separately-tuned ghost translation
+      TOC, // Flag indicating the second phase of a timeclass propagation - target regular cells, regular ghost translation
+   };
+}
 
 /*! A namespace for storing indices into an array which contains
  * the physical parameters of each velocity block.*/
@@ -134,16 +147,6 @@ namespace CellParams {
       DX,     /*!< Grid separation in x-coordinate.*/
       DY,     /*!< Grid separation in y-coordinate.*/
       DZ,     /*!< Grid separation in z-coordinate.*/
-      RHOM,    /*!< Total mass density. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
-      VX,  /*!< Vx. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
-      VY,  /*!< Vy. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
-      VZ,  /*!< Vz. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
-      RHOQ,    /*!< Total charge density. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
-      RHOM_DT2,    /*!< Total mass density. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
-      VX_DT2,  /*!< Vx. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
-      VY_DT2,  /*!< Vy. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
-      VZ_DT2,  /*!< Vz. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
-      RHOQ_DT2,    /*!< Total charge density. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
       BGBXVOL,   /*!< background magnetic field averaged over spatial cell.*/
       BGBYVOL,   /*!< background magnetic field averaged over spatial cell.*/
       BGBZVOL,   /*!< background magnetic field averaged over spatial cell.*/
@@ -153,40 +156,61 @@ namespace CellParams {
       EXGRADPE,         /*!< Electron pressure gradient term x.*/
       EYGRADPE,         /*!< Electron pressure gradient term y.*/
       EZGRADPE,         /*!< Electron pressure gradient term z.*/
-      RHOM_R,     /*!< RHO after propagation in ordinary space*/
-      VX_R,   /*!< VX after propagation in ordinary space*/
-      VY_R,   /*!< VY after propagation in ordinary space*/
-      VZ_R,   /*!< VZ after propagation in ordinary space*/
-      RHOQ_R,     /*!< RHOQ after propagation in ordinary space*/
-      RHOM_V,     /*!< RHOM after propagation in velocity space*/
-      VX_V,   /*!< VX after propagation in velocity space*/
-      VY_V,   /*!< VY after propagation in velocity space*/
-      VZ_V,   /*!< VZ after propagation in velocity space*/
-      RHOQ_V,     /*!< RHOQ after propagation in velocity space*/
+
+      // !! All these following moment blocks must be in the order: RHOM, VX, VY, VZ, RHOQ, P11, P22, P33, P23, P13, P12
+
+      RHOM,    /*!< Total mass density. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
+      VX,  /*!< Vx. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
+      VY,  /*!< Vy. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
+      VZ,  /*!< Vz. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
+      RHOQ,    /*!< Total charge density. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
       P_11,     /*!< Pressure P_xx component, computed by Vlasov propagator. */
       P_22,     /*!< Pressure P_yy component, computed by Vlasov propagator. */
       P_33,     /*!< Pressure P_zz component, computed by Vlasov propagator. */
       P_23,     /*!< Pressure P_yz component, computed by Vlasov propagator. */
       P_13,     /*!< Pressure P_xz component, computed by Vlasov propagator. */
       P_12,     /*!< Pressure P_xy component, computed by Vlasov propagator. */
+      T,   /*!< Timestamp for the above set of moments */
+
+      RHOM_DT2,    /*!< Total mass density. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
+      VX_DT2,  /*!< Vx. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
+      VY_DT2,  /*!< Vy. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
+      VZ_DT2,  /*!< Vz. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
+      RHOQ_DT2,    /*!< Total charge density. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
       P_11_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from P_11_R and P_11_V. */
       P_22_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from P_22_R and P_22_V. */
       P_33_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from P_33_R and P_33_V. */
       P_23_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from P_23_R and P_23_V. */
       P_13_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from P_13_R and P_13_V. */
       P_12_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from P_12_R and P_12_V. */
-      P_11_R,   /*!< P_xx component after propagation in ordinary space */
-      P_22_R,   /*!< P_yy component after propagation in ordinary space */
-      P_33_R,   /*!< P_zz component after propagation in ordinary space */
-      P_23_R,   /*!< P_yz component after propagation in ordinary space */
-      P_13_R,   /*!< P_xz component after propagation in ordinary space */
-      P_12_R,   /*!< P_xy component after propagation in ordinary space */
-      P_11_V,   /*!< P_xx component after propagation in velocity space */
-      P_22_V,   /*!< P_yy component after propagation in velocity space */
-      P_33_V,   /*!< P_zz component after propagation in velocity space */
-      P_23_V,   /*!< P_yz component after propagation in velocity space */
-      P_12_V,   /*!< P_xy component after propagation in velocity space */
-      P_13_V,   /*!< P_xz component after propagation in velocity space */
+      T_DT2,   /*!< Timestamp for the above set of moments */
+
+      RHOM_R,   /*!< Total mass density. Calculated after translation*/
+      VX_R,    /*!< Vx. Calculated after translation*/
+      VY_R,    /*!< Vy. Calculated after translation*/
+      VZ_R,    /*!< Vz. Calculated after translation*/
+      RHOQ_R,  /*!< Total charge density. Calculated after translation*/
+      P_11_R,   /*!< Pressure P_xx component, computed after translation. */
+      P_22_R,  /*!< Pressure P_yy component, computed after translation. */
+      P_33_R,  /*!< Pressure P_zz component, computed after translation. */
+      P_23_R,  /*!< Pressure P_yz component, computed after translation. */
+      P_13_R,  /*!< Pressure P_xz component, computed after translation. */
+      P_12_R,  /*!< Pressure P_xy component, computed after translation. */
+      T_R,  /*!< Timestamp for the above set of moments */
+
+      RHOM_V,  /*!< Total mass density. Calculated after acceleration*/
+      VX_V,   /*!< Vx. Calculated after acceleration*/
+      VY_V,  /*!< Vy. Calculated after acceleration*/
+      VZ_V,  /*!< Vz. Calculated after acceleration*/
+      RHOQ_V,  /*!< Total charge density. Calculated after acceleration*/
+      P_11_V,  /*!< Pressure P_xx component, computed after acceleration. */
+      P_22_V,  /*!< Pressure P_yy component, computed after acceleration. */
+      P_33_V,  /*!< Pressure P_zz component, computed after acceleration. */
+      P_23_V,  /*!< Pressure P_yz component, computed after acceleration. */
+      P_13_V,  /*!< Pressure P_xz component, computed after acceleration. */
+      P_12_V,  /*!< Pressure P_xy component, computed after acceleration. */
+      T_V,  /*!< Timestamp for the above set of moments */
+
       EXVOL,    /*!< Volume electric field averaged over spatial cell, x-component.*/
       EYVOL,    /*!< Volume electric field averaged over spatial cell, y-component.*/
       EZVOL,    /*!< Volume electric field averaged over spatial cell, z-component.*/
@@ -195,6 +219,10 @@ namespace CellParams {
       MAXRDT,             /*!< maximum timestep allowed in ordinary space for this cell,
                            * this is the max allowed timestep over all particle species.*/
       MAXFDT,             /*!< maximum timestep allowed in ordinary space by fieldsolver for this cell**/
+
+      TIMECLASS,           /*!< timeclass of this cell*/
+      TIMECLASSDT,           /*!< timeclass-adjusted timestep, ...*/
+
       LBWEIGHTCOUNTER,    /*!< Counter for storing compute time weights needed by the load balancing**/
       ISCELLSAVINGF,      /*!< Value telling whether a cell is saving its distribution function when partial f data is written out. */
       FSGRID_RANK, /*!< Rank of this cell in the FsGrid cartesian communicator */

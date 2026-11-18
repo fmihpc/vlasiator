@@ -35,18 +35,42 @@ using namespace spatial_cell;
 
 void calculateAcceleration(
                            dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                           const Real dt
+                           const Real dt,
+                           bool accelerateSpecificCells = false,
+                           const vector<CellID>& cellsToAccelerate = {}
 );
 
 void calculateSpatialTranslation(
                                  dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                 const Real dt);
+                                 const Real dt,
+                                 const bool initializationOrLB);
+
+void communicatePreSpatialGhostTranslation(
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   const vector<CellID>& local_propagated_cells,
+   vector<uint>& nPencils,
+   const creal dt,
+   const uint popID,
+   Real &time,
+   const uint tictoc,
+   int tc
+   );
+
+void communicatePreSpatialGhostTranslationCoalesced(
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   std::vector<std::pair<uint,int>>& population_indexes,
+   const uint tictoc,
+   int tc
+   );
+
+void setAccelerationTimeGhosts( SpatialCell* spatial_cell, const uint popID);
 
 // Vlasov timestep reduction
 // found in either arch_dt.cpp or gpu_dt.cpp
 void reduce_vlasov_dt(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                       const vector<CellID>& cells,
-                      Real (&dtMaxLocal)[3]);
+                      std::vector<Real>& dtMaxLocal,
+                      std::vector<Real>& dtMinMaxLocal);
 
 /** Calculate velocity moments for the given spatial cell.
  * This function is defined in the arch_moments.cpp file.*/
@@ -64,17 +88,45 @@ void calculateCellMoments(
 void calculateInterpolatedVelocityMoments(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const int cp_rhom,
-   const int cp_vx,
-   const int cp_vy,
-   const int cp_vz,
    const int cp_rhoq,
    const int cp_p11,
-   const int cp_p22,
-   const int cp_p33,
-   const int cp_p23,
-   const int cp_p13,
-   const int cp_p12
+   const int cp_vx,
+   const int cp_t
 );
+
+void calculateTrueMomentsPostTranslation(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
+void calculateTrueMomentsPostAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
+
+/*!
+  \brief Initializes a functions true moment set vector with the newest moment set calculated, used to
+  fill the vector with data at initialization
+*/
+void initializeTrueMomentSets(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
+
+/*!
+  \brief Function for interpolating y(x) with vector y and x given for point t. If t is not withing the range of x, it instead extrapolates.
+*/
+Real interpolation(const std::vector<Real> x, const std::vector<Real> y, const Real t, const std::string interpolationType = "linear");
+
+
+/*!
+  \brief Function for interpolating moments for field solver with moments from vlasov solver, combatible with timeclasses.
+*/
+void interpolateMomentsForTimeclasses(
+  dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   const Real target_time,
+   const int cp_rhom,
+   const int cp_rhoq,
+   const int cp_vx,
+   const int cp_p11,
+   const int cp_t
+);
+
+
+/*!
+  \brief Function for interpolating moments on a population basis, same principle as the above function.
+*/
+void updateParticlePopulations(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, const Real target_time);
 
 /*!
   \brief Compute 0th, 1st and 2nd velocity moments (RHO,VX,VY,VZ,P_11,P_22,P_33 and *_DT2) for all cells in the grid directly from distribution function. The simulation should be at a true time-step! This is at the moment only called at initialisation.
@@ -83,8 +135,8 @@ void calculateInterpolatedVelocityMoments(
 */
 void calculateInitialVelocityMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
 
-
+/*!
+  \brief Update _V_PREV buffers with the values from _V. Compatible with timeclass turns.
+*/
 
 #endif
-
-
