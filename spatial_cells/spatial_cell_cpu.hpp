@@ -124,7 +124,7 @@ namespace spatial_cell {
       ~Population() {
          delete vmesh;
          delete blockContainer;
-	      delete velocity_block_with_content_list;
+         delete velocity_block_with_content_list;
          delete velocity_block_with_no_content_list;
       }
       Population(const Population& other) {
