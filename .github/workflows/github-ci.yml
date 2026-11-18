@@ -117,6 +117,13 @@ jobs:
             run_tp: true
             debug: true
 
+          - name: lumi-g
+            runner: lumi
+            arch: lumi_2503_gpu
+            compile_tp: false
+            run_tp: false
+            debug: false
+
     runs-on: ${{ matrix.runner }}
     needs: get_git_diff
     if: github.repository_owner == 'fmihpc'

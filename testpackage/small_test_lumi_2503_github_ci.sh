@@ -19,8 +19,8 @@ reference_dir="/projappl/project_462001599/testpackage"
 cd $SLURM_SUBMIT_DIR
 #cd $reference_dir # don't run on /proj
 
-bin="/projappl/project_462001599/actions-runner-linux-x64-2.337.0/_work/vlasiator/vlasiator/vlasiator"
-diffbin="/projappl/project_462001599/actions-runner-linux-x64-2.337.0/_work/vlasiator/vlasiator/vlsvdiff_DP"
+bin="$SLURM_SUBMIT_DIR/../vlasiator"
+diffbin="$SLURM_SUBMIT_DIR/../vlsvdiff_DP"
 
 #compare agains which revision
 reference_revision="current"
