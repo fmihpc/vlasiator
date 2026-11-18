@@ -40,20 +40,20 @@ tasks=$SLURM_NTASKS
 export OMP_NUM_THREADS=$t
 
 #command for running stuff
-run_command="srun --mpi=pmi2 -n $tasks "
-small_run_command="srun --mpi=pmi2 -n 1 -N 1 "
-run_command_tools="srun --mpi=pmi2 -n 1 "
+run_command="srun --mpi=cray_shasta -n $tasks "
+small_run_command="srun --mpi=cray_shasta -n 1 -N 1 "
+run_command_tools="srun --mpi=cray_shasta -n 1 "
 
 # # Placement debugging commands
 # lscpu | grep NUMA
 # echo
-# srun -n 1 --mpi=pmi2 /appl/bin/hostinfo
+# srun -n 1 --mpi=cray_shasta /appl/bin/hostinfo
 # echo
-# srun --mpi=pmi2 bash -c ' \
+# srun --mpi=cray_shasta bash -c ' \
 #           echo -n "task $SLURM_PROCID (node $SLURM_NODEID): "; \
 #           taskset -cp $$' | sort
 # echo
-# srun --mpi=pmi2 -c $SLURM_CPUS_PER_TASK -n $tasks /appl/cray/experimental/xthi/xthi_mpi_mp
+# srun --mpi=cray_shasta -c $SLURM_CPUS_PER_TASK -n $tasks /appl/cray/experimental/xthi/xthi_mpi_mp
 # echo
 # export CRAY_OMP_CHECK_AFFINITY=TRUE
 
