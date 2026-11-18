@@ -192,6 +192,92 @@ void calculateSpatialTranslation(
    // bailout(true, "", __FILE__, __LINE__);
 }
 
+/** Communicate the distribution function from necessary remote neighbors
+ *  before ghost translation.
+    Now does all required calculations on ghost cells,
+    coalescing all interim MPI communication into one call..
+ */
+
+void communicatePreSpatialGhostTranslation(
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   const vector<CellID>& local_propagated_cells,
+   vector<uint>& nPencils,
+   const creal dt,
+   const uint popID,
+   ) {
+
+   // Ghost translation, need all cell information, not just for a single direction.
+   // No need for remote target cells; pass a dummy list.
+   const vector<CellID> dummy_cells;
+   uint neighborhood;
+
+   // Select the required neighborhood
+   neighborhood = Neighborhoods::VLASOV_SOLVER_GHOST;
+
+   updateRemoteVelocityBlockLists(mpiGrid,popID,neighborhood, tc);
+   // Need to re-do in case block lists of boundary cells change after
+   // the block adjustment just after ACC.
+
+   phiprof::Timer prepreBarrierTimer {"MPI barrier-pre-trans-comm"};
+   MPI_Barrier(MPI_COMM_WORLD);
+   prepreBarrierTimer.stop();
+
+   phiprof::Timer transferTimer {"transfer-stencil-data-all",{"MPI"}};
+   SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA,false);
+   mpiGrid.update_copies_of_remote_neighbors(neighborhood);
+   transferTimer.stop();
+
+   phiprof::Timer preBarrierTimer {"MPI barrier-post-comm-pre-trans"};
+   MPI_Barrier(MPI_COMM_WORLD);
+   preBarrierTimer.stop();
+}
+
+/** Communicate the distribution function from necessary remote neighbors
+ *  before ghost translation.
+    Now does all required calculations on ghost cells,
+    coalescing all interim MPI communication into one call..
+ */
+
+void communicatePreSpatialGhostTranslationCoalesced(
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   std::vector<const uint>& population_indexes,
+   ) {
+
+   // Ghost translation, need all cell information, not just for a single direction.
+   // No need for remote target cells; pass a dummy list.
+   const vector<CellID> dummy_cells;
+   uint neighborhood;
+
+   // Select the pencil set and the required neighborhood based on the tictoc value
+   neighborhood = Neighborhoods::VLASOV_SOLVER_GHOST;
+
+   // updateRemoteVelocityBlockListsCoalesced(mpiGrid,population_indexes,neighborhood);
+   P::coalesceGhostComms = false;
+   for (auto& index : population_indexes) {
+      updateRemoteVelocityBlockLists(mpiGrid, index, neighborhood);
+   }
+   P::coalesceGhostComms = true;
+   // std::cerr << __FILE__<<":"<<__LINE__<< " Done updateing remote velocity block lists" << std::endl;
+   // Need to re-do in case block lists of boundary cells change after
+   // the block adjustment just after ACC.
+
+   phiprof::Timer prepreBarrierTimer {"MPI barrier-pre-trans-comm"};
+   MPI_Barrier(MPI_COMM_WORLD);
+   prepreBarrierTimer.stop();
+   SpatialCell::setCommunicatedSpecies(population_indexes);
+
+   phiprof::Timer transferTimer {"transfer-stencil-data-all",{"MPI"}};
+   SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA,false);
+   mpiGrid.update_copies_of_remote_neighbors(neighborhood);
+   transferTimer.stop();
+
+   //phiprof::Timer preBarrierTimer {"MPI barrier-post-comm-pre-trans"};
+   //MPI_Barrier(MPI_COMM_WORLD);
+   //preBarrierTimer.stop();
+}
+
+
+
 /** Propagates the distribution function in spatial space.
     Now does all required calculations on ghost cells,
     coalescing all interim MPI communication into one call..
@@ -215,22 +301,22 @@ void calculateSpatialGhostTranslation(
    // No need for remote target cells; pass a dummy list.
    const vector<CellID> dummy_cells;
 
-   updateRemoteVelocityBlockLists(mpiGrid,popID,Neighborhoods::VLASOV_SOLVER_GHOST);
-   // Need to re-do in case block lists of boundary cells change after
-   // the block adjustment just after ACC.
+   // updateRemoteVelocityBlockLists(mpiGrid,popID,Neighborhoods::VLASOV_SOLVER_GHOST);
+   // // Need to re-do in case block lists of boundary cells change after
+   // // the block adjustment just after ACC.
 
-   phiprof::Timer prepreBarrierTimer {"MPI barrier-pre-trans-comm"};
-   MPI_Barrier(MPI_COMM_WORLD);
-   prepreBarrierTimer.stop();
+   // phiprof::Timer prepreBarrierTimer {"MPI barrier-pre-trans-comm"};
+   // MPI_Barrier(MPI_COMM_WORLD);
+   // prepreBarrierTimer.stop();
 
-   phiprof::Timer transferTimer {"transfer-stencil-data-all",{"MPI"}};
-   SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA,false);
-   mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::VLASOV_SOLVER_GHOST);
-   transferTimer.stop();
+   // phiprof::Timer transferTimer {"transfer-stencil-data-all",{"MPI"}};
+   // SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA,false);
+   // mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::VLASOV_SOLVER_GHOST);
+   // transferTimer.stop();
 
-   phiprof::Timer preBarrierTimer {"MPI barrier-pre-trans"};
-   MPI_Barrier(MPI_COMM_WORLD);
-   preBarrierTimer.stop();
+   // phiprof::Timer preBarrierTimer {"MPI barrier-pre-trans"};
+   // MPI_Barrier(MPI_COMM_WORLD);
+   // preBarrierTimer.stop();
 
    //#warning TODO: Implement also 2D / non-AMR ghost translation?
    // ------------- SLICE - map dist function in Z --------------- //
@@ -248,9 +334,9 @@ void calculateSpatialGhostTranslation(
    trans_map_1d_amr(mpiGrid,local_propagated_cells, dummy_cells, nPencils, 1,dt,popID); // map along y//
    mappingYTimer.stop();
 
-   phiprof::Timer postBarrierTimer {"MPI barrier-post-trans"};
-   MPI_Barrier(MPI_COMM_WORLD);
-   postBarrierTimer.stop();
+   // phiprof::Timer postBarrierTimer {"MPI barrier-post-trans"};
+   // MPI_Barrier(MPI_COMM_WORLD);
+   // postBarrierTimer.stop();
    return;
 }
 
@@ -309,6 +395,38 @@ void calculateSpatialTranslation(
       nPencils.resize(local_propagated_cells.size()+1, 0);
    }
    computeTimer.stop();
+
+   int myRank;
+   MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+   P::coalesceGhostComms = true;
+   if (P::vlasovSolverGhostTranslate){
+      phiprof::Timer pretrans {"Pre-ghostTranslate comms"};
+      std::vector<std::pair<uint, int>> population_indexes;
+      for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+      // if ghost translating, do the comms ahead of translations, which are now local ops
+         population_indexes.push_back(popID);
+         if (!P::coalesceGhostComms) {
+            communicatePreSpatialGhostTranslation(
+               mpiGrid,
+               tc_propagated_cells[tc], // Used for LB
+               nPencils,
+               dt,
+               popID,
+               );
+         }
+      }
+      pretrans.stop();
+      phiprof::Timer ccomms {"Coalesced comms"};
+      if (P::coalesceGhostComms) {
+         communicatePreSpatialGhostTranslationCoalesced(
+            mpiGrid,
+            population_indexes,
+            );
+      }
+      P::coalesceGhostComms = false;
+      ccomms.stop();
+   }
+
 
    // Translate all particle species
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
@@ -378,6 +496,11 @@ void calculateSpatialTranslation(
 
    // Mapping complete, update moments and maximum dt limits //
    calculateMoments_R(mpiGrid,localCells,true);
+   if (P::vlasovSolverGhostTranslate){
+      phiprof::Timer postBarrierTimer {"MPI barrier-post-trans"};
+      MPI_Barrier(MPI_COMM_WORLD);
+      postBarrierTimer.stop();
+   }
 }
 
 /*

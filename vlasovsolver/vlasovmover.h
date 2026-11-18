@@ -42,6 +42,19 @@ void calculateSpatialTranslation(
                                  dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                  const Real dt);
 
+void communicatePreSpatialGhostTranslation(
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   const vector<CellID>& local_propagated_cells,
+   vector<uint>& nPencils,
+   const creal dt,
+   const uint popID
+   );
+
+void communicatePreSpatialGhostTranslationCoalesced(
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   std::vector<const uint>& population_indexes,
+   );
+
 // Vlasov timestep reduction
 // found in either arch_dt.cpp or gpu_dt.cpp
 void reduce_vlasov_dt(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
@@ -86,5 +99,3 @@ void calculateInitialVelocityMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_G
 
 
 #endif
-
-
