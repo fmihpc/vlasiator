@@ -1299,7 +1299,7 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
    // These neighborhoods no longer include the AMR addition beyond the regular vlasov stencil
    const int neighborhood = getNeighborhood(dimension, VLASOV_STENCIL_WIDTH);
 
-   //#pragma omp parallel for // TODO commented pragmatically, figure out
+   #pragma omp parallel for 
    for (uint i=0; i<propagatedCells.size(); i++) {
       const CellID celli = propagatedCells[i];
       #ifdef DEBUG_PENCILS
@@ -1307,7 +1307,7 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
       #endif
       bool addToSeedIds = P::amrTransShortPencils;
       if (addToSeedIds) {
-//#pragma omp critical // TODO commented pragmatically, figure out
+         #pragma omp critical
          seedIds.push_back({timeclass, celli});
          continue;
       }
@@ -1377,7 +1377,7 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
          }
       } // finish check A
       if ( addToSeedIds ) {
-//#pragma omp critical (pencil_seedIds_push_back) // TODO commented pragmatically, figure out
+         #pragma omp critical
          seedIds.push_back({timeclass, celli});
          continue;
       }
@@ -1430,7 +1430,7 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
       } // Finish B check
 
       if ( addToSeedIds ) {
-//#pragma omp critical // TODO commented pragmatically, figure out
+         #pragma omp critical
          seedIds.push_back({timeclass, celli});
          continue;
       }
@@ -1537,7 +1537,7 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
       } // Finish C check
 
       if ( addToSeedIds ) {
-//#pragma omp critical (pencil_seedIds_push_back) // TODO commented pragmatically, figure out
+         #pragma omp critical
          seedIds.push_back({timeclass, celli});
       }
    }

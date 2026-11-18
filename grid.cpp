@@ -302,9 +302,6 @@ void initializeGrids(
       #pragma omp parallel for schedule(static)
       for (size_t i = 0; i < cells.size(); ++i) {
          mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] = 0;
-
-         mpiGrid[cells[i]]->parameters[CellParams::T_R] = 0;
-         mpiGrid[cells[i]]->parameters[CellParams::T_V] = 0;
       }
 
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
@@ -626,51 +623,41 @@ void transferInParts(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGr
             CHK_ERR( gpuDeviceSynchronize() );
             #endif
 
-<<<<<<< HEAD
-         int prepareReceives {phiprof::initializeTimer("Preparing receives")};
-         int receives = 0;
-         #ifdef USE_GPU
-         CREATE_UNIQUE_POINTER(gpuMemoryManager, host_vmeshesReceive);
-         CREATE_UNIQUE_POINTER(gpuMemoryManager, dev_vmeshesReceive);
-         CREATE_UNIQUE_POINTER(gpuMemoryManager, host_blockContainersReceive);
-         CREATE_UNIQUE_POINTER(gpuMemoryManager, dev_blockContainersReceive);
-         CREATE_UNIQUE_POINTER(gpuMemoryManager, host_newSizes);
-         CREATE_UNIQUE_POINTER(gpuMemoryManager, dev_newSizes);
-         HOST_ALLOCATE_GPU(gpuMemoryManager, host_vmeshesReceive, incoming_cells_list.size()*sizeof(vmesh::VelocityMesh*));
-         ALLOCATE_GPU(gpuMemoryManager, dev_vmeshesReceive, incoming_cells_list.size()*sizeof(vmesh::VelocityMesh*));
-         HOST_ALLOCATE_GPU(gpuMemoryManager, host_blockContainersReceive, incoming_cells_list.size()*sizeof(vmesh::VelocityBlockContainer*));
-         ALLOCATE_GPU(gpuMemoryManager, dev_blockContainersReceive, incoming_cells_list.size()*sizeof(vmesh::VelocityBlockContainer*));
-         HOST_ALLOCATE_GPU(gpuMemoryManager, host_newSizes, incoming_cells_list.size()*sizeof(uint));
-         ALLOCATE_GPU(gpuMemoryManager, dev_newSizes, incoming_cells_list.size()*sizeof(uint));
-
-         uint maxNewSize = 0;
-         for (const CellID cell_id : incoming_cells_list) {
-            SpatialCell* cell = mpiGrid[cell_id];
-            if (get_transfer_part(mpiGrid, num_part_transfers, cell_id) == transfer_part) {
-               // reserve space for velocity block data in arriving remote cells
-               phiprof::Timer timer {prepareReceives};
-               cell->prepare_to_receive_blocks_gather(popID, receives, maxNewSize);
-               timer.stop(1, "Spatial cells");
-               receives++;
-            }
-         }
-
-         CHK_ERR( gpuMemcpy(GET_POINTER(gpuMemoryManager, vmesh::VelocityMesh*, dev_vmeshesReceive), GET_POINTER(gpuMemoryManager, vmesh::VelocityMesh*, host_vmeshesReceive), incoming_cells_list.size()*sizeof(vmesh::VelocityMesh*), gpuMemcpyHostToDevice) );
-         CHK_ERR( gpuMemcpy(GET_POINTER(gpuMemoryManager, vmesh::VelocityBlockContainer*, dev_blockContainersReceive), GET_POINTER(gpuMemoryManager, vmesh::VelocityBlockContainer*, host_blockContainersReceive), incoming_cells_list.size()*sizeof(vmesh::VelocityBlockContainer*), gpuMemcpyHostToDevice) );
-         CHK_ERR( gpuMemcpy(GET_POINTER(gpuMemoryManager, uint, dev_newSizes), GET_POINTER(gpuMemoryManager, uint, host_newSizes), incoming_cells_list.size()*sizeof(uint), gpuMemcpyHostToDevice) );
-
-         prepare_to_receive_blocks_multicell(popID, receives, maxNewSize);
-         #else
-         #pragma omp parallel for schedule(guided) reduction(+:receives)
-         for (const CellID cell_id : incoming_cells_list) {
-            SpatialCell* cell = mpiGrid[cell_id];
-            if (get_transfer_part(mpiGrid, num_part_transfers, cell_id) == transfer_part) {
-               receives++;
-               // reserve space for velocity block data in arriving remote cells
-=======
             int prepareReceives {phiprof::initializeTimer("Preparing receives")};
             int receives = 0;
-            #pragma omp parallel for schedule(guided)
+            #ifdef USE_GPU
+            CREATE_UNIQUE_POINTER(gpuMemoryManager, host_vmeshesReceive);
+            CREATE_UNIQUE_POINTER(gpuMemoryManager, dev_vmeshesReceive);
+            CREATE_UNIQUE_POINTER(gpuMemoryManager, host_blockContainersReceive);
+            CREATE_UNIQUE_POINTER(gpuMemoryManager, dev_blockContainersReceive);
+            CREATE_UNIQUE_POINTER(gpuMemoryManager, host_newSizes);
+            CREATE_UNIQUE_POINTER(gpuMemoryManager, dev_newSizes);
+            HOST_ALLOCATE_GPU(gpuMemoryManager, host_vmeshesReceive, incoming_cells_list.size()*sizeof(vmesh::VelocityMesh*));
+            ALLOCATE_GPU(gpuMemoryManager, dev_vmeshesReceive, incoming_cells_list.size()*sizeof(vmesh::VelocityMesh*));
+            HOST_ALLOCATE_GPU(gpuMemoryManager, host_blockContainersReceive, incoming_cells_list.size()*sizeof(vmesh::VelocityBlockContainer*));
+            ALLOCATE_GPU(gpuMemoryManager, dev_blockContainersReceive, incoming_cells_list.size()*sizeof(vmesh::VelocityBlockContainer*));
+            HOST_ALLOCATE_GPU(gpuMemoryManager, host_newSizes, incoming_cells_list.size()*sizeof(uint));
+            ALLOCATE_GPU(gpuMemoryManager, dev_newSizes, incoming_cells_list.size()*sizeof(uint));
+   
+            uint maxNewSize = 0;
+            for (const CellID cell_id : incoming_cells_list) {
+               SpatialCell* cell = mpiGrid[cell_id];
+               if (get_transfer_part(mpiGrid, num_part_transfers, cell_id) == transfer_part) {
+                  // reserve space for velocity block data in arriving remote cells
+                  phiprof::Timer timer {prepareReceives};
+                  cell->prepare_to_receive_blocks_gather(popID, receives, maxNewSize);
+                  timer.stop(1, "Spatial cells");
+                  receives++;
+               }
+            }
+   
+            CHK_ERR( gpuMemcpy(GET_POINTER(gpuMemoryManager, vmesh::VelocityMesh*, dev_vmeshesReceive), GET_POINTER(gpuMemoryManager, vmesh::VelocityMesh*, host_vmeshesReceive), incoming_cells_list.size()*sizeof(vmesh::VelocityMesh*), gpuMemcpyHostToDevice) );
+            CHK_ERR( gpuMemcpy(GET_POINTER(gpuMemoryManager, vmesh::VelocityBlockContainer*, dev_blockContainersReceive), GET_POINTER(gpuMemoryManager, vmesh::VelocityBlockContainer*, host_blockContainersReceive), incoming_cells_list.size()*sizeof(vmesh::VelocityBlockContainer*), gpuMemcpyHostToDevice) );
+            CHK_ERR( gpuMemcpy(GET_POINTER(gpuMemoryManager, uint, dev_newSizes), GET_POINTER(gpuMemoryManager, uint, host_newSizes), incoming_cells_list.size()*sizeof(uint), gpuMemcpyHostToDevice) );
+   
+            prepare_to_receive_blocks_multicell(popID, receives, maxNewSize);
+            #else
+            #pragma omp parallel for schedule(guided) reduction(+:receives)
             for (const CellID cell_id : incoming_cells_list) {
                SpatialCell* cell = mpiGrid[cell_id];
                if (get_transfer_part(mpiGrid, num_part_transfers, cell_id) == transfer_part) {
@@ -681,24 +668,13 @@ void transferInParts(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGr
                   timer.stop(1, "Spatial cells");
                }
             }
+            #endif
             if(receives == 0) {
                //empty phiprof timer, to avoid unneccessary divergence in unique
                //profiles (keep order same)
->>>>>>> b97306399 (A fully-squashed timeclass branch down to dynamicDt-integration)
                phiprof::Timer timer {prepareReceives};
                timer.stop(0, "Spatial cells");
             }
-<<<<<<< HEAD
-         }
-         #endif
-         if (receives == 0) {
-            //empty phiprof timer, to avoid unneccessary divergence in unique
-            //profiles (keep order same)
-            phiprof::Timer timer {prepareReceives};
-            timer.stop(0, "Spatial cells");
-         }
-=======
->>>>>>> b97306399 (A fully-squashed timeclass branch down to dynamicDt-integration)
 
             //do the actual transfer of data for the set of cells to be transferred
             phiprof::Timer transferTimer {"transfer_all_data"};
@@ -714,9 +690,6 @@ void transferInParts(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGr
             for (const CellID cell_id : outgoing_cells_list){
                SpatialCell* cell = mpiGrid[cell_id];
 
-<<<<<<< HEAD
-                     SBC::averageCellData(mpiGrid, children, mpiGrid[parent], popID, 1);
-=======
                // Free memory of this cell as it has already been transferred,
                // it will not be used anymore. NOTE: Only clears memory allocated
                // to the active population.
@@ -724,7 +697,6 @@ void transferInParts(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGr
                   cell->clear(popID,true, timeclass);
                }
             }
->>>>>>> b97306399 (A fully-squashed timeclass branch down to dynamicDt-integration)
 
             if (refinement) {
                // Old cells removed by refinement
@@ -738,9 +710,7 @@ void transferInParts(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGr
                         // Make sure cell contents aren't garbage
                         *mpiGrid[parent] = *mpiGrid[id];
 
-                        for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-                           SBC::averageCellData(mpiGrid, children, mpiGrid[parent], popID, 1);
-                        }
+                        SBC::averageCellData(mpiGrid, children, mpiGrid[parent], popID, 1);
 
                         // Averaging moments
                         calculateCellMoments(mpiGrid[parent], true, false);
@@ -1214,78 +1184,97 @@ void getGhostNeighborsforTC(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
       tc_ghosts_count[timeclass] = 0;
       outer_ghosts_count[timeclass] = 0;
    }
+   #ifdef DEBUG_TIMECLASSES
    std::cerr << "Ghost flags per cell:" << std::endl;
+   #endif
    for (const CellID cell : getLocalCells()) { // TODO: REMOTE NEIGHBORS FILTERING AS WELL
       
       for (int timeclass = 0; timeclass <= P::currentMaxTimeclass; ++timeclass) {
          if (mpiGrid[cell]->requested_timeclass_ghosts.count(timeclass) > 0) {
             mpiGrid[cell]->requested_timeclass_copy_ghosts.erase(timeclass);
             mpiGrid[cell]->requested_timeclass_outer_ghosts.erase(timeclass);
-            // #ifdef DEBUG_TIMECLASSES
-            // std::cerr << myRank << ": Cell " << cell << " has req_ghost of timeclass " << timeclass << ", removing other ghost requests of timeclass " << timeclass << "\n";
-            // #endif
+            #ifdef DEBUG_TIMECLASSES
+            std::cerr << myRank << ": Cell " << cell << " has req_ghost of timeclass " << timeclass << ", removing other ghost requests of timeclass " << timeclass << "\n";
+            #endif
          }
          if (mpiGrid[cell]->requested_timeclass_copy_ghosts.count(timeclass) > 0) {
             mpiGrid[cell]->requested_timeclass_outer_ghosts.erase(timeclass);
-            // #ifdef DEBUG_TIMECLASSES
-            // std::cerr << myRank << ": Cell " << cell << " has req_copy_ghost of timeclass " << timeclass << ", removing outer ghost requests of timeclass " << timeclass << "\n";
-            // #endif
+            #ifdef DEBUG_TIMECLASSES
+            std::cerr << myRank << ": Cell " << cell << " has req_copy_ghost of timeclass " << timeclass << ", removing outer ghost requests of timeclass " << timeclass << "\n";
+            #endif
          }
          if(mpiGrid[cell]->requested_timeclass_ghosts.count(timeclass) > 0){
             tc_ghosts_count[timeclass]++;
+            #ifdef DEBUG_TIMECLASSES
             std::cerr << cell<<":";
             std::cerr << "t"<<timeclass << "G ";
+            #endif
          }
          if(mpiGrid[cell]->requested_timeclass_copy_ghosts.count(timeclass) > 0){
             copy_ghosts_count[timeclass]++;
+            #ifdef DEBUG_TIMECLASSES
             std::cerr << cell<<":";
             std::cerr << "t"<<timeclass << "C ";
+            #endif
          }
          if(mpiGrid[cell]->requested_timeclass_outer_ghosts.count(timeclass) > 0){
             outer_ghosts_count[timeclass]++;
+            #ifdef DEBUG_TIMECLASSES
             std::cerr << cell<<":";
             std::cerr << "t"<<timeclass << "O ";
+            #endif
          }
       }
    }
+   #ifdef DEBUG_TIMECLASSES
    std::cerr << std::endl << "remote cells:" << std::endl;
+   #endif
    for (const CellID cell : mpiGrid.get_remote_cells_on_process_boundary(Neighborhoods::VLASOV_SOLVER_TIMEGHOST_REQ)) { // DONE: REMOTE NEIGHBORS FILTERING AS WELL
       for (int timeclass = 0; timeclass <= P::currentMaxTimeclass; ++timeclass) {
          if (mpiGrid[cell]->requested_timeclass_ghosts.count(timeclass) > 0) {
             mpiGrid[cell]->requested_timeclass_copy_ghosts.erase(timeclass);
             mpiGrid[cell]->requested_timeclass_outer_ghosts.erase(timeclass);
-            // #ifdef DEBUG_TIMECLASSES
-            // std::cerr << myRank << ": Cell " << cell << " has req_ghost of timeclass " << timeclass << ", removing other ghost requests of timeclass " << timeclass << "\n";
-            // #endif
+            #ifdef DEBUG_TIMECLASSES
+            std::cerr << myRank << ": Cell " << cell << " has req_ghost of timeclass " << timeclass << ", removing other ghost requests of timeclass " << timeclass << "\n";
+             #endif
          }
          if (mpiGrid[cell]->requested_timeclass_copy_ghosts.count(timeclass) > 0) {
             mpiGrid[cell]->requested_timeclass_outer_ghosts.erase(timeclass);
-            // #ifdef DEBUG_TIMECLASSES
-            // std::cerr << myRank << ": Cell " << cell << " has req_copy_ghost of timeclass " << timeclass << ", removing outer ghost requests of timeclass " << timeclass << "\n";
-            // #endif
+            #ifdef DEBUG_TIMECLASSES
+            std::cerr << myRank << ": Cell " << cell << " has req_copy_ghost of timeclass " << timeclass << ", removing outer ghost requests of timeclass " << timeclass << "\n";
+            #endif
          }
          if(mpiGrid[cell]->requested_timeclass_ghosts.count(timeclass) > 0){
             tc_ghosts_count[timeclass]++;
+            #ifdef DEBUG_TIMECLASSES
             std::cerr << cell<<":";
             std::cerr << "t"<<timeclass << "G ";
+            #endif
          }
          if(mpiGrid[cell]->requested_timeclass_copy_ghosts.count(timeclass) > 0){
             copy_ghosts_count[timeclass]++;
+            #ifdef DEBUG_TIMECLASSES
             std::cerr << cell<<":";
             std::cerr << "t"<<timeclass << "C ";
+            #endif
          }
          if(mpiGrid[cell]->requested_timeclass_outer_ghosts.count(timeclass) > 0){
             outer_ghosts_count[timeclass]++;
+            #ifdef DEBUG_TIMECLASSES
             std::cerr << cell<<":";
             std::cerr << "t"<<timeclass << "O ";
+            #endif
          }
       }
    }
+   #ifdef DEBUG_TIMECLASSES
    std::cerr << std::endl;
+
 
    for (int timeclass = 0; timeclass <= P::currentMaxTimeclass; ++timeclass) {
       std::cerr << myRank << ": tc " << timeclass << " ghosts count " << tc_ghosts_count[timeclass] << ", copy_ghosts_count " << copy_ghosts_count[timeclass] << ", outer_ghosts_count " << outer_ghosts_count[timeclass] << "\n"; 
    }
+   #endif
 }
 
 // assert that all ranks agree on timeghosts for some timeclass
@@ -1555,7 +1544,6 @@ void updateRemoteVelocityBlockLists(
       }
       cell->prepare_to_receive_blocks(popID, timeclass);
    }
-<<<<<<< HEAD
 #else
    CREATE_UNIQUE_POINTER(gpuMemoryManager, host_vmeshesReceive);
    CREATE_UNIQUE_POINTER(gpuMemoryManager, dev_vmeshesReceive);
@@ -1602,10 +1590,6 @@ void updateRemoteVelocityBlockLists(
 
    prepare_to_receive_blocks_multicell(popID, cellIndex, maxNewSize);
 #endif
-=======
-   // std::cerr << __FILE__<<":" << __LINE__ <<"\n";
-
->>>>>>> b97306399 (A fully-squashed timeclass branch down to dynamicDt-integration)
 
    receivesTimer.stop(incoming_cells.size(), "SpatialCells");
 }

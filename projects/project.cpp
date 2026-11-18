@@ -629,11 +629,7 @@ Project* createProject() {
     if (Readparameters::helpRequested && P::projectName=="") {
         projects::MultiPeak* _Multipeak=new projects::MultiPeak();
         projects::Alfven* _Alfven = new projects::Alfven();
-<<<<<<< HEAD
         projects::AlfvenCascade* _AlfvenCascade = new projects::AlfvenCascade();
-=======
-        projects::AlfvenCascade * _AlfvenCascade = new projects::AlfvenCascade();
->>>>>>> 763067d47 (A fully-squashed timeclass branch down to dynamicDt-integration)
         projects::Flowthrough* _Flowthrough=new projects::Flowthrough();
         projects::Magnetosphere* _Magnetosphere=new projects::Magnetosphere();
         projects::LossCone* _Losscone=new projects::LossCone();
