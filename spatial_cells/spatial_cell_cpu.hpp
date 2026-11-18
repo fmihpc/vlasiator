@@ -396,12 +396,6 @@ namespace spatial_cell {
       uint sysBoundaryLayer;                                                  /**< Layers counted from closest systemBoundary. If 0 then it has not
                                                                                * been computed. First sysboundary layer is layer 1.*/
       int sysBoundaryLayerNew;                                                /** needed (by DCCRG?), do not remove. */
-      std::vector<vmesh::GlobalID> *velocity_block_with_content_list;         /**< List of existing cells with content, only up-to-date after
-                                                                               * call to update_has_content().*/
-      vmesh::LocalID velocity_block_with_content_list_size;                   /**< Size of vector. Needed for MPI communication of size before actual list transfer.*/
-      std::vector<vmesh::GlobalID> *velocity_block_with_no_content_list;      /**< List of existing cells with no content, only up-to-date after
-                                                                               * call to update_has_content. This is also never transferred
-                                                                               * over MPI, so is invalid on remote cells.*/
       static uint64_t mpi_transfer_type;                                      /**< Which data is transferred by the mpi datatype given by spatial cells.*/
       static bool mpiTransferAtSysBoundaries;                                 /**< Do we only transfer data at boundaries (true), or in the whole system (false).*/
 
