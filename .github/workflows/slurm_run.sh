@@ -45,7 +45,9 @@ constraint["pioneer"]="-p pioneer -t 01:00:00" #not sure if pty needed for pione
 constraint["hile_gpu"]="-C g"
 constraint["hile_cpu"]="-C c"
 constraint["lumi_2503"]="--partition=standard --account=project_462001599 -t 01:00:00"
-constraint["lumi_2503_gpu"]="--partition=small-g --account=project_462001599 --gpus-per-node=1 -t 01:00:00" # GPU node for a guaranteed ROCm install; the build itself needs no GPU
+# GPU node for a guaranteed ROCm install; the build itself needs no GPU.
+# TMPDIR off the /tmp ramdisk: small-g nodes are shared, and when one of our jobs ends /tmp is cleaned under the others.
+constraint["lumi_2503_gpu"]="--partition=small-g --account=project_462001599 --gpus-per-node=1 -t 01:00:00 --export=ALL,TMPDIR=$GITHUB_WORKSPACE"
 
 if [[ -z ${constraint[$VLASIATOR_ARCH]} ]]; then
   echo "No matching constraint for VLASIATOR_ARCH $VLASIATOR_ARCH!"
