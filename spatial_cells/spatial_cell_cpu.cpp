@@ -20,6 +20,11 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#include "spatial_cell_cpu.hpp"
+#include <algorithm>
+#include <array>
+#include <cstddef>
+#include <cstdint>
 #include <unordered_set>
 
 #include "spatial_cell_wrapper.hpp"
@@ -51,6 +56,21 @@ namespace spatial_cell {
       // reset spatial cell parameters
       for (unsigned int i = 0; i < CellParams::N_SPATIAL_CELL_PARAMS; i++) {
          this->parameters[i]=0.0;
+      }
+
+      // initialize true moment vectors to 0
+      this->trueRhom.resize(P::tcInterpolationPoints);
+      this->trueRhoq.resize(P::tcInterpolationPoints);
+      this->trueV.resize(P::tcInterpolationPoints);
+      this->trueP.resize(P::tcInterpolationPoints);
+      this->timestamps.resize(P::tcInterpolationPoints);
+
+      for (uint i = 0; i < (uint)P::tcInterpolationPoints; i++) {
+         this->trueRhom[i] = 0.0;
+         this->trueRhoq[i] = 0.0;
+         this->trueV[i] = {0.0, 0.0, 0.0};
+         this->trueP[i] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+         this->timestamps[i] = 0.0;
       }
 
       // reset BVOL derivatives
@@ -113,6 +133,13 @@ namespace spatial_cell {
       for (unsigned int i=0; i<CellParams::N_SPATIAL_CELL_PARAMS; ++i) {
          parameters[i] = other.parameters[i];
       }
+      for (unsigned int i=0; i<(uint)P::tcInterpolationPoints; ++i) {
+         trueRhom[i] = other.trueRhom[i];
+         trueRhoq[i] = other.trueRhoq[i];
+         trueV[i] = other.trueV[i];
+         trueP[i] = other.trueP[i];
+         timestamps[i] = other.timestamps[i];
+      }
       for (unsigned int i=0; i<WID3; ++i) {
          null_block_data[i] = 0.0;
       }
@@ -150,6 +177,13 @@ namespace spatial_cell {
       }
       for (unsigned int i=0; i<CellParams::N_SPATIAL_CELL_PARAMS; ++i) {
          parameters[i] = other.parameters[i];
+      }
+      for (unsigned int i=0; i<(uint)P::tcInterpolationPoints; ++i) {
+         trueRhom[i] = other.trueRhom[i];
+         trueRhoq[i] = other.trueRhoq[i];
+         trueV[i] = other.trueV[i];
+         trueP[i] = other.trueP[i];
+         timestamps[i] = other.timestamps[i];
       }
       for (unsigned int i=0; i<WID3; ++i) {
          null_block_data[i] = 0.0;
@@ -322,6 +356,20 @@ namespace spatial_cell {
       std::vector<SpatialCell*> neighbor_ptrs;
       update_velocity_block_content_lists(popID, timeclass);
       adjust_velocity_blocks(neighbor_ptrs,popID,doDeleteEmpty,timeclass);
+   }
+
+   void SpatialCell::addNewValuesToTrueMoments(const Real& rhom, const Real& rhoq, const std::array<Real, 3>& v, const std::array<Real, 6>& p, const Real& timestamp) {
+      std::rotate(this->trueRhom.begin(), this->trueRhom.begin() + 1, this->trueRhom.end());
+      std::rotate(this->trueRhoq.begin(), this->trueRhoq.begin() + 1, this->trueRhoq.end());
+      std::rotate(this->trueV.begin(), this->trueV.begin() + 1, this->trueV.end());
+      std::rotate(this->trueP.begin(), this->trueP.begin() + 1, this->trueP.end());
+      std::rotate(this->timestamps.begin(), this->timestamps.begin() + 1, this->timestamps.end());
+
+      this->trueRhom.back() = rhom;
+      this->trueRhoq.back() = rhoq;
+      this->trueV.back() = v;
+      this->trueP.back() = p;
+      this->timestamps.back() = timestamp;
    }
 
    /*!
@@ -609,7 +657,9 @@ namespace spatial_cell {
                   const uint _activePopId = index.first;
                   const int _activeTimeclass = index.second;
                   Population& _pop = get_population(_activePopId, _activeTimeclass);
-                  _pop.N_blocks = get_velocity_blocks(_activePopId, _activeTimeclass)->size();
+                  if (!receiving) {
+                     _pop.N_blocks = get_velocity_blocks(_activePopId, _activeTimeclass)->size();
+                  }
 
                   // send velocity block list size
                   displacements.push_back((uint8_t*) &(_pop.N_blocks) - (uint8_t*) this);
@@ -626,8 +676,8 @@ namespace spatial_cell {
                   const uint _activePopId = index.first;
                   const int _activeTimeclass = index.second;
                   Population& _pop = get_population(_activePopId, _activeTimeclass);
-                  _pop.N_blocks = get_velocity_blocks(_activePopId, _activeTimeclass)->size();
-                  // STAGE1 should have been done, otherwise we have problems...
+
+				   // STAGE1 should have been done, otherwise we have problems...
                   if (receiving) {
                      //mpi_number_of_blocks transferred earlier
                      get_velocity_mesh(_activePopId, _activeTimeclass)->setNewSize(_pop.N_blocks);
@@ -705,7 +755,7 @@ namespace spatial_cell {
    
    
                   displacements.push_back((uint8_t*) get_data(_activePopId, _activeTimeclass) - (uint8_t*) this);
-                  block_lengths.push_back(sizeof(Realf) * WID3 * get_velocity_blocks(_activePopId, _activeTimeclass)->size());
+                  block_lengths.push_back(sizeof(Realf) * WID3 * _pop.N_blocks);
                }
             }
    
@@ -721,7 +771,9 @@ namespace spatial_cell {
             //add data to send/recv to displacement and block length lists
             if ((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_LIST_STAGE1) != 0) {
                //first copy values in case this is the send operation
-               pop.N_blocks = get_velocity_blocks(activePopID, activeTimeclass)->size();
+               if (!receiving) {
+                  pop.N_blocks = get_velocity_blocks(activePopID, activeTimeclass)->size();
+               }
    
                // send velocity block list size
                displacements.push_back((uint8_t*) &(pop.N_blocks) - (uint8_t*) this);
@@ -792,7 +844,7 @@ namespace spatial_cell {
                               transfer << "VEL_BLOCK_DATA ";
    
                displacements.push_back((uint8_t*) get_data(activePopID, activeTimeclass) - (uint8_t*) this);
-               block_lengths.push_back(sizeof(Realf) * WID3 * get_velocity_blocks(activePopID, activeTimeclass)->size());
+               block_lengths.push_back(sizeof(Realf) * WID3 * pop.N_blocks);
             }
      
 
@@ -811,6 +863,20 @@ namespace spatial_cell {
                for (int timeclass=0; timeclass <= P::currentMaxTimeclass; ++timeclass){
                   displacements.push_back((uint8_t*) &(get_population(popID, timeclass).RHO) - (uint8_t*)this);
                   block_lengths.push_back(offsetof(spatial_cell::Population, N_blocks));
+                  
+                  // also send here the true moment vectors of the population
+                  displacements.push_back((uint8_t*) get_population(popID, timeclass).popTrueRho.data() - (uint8_t*)this);
+                  block_lengths.push_back(sizeof(Real) * P::tcInterpolationPoints);
+
+                  displacements.push_back((uint8_t*) get_population(popID, timeclass).popTrueV.data() - (uint8_t*)this);
+                  block_lengths.push_back(sizeof(Real) * 3 * P::tcInterpolationPoints);
+
+                  displacements.push_back((uint8_t*) get_population(popID, timeclass).popTrueP.data() - (uint8_t*)this);
+                  block_lengths.push_back(sizeof(Real) * 6 * P::tcInterpolationPoints);
+
+                  displacements.push_back((uint8_t*) get_population(popID, timeclass).popTimestamp.data() - (uint8_t*)this);
+                  block_lengths.push_back(sizeof(Real) * P::tcInterpolationPoints);                  
+                  
                }
             }
          }
@@ -841,6 +907,24 @@ namespace spatial_cell {
 
             displacements.push_back((uint8_t*) &(this->parameters[0]) - (uint8_t*) this);
             block_lengths.push_back(sizeof(Real) * CellParams::N_SPATIAL_CELL_PARAMS);
+
+            // also send here the cell's true moment vector
+
+            displacements.push_back((uint8_t*) this->trueRhom.data() - (uint8_t*) this);
+            block_lengths.push_back(sizeof(Real) * this->trueRhom.size());
+
+            displacements.push_back((uint8_t*) this->trueRhoq.data() - (uint8_t*) this);
+            block_lengths.push_back(sizeof(Real) * this->trueRhoq.size());
+
+            displacements.push_back((uint8_t*) this->trueV[0].data() - (uint8_t*) this);
+            block_lengths.push_back(sizeof(Real) * 3 * this->trueV.size());
+
+            displacements.push_back((uint8_t*) this->trueP[0].data() - (uint8_t*) this);
+            block_lengths.push_back(sizeof(Real) * 6 * this->trueP.size());
+
+            displacements.push_back((uint8_t*) this->timestamps.data() - (uint8_t*) this);
+            block_lengths.push_back(sizeof(Real) * this->timestamps.size());
+
          }
 
          // send spatial cell dimensions and coordinates
@@ -949,6 +1033,20 @@ namespace spatial_cell {
                for (int timeclass=0; timeclass <= P::currentMaxTimeclass; ++timeclass){
                   displacements.push_back((uint8_t*) &(get_population(popID, timeclass).RHO) - (uint8_t*)this);
                   block_lengths.push_back(offsetof(spatial_cell::Population, N_blocks));
+                  
+                  // also send here the true moment vectors of the population
+                  displacements.push_back((uint8_t*) get_population(popID, timeclass).popTrueRho.data() - (uint8_t*)this);
+                  block_lengths.push_back(sizeof(Real) * P::tcInterpolationPoints);
+
+                  displacements.push_back((uint8_t*) get_population(popID, timeclass).popTrueV.data() - (uint8_t*)this);
+                  block_lengths.push_back(sizeof(Real) * 3 * P::tcInterpolationPoints);
+
+                  displacements.push_back((uint8_t*) get_population(popID, timeclass).popTrueP.data() - (uint8_t*)this);
+                  block_lengths.push_back(sizeof(Real) * 6 * P::tcInterpolationPoints);
+
+                  displacements.push_back((uint8_t*) get_population(popID, timeclass).popTimestamp.data() - (uint8_t*)this);
+                  block_lengths.push_back(sizeof(Real) * P::tcInterpolationPoints);                  
+                  
                }
             }
          }
