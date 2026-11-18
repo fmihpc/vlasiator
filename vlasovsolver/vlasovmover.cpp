@@ -203,7 +203,7 @@ void communicatePreSpatialGhostTranslation(
    const vector<CellID>& local_propagated_cells,
    vector<uint>& nPencils,
    const creal dt,
-   const uint popID,
+   const uint popID
    ) {
 
    // Ghost translation, need all cell information, not just for a single direction.
@@ -214,7 +214,7 @@ void communicatePreSpatialGhostTranslation(
    // Select the required neighborhood
    neighborhood = Neighborhoods::VLASOV_SOLVER_GHOST;
 
-   updateRemoteVelocityBlockLists(mpiGrid,popID,neighborhood, tc);
+   updateRemoteVelocityBlockLists(mpiGrid,popID,neighborhood);
    // Need to re-do in case block lists of boundary cells change after
    // the block adjustment just after ACC.
 
@@ -240,7 +240,7 @@ void communicatePreSpatialGhostTranslation(
 
 void communicatePreSpatialGhostTranslationCoalesced(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-   std::vector<const uint>& population_indexes,
+   std::vector<PopIndex>& population_indexes
    ) {
 
    // Ghost translation, need all cell information, not just for a single direction.
@@ -401,17 +401,19 @@ void calculateSpatialTranslation(
    P::coalesceGhostComms = true;
    if (P::vlasovSolverGhostTranslate){
       phiprof::Timer pretrans {"Pre-ghostTranslate comms"};
-      std::vector<std::pair<uint, int>> population_indexes;
+      std::vector<PopIndex> population_indexes;
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
       // if ghost translating, do the comms ahead of translations, which are now local ops
-         population_indexes.push_back(popID);
-         if (!P::coalesceGhostComms) {
+         if (P::coalesceGhostComms){
+            population_indexes.push_back(PopIndex(popID));
+         }
+         else {
             communicatePreSpatialGhostTranslation(
                mpiGrid,
-               tc_propagated_cells[tc], // Used for LB
+               local_propagated_cells, // Used for LB
                nPencils,
                dt,
-               popID,
+               popID
                );
          }
       }
@@ -420,7 +422,7 @@ void calculateSpatialTranslation(
       if (P::coalesceGhostComms) {
          communicatePreSpatialGhostTranslationCoalesced(
             mpiGrid,
-            population_indexes,
+            population_indexes
             );
       }
       P::coalesceGhostComms = false;
