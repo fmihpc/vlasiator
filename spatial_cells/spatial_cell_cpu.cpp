@@ -122,18 +122,13 @@ namespace spatial_cell {
    }
    const SpatialCell& SpatialCell::operator=(const SpatialCell& other) {
       // Used for refining spatial cells
-      delete velocity_block_with_content_list;
-      delete velocity_block_with_no_content_list;
 
       // These should be empty when created, but let's play safe.
-      velocity_block_with_content_list = new std::vector<vmesh::GlobalID>(*(other.velocity_block_with_content_list));
-      velocity_block_with_no_content_list = new std::vector<vmesh::GlobalID>(*(other.velocity_block_with_no_content_list));
       // Member variables
       ioLocalCellId = other.ioLocalCellId;
       sysBoundaryFlag = other.sysBoundaryFlag;
       sysBoundaryLayer = other.sysBoundaryLayer;
       sysBoundaryLayerNew = other.sysBoundaryLayerNew;
-      velocity_block_with_content_list_size = other.velocity_block_with_content_list_size;
       initialized = other.initialized;
       mpiTransferEnabled = other.mpiTransferEnabled;
       for (unsigned int i=0; i<bvolderivatives::N_BVOL_DERIVATIVES; ++i) {
