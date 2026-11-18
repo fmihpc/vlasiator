@@ -922,7 +922,16 @@ void updateRemoteVelocityBlockLists(
    const uint neighborhood/*=Neighborhoods::DIST_FUNC default*/
 )
 {
-   SpatialCell::setCommunicatedSpecies(popID);
+   updateRemoteVelocityBlockLists(mpiGrid, spatial_cell::PopIndex(popID), neighborhood);
+}
+
+void updateRemoteVelocityBlockLists(
+   dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+   const PopIndex popID,
+   const uint neighborhood/*=Neighborhoods::DIST_FUNC default*/
+)
+{
+   SpatialCell::setCommunicatedSpecies(popID.PopID);
 
    // update velocity block lists For small velocity spaces it is
    // faster to do it in one operation, and not by first sending size,

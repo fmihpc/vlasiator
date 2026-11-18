@@ -290,7 +290,9 @@ namespace spatial_cell {
       void debug_population_check(const uint popID, const vmesh::LocalID blockLID) const;
 
       Population & get_population(const uint popID);
+      Population & get_population(const PopIndex popID);
       const Population & get_population(const uint popID) const;
+      const Population & get_population(const PopIndex popID) const;
       void set_population(const Population& pop, cuint popID);
       void scale_population(creal factor, cuint popID);
       void increment_population(const Population& pop, creal factor, cuint popID);
@@ -338,6 +340,7 @@ namespace spatial_cell {
 
       void printMeshSizes();
       static bool setCommunicatedSpecies(const uint popID);
+      static bool setCommunicatedSpecies(std::vector<PopIndex> popIndices);
 
       // Following functions adjust velocity blocks stored on the cell //
       bool add_velocity_block(const vmesh::GlobalID& block,const uint popID);
@@ -358,6 +361,7 @@ namespace spatial_cell {
       uint64_t get_cell_memory_size();
       void merge_values(const uint popID);
       void prepare_to_receive_blocks(const uint popID);
+      void prepare_to_receive_blocks(const PopIndex popID);
       bool shrink_to_fit();
       size_t size(const uint popID) const;
       void remove_velocity_block(const vmesh::GlobalID& block,const uint popID);
@@ -405,7 +409,8 @@ namespace spatial_cell {
 
       bool compute_block_has_content(const vmesh::GlobalID& block,const uint popID) const;
 
-      static int activePopID;
+      static PopIndex activePopID;
+      static std::vector<PopIndex> activePopIndices;
       bool initialized;
       bool mpiTransferEnabled;
 
@@ -513,9 +518,17 @@ namespace spatial_cell {
    inline Population & SpatialCell::get_population(const uint popID) {
       return populations[popID];
    }
+   
+   inline Population & SpatialCell::get_population(const PopIndex popID) {
+      return populations[popID.PopID];
+   }
 
    inline const Population & SpatialCell::get_population(const uint popID) const {
       return populations[popID];
+   }
+
+   inline const Population & SpatialCell::get_population(const PopIndex popID) const {
+      return populations[popID.PopID];
    }
 
    inline void SpatialCell::set_population(const Population& pop, cuint popID) {

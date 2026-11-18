@@ -52,7 +52,7 @@ void communicatePreSpatialGhostTranslation(
 
 void communicatePreSpatialGhostTranslationCoalesced(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-   std::vector<const uint>& population_indexes,
+   std::vector<PopIndex>& population_indexes
    );
 
 // Vlasov timestep reduction
