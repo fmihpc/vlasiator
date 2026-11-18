@@ -54,7 +54,7 @@ fi
 
 #Constraints used for smaller jobs like compiling/removing files/catting etc
 declare -A constraint_small
-constraint_small["turso-amd_GNU_MPICH"]="--constraint=amd"
+constraint_small["turso-amd_GNU_MPICH"]="--constraint=amd -t 0:30:00"
 constraint_small["turso-v100_GNU_MPICH"]="--constraint=V100"  # we need to build on a machine with a GPU because linking with the CUDA-aware MPICH needs the NVIDIA driver
 constraint_small["pioneer"]="-p pioneer -t 01:00:00"
 constraint_small["hile_gpu"]="-C g"
