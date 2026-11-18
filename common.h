@@ -577,4 +577,21 @@ namespace physicalconstants {
 
 const std::vector<CellID>& getLocalCells();
 
+namespace spatial_cell{
+   // This is overkill for now, but population indexing will blow up soon.
+   struct PopIndex
+   {
+      int PopID;
+      
+      PopIndex() : PopID(-1) // Dummy constructor with a bad value
+      {
+      };
+      
+      // to handle default values for timeclasses, vAMR pops with the constructors
+      PopIndex(const int PopID) : PopID(PopID)
+      {  
+      };
+   };
+}
+
 #endif
