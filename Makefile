@@ -128,7 +128,9 @@ endif
 
 #Update GPU memeory pointer list
 ifeq ($(USE_GPU),1)
+ifeq ($(filter clean c allclean cleantools data d help,$(MAKECMDGOALS)),)
 $(shell ./updateGpuMemoryPointerList.sh 1>&2)
+endif
 endif
 
 #GPU specs
