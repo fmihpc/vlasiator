@@ -1074,7 +1074,6 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
       	// 		uint64_t starting_cell,
       	// 		int refinement_level,
       	// 		const Types<3>::neighborhood_item_t& offsets, std::array<int, 3> dims = {2,0,1}) const {
-
          
          // If the furthest-away neighbor is local, we can look ahead as we have the required neighborhood.
          // If the third cell is not local, we have just seeded in case A from the second cell. Those may get
