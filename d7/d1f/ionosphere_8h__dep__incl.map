@@ -1,0 +1,64 @@
+<map id="sysboundary/ionosphere.h" name="sysboundary/ionosphere.h">
+<area shape="rect" id="Node000001" title=" " alt="" coords="1478,5,1670,33"/>
+<area shape="rect" id="Node000002" href="$da/d47/datareducer_8cpp.html" title=" " alt="" coords="515,249,734,277"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="1459,21,1262,25,1020,34,791,52,698,66,628,84,569,104,517,128,499,142,488,159,487,178,496,200,509,216,525,228,565,249,559,249,523,233,505,219,491,203,481,178,483,157,495,139,515,124,567,99,626,78,697,61,791,47,1020,28,1262,20,1465,20"/>
+<area shape="rect" id="Node000003" href="$dc/d44/datareducer_8h.html" title=" " alt="" coords="226,174,430,201"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="1459,23,1205,31,891,42,610,60,509,71,451,83,416,103,384,128,340,175,337,171,381,124,413,98,449,79,508,65,609,54,891,37,1205,26,1465,22"/>
+<area shape="rect" id="Node000007" href="$d4/d0b/ionosphere_solver_tests_2main_8cpp.html" title=" " alt="" coords="5,325,209,370"/>
+<area shape="poly" id="edge35_Node000001_Node000007" title=" " alt="" coords="1459,21,1213,26,900,34,598,52,474,66,380,84,321,99,276,115,236,138,190,176,161,211,139,252,124,292,114,326,109,323,118,291,134,250,156,208,186,172,233,133,274,110,320,94,378,78,473,61,597,47,900,29,1213,20,1464,20"/>
+<area shape="rect" id="Node000010" href="$da/daf/iowrite_8cpp.html" title=" " alt="" coords="800,334,894,361"/>
+<area shape="poly" id="edge34_Node000001_Node000010" title=" " alt="" coords="1633,35,1690,55,1749,79,1790,101,1829,123,1890,144,1958,159,2090,180,2142,193,2161,201,2175,212,2184,225,2184,240,2176,258,2159,279,2139,288,2100,296,1974,310,1799,321,1595,330,1182,342,894,348,894,343,1182,337,1595,325,1799,316,1974,304,2100,291,2138,283,2156,275,2172,255,2179,239,2178,226,2172,215,2159,206,2140,198,2089,186,1957,164,1888,149,1827,128,1787,105,1747,83,1688,60,1633,41"/>
+<area shape="rect" id="Node000011" href="$d0/d4f/datareductionoperator_8h.html" title=" " alt="" coords="639,90,911,117"/>
+<area shape="poly" id="edge16_Node000001_Node000011" title=" " alt="" coords="1459,33,904,91,903,86,1464,31"/>
+<area shape="rect" id="Node000014" href="$de/daa/fieldtracing_8h.html" title=" " alt="" coords="1241,174,1424,201"/>
+<area shape="poly" id="edge24_Node000001_Node000014" title=" " alt="" coords="1545,41,1352,176,1350,171,1540,43"/>
+<area shape="rect" id="Node000020" href="$dc/d4f/ionosphere_8cpp.html" title="Implementation of the class SysBoundaryCondition::Ionosphere to handle cells classified as sysboundar..." alt="" coords="1938,249,2145,277"/>
+<area shape="poly" id="edge37_Node000001_Node000020" title=" " alt="" coords="1613,38,2019,249,2014,249,1612,43"/>
+<area shape="rect" id="Node000021" href="$d3/d46/_magnetosphere_8cpp.html" title=" " alt="" coords="1840,81,2019,126"/>
+<area shape="poly" id="edge36_Node000001_Node000021" title=" " alt="" coords="1646,34,1843,81,1837,82,1646,40"/>
+<area shape="rect" id="Node000022" href="$d9/dd6/sysboundary_8cpp.html" title="Implementation of the class SysBoundary." alt="" coords="2043,90,2259,117"/>
+<area shape="poly" id="edge38_Node000001_Node000022" title=" " alt="" coords="1685,31,2031,78,2081,89,2076,89,2031,84,1685,37"/>
+<area shape="rect" id="Node000023" href="$df/dd8/cpu__acc__transform_8cpp.html" title=" " alt="" coords="2283,81,2443,126"/>
+<area shape="poly" id="edge39_Node000001_Node000023" title=" " alt="" coords="1685,23,1953,41,2113,57,2271,78,2285,83,2280,83,2271,84,2112,62,1953,46,1685,28"/>
+<area shape="poly" id="edge3_Node000003_Node000002" title=" " alt="" coords="397,203,574,248,568,249,396,208"/>
+<area shape="rect" id="Node000004" href="$d7/d70/grid_8cpp.html" title=" " alt="" coords="346,334,420,361"/>
+<area shape="poly" id="edge4_Node000003_Node000004" title=" " alt="" coords="336,214,354,276,379,334,374,332,348,278,333,219"/>
+<area shape="rect" id="Node000005" href="$d3/d53/ioread_8h.html" title=" " alt="" coords="214,249,288,277"/>
+<area shape="poly" id="edge5_Node000003_Node000005" title=" " alt="" coords="306,211,266,251,263,247,301,214"/>
+<area shape="rect" id="Node000008" href="$d4/d5b/vlasiator_8cpp.html" title=" " alt="" coords="444,334,548,361"/>
+<area shape="poly" id="edge15_Node000003_Node000008" title=" " alt="" coords="387,205,423,223,454,247,470,268,482,292,496,334,491,332,477,294,466,271,450,251,420,227,386,210"/>
+<area shape="rect" id="Node000009" href="$d5/d5a/iowrite_8h.html" title=" " alt="" coords="362,249,441,277"/>
+<area shape="poly" id="edge10_Node000003_Node000009" title=" " alt="" coords="353,210,391,249,386,249,351,215"/>
+<area shape="poly" id="edge6_Node000005_Node000004" title=" " alt="" coords="286,283,365,333,359,333,284,288"/>
+<area shape="rect" id="Node000006" href="$de/deb/ioread_8cpp.html" title=" " alt="" coords="233,334,322,361"/>
+<area shape="poly" id="edge7_Node000005_Node000006" title=" " alt="" coords="262,290,276,334,271,332,258,294"/>
+<area shape="poly" id="edge8_Node000005_Node000007" title=" " alt="" coords="217,284,146,327,144,322,212,286"/>
+<area shape="poly" id="edge9_Node000005_Node000008" title=" " alt="" coords="303,279,459,332,454,333,303,284"/>
+<area shape="poly" id="edge11_Node000009_Node000004" title=" " alt="" coords="397,291,388,335,384,331,393,294"/>
+<area shape="poly" id="edge13_Node000009_Node000007" title=" " alt="" coords="350,279,186,327,185,322,345,280"/>
+<area shape="poly" id="edge14_Node000009_Node000008" title=" " alt="" coords="429,285,484,334,479,333,427,290"/>
+<area shape="poly" id="edge12_Node000009_Node000010" title=" " alt="" coords="456,272,802,336,797,338,456,277"/>
+<area shape="poly" id="edge17_Node000011_Node000002" title=" " alt="" coords="776,131,769,168,762,187,752,203,735,219,716,233,675,251,673,246,713,228,732,215,748,200,757,184,764,167,772,135"/>
+<area shape="poly" id="edge18_Node000011_Node000003" title=" " alt="" coords="686,122,401,176,400,170,691,119"/>
+<area shape="poly" id="edge23_Node000011_Node000007" title=" " alt="" coords="622,110,509,118,391,130,286,149,245,161,215,176,198,197,172,237,121,326,117,323,168,235,194,193,212,172,243,157,285,144,390,125,509,113,627,108"/>
+<area shape="poly" id="edge22_Node000011_Node000010" title=" " alt="" coords="926,115,984,124,1039,136,1083,152,1112,172,1118,188,1112,203,1084,227,1054,236,1023,236,992,231,960,225,929,224,899,231,870,251,857,270,851,292,848,335,844,331,845,291,853,268,866,247,897,226,929,219,961,220,993,226,1024,231,1053,231,1081,222,1108,200,1113,188,1108,175,1081,156,1037,141,983,129,926,120"/>
+<area shape="rect" id="Node000012" href="$d4/d30/datareductionoperator_8cpp.html" title=" " alt="" coords="812,174,1098,201"/>
+<area shape="poly" id="edge19_Node000011_Node000012" title=" " alt="" coords="818,121,929,173,923,173,818,127"/>
+<area shape="rect" id="Node000013" href="$da/d76/dro__populations_8h.html" title=" " alt="" coords="506,174,737,201"/>
+<area shape="poly" id="edge20_Node000011_Node000013" title=" " alt="" coords="739,124,647,176,645,171,734,126"/>
+<area shape="poly" id="edge21_Node000013_Node000002" title=" " alt="" coords="624,215,626,250,622,247,621,219"/>
+<area shape="poly" id="edge25_Node000014_Node000002" title=" " alt="" coords="1223,200,735,253,734,248,1228,199"/>
+<area shape="poly" id="edge33_Node000014_Node000008" title=" " alt="" coords="1223,199,1057,222,869,252,715,289,544,336,543,330,714,284,868,247,1057,216,1228,199"/>
+<area shape="poly" id="edge29_Node000014_Node000010" title=" " alt="" coords="1222,199,1027,224,944,238,899,252,881,270,867,292,851,335,848,331,862,290,877,266,896,247,942,233,1026,219,1228,198"/>
+<area shape="rect" id="Node000015" href="$d4/d24/fs__common_8cpp.html" title=" " alt="" coords="1718,249,1914,277"/>
+<area shape="poly" id="edge26_Node000014_Node000015" title=" " alt="" coords="1434,202,1732,249,1726,249,1434,207"/>
+<area shape="rect" id="Node000016" href="$de/dff/ldz__main_8cpp.html" title="Londrillo – Del Zanna upwind constrained transport field solver." alt="" coords="909,249,1089,277"/>
+<area shape="poly" id="edge27_Node000014_Node000016" title=" " alt="" coords="1260,205,1060,251,1059,246,1255,206"/>
+<area shape="rect" id="Node000017" href="$dd/ddb/fieldtracing_8cpp.html" title="Implementation of the field tracing algorithms used in Magnetosphere runs and in magnetosphere&#45;ionosp..." alt="" coords="1113,249,1312,277"/>
+<area shape="poly" id="edge28_Node000014_Node000017" title=" " alt="" coords="1301,209,1235,251,1233,246,1296,210"/>
+<area shape="rect" id="Node000018" href="$d5/d10/parameters_8cpp.html" title=" " alt="" coords="1336,249,1459,277"/>
+<area shape="poly" id="edge30_Node000014_Node000018" title=" " alt="" coords="1355,211,1389,250,1384,248,1353,215"/>
+<area shape="rect" id="Node000019" href="$d9/db6/copysphere_8cpp.html" title="Implementation of the class SysBoundaryCondition::Copysphere to handle cells classified as sysboundar..." alt="" coords="1483,249,1694,277"/>
+<area shape="poly" id="edge31_Node000014_Node000019" title=" " alt="" coords="1393,203,1545,249,1540,249,1392,209"/>
+<area shape="poly" id="edge32_Node000014_Node000020" title=" " alt="" coords="1440,197,1927,247,1941,251,1935,250,1927,252,1440,202"/>
+</map>

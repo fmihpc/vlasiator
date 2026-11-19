@@ -1,0 +1,32 @@
+<map id="update_remote_mapping_contribution_amr" name="update_remote_mapping_contribution_amr">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,290,190,335"/>
+<area shape="rect" id="Node000002" href="$d0/d80/cpu__trans__pencils_8cpp.html#af7cedfcb70e3716f1b20f55057a33c15" title=" " alt="" coords="289,5,422,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="101,289,116,237,142,170,181,101,206,69,236,42,254,32,276,25,272,29,256,36,239,47,210,73,185,104,146,173,121,239,106,290"/>
+<area shape="rect" id="Node000003" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#ac04b3c2b12e5179f8b8800381575f379" title=" " alt="" coords="269,57,442,102"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="106,289,125,250,153,202,191,154,236,112,256,102,253,106,239,116,195,157,158,205,130,253,111,291"/>
+<area shape="rect" id="Node000005" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a0a70ad5e1571d0fec973183d1b236682" title=" " alt="" coords="238,126,473,171"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="115,288,166,235,200,206,236,181,250,176,247,179,239,185,203,210,170,238,119,291"/>
+<area shape="rect" id="Node000006" href="$dd/d10/gpu__trans__map__amr_8cpp.html#ac4294bd1dc8a35caf74a92f226a0a0bc" title=" " alt="" coords="288,195,423,222"/>
+<area shape="poly" id="edge6_Node000001_Node000006" title=" " alt="" coords="132,288,181,259,237,233,274,222,270,226,239,238,183,264,135,291"/>
+<area shape="rect" id="Node000007" href="$dc/dc7/gpu__base_8cpp.html#a4010f23d5af866cc822a6d42e4f55017" title=" " alt="" coords="296,247,414,274"/>
+<area shape="poly" id="edge7_Node000001_Node000007" title=" " alt="" coords="189,292,283,274,279,277,191,296"/>
+<area shape="rect" id="Node000008" href="$dc/dc7/gpu__base_8cpp.html#ad3d1ced540b6b0fc777e072f92fc2183" title=" " alt="" coords="279,299,432,326"/>
+<area shape="poly" id="edge8_Node000001_Node000008" title=" " alt="" coords="189,310,265,311,261,314,191,315"/>
+<area shape="rect" id="Node000009" href="$dc/dc7/gpu__base_8cpp.html#ab486ab7b847223a57ec2238a3b25ced4" title=" " alt="" coords="295,351,416,378"/>
+<area shape="poly" id="edge9_Node000001_Node000009" title=" " alt="" coords="190,329,282,348,278,351,191,334"/>
+<area shape="rect" id="Node000011" href="$dd/d10/gpu__trans__map__amr_8cpp.html#a628e6f3f2a1abd212d0da770bc9a3b77" title=" " alt="" coords="261,403,450,430"/>
+<area shape="poly" id="edge11_Node000001_Node000011" title=" " alt="" coords="133,333,183,361,239,387,265,397,260,399,237,392,181,366,134,338"/>
+<area shape="rect" id="Node000012" href="$de/d31/_dispersion_8m.html#abc3775709fb5c6b8c5f7eb10b0119540" title=" " alt="" coords="335,455,376,482"/>
+<area shape="poly" id="edge12_Node000001_Node000012" title=" " alt="" coords="117,332,169,387,202,416,239,439,280,455,322,465,317,466,278,460,236,444,199,420,165,391,116,338"/>
+<area shape="rect" id="Node000013" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#ab3b5bf63a685b711ee0fbfb093fd971b" title=" " alt="" coords="268,506,443,551"/>
+<area shape="poly" id="edge13_Node000001_Node000013" title=" " alt="" coords="110,332,132,369,161,411,197,455,239,492,256,503,251,503,236,496,193,458,156,415,128,372,110,338"/>
+<area shape="rect" id="Node000014" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a5971e9f669bcbf085734bdc050ded724" title=" " alt="" coords="256,576,454,620"/>
+<area shape="poly" id="edge14_Node000001_Node000014" title=" " alt="" coords="105,333,124,382,150,443,189,507,212,536,239,561,246,568,240,567,236,565,209,539,184,510,146,446,119,384,105,338"/>
+<area shape="rect" id="Node000004" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a0b5ae6d60c03a10b43a732a20bf20625" title=" " alt="" coords="521,92,711,136"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="442,88,508,98,503,100,443,93"/>
+<area shape="poly" id="edge5_Node000005_Node000004" title=" " alt="" coords="473,130,508,127,503,130,475,135"/>
+<area shape="rect" id="Node000010" href="$dc/dc7/gpu__base_8cpp.html#ad379894802da0a7fb52e17ae9b0f897b" title=" " alt="" coords="557,351,675,378"/>
+<area shape="poly" id="edge10_Node000009_Node000010" title=" " alt="" coords="415,362,544,364,539,365,416,367"/>
+<area shape="rect" id="Node000015" href="$d4/d0b/ionosphere_solver_tests_2main_8cpp.html#a9bf4cdc41d466e8710b8aa33a33d32e0" title=" " alt="" coords="546,584,686,612"/>
+<area shape="poly" id="edge15_Node000014_Node000015" title=" " alt="" coords="455,595,534,598,528,598,455,600"/>
+</map>

@@ -1,0 +1,11 @@
+<map id="particles/histogram.h" name="particles/histogram.h">
+<area shape="rect" id="Node000001" title=" " alt="" coords="105,5,264,33"/>
+<area shape="rect" id="Node000002" href="$d0/de5/histogram_8cpp.html" title=" " alt="" coords="5,81,180,109"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="155,45,111,83,107,79,158,41"/>
+<area shape="rect" id="Node000003" href="$dd/d1b/scenario_8h.html" title=" " alt="" coords="204,81,352,109"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="214,40,264,80,259,81,212,45"/>
+<area shape="rect" id="Node000004" href="$da/d6f/particle__post__pusher_8cpp.html" title=" " alt="" coords="124,157,258,201"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="256,118,216,158,213,154,251,120"/>
+<area shape="rect" id="Node000005" href="$dc/d6b/scenario_8cpp.html" title=" " alt="" coords="282,165,445,193"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="303,117,352,165,347,164,301,122"/>
+</map>

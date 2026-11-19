@@ -1,0 +1,34 @@
+<map id="projects::TriAxisSearch::findBlocksToInitialize" name="projects::TriAxisSearch::findBlocksToInitialize">
+<area shape="rect" id="Node000001" title="Find blocks above the threshold centred isotropically around a bulk velocity." alt="" coords="5,309,174,353"/>
+<area shape="rect" id="Node000002" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a952c375b0dfdd7b437e7ae060d964a41" title=" " alt="" coords="243,66,416,111"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="96,308,113,268,140,217,175,166,220,121,232,115,228,119,223,125,179,169,144,220,118,270,101,309"/>
+<area shape="rect" id="Node000003" href="$dc/dc7/gpu__base_8cpp.html#ab486ab7b847223a57ec2238a3b25ced4" title=" " alt="" coords="521,14,641,42"/>
+<area shape="poly" id="edge12_Node000001_Node000003" title=" " alt="" coords="91,307,102,253,125,182,142,145,163,110,189,78,220,51,254,33,290,19,327,10,366,5,440,4,508,12,503,14,440,9,366,10,328,15,291,24,256,37,223,56,193,82,167,113,147,148,130,184,108,254,96,309"/>
+<area shape="rect" id="Node000006" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#ac3e9c10c72c754b3ca8586d8811ad6d4" title=" " alt="" coords="243,135,416,180"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="104,307,152,249,184,217,220,190,232,185,229,189,223,195,188,221,156,252,109,310"/>
+<area shape="rect" id="Node000007" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#afdad07a98cd05f23b395aced8c593368" title=" " alt="" coords="222,205,438,249"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="128,306,221,259,240,253,236,257,223,264,131,310"/>
+<area shape="rect" id="Node000008" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#abf2b9326d5a0ab07cc9d1a7fca6dc0da" title=" " alt="" coords="235,274,424,319"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="173,316,222,311,218,314,176,321"/>
+<area shape="rect" id="Node000009" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a14f30f4fc68776e093b483f9b6480691" title=" " alt="" coords="243,343,416,388"/>
+<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="173,341,230,350,226,352,175,346"/>
+<area shape="rect" id="Node000011" href="$dc/d2c/classprojects_1_1_tri_axis_search.html#aa851e2ae9e44cc12e17e22e1e672020c" title="Return a vector containing the velocity coordinate of the centre of each ion population in the distri..." alt="" coords="246,413,414,457"/>
+<area shape="poly" id="edge10_Node000001_Node000011" title=" " alt="" coords="129,351,223,398,241,406,236,408,221,403,130,356"/>
+<area shape="rect" id="Node000012" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a5ac5e609f6acb3f06bf4853436a7aef7" title=" " alt="" coords="231,482,429,527"/>
+<area shape="poly" id="edge11_Node000001_Node000012" title=" " alt="" coords="107,351,156,409,188,441,223,467,233,474,228,475,220,472,184,445,152,413,106,356"/>
+<area shape="rect" id="Node000013" href="$d8/dbc/vectorclass__fallback_8h.html#a92b2075c51472d120e4ef0a663e3814b" title=" " alt="" coords="305,550,355,578"/>
+<area shape="poly" id="edge13_Node000001_Node000013" title=" " alt="" coords="99,351,117,393,143,443,178,494,200,517,223,537,256,552,292,562,287,563,254,557,220,541,196,521,174,498,139,446,113,395,98,357"/>
+<area shape="rect" id="Node000016" href="$dc/d2c/classprojects_1_1_tri_axis_search.html#af59a4e950b4ba2b72239233f93f9940b" title=" " alt="" coords="246,602,414,647"/>
+<area shape="poly" id="edge16_Node000001_Node000016" title=" " alt="" coords="96,351,113,402,137,465,174,531,197,561,223,588,234,598,229,597,220,592,193,565,169,534,133,467,108,403,96,356"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="416,65,508,45,504,48,418,70"/>
+<area shape="rect" id="Node000005" href="$d6/dd0/namespacespatial__cell.html#aafc1b228d67cb9a72c3102568949c87f" title=" " alt="" coords="488,66,674,111"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="416,86,475,87,471,90,418,91"/>
+<area shape="rect" id="Node000004" href="$dc/dc7/gpu__base_8cpp.html#ad379894802da0a7fb52e17ae9b0f897b" title=" " alt="" coords="748,14,866,42"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="641,26,735,27,730,29,643,31"/>
+<area shape="rect" id="Node000010" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a0b5ae6d60c03a10b43a732a20bf20625" title=" " alt="" coords="486,343,676,388"/>
+<area shape="poly" id="edge9_Node000009_Node000010" title=" " alt="" coords="416,363,473,365,468,366,418,368"/>
+<area shape="rect" id="Node000014" href="$d7/d8b/class_vec_simple.html#a145923009b9b82410c5a072b8f8127f0" title=" " alt="" coords="514,550,648,578"/>
+<area shape="poly" id="edge14_Node000013_Node000014" title=" " alt="" coords="355,562,501,564,496,565,356,567"/>
+<area shape="rect" id="Node000015" href="$d7/d8b/class_vec_simple.html#ae16798cf2ee14257d0706c60613cd733" title=" " alt="" coords="724,550,890,578"/>
+<area shape="poly" id="edge15_Node000014_Node000015" title=" " alt="" coords="649,562,711,564,706,564,649,567"/>
+</map>

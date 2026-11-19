@@ -1,0 +1,15 @@
+<map id="spatial_cell::clear_maps_caller" name="spatial_cell::clear_maps_caller">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,73,141,118"/>
+<area shape="rect" id="Node000002" href="$d8/dbc/vectorclass__fallback_8h.html#ae83b95cd4defb63faf66a7cbc78801e6" title=" " alt="" coords="189,29,239,57"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="134,70,176,56,172,59,136,75"/>
+<area shape="rect" id="Node000005" href="$d8/dbc/vectorclass__fallback_8h.html#a1896c5fbdb17de74189d1d18cdd4cf29" title=" " alt="" coords="191,81,237,109"/>
+<area shape="poly" id="edge5_Node000001_Node000005" title=" " alt="" coords="141,93,178,94,173,96,141,98"/>
+<area shape="rect" id="Node000006" href="$de/d31/_dispersion_8m.html#af276a2aede715061015c735080cf65df" title=" " alt="" coords="191,133,237,161"/>
+<area shape="poly" id="edge7_Node000001_Node000006" title=" " alt="" coords="136,115,179,133,173,134,135,121"/>
+<area shape="poly" id="edge2_Node000002_Node000002" title=" " alt="" coords="189,28,185,20,188,11,198,5,214,3,231,5,241,14,236,14,229,10,214,8,200,10,192,14,190,20,194,29"/>
+<area shape="rect" id="Node000003" href="$d7/d8b/class_vec_simple.html#a145923009b9b82410c5a072b8f8127f0" title=" " alt="" coords="287,56,421,84"/>
+<area shape="poly" id="edge3_Node000002_Node000003" title=" " alt="" coords="239,45,274,54,269,55,239,50"/>
+<area shape="rect" id="Node000004" href="$d7/d8b/class_vec_simple.html#ae16798cf2ee14257d0706c60613cd733" title=" " alt="" coords="469,56,635,84"/>
+<area shape="poly" id="edge4_Node000003_Node000004" title=" " alt="" coords="421,67,456,70,451,70,422,72"/>
+<area shape="poly" id="edge6_Node000005_Node000003" title=" " alt="" coords="237,88,274,84,269,85,238,94"/>
+</map>

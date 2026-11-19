@@ -1,0 +1,7 @@
+<map id="DRO::VariableNonMaxwellianess::VariableNonMaxwellianess" name="DRO::VariableNonMaxwellianess::VariableNonMaxwellianess">
+<area shape="rect" id="Node000001" title="Non&#45;Maxwellianess Calculate for a population the relative entropy per density as defined by Cassak et..." alt="" coords="5,36,240,81"/>
+<area shape="rect" id="Node000002" href="$d4/d52/class_d_r_o_1_1_data_reduction_operator.html#aaebd0bc08738eb2cd7e031096ee58d7d" title=" " alt="" coords="288,5,499,50"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="240,42,274,41,269,42,241,48"/>
+<area shape="rect" id="Node000003" href="$d4/d0b/ionosphere_solver_tests_2main_8cpp.html#a9bf4cdc41d466e8710b8aa33a33d32e0" title=" " alt="" coords="324,74,463,102"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="240,68,311,78,305,79,240,74"/>
+</map>

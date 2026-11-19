@@ -1,0 +1,34 @@
+<map id="datareduction/datareductionoperator.h" name="datareduction/datareductionoperator.h">
+<area shape="rect" id="Node000001" title=" " alt="" coords="351,5,623,33"/>
+<area shape="rect" id="Node000002" href="$da/d47/datareducer_8cpp.html" title=" " alt="" coords="5,157,225,184"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="333,22,249,29,165,39,94,57,68,69,50,83,45,92,45,100,54,120,73,139,96,155,91,157,70,143,50,123,40,102,40,90,46,79,65,64,92,52,164,34,249,23,338,20"/>
+<area shape="rect" id="Node000003" href="$dc/d44/datareducer_8h.html" title=" " alt="" coords="316,81,520,109"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="466,43,432,83,428,78,462,46"/>
+<area shape="rect" id="Node000007" href="$d4/d0b/ionosphere_solver_tests_2main_8cpp.html" title=" " alt="" coords="473,232,677,277"/>
+<area shape="poly" id="edge20_Node000001_Node000007" title=" " alt="" coords="510,42,535,80,551,120,562,162,575,233,570,230,557,163,546,122,530,82,508,47"/>
+<area shape="rect" id="Node000010" href="$da/daf/iowrite_8cpp.html" title=" " alt="" coords="700,241,794,268"/>
+<area shape="poly" id="edge19_Node000001_Node000010" title=" " alt="" coords="514,41,558,79,735,240,730,240,555,83,513,46"/>
+<area shape="rect" id="Node000011" href="$d4/d30/datareductionoperator_8cpp.html" title=" " alt="" coords="650,81,937,109"/>
+<area shape="poly" id="edge16_Node000001_Node000011" title=" " alt="" coords="557,34,741,80,736,81,557,40"/>
+<area shape="rect" id="Node000012" href="$da/d76/dro__populations_8h.html" title=" " alt="" coords="61,81,292,109"/>
+<area shape="poly" id="edge17_Node000001_Node000012" title=" " alt="" coords="414,39,233,83,231,78,418,35"/>
+<area shape="poly" id="edge3_Node000003_Node000002" title=" " alt="" coords="347,115,170,159,169,153,350,111"/>
+<area shape="rect" id="Node000004" href="$d7/d70/grid_8cpp.html" title=" " alt="" coords="134,241,208,268"/>
+<area shape="poly" id="edge4_Node000003_Node000004" title=" " alt="" coords="371,114,329,136,288,159,230,203,185,243,183,238,226,199,286,154,327,131,367,116"/>
+<area shape="rect" id="Node000005" href="$d3/d53/ioread_8h.html" title=" " alt="" coords="299,157,374,184"/>
+<area shape="poly" id="edge5_Node000003_Node000005" title=" " alt="" coords="394,118,352,158,349,154,390,120"/>
+<area shape="rect" id="Node000008" href="$d4/d5b/vlasiator_8cpp.html" title=" " alt="" coords="346,241,450,268"/>
+<area shape="poly" id="edge15_Node000003_Node000008" title=" " alt="" coords="416,123,402,242,397,239,412,126"/>
+<area shape="rect" id="Node000009" href="$d5/d5a/iowrite_8h.html" title=" " alt="" coords="448,157,526,184"/>
+<area shape="poly" id="edge10_Node000003_Node000009" title=" " alt="" coords="441,118,477,157,472,156,440,123"/>
+<area shape="poly" id="edge6_Node000005_Node000004" title=" " alt="" coords="299,191,199,243,196,238,293,192"/>
+<area shape="rect" id="Node000006" href="$de/deb/ioread_8cpp.html" title=" " alt="" coords="232,241,321,268"/>
+<area shape="poly" id="edge7_Node000005_Node000006" title=" " alt="" coords="320,196,287,243,284,238,315,198"/>
+<area shape="poly" id="edge8_Node000005_Node000007" title=" " alt="" coords="389,187,514,232,509,232,388,192"/>
+<area shape="poly" id="edge9_Node000005_Node000008" title=" " alt="" coords="357,195,391,241,385,240,354,199"/>
+<area shape="poly" id="edge11_Node000009_Node000004" title=" " alt="" coords="430,182,334,204,221,235,200,243,199,238,220,230,333,199,435,181"/>
+<area shape="poly" id="edge13_Node000009_Node000007" title=" " alt="" coords="513,193,554,232,549,231,511,198"/>
+<area shape="poly" id="edge14_Node000009_Node000008" title=" " alt="" coords="464,194,413,243,410,238,459,196"/>
+<area shape="poly" id="edge12_Node000009_Node000010" title=" " alt="" coords="542,185,689,230,714,241,709,240,688,235,541,190"/>
+<area shape="poly" id="edge18_Node000012_Node000002" title=" " alt="" coords="158,119,128,158,124,154,154,123"/>
+</map>

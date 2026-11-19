@@ -1,0 +1,25 @@
+var compression__tools_8h =
+[
+    [ "ASTERIX::VCoords", "d3/d10/struct_a_s_t_e_r_i_x_1_1_v_coords.html", "d3/d10/struct_a_s_t_e_r_i_x_1_1_v_coords" ],
+    [ "ASTERIX::OrderedVDF", "de/dee/struct_a_s_t_e_r_i_x_1_1_ordered_v_d_f.html", "de/dee/struct_a_s_t_e_r_i_x_1_1_ordered_v_d_f" ],
+    [ "ASTERIX::OrderedVDF::OrderedVDFHeader", "df/d78/struct_a_s_t_e_r_i_x_1_1_ordered_v_d_f_1_1_ordered_v_d_f_header.html", "df/d78/struct_a_s_t_e_r_i_x_1_1_ordered_v_d_f_1_1_ordered_v_d_f_header" ],
+    [ "ASTERIX::UnorderedVDF", "d7/d1a/struct_a_s_t_e_r_i_x_1_1_unordered_v_d_f.html", "d7/d1a/struct_a_s_t_e_r_i_x_1_1_unordered_v_d_f" ],
+    [ "ASTERIX::PhaseSpaceUnion&lt; T &gt;", "d0/df6/class_a_s_t_e_r_i_x_1_1_phase_space_union.html", "d0/df6/class_a_s_t_e_r_i_x_1_1_phase_space_union" ],
+    [ "ASTERIX::PhaseSpaceUnion&lt; T &gt;::Norms", "db/d1d/struct_a_s_t_e_r_i_x_1_1_phase_space_union_1_1_norms.html", "db/d1d/struct_a_s_t_e_r_i_x_1_1_phase_space_union_1_1_norms" ],
+    [ "ASTERIX::PhaseSpaceUnion&lt; T &gt;::Header", "de/df4/struct_a_s_t_e_r_i_x_1_1_phase_space_union_1_1_header.html", "de/df4/struct_a_s_t_e_r_i_x_1_1_phase_space_union_1_1_header" ],
+    [ "MLP_KEY", "da/d44/compression__tools_8h.html#a2ff38cea4e291c637ec063f1012d16c1", null ],
+    [ "ASTERIX::calculate_hidden_neurons", "d1/d1b/namespace_a_s_t_e_r_i_x.html#ad6aa5ced5ed3fc95bc80105b36f8bceb", null ],
+    [ "ASTERIX::calculate_total_size_bytes", "d1/d1b/namespace_a_s_t_e_r_i_x.html#a245363739fdcbdbf3d41cde15f716044", null ],
+    [ "ASTERIX::dump_vdf_to_binary_file", "d1/d1b/namespace_a_s_t_e_r_i_x.html#a8f15a9a4a55e0818e68824d4e89908c2", null ],
+    [ "ASTERIX::dump_vdf_to_binary_file", "d1/d1b/namespace_a_s_t_e_r_i_x.html#abed6eb6b44a061092ed8091d6c35a90f", null ],
+    [ "ASTERIX::extract_pop_vdf_from_spatial_cell", "d1/d1b/namespace_a_s_t_e_r_i_x.html#a0e898a2dfcab57d7da0fc3d44c5282df", null ],
+    [ "ASTERIX::extract_pop_vdf_from_spatial_cell_ordered_min_bbox_zoomed", "d1/d1b/namespace_a_s_t_e_r_i_x.html#a7ddea7dce324753118f848340b123f53", null ],
+    [ "ASTERIX::get_Non_MaxWellianity", "d1/d1b/namespace_a_s_t_e_r_i_x.html#aff4b399b5ae45be583adf12ff7fc4007", null ],
+    [ "ASTERIX::isPow2", "d1/d1b/namespace_a_s_t_e_r_i_x.html#a9b5ad12e0fb0c44933968a225aa389d4", null ],
+    [ "ASTERIX::overwrite_cellids_vdf_single_cell", "d1/d1b/namespace_a_s_t_e_r_i_x.html#acc72ce2d1f1b420ff79e9c6818ee8760", null ],
+    [ "ASTERIX::overwrite_cellids_vdfs", "d1/d1b/namespace_a_s_t_e_r_i_x.html#a6b5a8e937077dc93b44d4bd0d41997b8", null ],
+    [ "ASTERIX::overwrite_pop_spatial_cell_vdf", "d1/d1b/namespace_a_s_t_e_r_i_x.html#af96d9a46414d2ebe42150a398da3e06d", null ],
+    [ "ASTERIX::overwrite_pop_spatial_cell_vdf", "d1/d1b/namespace_a_s_t_e_r_i_x.html#a0a6245e2fb70f6f1ee262e5ff2968ab1", null ],
+    [ "ASTERIX::shannon_entropy", "d1/d1b/namespace_a_s_t_e_r_i_x.html#af576e8fa728d7d55a7b2e1a32557088b", null ],
+    [ "ASTERIX::theoritical_lossless_compression_ratio", "d1/d1b/namespace_a_s_t_e_r_i_x.html#ade16733df06de67a5c3828f7f11df154", null ]
+];

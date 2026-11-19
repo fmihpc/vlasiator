@@ -1,0 +1,25 @@
+<map id="DRO::VariableHeatFluxVector::reduceData" name="DRO::VariableHeatFluxVector::reduceData">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,213,217,258"/>
+<area shape="rect" id="Node000002" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#ae0f93c317e351510eeaeaf8a57bf3f79" title=" " alt="" coords="288,5,477,50"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="124,211,179,137,218,96,263,60,276,55,272,59,266,65,222,100,183,140,128,214"/>
+<area shape="rect" id="Node000004" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a0a70ad5e1571d0fec973183d1b236682" title=" " alt="" coords="265,75,500,119"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="138,211,194,170,263,129,281,124,277,127,266,134,197,174,142,215"/>
+<area shape="rect" id="Node000005" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a1dc25bb724906fa5d6dd76096cb7b9a4" title=" " alt="" coords="296,144,469,189"/>
+<area shape="poly" id="edge5_Node000001_Node000005" title=" " alt="" coords="200,210,283,191,279,194,203,215"/>
+<area shape="rect" id="Node000006" href="$dd/df7/classvmesh_1_1_velocity_block_container.html#ab577ace09cdc66074a7cdc3d79394cfb" title=" " alt="" coords="270,213,494,258"/>
+<area shape="poly" id="edge7_Node000001_Node000006" title=" " alt="" coords="216,233,257,235,252,237,218,238"/>
+<area shape="rect" id="Node000007" href="$d4/d0b/ionosphere_solver_tests_2main_8cpp.html#a9bf4cdc41d466e8710b8aa33a33d32e0" title=" " alt="" coords="313,282,452,310"/>
+<area shape="poly" id="edge8_Node000001_Node000007" title=" " alt="" coords="212,256,265,268,302,277,296,278,264,273,213,261"/>
+<area shape="rect" id="Node000008" href="$dd/df7/classvmesh_1_1_velocity_block_container.html#ab492eded4908cb97927ddc54a0f3d9d3" title=" " alt="" coords="270,333,494,378"/>
+<area shape="poly" id="edge9_Node000001_Node000008" title=" " alt="" coords="148,256,203,288,266,319,285,328,280,328,264,323,200,292,147,261"/>
+<area shape="rect" id="Node000009" href="$d9/d6a/namespacearch.html#a8b44f7f5126702d29110d539cdfbd7e8" title=" " alt="" coords="304,402,461,430"/>
+<area shape="poly" id="edge10_Node000001_Node000009" title=" " alt="" coords="129,256,185,323,223,359,266,388,291,401,286,401,263,393,220,363,181,327,127,261"/>
+<area shape="rect" id="Node000003" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a0b5ae6d60c03a10b43a732a20bf20625" title=" " alt="" coords="548,75,738,119"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="469,48,544,69,539,71,470,53"/>
+<area shape="poly" id="edge4_Node000004_Node000003" title=" " alt="" coords="500,94,535,96,530,98,501,100"/>
+<area shape="poly" id="edge6_Node000005_Node000003" title=" " alt="" coords="468,141,544,123,539,125,470,146"/>
+<area shape="rect" id="Node000010" href="$d9/d6a/namespacearch.html#a1abb9041b9a239a324e1644be2b0cc7e" title=" " alt="" coords="564,393,722,438"/>
+<area shape="poly" id="edge11_Node000009_Node000010" title=" " alt="" coords="461,413,552,416,546,416,462,418"/>
+<area shape="rect" id="Node000011" href="$d9/d6a/namespacearch.html#aa41d352375890d1d4dcf7a0b7ede03c5" title=" " alt="" coords="786,393,956,438"/>
+<area shape="poly" id="edge12_Node000010_Node000011" title=" " alt="" coords="722,413,774,416,768,416,722,418"/>
+</map>

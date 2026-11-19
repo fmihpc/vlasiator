@@ -1,0 +1,5 @@
+<map id="projects::TriAxisSearch::getV0" name="projects::TriAxisSearch::getV0">
+<area shape="rect" id="Node000001" title="Return a vector containing the velocity coordinate of the centre of each ion population in the distri..." alt="" coords="222,5,390,50"/>
+<area shape="rect" id="Node000002" href="$dc/d2c/classprojects_1_1_tri_axis_search.html#a10106fe679bbce733a8f5692d667e5ad" title="Find blocks above the threshold centred isotropically around a bulk velocity." alt="" coords="5,5,174,50"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="204,28,174,30,174,25,209,27"/>
+</map>

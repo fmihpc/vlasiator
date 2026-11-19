@@ -1,0 +1,38 @@
+<map id="calculateEdgeHallTermComponents" name="calculateEdgeHallTermComponents">
+<area shape="rect" id="Node000001" title="Low&#45;level function computing the Hall term numerator x components." alt="" coords="5,577,258,605"/>
+<area shape="rect" id="Node000002" href="$d0/dd7/ldz__hall_8cpp.html#a05ffb380e8ecfc6d0f254e297611b664" title=" " alt="" coords="309,317,352,345"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="142,575,307,356,312,358,146,579"/>
+<area shape="rect" id="Node000015" href="$d8/dbc/vectorclass__fallback_8h.html#a92b2075c51472d120e4ef0a663e3814b" title=" " alt="" coords="306,577,356,605"/>
+<area shape="poly" id="edge14_Node000001_Node000015" title=" " alt="" coords="258,589,293,591,287,592,258,594"/>
+<area shape="rect" id="Node000018" href="$d8/dbc/vectorclass__fallback_8h.html#a1896c5fbdb17de74189d1d18cdd4cf29" title=" " alt="" coords="308,629,354,657"/>
+<area shape="poly" id="edge17_Node000001_Node000018" title=" " alt="" coords="188,603,295,633,290,634,187,608"/>
+<area shape="rect" id="Node000003" href="$d0/dd7/ldz__hall_8cpp.html#a29b41f505058a4d9f1fbfd5f0cb3e379" title="Low&#45;level Hall component computation." alt="" coords="414,5,528,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="329,316,330,267,338,195,347,155,360,116,378,78,402,44,409,40,406,44,406,48,383,81,365,118,352,157,343,196,335,268,334,318"/>
+<area shape="rect" id="Node000004" href="$d0/dd7/ldz__hall_8cpp.html#a98cafa39f378947410a4579bbb6651cc" title="Low&#45;level Hall component computation." alt="" coords="414,57,528,85"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="330,316,333,275,344,216,365,153,382,123,402,96,409,92,406,96,406,100,386,126,370,155,349,218,339,276,335,318"/>
+<area shape="rect" id="Node000005" href="$d0/dd7/ldz__hall_8cpp.html#a9ca70120f52fbfa4378cdb3e64f5204f" title="Low&#45;level Hall component computation." alt="" coords="414,109,528,137"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="332,316,338,283,350,238,371,190,402,148,410,144,407,148,406,152,376,193,355,240,343,284,336,318"/>
+<area shape="rect" id="Node000006" href="$d0/dd7/ldz__hall_8cpp.html#a0e7e54f7871de13644ddd52a43fb0478" title="Low&#45;level Hall component computation." alt="" coords="414,161,528,189"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="334,315,357,260,377,228,402,200,412,195,408,199,406,204,381,231,362,263,339,318"/>
+<area shape="rect" id="Node000007" href="$d0/dd7/ldz__hall_8cpp.html#a66b5c68de5fe89041f11fd2c4e6cd30e" title="Low&#45;level Hall component computation." alt="" coords="415,213,527,241"/>
+<area shape="poly" id="edge6_Node000002_Node000007" title=" " alt="" coords="340,315,366,284,402,252,415,247,411,250,406,256,370,287,344,319"/>
+<area shape="rect" id="Node000008" href="$d0/dd7/ldz__hall_8cpp.html#a5a2d37143fc11e89461abca224517948" title="Low&#45;level Hall component computation." alt="" coords="415,265,527,293"/>
+<area shape="poly" id="edge7_Node000002_Node000008" title=" " alt="" coords="352,321,419,298,415,301,354,326"/>
+<area shape="rect" id="Node000009" href="$d0/dd7/ldz__hall_8cpp.html#a096306e1beb63ace4b50994876d996e9" title="Low&#45;level Hall component computation." alt="" coords="415,317,527,345"/>
+<area shape="poly" id="edge8_Node000002_Node000009" title=" " alt="" coords="352,329,402,330,397,332,354,334"/>
+<area shape="rect" id="Node000010" href="$d0/dd7/ldz__hall_8cpp.html#af118fb2a3a2c16126a4ee33e6f312244" title="Low&#45;level Hall component computation." alt="" coords="415,369,527,397"/>
+<area shape="poly" id="edge9_Node000002_Node000010" title=" " alt="" coords="353,336,420,363,415,364,353,342"/>
+<area shape="rect" id="Node000011" href="$d0/dd7/ldz__hall_8cpp.html#a3343e06cd24f5af918da52eb44e47068" title="Low&#45;level Hall component computation." alt="" coords="414,421,528,449"/>
+<area shape="poly" id="edge10_Node000002_Node000011" title=" " alt="" coords="343,343,370,375,406,406,415,414,410,414,402,411,366,379,342,348"/>
+<area shape="rect" id="Node000012" href="$d0/dd7/ldz__hall_8cpp.html#a7aaf14429d532d9d5178649f02efbfd1" title="Low&#45;level Hall component computation." alt="" coords="414,473,528,501"/>
+<area shape="poly" id="edge11_Node000002_Node000012" title=" " alt="" coords="337,343,362,400,381,431,406,459,413,466,407,465,402,462,377,434,357,402,336,348"/>
+<area shape="rect" id="Node000013" href="$d0/dd7/ldz__hall_8cpp.html#a7ebed4fa460010eac71211a24a97b4c1" title="Low&#45;level Hall component computation." alt="" coords="414,525,528,553"/>
+<area shape="poly" id="edge12_Node000002_Node000013" title=" " alt="" coords="335,343,343,378,355,422,376,469,406,511,411,517,406,516,402,514,371,472,350,424,338,380,333,348"/>
+<area shape="rect" id="Node000014" href="$d0/dd7/ldz__hall_8cpp.html#ad4766ce50a7b21aab802767a3fc99bb8" title="Low&#45;level Hall component computation." alt="" coords="414,577,528,605"/>
+<area shape="poly" id="edge13_Node000002_Node000014" title=" " alt="" coords="334,343,339,387,349,445,370,507,386,537,406,563,410,569,405,567,402,566,382,539,365,509,344,446,333,387,331,348"/>
+<area shape="rect" id="Node000016" href="$d7/d8b/class_vec_simple.html#a145923009b9b82410c5a072b8f8127f0" title=" " alt="" coords="404,629,538,657"/>
+<area shape="poly" id="edge15_Node000015_Node000016" title=" " alt="" coords="357,598,420,623,415,623,356,603"/>
+<area shape="rect" id="Node000017" href="$d7/d8b/class_vec_simple.html#ae16798cf2ee14257d0706c60613cd733" title=" " alt="" coords="586,629,752,657"/>
+<area shape="poly" id="edge16_Node000016_Node000017" title=" " alt="" coords="539,641,573,643,568,643,539,646"/>
+<area shape="poly" id="edge18_Node000018_Node000016" title=" " alt="" coords="354,641,391,643,386,643,354,646"/>
+</map>

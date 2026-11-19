@@ -1,0 +1,16 @@
+<map id="readCellIds" name="readCellIds">
+<area shape="rect" id="Node000001" title="Read cell ID&#39;s Read in cell ID&#39;s from file. Note: Uses the newer version of vlsv parallel reader." alt="" coords="709,32,803,60"/>
+<area shape="rect" id="Node000002" href="$de/deb/ioread_8cpp.html#a9aa38d9398d0a2c9a2e9d231e02203f1" title="Read in state from a vlsv file in order to restart simulations." alt="" coords="547,7,661,34"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="691,35,661,33,662,27,697,36"/>
+<area shape="rect" id="Node000007" href="$de/deb/ioread_8cpp.html#ad79dce38a65966c2a44267acda539483" title="Refine the grid to be identical to the file&#39;s." alt="" coords="393,57,499,85"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="696,51,499,70,499,64,691,51"/>
+<area shape="rect" id="Node000003" href="$de/deb/ioread_8cpp.html#afff6cc7dffb5b49f5127ab47605ad6f0" title="Read in state from a vlsv file in order to restart simulations." alt="" coords="407,5,485,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="528,20,485,22,485,17,534,20"/>
+<area shape="rect" id="Node000004" href="$d7/d70/grid_8cpp.html#a9e9166bda148ddef07e30ac56e3b7085" title="Initialize DCCRG and fsgrids." alt="" coords="234,32,345,60"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="394,28,346,39,346,34,389,29"/>
+<area shape="rect" id="Node000005" href="$d4/d5b/vlasiator_8cpp.html#acfd343080edd07ae79384688a7e48693" title=" " alt="" coords="108,32,186,60"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="215,46,187,48,186,43,221,45"/>
+<area shape="rect" id="Node000006" href="$d4/d5b/vlasiator_8cpp.html#a54790573f350e250ccca3cbb94733391" title=" " alt="" coords="5,32,60,60"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="89,47,60,48,60,43,94,45"/>
+<area shape="poly" id="edge7_Node000007_Node000004" title=" " alt="" coords="375,60,346,58,346,52,381,60"/>
+</map>

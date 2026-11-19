@@ -1,0 +1,26 @@
+<map id="SBC::SysBoundaryCondition::copyCellData" name="SBC::SysBoundaryCondition::copyCellData">
+<area shape="rect" id="Node000001" title=" " alt="" coords="614,144,816,189"/>
+<area shape="rect" id="Node000002" href="$dd/d8a/class_s_b_c_1_1_copysphere.html#a25e930336c8e5922224197b2d825ae38" title=" " alt="" coords="326,5,511,50"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="674,134,624,98,565,65,512,46,511,41,567,60,627,94,679,134"/>
+<area shape="rect" id="Node000004" href="$da/d6b/class_s_b_c_1_1_ionosphere.html#ad279f244f34f4e5b21202c1a754caf88" title=" " alt="" coords="328,75,508,119"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="599,140,509,121,509,115,604,139"/>
+<area shape="rect" id="Node000006" href="$de/d6a/class_s_b_c_1_1_inflow.html#aa7d9968f464d39490fb18f03f298d2d9" title=" " alt="" coords="325,144,512,189"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="596,167,512,169,511,164,601,166"/>
+<area shape="rect" id="Node000009" href="$d8/ddb/class_s_b_c_1_1_sys_boundary_condition.html#a3cfc36b14517b28b49be49ef6a24c082" title=" " alt="" coords="282,213,554,274"/>
+<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="609,194,540,215,539,210,615,192"/>
+<area shape="rect" id="Node000011" href="$d8/ddb/class_s_b_c_1_1_sys_boundary_condition.html#a22555e61519bda622a660b60d2a85b97" title=" " alt="" coords="271,299,566,343"/>
+<area shape="poly" id="edge10_Node000001_Node000011" title=" " alt="" coords="684,198,632,247,600,270,567,289,538,301,537,295,565,284,598,265,628,243,679,201"/>
+<area shape="rect" id="Node000003" href="$dd/d8a/class_s_b_c_1_1_copysphere.html#a9e5ff8c0a5fddac3bd281ec21b4c2fd4" title=" " alt="" coords="7,5,221,50"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="308,29,222,30,220,25,312,26"/>
+<area shape="rect" id="Node000005" href="$da/d6b/class_s_b_c_1_1_ionosphere.html#a1a508ff108ded95287b3593dd1ef44aa" title=" " alt="" coords="10,75,218,119"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="310,98,220,100,218,94,315,96"/>
+<area shape="rect" id="Node000007" href="$de/d6a/class_s_b_c_1_1_inflow.html#ac9f6ab962785ca757d12714beea9e7ea" title=" " alt="" coords="27,144,201,189"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="308,168,202,169,201,164,312,165"/>
+<area shape="rect" id="Node000008" href="$de/d6a/class_s_b_c_1_1_inflow.html#a7ce6d442fd348c4d3acf7c91abb60095" title=" " alt="" coords="24,212,204,240"/>
+<area shape="poly" id="edge7_Node000006_Node000008" title=" " alt="" coords="308,189,189,214,187,209,312,186"/>
+<area shape="rect" id="Node000010" href="$d5/d71/class_s_b_c_1_1_outflow.html#a588e93aff17a561cc0705e806102b3eb" title=" " alt="" coords="7,264,221,309"/>
+<area shape="poly" id="edge9_Node000009_Node000010" title=" " alt="" coords="264,266,222,274,220,269,269,264"/>
+<area shape="poly" id="edge11_Node000011_Node000010" title=" " alt="" coords="252,303,221,301,221,296,258,302"/>
+<area shape="rect" id="Node000012" href="$d5/d71/class_s_b_c_1_1_outflow.html#a4f96a3d49d78299422d68a9b890d1763" title=" " alt="" coords="5,333,223,378"/>
+<area shape="poly" id="edge12_Node000011_Node000012" title=" " alt="" coords="253,340,223,346,223,341,258,339"/>
+</map>
