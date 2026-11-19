@@ -35,6 +35,9 @@
  * "$ vlsvdiff <folder1> <folder2> <Variable> <component>": Gives single-file statistics and distances between pairs of files grid*.vlsv taken in alphanumeric order in the two folders given, for the variable and component given
  *
  * "$ vlsvdiff <file1> <folder2> <Variable> <component>" or "$ vlsvdiff <folder1> <file2> <Variable> <component>": Gives single-file statistics and distances between a file, and files grid*.vlsv taken in alphanumeric order in the given folder, for the variable and component given
+ *
+ * If <Variable> is the name of a population with velocity blocks in the first file (e.g. proton, helium, electron),
+ * the velocity distributions of that population are compared instead, and <component> is the cell ID (0 for all cells).
  */
 
 #include <algorithm>
@@ -1085,9 +1088,44 @@ bool printNonVerboseData() {
    return 0;
 }
 
+/*! Attributes selecting the per-population velocity block array arrayName of population popName.
+ * Each population writes its own copy of these arrays, distinguished only by the name attribute.
+ * For proton, a file without a name match falls back to the first such array, as vlsvdiff always did.
+ */
+template <class T>
+list<pair<string, string>> populationAttribs(T& vlsvReader, const string& arrayName, const string& popName) {
+   list<pair<string, string>> attribs = {{"mesh", attributes["--meshname"]}, {"name", popName}};
+   uint64_t arraySize, vectorSize, dataSize;
+   vlsv::datatype::type dataType;
+   if (vlsvReader.getArrayInfo(arrayName, attribs, arraySize, vectorSize, dataType, dataSize) == false &&
+       popName == "proton") {
+      attribs.pop_back();
+   }
+   return attribs;
+}
+
+/*! True if fileName holds velocity blocks of population name. proton always qualifies so that files
+ * naming their only distribution avgs are still compared as distributions.
+ */
+bool isPopulation(const string& fileName, const string& name) {
+   if (name == "proton") {
+      return true;
+   }
+   vlsvinterface::Reader vlsvReader;
+   if (vlsvReader.open(fileName) == false) {
+      return false;
+   }
+   uint64_t arraySize, vectorSize, dataSize;
+   vlsv::datatype::type dataType;
+   const bool found = vlsvReader.getArrayInfo("BLOCKVARIABLE", {{"name", name}, {"mesh", attributes["--meshname"]}},
+                                              arraySize, vectorSize, dataType, dataSize);
+   vlsvReader.close();
+   return found;
+}
+
 bool getBlockIds(vlsvinterface::Reader& vlsvReader,
                  const unordered_map<uint64_t, pair<uint64_t, uint32_t>>& cellsWithBlocksLocations,
-                 const uint64_t& cellId, vector<uint32_t>& blockIds) {
+                 const uint64_t& cellId, vector<uint32_t>& blockIds, const string& popName) {
    // Read the block ids:
    // Check if the cell id can be found:
    unordered_map<uint64_t, pair<uint64_t, uint32_t>>::const_iterator it = cellsWithBlocksLocations.find(cellId);
@@ -1101,8 +1139,7 @@ bool getBlockIds(vlsvinterface::Reader& vlsvReader,
    const uint32_t N_blocks = get<1>(offsetAndBlocks);
 
    // Get some required info from VLSV file:
-   list<pair<string, string>> attribs;
-   attribs.push_back(make_pair("mesh", attributes["--meshname"]));
+   const list<pair<string, string>> attribs = populationAttribs(vlsvReader, "BLOCKIDS", popName);
 
    // READ BLOCK IDS:
    uint64_t blockIds_arraySize, blockIds_vectorSize, blockIds_dataSize;
@@ -1158,7 +1195,7 @@ uint32_t getBlockId(const double vx, const double vy, const double vz, const dou
 // return false or true depending on whether the operation was successful
 template <class T>
 bool readAvgs( T & vlsvReader,
-               string name,
+               const string& popName,
                const unordered_map<uint64_t, pair<uint64_t, uint32_t>> & cellsWithBlocksLocations,
                const uint64_t & cellId,
                unordered_map<uint32_t, vector<double> > & avgs,
@@ -1166,20 +1203,24 @@ bool readAvgs( T & vlsvReader,
 ) {
    // Get the block ids:
    vector<uint32_t> blockIds;
-   if (getBlockIds(vlsvReader, cellsWithBlocksLocations, cellId, blockIds) == false) {
+   if (getBlockIds(vlsvReader, cellsWithBlocksLocations, cellId, blockIds, popName) == false) {
       return false;
    }
    // Read avgs:
    list<pair<string, string>> attribs;
-   attribs.push_back(make_pair("name", name));
+   attribs.push_back(make_pair("name", popName));
    attribs.push_back(make_pair("mesh", attributes["--meshname"]));
 
    datatype::type dataType;
    uint64_t arraySize, dataSize;
    if (vlsvReader.getArrayInfo("BLOCKVARIABLE", attribs, arraySize, vectorSize, dataType, dataSize) == false) {
-      // no
-      //      cerr << "ERROR READING BLOCKVARIABLE AT " << __FILE__ << " " << __LINE__ << endl;
-      return false;
+      if (popName != "proton") {
+         return false;
+      }
+      attribs.front().second = "avgs"; // files naming their only distribution avgs are read as proton
+      if (vlsvReader.getArrayInfo("BLOCKVARIABLE", attribs, arraySize, vectorSize, dataType, dataSize) == false) {
+         return false;
+      }
    }
 
    // Make a routine error checks:
@@ -1237,17 +1278,16 @@ bool readAvgs( T & vlsvReader,
 
 template <class T>
 bool getCellsWithBlocksLocations(T& vlsvReader,
-                                 unordered_map<uint64_t, pair<uint64_t, uint32_t>>& cellsWithBlocksLocations) {
+                                 unordered_map<uint64_t, pair<uint64_t, uint32_t>>& cellsWithBlocksLocations,
+                                 const string& popName) {
    if (cellsWithBlocksLocations.empty() == false) {
       cellsWithBlocksLocations.clear();
    }
    const string meshName = attributes["--meshname"];
    vlsv::datatype::type cwb_dataType;
    uint64_t cwb_arraySize, cwb_vectorSize, cwb_dataSize;
-   list<pair<string, string>> attribs;
-
-   // Get the mesh name for reading in data from the correct place
-   attribs.push_back(make_pair("mesh", meshName));
+   // BLOCKSPERCELL is written with the same attributes as CELLSWITHBLOCKS
+   const list<pair<string, string>> attribs = populationAttribs(vlsvReader, "CELLSWITHBLOCKS", popName);
 
    // Get array info
    if (vlsvReader.getArrayInfo("CELLSWITHBLOCKS", attribs, cwb_arraySize, cwb_vectorSize, cwb_dataType, cwb_dataSize) == false) {
@@ -1318,7 +1358,7 @@ bool getCellsWithBlocksLocations(T& vlsvReader,
 
 template <class T, class U>
 bool compareAvgs(const string fileName1, const string fileName2, const bool verboseOutput, vector<uint64_t>& cellIds1,
-                 vector<uint64_t>& cellIds2) {
+                 vector<uint64_t>& cellIds2, const string& popName) {
    if (cellIds1.empty() == true || cellIds2.empty() == true) {
       cerr << "ERROR, CELL IDS EMPTY IN COMPARE AVGS" << endl;
       return false;
@@ -1340,12 +1380,12 @@ bool compareAvgs(const string fileName1, const string fileName2, const bool verb
       return false;
    }
 
-   if (getCellsWithBlocksLocations(vlsvReader1, cellsWithBlocksLocations1) == false) {
+   if (getCellsWithBlocksLocations(vlsvReader1, cellsWithBlocksLocations1, popName) == false) {
       cerr << "ERROR AT " << __FILE__ << " " << __LINE__ << endl;
       return false;
    }
 
-   if (getCellsWithBlocksLocations(vlsvReader2, cellsWithBlocksLocations2) == false) {
+   if (getCellsWithBlocksLocations(vlsvReader2, cellsWithBlocksLocations2, popName) == false) {
       cerr << "ERROR AT " << __FILE__ << " " << __LINE__ << endl;
       return false;
    }
@@ -1388,18 +1428,14 @@ bool compareAvgs(const string fileName1, const string fileName2, const bool verb
       unordered_map<uint32_t, vector<double> > avgs1;
       unordered_map<uint32_t, vector<double> > avgs2;
       // Store the avgs in avgs1 and 2:
-      if( readAvgs( vlsvReader1, "proton", cellsWithBlocksLocations1, cellId1, avgs1, vectorSize1 ) == false ) {
-         if( readAvgs( vlsvReader1, "avgs", cellsWithBlocksLocations1, cellId1, avgs1, vectorSize1 ) == false ) {
-            cerr << "ERROR, FAILED TO READ AVGS AT " << __FILE__ << " " << __LINE__ << endl;
-            return false;
-         }
+      if( readAvgs( vlsvReader1, popName, cellsWithBlocksLocations1, cellId1, avgs1, vectorSize1 ) == false ) {
+         cerr << "ERROR, FAILED TO READ AVGS AT " << __FILE__ << " " << __LINE__ << endl;
+         return false;
       }
 
-      if( readAvgs( vlsvReader2, "proton", cellsWithBlocksLocations2, cellId2, avgs2, vectorSize2 ) == false ) {
-         if( readAvgs( vlsvReader2, "avgs", cellsWithBlocksLocations2, cellId2, avgs2, vectorSize2 ) == false ) {
-            cerr << "ERROR, FAILED TO READ AVGS AT " << __FILE__ << " " << __LINE__ << endl;
-            return false;
-         }
+      if( readAvgs( vlsvReader2, popName, cellsWithBlocksLocations2, cellId2, avgs2, vectorSize2 ) == false ) {
+         cerr << "ERROR, FAILED TO READ AVGS AT " << __FILE__ << " " << __LINE__ << endl;
+         return false;
       }
 
       if (vectorSize1 != vectorSize2) {
@@ -1578,7 +1614,7 @@ bool process2Files(const string fileName1, const string fileName2, const char* v
 
    // If the user wants to check avgs, call the avgs check function and return it. Otherwise move on to compare
    // variables:
-   if (strcmp(varToExtract, "proton") == 0 && attributes.find("--no-distrib") == attributes.end()) {
+   if (attributes.find("--no-distrib") == attributes.end() && isPopulation(fileName1, varToExtract)) {
       vector<uint64_t> cellIds1;
       vector<uint64_t> cellIds2;
       cellIds1.reserve(1);
@@ -1586,7 +1622,7 @@ bool process2Files(const string fileName1, const string fileName2, const char* v
       cellIds1.push_back(compToExtract);
       cellIds2.push_back(compToExtract2);
       // Compare files:
-      if (compareAvgs<vlsvinterface::Reader, vlsvinterface::Reader>(fileName1, fileName2, verboseOutput, cellIds1, cellIds2) == false) {
+      if (compareAvgs<vlsvinterface::Reader, vlsvinterface::Reader>(fileName1, fileName2, verboseOutput, cellIds1, cellIds2, varToExtract) == false) {
          return false;
       }
    } else {
