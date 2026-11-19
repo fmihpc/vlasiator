@@ -120,6 +120,9 @@ namespace spatial_cell {
          vmesh::LocalID toLID = vmesh->warpGetLocalID(GID,ti);
          #else
          vmesh::LocalID toLID = vmesh->getLocalID(GID);
+         // As in warpGetLocalID: all lookups must finish before thread 0 inserts GID below,
+         // or a lagging warp finds the new block before blockContainer holds it.
+         __syncthreads();
          #endif
          if (toLID == vmesh->invalidLocalID()) {
             #ifdef USE_WARPACCESSORS
