@@ -1,10 +1,7 @@
 #!/bin/bash
 #SBATCH -t 02:00:00        # Run time (hh:mm:ss)
-#SBATCH --job-name=TP_ukko_dgx
-#SBATCH -p gpu
-#SBATCH --constraint=v100
-#SBATCH --gres="gpu:V100"
-#SBATCH -G 1
+#SBATCH --job-name=TP_turso-v100
+#SBATCH --gres=gpu:V100:1
 #SBATCH --cpus-per-task 10                 # CPU cores per task
 #SBATCH --hint=nomultithread
 #SBATCH --nodes=1
@@ -23,12 +20,11 @@ cd $SLURM_SUBMIT_DIR
 #reference_revision="CI_reference"
 reference_revision="current"
 
-bin="/proj/USERNAME/BINARYNAME"
-diffbin="/turso/group/spacephysics/vlasiator/testpackage/vlsvdiff_DP_ukkogpu"
+bin="../vlasiator"
+diffbin="../vlsvdiff_DP"
 
-export UCX_NET_DEVICES=eth0
 ulimit -c unlimited
-source ../modules/ukko_dgx.sh
+source ../modules/turso-v100_GNU_MPICH.sh
 
 nodes=$SLURM_NNODES
 t=$SLURM_CPUS_PER_TASK # used by TP script
@@ -36,9 +32,10 @@ export OMP_NUM_THREADS=$t
 export tasks=$SLURM_NTASKS
 
 #command for running stuff
+# MPICH here is PMIx-only (no Hydra), so no mpirun.
 run_command="srun --mpi=pmix -c $t -n $tasks"
 small_run_command="srun --mpi=pmix -c $t -n 1"
-run_command_tools="mpirun -n 1 -N 1"
+run_command_tools="srun --mpi=pmix -n 1"
 
 # Informational / debugging placement outputs
 #
@@ -46,14 +43,9 @@ run_command_tools="mpirun -n 1 -N 1"
 # echo
 # nvidia-smi topo -m
 # echo
-# srun --mpi=pmix /appl/bin/hostinfo
-# echo
 # srun --mpi=pmix --ntasks-per-node=1 bash -c ' \
 #           echo -n "task $SLURM_PROCID (node $SLURM_NODEID): "; \
 #           taskset -cp $$' | sort
-# echo
-# module load xthi
-# srun --mpi=pmix -c $t -n 1 xthi
 # echo
 
 umask 007
@@ -66,4 +58,3 @@ wait
 # Run tests
 source run_tests.sh
 wait
-

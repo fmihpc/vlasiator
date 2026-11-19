@@ -128,7 +128,9 @@ endif
 
 #Update GPU memeory pointer list
 ifeq ($(USE_GPU),1)
+ifeq ($(filter clean c allclean cleantools data d help,$(MAKECMDGOALS)),)
 $(shell ./updateGpuMemoryPointerList.sh 1>&2)
+endif
 endif
 
 #GPU specs
@@ -263,11 +265,12 @@ cleantools:
 # Rules for making each object file needed by the executable
 
 # Extract commits for used libraries, silencing errors of missing repositories
-COMMIT_DCCRG=$(shell cd ${subst -isystem,,${subst -I,,${INC_DCCRG}}} && git log -1 --pretty=format:"%H" 2>/dev/null)
-COMMIT_FSGRID=$(shell cd ${subst -isystem,,${subst -I,,${INC_FSGRID}}} && git log -1 --pretty=format:"%H" 2>/dev/null)
-COMMIT_VLSV=$(shell cd ${subst -isystem,,${subst -I,,${INC_VLSV}}} && git log -1 --pretty=format:"%H" 2>/dev/null)
-COMMIT_HASHINATOR=$(shell cd ${subst -isystem,,${subst -I,,${INC_HASHINATOR}}} && git log -1 --pretty=format:"%H" 2>/dev/null)
-COMMIT_PROFILE=$(shell cd ${subst -isystem,,${subst -I,,${INC_PROFILE}}} && git log -1 --pretty=format:"%H" 2>/dev/null)
+# firstword: some INC_* also carry flags or a second path, and cd takes one argument.
+COMMIT_DCCRG=$(shell cd $(firstword ${subst -isystem,,${subst -I,,${INC_DCCRG}}}) && git log -1 --pretty=format:"%H" 2>/dev/null)
+COMMIT_FSGRID=$(shell cd $(firstword ${subst -isystem,,${subst -I,,${INC_FSGRID}}}) && git log -1 --pretty=format:"%H" 2>/dev/null)
+COMMIT_VLSV=$(shell cd $(firstword ${subst -isystem,,${subst -I,,${INC_VLSV}}}) && git log -1 --pretty=format:"%H" 2>/dev/null)
+COMMIT_HASHINATOR=$(shell cd $(firstword ${subst -isystem,,${subst -I,,${INC_HASHINATOR}}}) && git log -1 --pretty=format:"%H" 2>/dev/null)
+COMMIT_PROFILE=$(shell cd $(firstword ${subst -isystem,,${subst -I,,${INC_PROFILE}}}) && git log -1 --pretty=format:"%H" 2>/dev/null)
 
 # Build version description file
 version.cpp: FORCE

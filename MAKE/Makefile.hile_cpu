@@ -12,7 +12,7 @@
 
 # #SBATCH -C c # for CPU nodes (flavor)
 # Use of #SBATCH --distribution=block:block may improve performance
-# As of March 2025, use srun --mpi=pmi2 to launch
+# Launch with srun --mpi=cray_shasta: under --mpi=pmi2 each rank runs as its own 1-rank job (Nov 2026)
 
 CMP = CC
 LNK = CC

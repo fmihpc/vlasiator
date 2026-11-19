@@ -60,7 +60,7 @@ fi
 
 
 # PAPI
-if [[ $PLATFORM != "-arriesgado" && $PLATFORM != "-appleM1" && $PLATFORM != "-ukko_dgx" && $PLATFORM != "-hile_cpu" && $PLATFORM != "-hile_gpu" && $PLATFORM != "-lumi_hipcc"  && $PLATFORM != "-lumi_2503" && $PLATFORM != "-mahti_cuda" && $PLATFORM != "-mahti_gcc_build" && $PLATFORM != "-frankenstein_hopper2_cuda" && $PLATFORM != "-roihu_cpu" && $PLATFORM != "-roihu_cpu_aocc" && $PLATFORM != "-roihu_gpu" ]]; then
+if [[ $PLATFORM != "-arriesgado" && $PLATFORM != "-appleM1" && $PLATFORM != "-hile_cpu" && $PLATFORM != "-hile_gpu" && $PLATFORM != "-lumi_hipcc"  && $PLATFORM != "-lumi_2503" && $PLATFORM != "-lumi_2503_gpu" && $PLATFORM != "-mahti_cuda" && $PLATFORM != "-mahti_gcc_build" && $PLATFORM != "-frankenstein_hopper2_cuda" && $PLATFORM != "-roihu_cpu" && $PLATFORM != "-roihu_cpu_aocc" && $PLATFORM != "-roihu_gpu" ]]; then
     # This fails on RISCV and MacOS
     # Mahti, LUMI, UkkoGPU and HILE use system module
     echo "################# Fetching papi #########################"
@@ -71,7 +71,7 @@ if [[ $PLATFORM != "-arriesgado" && $PLATFORM != "-appleM1" && $PLATFORM != "-uk
 fi
 
 # jemalloc (not for GPU versions, on Mahti use system module)
-if [[ $PLATFORM != "-leonardo_booster" && $PLATFORM != "-karolina_cuda" && $PLATFORM != "-ukko_dgx" && $PLATFORM != "-hile_gpu" && $PLATFORM != "-lumi_hipcc" && $PLATFORM != "-mahti_cuda" && $PLATFORM != "-mahti_gcc_build" && $PLATFORM != "-frankenstein_hopper2_cuda" && $PLATFORM != "-roihu_gpu" ]]; then
+if [[ $PLATFORM != "-leonardo_booster" && $PLATFORM != "-karolina_cuda" && $PLATFORM != "-hile_gpu" && $PLATFORM != "-lumi_hipcc" && $PLATFORM != "-lumi_2503_gpu" && $PLATFORM != "-mahti_cuda" && $PLATFORM != "-mahti_gcc_build" && $PLATFORM != "-frankenstein_hopper2_cuda" && $PLATFORM != "-roihu_gpu" ]]; then
     echo "################# Fetching jemalloc #####################"
     #curl -O -L https://github.com/jemalloc/jemalloc/releases/download/5.4.0/jemalloc-5.4.0.tar.bz2
     #tar xjf jemalloc-5.4.0.tar.bz2
