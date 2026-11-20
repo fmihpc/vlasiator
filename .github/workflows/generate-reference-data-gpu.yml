@@ -22,10 +22,11 @@ jobs:
         )
         srun --constraint="carrington" bash -c "$RUN_STRING"
     - name: Checkout source
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
     - name: Make clean
       run: VLASIATOR_ARCH=turso-v100_GNU_MPICH make clean
-    - uses: ursg/gcc-problem-matcher@master
+    - name: Register GCC problem matcher
+      run: echo "::add-matcher::$GITHUB_WORKSPACE/.github/gcc-problem-matcher.json"
     - name: Build libraries
       run: |
         WORKSPACE=`pwd`
@@ -63,7 +64,7 @@ jobs:
 
     steps:
     - name: Checkout source
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         submodules: false
     - name: Clean libraries

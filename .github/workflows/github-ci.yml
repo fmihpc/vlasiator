@@ -24,7 +24,7 @@ jobs:
        RUN_TP: ${{ steps.gitdiff.outputs.RUN_TP }}
     steps:
       - name: Checkout source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
       - name: Get git diff and determine whether to run testpackage
@@ -86,7 +86,7 @@ jobs:
             runner: ukko
             arch: turso-v100_GNU_MPICH
             compile_tp: true
-            run_tp: false # too slow to run regularily
+            run_tp: false # too slow to run regularly
             debug: true
 
           - name: testpackage run
@@ -133,7 +133,7 @@ jobs:
       #The & tags can be reused in other job steps with `- *tagname` scroll down for examples on how *checkoutSource has been used
     - &checkoutSource
       name: Checkout source
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
     - &cleanWorkspace
       name: Clean workspace
       run: |
@@ -142,7 +142,8 @@ jobs:
     - &makeClean
       name: Make clean
       run: make clean
-    - uses: ursg/gcc-problem-matcher@master
+    - name: Register GCC problem matcher
+      run: echo "::add-matcher::$GITHUB_WORKSPACE/.github/gcc-problem-matcher.json"
     - &buildLibs
       name: Run library build script ${{ matrix.arch }}
       run: |
@@ -305,7 +306,8 @@ jobs:
         name: libraries-docker
     - name: Unpack libraries
       run: tar --zstd -xf libraries-docker.tar.zstd
-    - uses: ursg/gcc-problem-matcher@master
+    - name: Register GCC problem matcher
+      run: echo "::add-matcher::$GITHUB_WORKSPACE/.github/gcc-problem-matcher.json"
 
     - name: Compile vlasiator (Release build)
       shell: bash
@@ -361,7 +363,7 @@ jobs:
           mini-apps/ionosphereSolverTests/sigmaProfiles
         if-no-files-found: error
     - name: Set up Python
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v6
     - name: Install uv
       uses: astral-sh/setup-uv@v6
     - name: install Gnuplot
@@ -409,7 +411,7 @@ jobs:
     needs: build_github
     steps:
     - name: Checkout source
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         submodules: false
     - name: Download libraries
