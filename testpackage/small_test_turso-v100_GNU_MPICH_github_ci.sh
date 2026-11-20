@@ -81,9 +81,49 @@ echo "----------"
 echo -e "### Testpackage output:\n" >> $GITHUB_STEP_SUMMARY
 echo "CI_reference pointed to $reference_revision_parsed" >> $GITHUB_STEP_SUMMARY
 
+# GitHub drops a step summary larger than 1 MiB, so it gets only the end of each log; testpackage_logs/ keeps them whole.
+summary_stdout_bytes=12000
+summary_stderr_bytes=6000
+summary_log() { # stream (stdout or stderr), byte limit, test name
+   local file=$GITHUB_WORKSPACE/$1.txt size
+   mkdir -p "$GITHUB_WORKSPACE/testpackage_logs"
+   cp "$file" "$GITHUB_WORKSPACE/testpackage_logs/$3.$1.txt"
+   size=$(stat -c %s "$file")
+   if (( size > $2 )); then
+      echo "[... first $(( size - $2 )) bytes left out here, full log in the testpackage-logs artifact ...]"
+   fi
+   tail -c "$2" "$file"
+}
+
 NONZEROTESTS=0
 ZEROTESTS=0
 FAILEDTESTS=0
+
+# Pushes and PRs run only this subset (TP_QUICK from github-ci.yml). Definition order is kept: restart_read needs restart_write's output.
+quick_tests="acctest_1_maxw_500k_100k_20kms_10deg acctest_2_maxw_500k_100k_20kms_10deg acctest_3_substeps
+   acctest_4_helium acctest_5_proton_antiproton Flowthrough_trans_periodic Flowthrough_x_inflow_y_outflow
+   Flowthrough_1D_timevarying Flowthrough_damr restart_write restart_read restart_write_acc restart_read_acc
+   subgrid_1_diffusion"
+if [[ $TP_QUICK == true ]]; then
+   declare -A quick
+   for name in $quick_tests; do
+      quick[$name]=1
+   done
+   selected=()
+   for run in "${run_tests[@]}"; do
+      if [[ ${quick[${test_name[$run]}]} ]]; then
+         selected+=("$run")
+         unset "quick[${test_name[$run]}]"
+      fi
+   done
+   echo "Quick subset: ${#selected[@]} of ${#run_tests[@]} tests. The weekly scheduled run covers all of them." >> $GITHUB_STEP_SUMMARY
+   for name in "${!quick[@]}"; do
+      echo ":red_circle: Quick-subset test $name is not defined in test_definitions_small.sh." >> $GITHUB_STEP_SUMMARY
+      FAILEDTESTS=$((FAILEDTESTS+1))
+      touch $GITHUB_WORKSPACE/testpackage_failed
+   done
+   run_tests=("${selected[@]}")
+fi
 
 # loop over different test cases
 for run in ${run_tests[*]}; do
@@ -123,9 +163,9 @@ for run in ${run_tests[*]}; do
    if [[ $RUN_ERROR != 0 ]]; then
       echo -e "<details><summary>:red_circle: ${test_name[$run]}: Failed to run or died with an error.</summary>\n"  >> $GITHUB_STEP_SUMMARY
       echo -e "Stdout:\n \`\`\`\n" >> $GITHUB_STEP_SUMMARY
-      cat $GITHUB_WORKSPACE/stdout.txt >> $GITHUB_STEP_SUMMARY
+      summary_log stdout $summary_stdout_bytes ${test_name[$run]} >> $GITHUB_STEP_SUMMARY
       echo -e "\`\`\`\nStderr:\n \`\`\`\n" >> $GITHUB_STEP_SUMMARY
-      cat $GITHUB_WORKSPACE/stderr.txt >> $GITHUB_STEP_SUMMARY
+      summary_log stderr $summary_stderr_bytes ${test_name[$run]} >> $GITHUB_STEP_SUMMARY
       echo -e "\`\`\`\n</details>" >> $GITHUB_STEP_SUMMARY
       FAILEDTESTS=$((FAILEDTESTS+1))
 
@@ -364,9 +404,9 @@ for run in ${run_tests[*]}; do
    fi
 
    echo -e "Stdout:\n \`\`\`\n" >> $GITHUB_STEP_SUMMARY
-   cat $GITHUB_WORKSPACE/stdout.txt >> $GITHUB_STEP_SUMMARY
+   summary_log stdout $summary_stdout_bytes ${test_name[$run]} >> $GITHUB_STEP_SUMMARY
    echo -e "\`\`\`\nStderr:\n \`\`\`\n" >> $GITHUB_STEP_SUMMARY
-   cat $GITHUB_WORKSPACE/stderr.txt >> $GITHUB_STEP_SUMMARY
+   summary_log stderr $summary_stderr_bytes ${test_name[$run]} >> $GITHUB_STEP_SUMMARY
    echo -e "\`\`\`\n</details>" >> $GITHUB_STEP_SUMMARY
 
    # -------- Generate JUnit output ----------

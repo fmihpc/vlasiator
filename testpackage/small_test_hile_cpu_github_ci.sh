@@ -108,6 +108,20 @@ echo "----------"
 echo -e "### Testpackage output:\n" >> $GITHUB_STEP_SUMMARY
 echo "CI_reference pointed to $reference_revision_parsed" >> $GITHUB_STEP_SUMMARY
 
+# GitHub drops a step summary larger than 1 MiB, so it gets only the end of each log; testpackage_logs/ keeps them whole.
+summary_stdout_bytes=12000
+summary_stderr_bytes=6000
+summary_log() { # stream (stdout or stderr), byte limit, test name
+   local file=$GITHUB_WORKSPACE/$1.txt size
+   mkdir -p "$GITHUB_WORKSPACE/testpackage_logs"
+   cp "$file" "$GITHUB_WORKSPACE/testpackage_logs/$3.$1.txt"
+   size=$(stat -c %s "$file")
+   if (( size > $2 )); then
+      echo "[... first $(( size - $2 )) bytes left out here, full log in the testpackage-logs artifact ...]"
+   fi
+   tail -c "$2" "$file"
+}
+
 NONZEROTESTS=0
 ZEROTESTS=0
 FAILEDTESTS=0
@@ -150,9 +164,9 @@ for run in ${run_tests[*]}; do
    if [[ $RUN_ERROR != 0 ]]; then
       echo -e "<details><summary>:red_circle: ${test_name[$run]}: Failed to run or died with an error.</summary>\n"  >> $GITHUB_STEP_SUMMARY
       echo -e "Stdout:\n \`\`\`\n" >> $GITHUB_STEP_SUMMARY
-      cat $GITHUB_WORKSPACE/stdout.txt >> $GITHUB_STEP_SUMMARY
+      summary_log stdout $summary_stdout_bytes ${test_name[$run]} >> $GITHUB_STEP_SUMMARY
       echo -e "\`\`\`\nStderr:\n \`\`\`\n" >> $GITHUB_STEP_SUMMARY
-      cat $GITHUB_WORKSPACE/stderr.txt >> $GITHUB_STEP_SUMMARY
+      summary_log stderr $summary_stderr_bytes ${test_name[$run]} >> $GITHUB_STEP_SUMMARY
       echo -e "\`\`\`\n</details>" >> $GITHUB_STEP_SUMMARY
       FAILEDTESTS=$((FAILEDTESTS+1))
 
@@ -375,9 +389,9 @@ for run in ${run_tests[*]}; do
    fi
 
    echo -e "Stdout:\n \`\`\`\n" >> $GITHUB_STEP_SUMMARY
-   cat $GITHUB_WORKSPACE/stdout.txt >> $GITHUB_STEP_SUMMARY
+   summary_log stdout $summary_stdout_bytes ${test_name[$run]} >> $GITHUB_STEP_SUMMARY
    echo -e "\`\`\`\nStderr:\n \`\`\`\n" >> $GITHUB_STEP_SUMMARY
-   cat $GITHUB_WORKSPACE/stderr.txt >> $GITHUB_STEP_SUMMARY
+   summary_log stderr $summary_stderr_bytes ${test_name[$run]} >> $GITHUB_STEP_SUMMARY
    echo -e "\`\`\`\n</details>" >> $GITHUB_STEP_SUMMARY
 
    # -------- Generate JUnit output ----------

@@ -12,6 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: download testpackage output
+        id: download
         # Note we are downloading an artifact from a
         # *different* workflow here.
         uses: ursg/action-download-artifact@v2
@@ -19,8 +20,11 @@ jobs:
           name: testpackage-output-turso-amd_GNU_MPICH
           workflow: ${{ github.event.workflow.id }}
           run_id: ${{ github.event.workflow_run.id }}
+          # No artifact when the testpackage did not run, e.g. for docs-only changes.
+          if_no_artifact_found: warn
       - name: unpack and process pr output
         id: unpack
+        if: steps.download.outputs.found_artifact == 'true'
         run: |
           tar -xzvf testpackage-output-turso-amd_GNU_MPICH.tar.gz
           cat testpackage_output_variables.txt >> $GITHUB_OUTPUT
@@ -28,7 +32,7 @@ jobs:
           truncate --size='<60K' testpackage_check_description.txt
       - name: Generate PR check report
         uses: ursg/checks-action@v1.6.0
-        if: always()
+        if: always() && steps.download.outputs.found_artifact == 'true'
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           sha: ${{github.event.workflow_run.head_sha}}
