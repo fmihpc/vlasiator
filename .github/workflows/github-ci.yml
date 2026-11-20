@@ -86,7 +86,7 @@ jobs:
             runner: ukko
             arch: turso-v100_GNU_MPICH
             compile_tp: true
-            run_tp: false # until we fix the bugs this found
+            run_tp: false # too slow to run regularily
             debug: true
 
           - name: testpackage run

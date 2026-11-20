@@ -872,7 +872,8 @@ namespace DRO {
          Real sum = 0.0;
          Real density = this->density;
          Real averageVX = this->averageVX, averageVY = this->averageVY, averageVZ = this->averageVZ;
-         Real* Temperature = this->Temperature;
+         // By value: the device lambda cannot dereference the host-side member array.
+         Real TemperatureX = this->Temperature[0], TemperatureY = this->Temperature[1], TemperatureZ = this->Temperature[2];
 
          if (cell->get_number_of_velocity_blocks(popID) != 0)
          arch::parallel_reduce<arch::sum>({WID, WID, WID, (uint)cell->get_number_of_velocity_blocks(popID)},
@@ -886,13 +887,13 @@ namespace DRO {
                                              const Real DV3 = block_parameters[BlockParams::DVX]
                                                 * block_parameters[BlockParams::DVY] * block_parameters[BlockParams::DVZ];
 
-                                             Real theta_x = (VX-averageVX) * (VX-averageVX) / (2.*Temperature[0]);
-                                             Real theta_y = (VY-averageVY) * (VY-averageVY) / (2.*Temperature[1]);
-                                             Real theta_z = (VZ-averageVZ) * (VZ-averageVZ) / (2.*Temperature[2]);
+                                             Real theta_x = (VX-averageVX) * (VX-averageVX) / (2.*TemperatureX);
+                                             Real theta_y = (VY-averageVY) * (VY-averageVY) / (2.*TemperatureY);
+                                             Real theta_z = (VZ-averageVZ) * (VZ-averageVZ) / (2.*TemperatureZ);
                                              Real fM = density *
-                                                       sqrt(1./(2.*M_PI*Temperature[0])) *
-                                                       sqrt(1./(2.*M_PI*Temperature[1])) *
-                                                       sqrt(1./(2.*M_PI*Temperature[2])) *
+                                                       sqrt(1./(2.*M_PI*TemperatureX)) *
+                                                       sqrt(1./(2.*M_PI*TemperatureY)) *
+                                                       sqrt(1./(2.*M_PI*TemperatureZ)) *
                                                        exp(-theta_x - theta_y - theta_z);
 
                                              Real inc = 0.0;
@@ -984,7 +985,8 @@ namespace DRO {
          Real sum = 0.0;
          Real density = this->density;
          Real averageVX = this->averageVX, averageVY = this->averageVY, averageVZ = this->averageVZ;
-         Real* Temperature = this->Temperature;
+         // By value: the device lambda cannot dereference the host-side member array.
+         Real TemperatureX = this->Temperature[0], TemperatureY = this->Temperature[1], TemperatureZ = this->Temperature[2];
 
          if (cell->get_number_of_velocity_blocks(popID) != 0)
          arch::parallel_reduce<arch::sum>({WID, WID, WID, (uint)cell->get_number_of_velocity_blocks(popID)},
@@ -998,13 +1000,13 @@ namespace DRO {
                                              const Real DV3 = block_parameters[BlockParams::DVX]
                                                 * block_parameters[BlockParams::DVY] * block_parameters[BlockParams::DVZ];
 
-                                             Real theta_x = (VX-averageVX) * (VX-averageVX) / (2.*Temperature[0]);
-                                             Real theta_y = (VY-averageVY) * (VY-averageVY) / (2.*Temperature[1]);
-                                             Real theta_z = (VZ-averageVZ) * (VZ-averageVZ) / (2.*Temperature[2]);
+                                             Real theta_x = (VX-averageVX) * (VX-averageVX) / (2.*TemperatureX);
+                                             Real theta_y = (VY-averageVY) * (VY-averageVY) / (2.*TemperatureY);
+                                             Real theta_z = (VZ-averageVZ) * (VZ-averageVZ) / (2.*TemperatureZ);
                                              Real fM = density *
-                                                       sqrt(1./(2.*M_PI*Temperature[0])) *
-                                                       sqrt(1./(2.*M_PI*Temperature[1])) *
-                                                       sqrt(1./(2.*M_PI*Temperature[2])) *
+                                                       sqrt(1./(2.*M_PI*TemperatureX)) *
+                                                       sqrt(1./(2.*M_PI*TemperatureY)) *
+                                                       sqrt(1./(2.*M_PI*TemperatureZ)) *
                                                        exp(-theta_x - theta_y - theta_z);
 
                                              Real inc = 0.0;
