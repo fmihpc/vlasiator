@@ -59,11 +59,11 @@ inline void * aligned_malloc(size_t size,std::size_t align) {
 #else
    void *p = malloc(size + align - 1 + sizeof(void*));
 #endif
-#ifdef INITIALIZE_ALIGNED_MALLOC_WITH_NAN
-   memset(p, ~0u, size + align - 1 + sizeof(void*));
-#endif
 
    if (p != NULL) {
+#ifdef INITIALIZE_ALIGNED_MALLOC_WITH_NAN
+      memset(p, ~0u, size + align - 1 + sizeof(void*));
+#endif
       /* Address of the aligned memory according to the align parameter*/
       ptr = (void*) (((unsigned long)p + sizeof(void*) + align -1) & ~(align-1));
       /* store the address of the malloc() above
