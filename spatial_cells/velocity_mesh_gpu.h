@@ -31,6 +31,7 @@
 #include <stdint.h>
 #include <vector>
 #include <cmath>
+#include <utility>
 
 #include "../velocity_mesh_parameters.h"
 
@@ -263,8 +264,9 @@ namespace vmesh {
          auto it = globalToLocalMap.device_find(globalID);
          if (it != globalToLocalMap.device_end()) {
          #else
-         auto it = globalToLocalMap.find(globalID);
-         if (it != globalToLocalMap.end()) {
+         // Const lookup: the non-const find() may rehash, leaving this mesh's device copy with freed buckets.
+         auto it = std::as_const(globalToLocalMap).find(globalID);
+         if (it != std::as_const(globalToLocalMap).end()) {
          #endif
             const vmesh::GlobalID localID = it->second;
             if (localID != b) {
@@ -308,7 +310,7 @@ namespace vmesh {
          #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
          auto it = globalToLocalMap.device_find(globalID);
          #else
-         auto it = globalToLocalMap.find(globalID);
+         auto it = std::as_const(globalToLocalMap).find(globalID); // see check()
          #endif
          const vmesh::GlobalID localID = it->second;
          printf("vmesh LID [%6u] => GID [%6u] => [%6u]\n",b,globalID,localID);

@@ -253,8 +253,10 @@ int simulate(int argn,char* args[]) {
    #ifdef CATCH_FPE
    // WARNING FE_INEXACT is too sensitive to be used. See man fenv.
    //feenableexcept(FE_DIVBYZERO|FE_INVALID|FE_OVERFLOW|FE_UNDERFLOW);
-   feenableexcept(FE_DIVBYZERO|FE_INVALID|FE_OVERFLOW);
    //feenableexcept(FE_DIVBYZERO|FE_INVALID);
+   //Make sure we set that on every thread that got started in the pool that phiprof::initialize just created
+   #pragma omp parallel
+   feenableexcept(FE_DIVBYZERO|FE_INVALID|FE_OVERFLOW);
    signal(SIGFPE, fpehandler);
    #endif
 

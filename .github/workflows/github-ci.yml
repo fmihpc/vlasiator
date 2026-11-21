@@ -24,7 +24,7 @@ jobs:
        RUN_TP: ${{ steps.gitdiff.outputs.RUN_TP }}
     steps:
       - name: Checkout source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
       - name: Get git diff and determine whether to run testpackage
@@ -47,6 +47,7 @@ jobs:
       matrix:
         #Each (arch, name) pair must be unique: together they name the uploaded artifacts
         #At most one run_tp: true entry per arch: the testpackage output artifact is named by arch alone
+        #tp_quick: true limits pushes and PRs to the quick test subset; scheduled and manual runs use all tests
         include:
           - name: prod
             runner: hile       #Tag of the github runner to run on
@@ -86,7 +87,8 @@ jobs:
             runner: ukko
             arch: turso-v100_GNU_MPICH
             compile_tp: true
-            run_tp: false # until we fix the bugs this found
+            run_tp: true
+            tp_quick: true # all tests take about 4 h in this debug build
             debug: true
 
           - name: testpackage run
@@ -129,11 +131,12 @@ jobs:
     if: github.repository_owner == 'fmihpc'
     env:
       VLASIATOR_ARCH: ${{ matrix.arch }}
+      TP_QUICK: ${{ matrix.tp_quick == true && (github.event_name == 'push' || github.event_name == 'pull_request') }}
     steps:
       #The & tags can be reused in other job steps with `- *tagname` scroll down for examples on how *checkoutSource has been used
     - &checkoutSource
       name: Checkout source
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
     - &cleanWorkspace
       name: Clean workspace
       run: |
@@ -142,7 +145,8 @@ jobs:
     - &makeClean
       name: Make clean
       run: make clean
-    - uses: ursg/gcc-problem-matcher@master
+    - name: Register GCC problem matcher
+      run: echo "::add-matcher::$GITHUB_WORKSPACE/.github/gcc-problem-matcher.json"
     - &buildLibs
       name: Run library build script ${{ matrix.arch }}
       run: |
@@ -200,9 +204,19 @@ jobs:
       with:
         name: testpackage-output-${{ matrix.arch }}
         path: testpackage-output-${{ matrix.arch }}.tar.gz
+    - name: Upload full testpackage logs
+      # The step summary keeps only the end of each test's log.
+      continue-on-error: true
+      uses: actions/upload-artifact@v4
+      if: ${{ always() && matrix.run_tp }}
+      with:
+        name: testpackage-logs-${{ matrix.arch }}
+        path: testpackage_logs/
+        retention-days: 14
     - &fluxTest
       name: Run fluxfunction test
-      if: ${{ matrix.run_tp && needs.get_git_diff.outputs.RUN_TP != 'False' }}
+      # Needs Magnetosphere_small and Magnetosphere_polar_small, which the quick subset leaves out.
+      if: ${{ matrix.run_tp && needs.get_git_diff.outputs.RUN_TP != 'False' && env.TP_QUICK != 'true' }}
       run: |
         ./.github/workflows/slurm_run.sh "FLUXTEST"
     - &uploadTools
@@ -305,7 +319,8 @@ jobs:
         name: libraries-docker
     - name: Unpack libraries
       run: tar --zstd -xf libraries-docker.tar.zstd
-    - uses: ursg/gcc-problem-matcher@master
+    - name: Register GCC problem matcher
+      run: echo "::add-matcher::$GITHUB_WORKSPACE/.github/gcc-problem-matcher.json"
 
     - name: Compile vlasiator (Release build)
       shell: bash
@@ -361,7 +376,7 @@ jobs:
           mini-apps/ionosphereSolverTests/sigmaProfiles
         if-no-files-found: error
     - name: Set up Python
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v6
     - name: Install uv
       uses: astral-sh/setup-uv@v6
     - name: install Gnuplot
@@ -409,7 +424,7 @@ jobs:
     needs: build_github
     steps:
     - name: Checkout source
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         submodules: false
     - name: Download libraries

@@ -164,11 +164,13 @@ do
                 continue
             fi
             echo "Comparing file ${vlsv_dir}/${vlsv} against reference"
+            timeDiff="" # the file time is the same for every variable, so any successful diff below supplies it
             for i in ${!variables[*]}
             do
                 if [[ "${variables[$i]}" == "fg_"* ]]
                 then
                     A=$( $run_command_tools $diffbin --meshname=fsgrid  ${reference_result_dir}/${vlsv} ${vlsv_dir}/${vlsv} ${variables[$i]} ${indices[$i]} )
+                    dt=$(grep "The delta t between both datasets is" <<< "$A" | gawk '{print $8}'); timeDiff=${dt:-$timeDiff}
                     relativeValue=$(grep "The relative 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
                     absoluteValue=$(grep "The absolute 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
                     #print the results
@@ -176,6 +178,7 @@ do
                 elif [[ "${variables[$i]}" == "ig_"* ]]
                 then
                     B=$( $run_command_tools $diffbin --meshname=ionosphere  ${reference_result_dir}/${vlsv} ${vlsv_dir}/${vlsv} ${variables[$i]} ${indices[$i]} )
+                    dt=$(grep "The delta t between both datasets is" <<< "$B" | gawk '{print $8}'); timeDiff=${dt:-$timeDiff}
                     relativeValue=$(grep "The relative 0-distance between both datasets" <<< $B |gawk '{print $8}'  )
                     absoluteValue=$(grep "The absolute 0-distance between both datasets" <<< $B |gawk '{print $8}'  )
                     #print the results
@@ -183,6 +186,7 @@ do
                 elif [ ! "${variables[$i]}" == "proton" ]
                 then # Regular vg_ variable
                     C=$( $run_command_tools $diffbin ${reference_result_dir}/${vlsv} ${vlsv_dir}/${vlsv} ${variables[$i]} ${indices[$i]} )
+                    dt=$(grep "The delta t between both datasets is" <<< "$C" | gawk '{print $8}'); timeDiff=${dt:-$timeDiff}
                     relativeValue=$(grep "The relative 0-distance between both datasets" <<< $C |gawk '{print $8}'  )
                     absoluteValue=$(grep "The absolute 0-distance between both datasets" <<< $C |gawk '{print $8}'  )
                     #print the results
@@ -197,12 +201,14 @@ do
             done # loop over variables
 
             # Print also time difference, if it is not zero
-            timeDiff=$(grep "delta t" <<< $C |gawk '{print $8}'  )
-            if (( $(awk 'BEGIN{print ('$timeDiff'!= 0.0)?1:0}') ))
+            if [[ -z $timeDiff ]]
             then
-                echo "WARNING! VLSV file timestamps differ by ${timeDiff}s."
-            else
+                echo "WARNING! VLSV file timestamps could not be compared."
+            elif [[ $timeDiff == 0 || $timeDiff == -0 ]] # iostream prints an exact zero as 0 or -0; nan counts as differing
+            then
                 echo "VLSV file timestamps match."
+            else
+                echo "WARNING! VLSV file timestamps differ by ${timeDiff}s."
             fi
             echo "--------------------------------------------------------------------------------------------"
         done # loop over vlsv files to compare

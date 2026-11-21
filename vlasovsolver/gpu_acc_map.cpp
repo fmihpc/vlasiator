@@ -1070,6 +1070,8 @@ __global__ void __launch_bounds__(WID3, ACCELERATION_KERNEl_MIN_BLOCKS) accelera
                val = max(val, gpuKernelShflDown(val, offset));
             }
 
+            // A lagging warp may still be looping to loopN[0] of the previous block; overwriting it ends that loop early.
+            __syncthreads();
             if (indexInsideWarp == 0) {
                loopN[warpIndex] = val;
             }
@@ -1411,6 +1413,16 @@ __host__ bool gpu_acc_map_1d(
          // This function updates both CPU and GPU copies correctly.
          gpu_acc_allocate_perthread(cellIndex, host_totalColumns, host_totalColumnSets);
       }
+      #ifdef DEBUG_ACC
+      // The extent and acceleration kernels loop over setColumnOffsets.size() column sets.
+      const size_t nSetsVector = host_columnOffsetData[cellIndex].setColumnOffsets.size();
+      if (nSetsVector != host_totalColumnSets) {
+         std::cerr << "Error! " << __FILE__ << ":" << __LINE__ << " column set vector size " << nSetsVector
+                   << " != " << host_totalColumnSets << " column sets of cell " << launchCells[cellIndex]
+                   << " (dimension " << dimension << ")" << std::endl;
+         abort();
+      }
+      #endif
    } // end parallel region
    allocTimer.stop();
 
@@ -1514,12 +1526,15 @@ __host__ bool gpu_acc_map_1d(
          size_t newCapacity = (size_t)((SC->getReservation(popID)+(GET_POINTER(gpuMemoryManager, vmesh::LocalID, host_resizeSuccess))[cellOffset])*BLOCK_ALLOCATION_FACTOR);
          SC->setReservation(popID, newCapacity);
          SC->applyReservation(popID);
-         // Clear the vector which receives push_backs. The maps do not need to be cleared.
-         SC->list_with_replace_new->clear();
       }
    } // end parallel for
 
    if (needSecondLaunchColumnExtents) {
+      // The relaunch covers every cell, so lists that did fit would otherwise get each new block twice.
+      // The maps do not need to be cleared.
+      for (size_t cellIndex = 0; cellIndex < nLaunchCells; cellIndex++) {
+         mpiGrid[launchCells[cellIndex]]->list_with_replace_new->clear();
+      }
       // Reset counters, upload new pointers to splitvectors
       CHK_ERR( gpuMemsetAsync(GET_POINTER(gpuMemoryManager, vmesh::LocalID, dev_resizeSuccess)+cumulativeOffset, 0, nLaunchCells*sizeof(vmesh::LocalID), baseStream) );
       CHK_ERR( gpuMemsetAsync(GET_POINTER(gpuMemoryManager, vmesh::LocalID, dev_overflownElements)+cumulativeOffset, 0, nLaunchCells*sizeof(vmesh::LocalID), baseStream) );

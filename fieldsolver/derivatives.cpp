@@ -76,20 +76,20 @@ void computeMomentsDerivatives(fsgrids::constmomentsspan moments,
    {
 #ifdef DEBUG_SOLVERS
       const auto& cv = momData.ooo[mom::RHOM];
-      if (cv <= 0) {
-         std::cerr << __FILE__ << ":" << __LINE__ << (cv < 0 ? " Negative" : " Zero") << " density in fsgrid cell " << stencil.indexFromOffset( 0,0,0) << std::endl;
+      if (cv < 0) {
+         std::cerr << __FILE__ << ":" << __LINE__ << " Negative density in fsgrid cell " << stencil.indexFromOffset( 0,0,0) << std::endl;
          abort();
       }
 
       const auto& lv = momData.moo[mom::RHOM];
-      if (lv <= 0) {
-         std::cerr << __FILE__ << ":" << __LINE__ << (lv < 0 ? " Negative" : " Zero") << " density in fsgrid cell " << stencil.indexFromOffset(-1,0,0) << std::endl;
+      if (lv < 0) {
+         std::cerr << __FILE__ << ":" << __LINE__ << " Negative density in fsgrid cell " << stencil.indexFromOffset(-1,0,0) << std::endl;
          abort();
       }
 
       const auto& rv = momData.poo[mom::RHOM];
-      if (rv <= 0) {
-         std::cerr << __FILE__ << ":" << __LINE__ << (rv < 0 ? " Negative" : " Zero") << " density in fsgrid cell " << stencil.indexFromOffset( 1,0,0) << std::endl;
+      if (rv < 0) {
+         std::cerr << __FILE__ << ":" << __LINE__ << " Negative density in fsgrid cell " << stencil.indexFromOffset( 1,0,0) << std::endl;
          abort();
       }
 #endif
