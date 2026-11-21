@@ -74,7 +74,7 @@ public:
       }
       std::vector<std::pair<GID, LID>> newBuckets(1u << newSizePower, std::pair<GID, LID>(EMPTYBUCKET, LID()));
       sizePower = newSizePower;
-      int bitMask = (1u << sizePower) - 1; // For efficient modulo of the array size
+      const size_t bitMask = (size_t(1) << sizePower) - 1; // For efficient modulo of the array size
 
       // Iterate through all old elements and rehash them into the new array.
       for (auto& e : buckets) {
@@ -85,7 +85,7 @@ public:
 
          uint32_t newHash = hash(e.first);
          bool found = false;
-         for (int i = 0; i < maxBucketOverflow; i++) {
+         for (size_t i = 0; i < maxBucketOverflow; i++) {
             std::pair<GID, LID>& candidate = newBuckets[(newHash + i) & bitMask];
             if (candidate.first == EMPTYBUCKET) {
                // Found an empty bucket, assign that one.
@@ -108,11 +108,11 @@ public:
 
    // Element access (by reference). Nonexistent elements get created.
    LID& at(const GID& key) {
-      int bitMask = (1 << sizePower) - 1; // For efficient modulo of the array size
+      const size_t bitMask = (size_t(1) << sizePower) - 1; // For efficient modulo of the array size
       uint32_t hashIndex = hash(key);
 
       // Try to find the matching bucket.
-      for (int i = 0; i < maxBucketOverflow; i++) {
+      for (size_t i = 0; i < maxBucketOverflow; i++) {
          std::pair<GID, LID>& candidate = buckets[(hashIndex + i) & bitMask];
          if (candidate.first == key) {
             // Found a match, return that
@@ -132,11 +132,11 @@ public:
    }
       
    const LID& at(const GID& key) const {
-      int bitMask = (1 << sizePower) - 1; // For efficient modulo of the array size
+      const size_t bitMask = (size_t(1) << sizePower) - 1; // For efficient modulo of the array size
       uint32_t hashIndex = hash(key);
 
       // Try to find the matching bucket.
-      for (int i = 0; i < maxBucketOverflow; i++) {
+      for (size_t i = 0; i < maxBucketOverflow; i++) {
          const std::pair<GID, LID>& candidate = buckets[(hashIndex + i) & bitMask];
          if (candidate.first == key) {
             // Found a match, return that
@@ -284,11 +284,11 @@ public:
 
    // Element access by iterator
    iterator find(GID key) {
-      int bitMask = (1 << sizePower) - 1; // For efficient modulo of the array size
+      const size_t bitMask = (size_t(1) << sizePower) - 1; // For efficient modulo of the array size
       uint32_t hashIndex = hash(key);
 
       // Try to find the matching bucket.
-      for (int i = 0; i < maxBucketOverflow; i++) {
+      for (size_t i = 0; i < maxBucketOverflow; i++) {
          const std::pair<GID, LID>& candidate = buckets[(hashIndex + i) & bitMask];
          if (candidate.first == key) {
             // Found a match, return that
@@ -306,11 +306,11 @@ public:
    }
 
    const const_iterator find(GID key) const {
-      int bitMask = (1 << sizePower) - 1; // For efficient modulo of the array size
+      const size_t bitMask = (size_t(1) << sizePower) - 1; // For efficient modulo of the array size
       uint32_t hashIndex = hash(key);
 
       // Try to find the matching bucket.
-      for (int i = 0; i < maxBucketOverflow; i++) {
+      for (size_t i = 0; i < maxBucketOverflow; i++) {
          const std::pair<GID, LID>& candidate = buckets[(hashIndex + i) & bitMask];
          if (candidate.first == key) {
             // Found a match, return that
@@ -348,7 +348,7 @@ public:
          // Clear the element itself.
          buckets[index].first = EMPTYBUCKET;
 
-         int bitMask = (1 << sizePower) - 1; // For efficient modulo of the array size
+         const size_t bitMask = (size_t(1) << sizePower) - 1; // For efficient modulo of the array size
          size_t targetPos = index;
          // Search ahead to verify items are in correct places (until empty bucket is found).
          // Bounded by the table size, not fill: one cluster can hold every remaining entry.
