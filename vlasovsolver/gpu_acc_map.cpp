@@ -1070,6 +1070,8 @@ __global__ void __launch_bounds__(WID3, ACCELERATION_KERNEl_MIN_BLOCKS) accelera
                val = max(val, gpuKernelShflDown(val, offset));
             }
 
+            // A lagging warp may still be looping to loopN[0] of the previous block; overwriting it ends that loop early.
+            __syncthreads();
             if (indexInsideWarp == 0) {
                loopN[warpIndex] = val;
             }
