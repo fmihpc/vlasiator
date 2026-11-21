@@ -350,8 +350,9 @@ public:
 
          int bitMask = (1 << sizePower) - 1; // For efficient modulo of the array size
          size_t targetPos = index;
-         // Search ahead to verify items are in correct places (until empty bucket is found)
-         for (unsigned int i = 1; i < fill; i++) {
+         // Search ahead to verify items are in correct places (until empty bucket is found).
+         // Bounded by the table size, not fill: one cluster can hold every remaining entry.
+         for (unsigned int i = 1; i < buckets.size(); i++) {
             GID nextBucket = buckets[(index + i)&bitMask].first;
             if (nextBucket == EMPTYBUCKET) {
                // The next bucket is empty, we are done.
@@ -360,9 +361,11 @@ public:
             // Found an entry: is it in the correct bucket?
             uint32_t hashIndex = hash(nextBucket);
             if ((hashIndex&bitMask) != ((index + i)&bitMask)) {
-               // This entry has overflown. Now check if it should be moved:
-               uint32_t distance =  ((targetPos - hashIndex + (1<<sizePower) )&bitMask);
-               if (distance < maxBucketOverflow) {
+               // This entry has overflown. Move it only if the hole lies between its home bucket
+               // and its current bucket; otherwise lookups from its home stop at the hole.
+               const size_t displacement = ((index + i) - hashIndex) & bitMask;
+               const size_t holeDistance = ((index + i) - targetPos) & bitMask;
+               if (holeDistance <= displacement) {
                   // Copy this entry to the current newly empty bucket, then continue with deleting
                   // this overflown entry and continue searching for overflown entries
                   LID moveValue = buckets[(index+i)&bitMask].second;
