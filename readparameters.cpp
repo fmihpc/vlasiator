@@ -23,6 +23,8 @@
 #include <cstdio>
 #include "readparameters.h"
 #include "common.h"
+#include "glossa.hpp"
+
 using namespace std;
 bool Readparameters::helpRequested = false;
 bool Readparameters::versionRequested = false;
@@ -168,7 +170,7 @@ void Readparameters::applyArgTokens(const std::vector<std::string>& tokens, bool
    }
 }
 
-void Readparameters::applyConfigFile(const std::string& filename, bool extras, std::vector<std::string>& invalid) {
+void Readparameters::applyConfigFile(const std::string& filename, bool extras, std::vector<std::string>& invalid, const std::unordered_map<std::string, double>& supplied_globals) {
    std::FILE* fp = std::fopen(filename.c_str(), "rb");
    if (!fp) {
       return;
@@ -185,6 +187,8 @@ void Readparameters::applyConfigFile(const std::string& filename, bool extras, s
    if (buffer.empty()) {
       return;
    }
+   //Evaluate config
+   buffer = glossa::evaluate_config(buffer,supplied_globals);
 
    std::string section;
    std::set<std::string> touched;
@@ -343,7 +347,7 @@ std::string Readparameters::versionInfo() { return getVersion(); }
 
 std::string Readparameters::configInfo() { return getConfig(configFileName.c_str()); }
 
-void Readparameters::parse(std::vector<std::string>& invalid, std::vector<std::string>& filenames, bool extras) {
+void Readparameters::parse(std::vector<std::string>& invalid, std::vector<std::string>& filenames, bool extras, const std::unordered_map<std::string, double>& supplied_globals) {
    int rank;
    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
    std::string conf;
@@ -354,7 +358,7 @@ void Readparameters::parse(std::vector<std::string>& invalid, std::vector<std::s
       const std::vector<std::string> tokens = make_tokens(argc-1, argv+1); // skip the program name in argv[0]
       configFileName = finalizeFileName(tokens);
 
-      applyConfigFile(configFileName, extras, invalid);
+      applyConfigFile(configFileName, extras, invalid,supplied_globals);
       applyArgTokens(tokens, extras, invalid, filenames);
       if (!extras && !invalid.empty()) {
          std::cerr << "Error parsing config, following options are invalid:\n";

@@ -1568,7 +1568,7 @@ bool retrieveOptions( const int argn, char *args[], UserOptions & mainOptions ) 
       //to be printed and the program to exit.
       std::vector<std::string> extras;
       std::vector<std::string> filenames;
-      params.parse(extras, filenames, false);
+      params.parse(extras, filenames, false, std::unordered_map<std::string,double>{});
       flags.filenames = filenames;
       //Print help and exit if --help was given on the command line.
       params.helpMessage();
