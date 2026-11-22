@@ -1,0 +1,79 @@
+# Makefile for the gpu partition of Roihu at CSC, using nvc++ from the nvhpc/26.3
+# module (bundled CUDA 13.1 + HPCX MPI) instead of nvcc, primarily to get CUDA 13
+# support. NOT using -stdpar=gpu (dropped - it implies relocatable device code,
+# which caused a cascade of issues: nvlink duplicate-registration collisions for
+# header-only template libraries like CLI11 reused across many translation units,
+# GCC15 libstdc++-hardening assert calls surfacing in device code via nvc++'s
+# implicit whole-TU dual host/device compilation, and a runtime hang in
+# cudaMemcpyToSymbol). GPU dispatch here uses the same explicit __global__/
+# __device__ kernel style as Makefile.roihu_gpu (classic nvcc), just compiled
+# with nvc++ instead - fsgrid dispatch uses parallel_for (OpenMP), not
+# experimental_for (stdpar).
+#
+# Build libraries as ./fetch_and_build_libraries.sh roihu_gpu_nvhpc
+#
+# Recommended modules:
+# source modules/roihu_gpu_nvhpc.sh
+VECTORCLASS = VEC_FALLBACK_GENERIC
+#WID=8
+WID=4
+USE_CUDA=1
+
+CMP = mpic++
+LNK = mpic++
+
+# No --gcc-toolchain= override: confirmed working against the plain nvhpc
+# module on the real system (an agent-container test earlier suggested nvc++
+# couldn't find <vector>/<cmath> without one, but that was specific to that
+# container, not this environment).
+# -gpu=cc90: without it, nvc++ generates device code for every compute
+# capability it knows about (sm_75..sm_121, ~12 architectures), which is very
+# slow to compile. Roihu's GPU nodes are all GH200 (Hopper, sm_90), so restrict to that.
+CXXFLAGS = -g -O3 -x cu  -DVLASIATOR_ALLOW_MCA_OMPIO -std=c++20 -gpu=cc90 -Xcompiler -std=c++20 -Xcompiler -fopenmp -line-info -Xcompiler="-fpermissive"
+testpackage: CXXFLAGS = -g -O2 -x cu -std=c++20 -Xcompiler -std=c++20 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_90,code=sm_90 -Xcompiler -fopenmp --generate-line-info -line-info -Xcompiler="-fpermissive"
+testpackage: MATHFLAGS = --prec-sqrt=true --prec-div=true --ftz=false --fmad=false
+
+# -cuda: -gpu=cc90 alone has no effect at link time (nvc++ only enables CUDA
+# linking when -gpu= is paired with a mode flag - -acc/-mp=gpu/-stdpar/-cuda).
+# -x cu masks this at compile time (it puts each .cu file in CUDA mode
+# directly), but the separate link step needs -cuda explicitly, or nvc++
+# silently skips linking its own CUDA runtime and every cuda* runtime symbol
+# (cudaMallocAsync, cudaDeviceSynchronize, __cudaRegisterFunction, ...) comes
+# back undefined at link time.
+LDFLAGS = -O2 -g -gpu=cc90 -cuda #lnvToolsExt
+# Not -lgomp: nvc++ already auto-links its own complete OpenMP runtime
+# (libnvomp) for -fopenmp/-mp code. Explicitly linking GNU's libgomp too
+# (carried over from Makefile.roihu_gpu) means the binary ends up with BOTH
+# libgomp.so.1 AND libnvomp.so loaded simultaneously (confirmed via ldd) -
+# two independent OpenMP runtime implementations both managing thread-team/
+# ICV state in the same process, a known source of internal-state corruption.
+# Observed as an immediate "libgomp: TODO" abort at process startup (before
+# any application code runs) once the nvhpc build first linked successfully
+# under -stdpar=gpu; may no longer be reachable now that -stdpar=gpu is gone,
+# but leaving -lgomp out is still correct either way.
+LIB_MPI =
+LIB_CUDA = -L/usr/local/cuda/lib64
+INC_CUDA = -isystem /usr/local/cuda/include
+
+#======== PAPI ==========
+#Add PAPI_MEM define to use papi to report memory consumption?
+#CXXFLAGS +=  -DPAPI_MEM
+#testpackage: CXXFLAGS +=  -DPAPI_MEM
+
+# module libraries
+# Not linked for now - no working PAPI build for this arch yet.
+#LIB_PAPI = -lpapi
+
+
+# compiled libraries
+LIBRARY_PREFIX =  $(CURDIR)/libraries-roihu_gpu_nvhpc/
+
+INC_ZOLTAN = -I$(LIBRARY_PREFIX)/include
+LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/lib64 -lzoltan
+
+INC_VLSV = -I$(LIBRARY_PREFIX)/include
+LIB_VLSV = -L$(LIBRARY_PREFIX)/lib -lvlsv -Xlinker=-rpath=$(LIBRARY_PREFIX)/vlsv/lib
+
+LIB_PROFILE = -L$(LIBRARY_PREFIX)/lib -lphiprof -Xlinker=-rpath=$(LIBRARY_PREFIX)/lib
+INC_PROFILE = -I$(LIBRARY_PREFIX)/include
+

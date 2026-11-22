@@ -1,6 +1,7 @@
 /*
  * This file is part of Vlasiator.
  * Copyright 2010-2024 Finnish Meteorological Institute and University of Helsinki
+ * Copyright 2026 CSC - IT Center for Science Ltd. <www.csc.fi>
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
  * at http://www.physics.helsinki.fi/vlasiator/
@@ -34,6 +35,13 @@
 #ifdef USE_WARPACCESSORS
  #define USE_TRANS_WARPACCESSORS
 #endif
+
+#include <mpi.h>
+#include <mpi-ext.h>
+
+//#if defined(MPIX_CUDA_AWARE_SUPPORT) && MPIX_CUDA_AWARE_SUPPORT
+//#define CUDA_AWARE_MPI
+//#endif
 
 // Skip remapping for this stencil, if no blocks exist
 __device__ inline bool check_skip_blocks(const Realf* __restrict__ const *pencilBlockData, const uint centerOffset) {
@@ -736,7 +744,8 @@ void update_remote_mapping_contribution_amr(
    phiprof::Timer updateRemoteTimerPre {"trans-amr-remotes-setup-getcells"};
    // Initialize remote cells
    #pragma omp parallel for
-   for (auto rc : remote_cells) {
+   for (size_t i = 0; i < remote_cells.size(); ++i) {
+      const CellID rc = remote_cells[i];
       SpatialCell *ccell = mpiGrid[rc];
       // Initialize number of blocks to 0 and block data to a default value.
       // We need the default for 1 to 1 communications
@@ -750,7 +759,8 @@ void update_remote_mapping_contribution_amr(
 
    // Initialize local cells
    #pragma omp parallel for
-   for (auto lc : local_cells) {
+   for (size_t i = 0; i < local_cells.size(); ++i) {
+      const CellID lc = local_cells[i];
       SpatialCell *ccell = mpiGrid[lc];
       if(ccell) {
          // Initialize number of blocks to 0 and neighbor block data pointer to the local block data pointer
@@ -764,6 +774,19 @@ void update_remote_mapping_contribution_amr(
 
    vector<Realf*> receiveBuffers;
    vector<Realf*> sendBuffers;
+
+   bool useGpuMpiPointers;
+#ifdef CUDA_AWARE_MPI
+   if (MPIX_Query_cuda_support() == 1) {
+      useGpuMpiPointers = true;
+   } else {
+      useGpuMpiPointers = false;
+   }
+#else
+   useGpuMpiPointers = false;
+#endif
+
+   gpuMemoryManager.startSession(0,0);
 
    phiprof::Timer updateRemoteTimer0 {"trans-amr-remotes-setup-localcells"};
    for (auto c : local_cells) {
@@ -827,9 +850,14 @@ void update_remote_mapping_contribution_amr(
                         ccell->neighbor_block_data.at(sendIndex) = 0;
                         sendBuffers.push_back(0);
                      } else {
-                        // GPUTODO: This is now unified memory. With GPU-aware MPI it could be on-device.
-                        CHK_ERR( gpuMallocManaged((void**)&ccell->neighbor_block_data.at(sendIndex), ccell->neighbor_number_of_blocks.at(sendIndex) * WID3 * sizeof(Realf)) );
-                        // CHK_ERR( gpuMemPrefetchAsync(ccell->neighbor_block_data.at(sendIndex),ccell->neighbor_number_of_blocks.at(sendIndex) * WID3 * sizeof(Realf),device,0) );
+                        if(useGpuMpiPointers) {
+                           size_t index;
+                           gpuMemoryManager.sessionAllocate<Realf>(index,  ccell->neighbor_number_of_blocks.at(sendIndex) * WID3 * sizeof(Realf));
+                           ccell->neighbor_block_data.at(sendIndex) = gpuMemoryManager.getSessionPointer<Realf>(index);
+                        } else { 
+                           CHK_ERR( gpuMallocManaged((void**)&ccell->neighbor_block_data.at(sendIndex), ccell->neighbor_number_of_blocks.at(sendIndex) * WID3 * sizeof(Realf)) );
+                           // CHK_ERR( gpuMemPrefetchAsync(ccell->neighbor_block_data.at(sendIndex),ccell->neighbor_number_of_blocks.at(sendIndex) * WID3 * sizeof(Realf),device,0) );
+                        }
                         CHK_ERR( gpuMemset(ccell->neighbor_block_data.at(sendIndex), 0, ccell->neighbor_number_of_blocks.at(sendIndex) * WID3 * sizeof(Realf)) );
                         sendBuffers.push_back(ccell->neighbor_block_data.at(sendIndex));
                      }
@@ -867,9 +895,14 @@ void update_remote_mapping_contribution_amr(
                   if (ncell->neighbor_number_of_blocks.at(recvIndex) == 0) {
                      receiveBuffers.push_back(0);
                   } else {
-                     // GPUTODO: This is now unified memory. With GPU-aware MPI it could be on-device.
-                     CHK_ERR( gpuMallocManaged((void**)&ncell->neighbor_block_data.at(recvIndex), ncell->neighbor_number_of_blocks.at(recvIndex) * WID3 * sizeof(Realf)) );
-                     CHK_ERR( gpuMemPrefetchAsync(ncell->neighbor_block_data.at(recvIndex), ncell->neighbor_number_of_blocks.at(recvIndex) * WID3 * sizeof(Realf), device,0) );
+                     if(useGpuMpiPointers) {
+                        size_t index;
+                        gpuMemoryManager.sessionAllocate<Realf>(index, ncell->neighbor_number_of_blocks.at(recvIndex) * WID3 * sizeof(Realf));
+                        ncell->neighbor_block_data.at(recvIndex) = gpuMemoryManager.getSessionPointer<Realf>(index);
+                     }else {
+                        CHK_ERR( gpuMallocManaged((void**)&ncell->neighbor_block_data.at(recvIndex), ncell->neighbor_number_of_blocks.at(recvIndex) * WID3 * sizeof(Realf)) );
+                        CHK_ERR( gpuMemPrefetchAsync(ncell->neighbor_block_data.at(recvIndex), ncell->neighbor_number_of_blocks.at(recvIndex) * WID3 * sizeof(Realf), device,0) );
+                     }
                      receiveBuffers.push_back(ncell->neighbor_block_data.at(recvIndex));
                   }
                } else {
@@ -898,9 +931,14 @@ void update_remote_mapping_contribution_amr(
                         if (ncell->neighbor_number_of_blocks.at(i_sib) == 0) {
                            receiveBuffers.push_back(0);
                         } else {
-                           // GPUTODO: This is now unified memory. With GPU-aware MPI it could be on-device.
-                           CHK_ERR( gpuMallocManaged((void**)&ncell->neighbor_block_data.at(i_sib), ncell->neighbor_number_of_blocks.at(i_sib) * WID3 * sizeof(Realf)) );
-                           CHK_ERR( gpuMemPrefetchAsync(ncell->neighbor_block_data.at(i_sib), ncell->neighbor_number_of_blocks.at(i_sib) * WID3 * sizeof(Realf), device,0) );
+                           if(useGpuMpiPointers) {
+                              size_t index;
+                              gpuMemoryManager.sessionAllocate<Realf>(index, ncell->neighbor_number_of_blocks.at(i_sib) * WID3 * sizeof(Realf));
+                              ncell->neighbor_block_data.at(i_sib) = gpuMemoryManager.getSessionPointer<Realf>(index);
+                           }else {
+                              CHK_ERR( gpuMallocManaged((void**)&ncell->neighbor_block_data.at(i_sib), ncell->neighbor_number_of_blocks.at(i_sib) * WID3 * sizeof(Realf)) );
+                              CHK_ERR( gpuMemPrefetchAsync(ncell->neighbor_block_data.at(i_sib), ncell->neighbor_number_of_blocks.at(i_sib) * WID3 * sizeof(Realf), device,0) );
+                           }
                            receiveBuffers.push_back(ncell->neighbor_block_data.at(i_sib));
                         }
                      }
@@ -970,11 +1008,14 @@ void update_remote_mapping_contribution_amr(
    }
 
    phiprof::Timer updateRemoteTimerFree {"trans-amr-remotes-free"};
-   for (auto p : receiveBuffers) {
-      CHK_ERR( gpuFree(p) );
+   if(!useGpuMpiPointers) {
+      for (auto p : receiveBuffers) {
+         CHK_ERR( gpuFree(p) );
+      }
+      for (auto p : sendBuffers) {
+         CHK_ERR( gpuFree(p) );
+      }
    }
-   for (auto p : sendBuffers) {
-      CHK_ERR( gpuFree(p) );
-   }
+   gpuMemoryManager.endSession();
    updateRemoteTimerFree.stop();
 }

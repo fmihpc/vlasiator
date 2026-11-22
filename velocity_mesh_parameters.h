@@ -1,6 +1,7 @@
 /*
  * This file is part of Vlasiator.
  * Copyright 2010-2024 Finnish Meteorological Institute and University of Helsinki
+ * Copyright 2026 CSC - IT Center for Science Ltd. <www.csc.fi>
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
  * at http://www.physics.helsinki.fi/vlasiator/
@@ -104,7 +105,12 @@ namespace vmesh {
    // This means that each compilation unit will use its own. To make sure all instances are initialized with the same
    // address, we use the Ctor of a static object to register all intances so that the allocated memory pointer
    // could be copied to all of them.
-   __device__ __constant__ MeshWrapper* meshWrapperDevInstance;
+   // `static` (internal linkage) is required for this to actually be per-TU-private
+   // as intended above: without it, nvc++'s device linker treats same-named
+   // __device__ variables across translation units as one shared external
+   // symbol and fails with "multiple definition" at nvlink time once more than
+   // one TU including this header gets linked together.
+   static __device__ __constant__ MeshWrapper* meshWrapperDevInstance;
    ARCH_DEV static MeshWrapper* gpu_getMeshWrapper() { return meshWrapperDevInstance; };
    // Static object and corresponding instance whose Ctor is used register all the instances of device meshWrapperDev
    // symbols.
@@ -119,11 +125,15 @@ namespace vmesh {
    // Caller, inlined into other compilation units, will call either host or device getter
    ARCH_HOSTDEV inline MeshWrapper* getMeshWrapper() {
    #if defined(USE_GPU)
-      #if (defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__))
-      return gpu_getMeshWrapper();
-      #else
-      return host_getMeshWrapper();
-      #endif
+      // Note: VLASIATOR_IF_DEVICE, not a raw __CUDA_ARCH__ check - nvc++ does
+      // not reliably honor #if defined(__CUDA_ARCH__) inside a
+      // __host__ __device__ function (see arch_device_api.h), which would
+      // pull host_getMeshWrapper() into device compilation here too (a hard
+      // compile error: meshWrapper is a host-only global).
+      VLASIATOR_IF_DEVICE(
+         (return gpu_getMeshWrapper();),
+         (return host_getMeshWrapper();)
+      )
    #else
       return host_getMeshWrapper();
    #endif
