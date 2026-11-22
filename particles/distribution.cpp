@@ -23,14 +23,14 @@
 #include "distribution.h"
 #include "particles.h"
 
-Distribution::Distribution(std::default_random_engine& _rand) : rand(_rand) {
+Distribution::Distribution(std::knuth_b& _rand) : rand(_rand) {
    mass = ParticleParameters::mass;
    charge = ParticleParameters::charge;
 }
-Maxwell_Boltzmann::Maxwell_Boltzmann(std::default_random_engine& _rand) : 
+Maxwell_Boltzmann::Maxwell_Boltzmann(std::knuth_b& _rand) : 
    Distribution(_rand), velocity_distribution {std::normal_distribution<Real>(0., sqrt(ParticleParameters::temperature * PhysicalConstantsSI::k / mass))} {}
 
-Monoenergetic::Monoenergetic(std::default_random_engine& _rand) : Distribution(_rand) {
+Monoenergetic::Monoenergetic(std::knuth_b& _rand) : Distribution(_rand) {
    vel = ParticleParameters::particle_vel;
 }
 
@@ -66,12 +66,12 @@ double Kappa::find_v_for_r(double rand) {
    return maxw0/lookup_size*(a + (rand-lookup[a])/(lookup[a+1]-lookup[a]));
 }
 
-Kappa6::Kappa6(std::default_random_engine& _rand) : Kappa(_rand) {
+Kappa6::Kappa6(std::knuth_b& _rand) : Kappa(_rand) {
    Real kT = ParticleParameters::temperature * PhysicalConstantsSI::k;
    w0 = sqrt(2.* kT *(6. - 1.5)/(6. * mass));
    generate_lookup();
 }
-Kappa2::Kappa2(std::default_random_engine& _rand) : Kappa(_rand) {
+Kappa2::Kappa2(std::knuth_b& _rand) : Kappa(_rand) {
    Real kT = ParticleParameters::temperature * PhysicalConstantsSI::k;
    w0 = sqrt(2.* kT *(2. - 1.5)/(2. * mass));
    generate_lookup();

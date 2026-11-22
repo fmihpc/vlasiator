@@ -58,7 +58,7 @@ ParticleContainer distributionScenario::initialParticles(Field& E, Field& B, Fie
 
    ParticleContainer particles;
 
-   std::default_random_engine generator(ParticleParameters::random_seed);
+   std::knuth_b generator(ParticleParameters::random_seed);
    Distribution* velocity_distribution=ParticleParameters::distribution(generator);
 
    Vec3d vpos(ParticleParameters::init_x, ParticleParameters::init_y, ParticleParameters::init_z);
@@ -202,7 +202,7 @@ void shockReflectivityScenario::newTimestep(int input_file_counter, int step, do
 
    const int num_points = 200;
 
-   std::default_random_engine generator(ParticleParameters::random_seed+step);
+   std::knuth_b generator(ParticleParameters::random_seed+step);
    Distribution* velocity_distribution=ParticleParameters::distribution(generator);
 
    // Create particles along a parabola, in front of the shock
@@ -313,7 +313,7 @@ ParticleContainer ipShockScenario::initialParticles(Field& E, Field& B, Field& V
    ParticleContainer particles;
 
    /* Prepare randomization engines */
-   std::default_random_engine generator(ParticleParameters::random_seed);
+   std::knuth_b generator(ParticleParameters::random_seed);
    Distribution* velocity_distribution=ParticleParameters::distribution(generator);
 
    std::random_device rd;

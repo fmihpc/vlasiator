@@ -76,32 +76,32 @@ namespace projects {
     public:
       Project();
       virtual ~Project();
-      
+
       /*! Register parameters that should be read in. */
       virtual void addParameters()=0;
 
       void addCommonParameters();
-      
+
       virtual Real getCorrectNumberDensity(spatial_cell::SpatialCell* cell,const uint popID) const;
-      
+
       /*! Get the value that was read in. */
       virtual void getParameters();
-      
+
       /*! Initialize project. Can be used, e.g., to read in parameters from the input file. */
       virtual bool initialize();
-      
+
       /*! Perform some operation at each time step in the main program loop. */
       virtual void hook(cuint& stage, const dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                         fsgrids::perbspan perb,
                         fsgrids::technicalspan technical, FieldSolverGrid &fsgrid) const;
 
       bool initialized();
-      
+
       /** Set the background and perturbed magnetic fields for this project.
        * \param perBGrid Grid on which values of the perturbed field can be set if needed.
        * \param BgBGrid Grid on which values for the background field can be set if needed, e.g. using the background field functions.
        * \param technical Technical fsgrid, available if some of its data is necessary.
-       * 
+       *
        * \sa setBackgroundField, setBackgroundFieldToZero
        */
       virtual void setProjectBField(fsgrids::perbspan perb,
@@ -120,7 +120,7 @@ namespace projects {
        * \param cell Pointer to the cell to set.
        */
       void setCell(spatial_cell::SpatialCell* cell);
-         
+
       virtual bool canRefine(spatial_cell::SpatialCell* cell) const;
 
       virtual bool shouldRefineCell(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, CellID id, Real r_max2) const;
@@ -148,7 +148,7 @@ namespace projects {
       virtual bool filterRefined( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const;
     protected:
       /*! \brief Prepares a  list of blocks to loop through when initialising.
-       * 
+       *
        * The base class version just prepares all blocks, which amounts to looping through the whole velocity space.
        * This is very expensive and becomes prohibitive in cases where a large velocity space is needed with only
        * small portions actually containing something. Use with care.
@@ -201,7 +201,7 @@ namespace projects {
       /** Get random number between 0 and 1.0. One should always first initialize the rng.
        * @param rngDataBuffer struct of type random_data
        * @return Uniformly distributed random number between 0 and 1.*/
-      Real getRandomNumber(std::default_random_engine& randGen) const;
+      Real getRandomNumber(std::knuth_b& randGen) const;
 
       /** Set random seed (thread-safe). Seed is based on the seed read
        *  in from cfg + the seedModifier parameter
@@ -209,7 +209,7 @@ namespace projects {
        * @param rngStateBuffer buffer where random number values are kept
        * @param rngDataBuffer struct of type random_data
        */
-      void setRandomSeed(uint64_t seedModifier, std::default_random_engine& randGen) const;
+      void setRandomSeed(uint64_t seedModifier, std::knuth_b& randGen) const;
 
       /** Set random seed (thread-safe) that is always the same for
        * this particular cellID. Can be used to make reproducible
@@ -218,7 +218,7 @@ namespace projects {
        * @param rngStateBuffer buffer where random number values are kept
        * @param rngDataBuffer struct of type random_data
        */
-      void setRandomCellSeed(spatial_cell::SpatialCell* cell, std::default_random_engine& randGen) const;
+      void setRandomCellSeed(spatial_cell::SpatialCell* cell, std::knuth_b& randGen) const;
       
       uint seed;
     private:
