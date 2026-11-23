@@ -24,6 +24,8 @@ jobs:
         srun --constraint="carrington" bash -c "$RUN_STRING"
     - name: Checkout source
       uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      with:
+        persist-credentials: false
     - name: Make clean
       run: VLASIATOR_ARCH=turso-amd_GNU_MPICH make clean
     - name: Register GCC problem matcher
@@ -71,6 +73,7 @@ jobs:
       uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
       with:
         submodules: false
+        persist-credentials: false
     - name: Clean libraries
       run: |
         rm -rf libraries-turso-amd_GNU_MPICH

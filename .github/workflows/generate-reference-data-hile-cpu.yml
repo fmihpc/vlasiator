@@ -25,6 +25,8 @@ jobs:
           srun -C c bash -c "$RUN_STRING"
       - name: Checkout source
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
       - name: Make clean
         run: VLASIATOR_ARCH=hile_cpu make clean
       - name: Register GCC problem matcher
@@ -67,6 +69,7 @@ jobs:
       uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
       with:
         submodules: false
+        persist-credentials: false
     - name: Download testpackage binary
       uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
       with:
