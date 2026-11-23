@@ -4,6 +4,10 @@ on:
   # Only run when triggered manually
   workflow_dispatch:
 
+# Read-only suffices: artifact upload/download uses the runtime token, not GITHUB_TOKEN.
+permissions:
+  contents: read
+
 jobs:
   # srun flags should be kept ~identical to the turso-v100_GNU_MPICH entries in slurm_run.sh
   build_TP_turso_v100:

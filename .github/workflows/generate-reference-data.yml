@@ -4,6 +4,10 @@ on:
   # Only run when triggered manually
   workflow_dispatch:
 
+# Read-only suffices: artifact upload/download uses the runtime token, not GITHUB_TOKEN.
+permissions:
+  contents: read
+
 jobs:
   # This should be kept ~identical to the build_TP job in github-ci.yml
   build_TP:
