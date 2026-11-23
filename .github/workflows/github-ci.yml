@@ -33,8 +33,8 @@ jobs:
         run: |
           cd $GITHUB_WORKSPACE
           #chmod +x ./.github/workflows/CI_git_diff.sh
-          echo Comparing PR branch against ${{ github.base_ref }}
-          if [[ $(./.github/workflows/CI_git_diff.sh ${{ github.base_ref }} ) == "no_test" ]]; then
+          echo Comparing PR branch against ${GITHUB_BASE_REF}
+          if [[ -n "$GITHUB_BASE_REF" && $(./.github/workflows/CI_git_diff.sh "$GITHUB_BASE_REF") == "no_test" ]]; then
             echo "RUN_TP=False" >> $GITHUB_OUTPUT
             echo "Not running testpackage"
             exit 0
