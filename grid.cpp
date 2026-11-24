@@ -135,7 +135,7 @@ void initializeGrids(
 
    phiprof::Timer dccrgTimer {"Initialize DCCRG grid"};
    mpiGrid.set_initial_length(grid_length)
-      .set_load_balancing_method(&P::loadBalanceAlgorithm[0])
+      .set_load_balancing_method(P::loadBalanceAlgorithm.data())
       .set_neighborhood_length(neighborhood_size)
       .set_maximum_refinement_level(P::amrMaxSpatialRefLevel)
       .set_periodic(sysBoundaries.isPeriodic(0),

@@ -204,7 +204,7 @@ void propagateMagneticFieldSimple(fsgrids::perbspan perb,
                                   fsgrids::technicalspan technical, FieldSolverGrid &fsgrid,
                                   SysBoundary& sysBoundaries, creal& dt, cint& RKCase) {
    phiprof::Timer propagateBTimer{"Propagate magnetic field"};
-   const auto* localSize = &fsgrid.getLocalSize()[0];
+   const auto* localSize = fsgrid.getLocalSize().data();
    const auto& gridSpacing = fsgrid.getGridSpacing();
    const size_t numCells = fsgrid.getNumCells();
 
