@@ -288,7 +288,9 @@ namespace spatial_cell {
       void debug_population_check(const uint popID, const vmesh::LocalID blockLID) const;
 
       Population & get_population(const uint popID);
+      Population & get_population(const PopIndex popID);
       const Population & get_population(const uint popID) const;
+      const Population & get_population(const PopIndex popID) const;
       void set_population(const Population& pop, cuint popID);
       void scale_population(creal factor, cuint popID);
       void increment_population(const Population& pop, creal factor, cuint popID);
@@ -336,6 +338,7 @@ namespace spatial_cell {
 
       void printMeshSizes();
       static bool setCommunicatedSpecies(const uint popID);
+      static bool setCommunicatedSpecies(std::vector<PopIndex> popIndices);
 
       // Following functions adjust velocity blocks stored on the cell //
       bool add_velocity_block(const vmesh::GlobalID& block,const uint popID);
@@ -352,10 +355,14 @@ namespace spatial_cell {
       void setNewSizeClear(const uint popID, const vmesh::LocalID& newSize);
       void setNewSizeClear(const uint popID);
 
+      void setNewSizeClear(Population& pop, const vmesh::LocalID& newSize);
+      void setNewSizeClear(Population& pop);
+
       uint64_t get_cell_memory_capacity();
       uint64_t get_cell_memory_size();
       void merge_values(const uint popID);
       void prepare_to_receive_blocks(const uint popID);
+      void prepare_to_receive_blocks(const PopIndex popID);
       bool shrink_to_fit();
       size_t size(const uint popID) const;
       void remove_velocity_block(const vmesh::GlobalID& block,const uint popID);
@@ -403,7 +410,8 @@ namespace spatial_cell {
 
       bool compute_block_has_content(const vmesh::GlobalID& block,const uint popID) const;
 
-      static int activePopID;
+      static PopIndex activePopID;
+      static std::vector<PopIndex> activePopIndices;
       bool mpiTransferEnabled;
 
       std::vector<spatial_cell::Population> populations;                        /**< Particle population variables.*/
@@ -510,9 +518,17 @@ namespace spatial_cell {
    inline Population & SpatialCell::get_population(const uint popID) {
       return populations[popID];
    }
+   
+   inline Population & SpatialCell::get_population(const PopIndex popID) {
+      return populations[popID.PopID];
+   }
 
    inline const Population & SpatialCell::get_population(const uint popID) const {
       return populations[popID];
+   }
+
+   inline const Population & SpatialCell::get_population(const PopIndex popID) const {
+      return populations[popID.PopID];
    }
 
    inline void SpatialCell::set_population(const Population& pop, cuint popID) {
@@ -723,6 +739,19 @@ namespace spatial_cell {
    }
    inline void SpatialCell::setNewSizeClear(const uint popID) {
       populations[popID].ResizeClear(populations[popID].N_blocks);
+   }
+
+   
+   /*!
+     Ensures the selected population vmesh localToGlobalMap has sufficient capacity and is of correct size. Does not alter
+     its contents. Ensures the selected population vmesh globalToLocalMap has sufficient capacity and is empty.
+     Ensures the selected population VBC has sufficient capacity and is of correct size.
+   */
+   inline void SpatialCell::setNewSizeClear(Population& pop, const vmesh::LocalID& newSize) {
+      pop.ResizeClear(newSize);
+   }
+   inline void SpatialCell::setNewSizeClear(Population& pop) {
+      pop.ResizeClear(pop.N_blocks);
    }
 
    /*!

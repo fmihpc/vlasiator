@@ -1078,6 +1078,39 @@ namespace spatial_cell {
       }
    }
 
+   /** Prepares this spatial cell to receive the velocity grid over MPI.
+    * At this stage we have received a new block list (over MPI or from
+    * an initializatiom function), but the rest of the cell structures
+    * have not been adapted to this new list. Here we re-initialize
+    * the cell with empty blocks based on the new list.*/
+   void SpatialCell::prepare_to_receive_blocks(const PopIndex popID) {
+      Population& pop = get_population(popID);
+      setNewSizeClear(pop);
+      // As the globalToLocalMap is empty, instead of calling
+      // vmesh->setGrid() we can update both that and the block
+      // parameters with a single kernel launch.
+
+      //populations[popID].vmesh->setGrid(); // Based on localToGlobalMap
+      const gpuStream_t stream = gpu_getStream();
+      const uint newSize = pop.N_blocks;
+      // Set velocity block parameters:
+      if (newSize>0) {
+         // ceil int division
+         #ifdef USE_WARPACCESSORS
+         const uint launchBlocks = 1 + ((newSize - 1) / (WARPSPERBLOCK));
+         #else
+         const uint launchBlocks = 1 + ((newSize - 1) / (WARPSPERBLOCK*GPUTHREADS));
+         #endif
+         update_vmesh_and_blockparameters_kernel<<<launchBlocks, (WARPSPERBLOCK*GPUTHREADS), 0, stream>>> (
+            gpuMemoryManager.getPointer<vmesh::VelocityMesh>(pop.dev_vmesh),
+            gpuMemoryManager.getPointer<vmesh::VelocityBlockContainer>(pop.dev_blockContainer),
+            newSize
+            );
+         CHK_ERR( gpuPeekAtLastError() );
+         CHK_ERR( gpuStreamSynchronize(stream) );
+      }
+   }
+   
    /** Set the particle species SpatialCell should use in functions that
     * use the velocity mesh.
     * @param popID Population ID.

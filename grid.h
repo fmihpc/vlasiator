@@ -113,6 +113,19 @@ void updateRemoteVelocityBlockLists(
    const uint popID,
    const uint neighborhood=Neighborhoods::DIST_FUNC
 );
+/*!
+
+Updates velocity block lists between remote neighbors and
+prepares local copies of remote neighbors to receive velocity block
+data. This is needed if one has locally adjusted velocity blocks
+
+\param mpiGrid   The DCCRG grid with spatial cells
+*/
+void updateRemoteVelocityBlockLists(
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   const PopIndex popID,
+   const uint neighborhood=Neighborhoods::DIST_FUNC
+);
 
 /*! Deallocates all blocks in remote cells in order to save  memory.
  * \param mpiGrid Spatial grid

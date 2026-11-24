@@ -86,5 +86,3 @@ void calculateInitialVelocityMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_G
 
 
 #endif
-
-
