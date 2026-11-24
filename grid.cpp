@@ -337,7 +337,7 @@ void initializeGrids(
    setBTimer.stop();
    if (P::isRestart) {
       // There are projects that have non-uniform and non-zero perturbed B, e.g. Magnetosphere with dipole type 4.
-      // If restarting with reapplyUponRestart active, we need to set PerB again 
+      // If restarting with reapplyUponRestart active, we need to set PerB again
       // in boundary cells after setProjectBField has populated the BGBXVDCORR etc. terms
       sysBoundaries.applyInitialState(mpiGrid, technical.view(), fsgrid, perb.view(), bgb.view(), project);
    }
@@ -621,7 +621,7 @@ void transferInParts(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGr
 
          prepare_to_receive_blocks_multicell(popID, receives, maxNewSize);
          #else
-         #pragma omp parallel for schedule(guided)
+         #pragma omp parallel for schedule(guided) reduction(+:receives)
          for (const CellID cell_id : incoming_cells_list) {
             SpatialCell* cell = mpiGrid[cell_id];
             if (get_transfer_part(mpiGrid, num_part_transfers, cell_id) == transfer_part) {

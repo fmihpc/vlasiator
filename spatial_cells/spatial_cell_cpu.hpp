@@ -388,7 +388,6 @@ namespace spatial_cell {
       bool compute_block_has_content(const vmesh::GlobalID& block,const uint popID) const;
 
       static int activePopID;
-      bool initialized;
       bool mpiTransferEnabled;
 
       std::vector<spatial_cell::Population> populations;                        /**< Particle population variables.*/
