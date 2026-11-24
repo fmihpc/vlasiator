@@ -1,6 +1,10 @@
 
 #!/usr/bin/env bash
 git_diff=$(git diff --name-only origin/$@...)
+if [[ $? != 0 ]]; then
+  echo "Something went wrong with getting git diff $git_diff"
+  exit 0
+fi
 declare -i full_count=$(echo $git_diff | wc -w)
 declare -a unallowed_strings=(".cpp\b" ".hpp\b" ".c\b" ".sh\b" )
 
