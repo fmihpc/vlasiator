@@ -1,0 +1,19 @@
+<map id="spatial_cell::SpatialCell::size" name="spatial_cell::SpatialCell::size">
+<area shape="rect" id="Node000001" title=" " alt="" coords="505,213,678,258"/>
+<area shape="rect" id="Node000002" href="$d0/d80/cpu__trans__pencils_8cpp.html#abe9c14e7082cd89a395fddec3ad7c85a" title=" " alt="" coords="252,5,452,50"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="569,199,523,132,491,96,455,65,437,53,437,48,459,60,495,92,527,128,574,200"/>
+<area shape="rect" id="Node000004" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a0c7ea0001c44fe62bfd7b6f5e5120058" title=" " alt="" coords="264,75,440,119"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="553,203,509,168,456,134,432,123,431,117,458,129,512,164,558,203"/>
+<area shape="rect" id="Node000005" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a52dedfeb3461bc3dd0299deec115351e" title=" " alt="" coords="252,144,452,189"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="495,209,432,192,432,187,500,208"/>
+<area shape="rect" id="Node000006" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a9e49023cab095ea3213cd2d0fde14392" title=" " alt="" coords="260,213,444,258"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="487,236,445,238,444,233,492,235"/>
+<area shape="rect" id="Node000007" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#acd1b5f4664909d747c442f3f110f0063" title=" " alt="" coords="247,283,457,327"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="495,264,433,285,431,279,500,262"/>
+<area shape="rect" id="Node000008" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a88324eb601c529c9e821ee1fe8efe9fe" title=" " alt="" coords="247,352,457,397"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="558,267,512,307,458,342,432,354,431,349,456,337,509,303,553,270"/>
+<area shape="rect" id="Node000009" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html#a60ca3b2f5689b6a8bde4b1f7087cdc39" title=" " alt="" coords="247,421,456,466"/>
+<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="574,270,527,343,495,380,459,411,438,423,436,418,455,407,491,376,523,340,569,273"/>
+<area shape="rect" id="Node000003" href="$d0/d80/cpu__trans__pencils_8cpp.html#ab5c17889dcc66decbf29bd18cbe91751" title=" " alt="" coords="5,14,199,42"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="234,29,200,30,198,25,239,26"/>
+</map>

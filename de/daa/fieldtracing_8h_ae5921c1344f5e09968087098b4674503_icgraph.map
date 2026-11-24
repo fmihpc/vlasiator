@@ -1,0 +1,31 @@
+<map id="getGlobalFsGridCellIndexForCoord" name="getGlobalFsGridCellIndexForCoord">
+<area shape="rect" id="Node000001" title=" " alt="" coords="1241,75,1429,119"/>
+<area shape="rect" id="Node000002" href="$de/daa/fieldtracing_8h.html#aa05445c6a2a66c42650658b95c37d0d6" title=" " alt="" coords="989,144,1188,189"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="1241,124,1171,146,1170,141,1236,125"/>
+<area shape="rect" id="Node000011" href="$de/daa/fieldtracing_8h.html#a088a507524505c0f1e2a5a46eabadd51" title=" " alt="" coords="984,5,1193,50"/>
+<area shape="poly" id="edge12_Node000001_Node000011" title=" " alt="" coords="1236,70,1170,53,1171,48,1241,70"/>
+<area shape="rect" id="Node000012" href="$df/dbb/namespace_field_tracing.html#a9d4aa84782f7f9d2b5179f3f91a40a8e" title=" " alt="" coords="992,75,1185,119"/>
+<area shape="poly" id="edge14_Node000001_Node000012" title=" " alt="" coords="1223,97,1186,100,1186,94,1229,97"/>
+<area shape="rect" id="Node000003" href="$df/dbb/namespace_field_tracing.html#a57968e42ad293046b0de7a02259b9875" title=" " alt="" coords="699,9,936,54"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="996,138,983,134,911,95,851,57,852,52,913,91,985,129,1001,138"/>
+<area shape="rect" id="Node000006" href="$d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#a07dfc031f000a1c8f901bd265693a876" title=" " alt="" coords="723,199,912,243"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="976,189,912,205,912,199,971,190"/>
+<area shape="rect" id="Node000007" href="$df/dbb/namespace_field_tracing.html#aa9b344ad87cfb176e35cc1d5f3d74008" title="Trace magnetic field lines forward and backward from each DCCRG cell to record the connectivity and d..." alt="" coords="716,268,918,313"/>
+<area shape="poly" id="edge6_Node000002_Node000007" title=" " alt="" coords="1044,197,993,230,937,258,906,270,905,265,935,253,990,225,1039,198"/>
+<area shape="rect" id="Node000010" href="$df/dbb/namespace_field_tracing.html#a3119c1154c9472b6266170fd365ec950" title=" " alt="" coords="709,129,926,174"/>
+<area shape="poly" id="edge10_Node000002_Node000010" title=" " alt="" coords="971,160,927,160,926,155,976,160"/>
+<area shape="rect" id="Node000004" href="$d4/d5b/vlasiator_8cpp.html#acfd343080edd07ae79384688a7e48693" title=" " alt="" coords="108,95,186,123"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="683,50,187,107,186,102,683,44"/>
+<area shape="rect" id="Node000005" href="$d4/d5b/vlasiator_8cpp.html#a54790573f350e250ccca3cbb94733391" title=" " alt="" coords="5,95,60,123"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="90,111,61,111,59,107,94,107"/>
+<area shape="rect" id="Node000008" href="$df/dbb/namespace_field_tracing.html#a419c4a8b8cc6f48d5141bd2bae7800d0" title=" " alt="" coords="463,172,651,217"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="717,262,698,258,606,220,607,215,700,253,722,263"/>
+<area shape="rect" id="Node000009" href="$df/dbb/namespace_field_tracing.html#ac9d41efdb5093cf48aac1e4f0c03f863" title=" " alt="" coords="234,120,415,148"/>
+<area shape="poly" id="edge8_Node000008_Node000009" title=" " alt="" coords="451,168,381,151,381,146,456,167"/>
+<area shape="poly" id="edge9_Node000009_Node000004" title=" " alt="" coords="216,120,187,117,186,112,221,118"/>
+<area shape="poly" id="edge11_Node000010_Node000009" title=" " alt="" coords="691,148,416,140,415,135,696,146"/>
+<area shape="poly" id="edge13_Node000011_Node000003" title=" " alt="" coords="966,30,937,33,936,27,971,29"/>
+<area shape="poly" id="edge15_Node000012_Node000003" title=" " alt="" coords="976,71,913,57,913,52,981,70"/>
+<area shape="poly" id="edge16_Node000012_Node000008" title=" " alt="" coords="974,90,913,92,842,95,770,104,699,120,641,144,591,174,589,169,638,139,698,114,769,99,842,90,913,87,979,89"/>
+<area shape="poly" id="edge17_Node000012_Node000010" title=" " alt="" coords="979,119,927,132,926,127,974,120"/>
+</map>

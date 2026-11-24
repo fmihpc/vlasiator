@@ -1,0 +1,11 @@
+<map id="spatial_cell::SpatialCell::get_max_r_dt" name="spatial_cell::SpatialCell::get_max_r_dt">
+<area shape="rect" id="Node000001" title=" " alt="" coords="635,5,808,50"/>
+<area shape="rect" id="Node000002" href="$dd/dd9/arch__dt_8cpp.html#a91c3d47e8a99bd266434965800f07a53" title=" " alt="" coords="451,14,587,42"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="616,28,587,30,587,25,622,28"/>
+<area shape="rect" id="Node000003" href="$d4/d5b/vlasiator_8cpp.html#ad79ae080f7e2c08dcc1c856c5d86043f" title=" " alt="" coords="234,14,403,42"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="433,28,404,30,404,25,438,28"/>
+<area shape="rect" id="Node000004" href="$d4/d5b/vlasiator_8cpp.html#acfd343080edd07ae79384688a7e48693" title=" " alt="" coords="108,14,186,42"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="216,28,187,30,187,25,221,27"/>
+<area shape="rect" id="Node000005" href="$d4/d5b/vlasiator_8cpp.html#a54790573f350e250ccca3cbb94733391" title=" " alt="" coords="5,14,60,42"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="89,29,60,30,60,25,94,27"/>
+</map>

@@ -1,0 +1,7 @@
+<map id="SBC::Copysphere" name="SBC::Copysphere">
+<area shape="rect" id="Node000001" title="Copysphere is a class applying an ionosphere&#45;ish boundary conditions." alt="" coords="146,106,278,134"/>
+<area shape="rect" id="Node000002" href="$d8/ddb/class_s_b_c_1_1_sys_boundary_condition.html" title="SBC::SysBoundaryCondition is the base class for system boundary conditions." alt="" coords="5,5,208,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="133,41,200,105,195,106,130,46"/>
+<area shape="rect" id="Node000003" href="$d1/d3f/classspatial__cell_1_1_spatial_cell.html" title=" " alt="" coords="232,5,405,33"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="296,43,228,108,225,103,291,44"/>
+</map>

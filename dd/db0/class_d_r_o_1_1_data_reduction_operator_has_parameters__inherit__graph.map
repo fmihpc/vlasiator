@@ -1,0 +1,13 @@
+<map id="DRO::DataReductionOperatorHasParameters" name="DRO::DataReductionOperatorHasParameters">
+<area shape="rect" id="Node000001" title=" " alt="" coords="265,80,476,124"/>
+<area shape="rect" id="Node000003" href="$de/db3/class_d_r_o_1_1_variable_energy_density.html" title=" " alt="" coords="524,5,730,33"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="443,71,523,43,569,33,564,34,525,48,445,76"/>
+<area shape="rect" id="Node000004" href="$d5/dc9/class_d_r_o_1_1_variable_mu_space.html" title=" " alt="" coords="542,57,712,85"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="491,85,544,81,539,82,492,90"/>
+<area shape="rect" id="Node000005" href="$dd/d55/class_d_r_o_1_1_variable_precipitation_diff_flux.html" title=" " alt="" coords="530,109,724,154"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="492,113,533,120,528,120,492,118"/>
+<area shape="rect" id="Node000006" href="$db/d62/class_d_r_o_1_1_variable_precipitation_line_diff_flux.html" title=" " alt="" coords="530,178,724,223"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="438,128,525,163,559,178,554,177,523,168,437,133"/>
+<area shape="rect" id="Node000002" href="$d4/d52/class_d_r_o_1_1_data_reduction_operator.html" title=" " alt="" coords="5,88,217,116"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="232,99,267,101,262,103,233,104"/>
+</map>

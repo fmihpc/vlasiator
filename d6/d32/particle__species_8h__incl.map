@@ -1,0 +1,13 @@
+<map id="particle_species.h" name="particle_species.h">
+<area shape="rect" id="Node000001" title=" " alt="" coords="118,5,256,33"/>
+<area shape="rect" id="Node000002" href="$d6/dc2/definitions_8h.html" title=" " alt="" coords="34,81,135,109"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="167,35,117,74,113,70,171,32"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="160,81,215,109"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="189,31,190,66,185,64,186,36"/>
+<area shape="rect" id="Node000006" title=" " alt="" coords="239,81,298,109"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="202,31,246,70,240,71,201,36"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="5,157,76,184"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="79,108,58,145,54,142,74,111"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="99,157,158,184"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="94,107,116,143,110,143,91,112"/>
+</map>

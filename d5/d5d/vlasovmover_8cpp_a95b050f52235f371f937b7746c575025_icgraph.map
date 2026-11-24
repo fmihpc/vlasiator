@@ -1,0 +1,12 @@
+<map id="calculateAcceleration" name="calculateAcceleration">
+<area shape="rect" id="Node000001" title=" " alt="" coords="443,57,605,85"/>
+<area shape="rect" id="Node000002" href="$d5/d5d/vlasovmover_8cpp.html#a72de3eb0ed9d5985acc51e471edfb808" title=" " alt="" coords="234,5,395,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="448,53,373,36,374,31,453,53"/>
+<area shape="rect" id="Node000003" href="$d7/d70/grid_8cpp.html#a9e9166bda148ddef07e30ac56e3b7085" title="Initialize DCCRG and fsgrids." alt="" coords="259,57,370,85"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="425,71,371,74,371,69,431,71"/>
+<area shape="rect" id="Node000004" href="$d4/d5b/vlasiator_8cpp.html#acfd343080edd07ae79384688a7e48693" title=" " alt="" coords="108,83,186,110"/>
+<area shape="poly" id="edge5_Node000001_Node000004" title=" " alt="" coords="451,88,396,99,282,104,186,101,186,96,281,99,395,94,445,89"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="246,82,187,93,186,88,241,82"/>
+<area shape="rect" id="Node000005" href="$d4/d5b/vlasiator_8cpp.html#a54790573f350e250ccca3cbb94733391" title=" " alt="" coords="5,83,60,110"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="89,97,60,99,60,94,94,96"/>
+</map>

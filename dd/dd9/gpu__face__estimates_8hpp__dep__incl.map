@@ -1,0 +1,20 @@
+<map id="vlasovsolver/gpu_face_estimates.hpp" name="vlasovsolver/gpu_face_estimates.hpp">
+<area shape="rect" id="Node000001" title=" " alt="" coords="305,5,472,50"/>
+<area shape="rect" id="Node000002" href="$df/d7c/gpu__1d__ppm_8hpp.html" title=" " alt="" coords="199,98,354,143"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="353,58,305,100,302,95,348,61"/>
+<area shape="rect" id="Node000006" href="$d4/db6/gpu__1d__ppm__nonuniform_8hpp.html" title=" " alt="" coords="8,98,175,143"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="302,57,164,100,161,95,305,53"/>
+<area shape="rect" id="Node000008" href="$d1/d11/gpu__1d__ppm__nonuniform__conserving_8hpp.html" title=" " alt="" coords="378,98,624,143"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="428,57,477,98,471,98,427,62"/>
+<area shape="rect" id="Node000009" href="$dc/d8a/gpu__1d__pqm_8hpp.html" title=" " alt="" coords="647,98,802,143"/>
+<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="484,52,649,97,644,99,483,57"/>
+<area shape="rect" id="Node000003" href="$da/d21/gpu__acc__map_8hpp.html" title=" " alt="" coords="423,191,584,235"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="345,146,452,190,447,191,345,151"/>
+<area shape="rect" id="Node000004" href="$db/db8/gpu__acc__map_8cpp.html" title=" " alt="" coords="330,283,491,328"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="473,245,433,285,431,281,468,247"/>
+<area shape="rect" id="Node000005" href="$d5/d9e/gpu__acc__semilag_8cpp.html" title=" " alt="" coords="515,283,676,328"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="537,244,576,284,571,282,535,249"/>
+<area shape="rect" id="Node000007" href="$dd/d10/gpu__trans__map__amr_8cpp.html" title=" " alt="" coords="5,191,178,235"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="92,156,94,191,89,190,91,161"/>
+<area shape="poly" id="edge9_Node000009_Node000003" title=" " alt="" coords="660,148,557,193,556,188,655,150"/>
+</map>

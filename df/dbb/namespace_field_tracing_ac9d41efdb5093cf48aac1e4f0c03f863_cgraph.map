@@ -1,0 +1,60 @@
+<map id="FieldTracing::reduceData" name="FieldTracing::reduceData">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,242,187,270"/>
+<area shape="rect" id="Node000002" href="$df/dbb/namespace_field_tracing.html#a419c4a8b8cc6f48d5141bd2bae7800d0" title=" " alt="" coords="235,203,422,248"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="185,242,221,238,217,241,188,246"/>
+<area shape="rect" id="Node000024" href="$df/dbb/namespace_field_tracing.html#a3119c1154c9472b6266170fd365ec950" title=" " alt="" coords="470,288,687,333"/>
+<area shape="poly" id="edge30_Node000001_Node000024" title=" " alt="" coords="187,263,457,295,453,299,188,269"/>
+<area shape="rect" id="Node000003" href="$d4/d5b/vlasiator_8cpp.html#a0e89e9e9c29d929027088b0a8dd56585" title=" " alt="" coords="524,237,633,264"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="422,232,511,242,506,245,423,237"/>
+<area shape="rect" id="Node000004" href="$d8/dbc/vectorclass__fallback_8h.html#a1896c5fbdb17de74189d1d18cdd4cf29" title=" " alt="" coords="812,85,858,112"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="353,200,404,162,436,143,469,128,513,115,559,105,650,94,733,91,799,95,794,97,733,97,651,99,560,110,515,120,471,133,438,148,407,166,357,204"/>
+<area shape="rect" id="Node000007" href="$de/d31/_dispersion_8m.html#af276a2aede715061015c735080cf65df" title=" " alt="" coords="1351,253,1397,280"/>
+<area shape="poly" id="edge6_Node000002_Node000007" title=" " alt="" coords="421,204,470,196,679,166,765,156,845,152,925,153,1010,160,1106,176,1217,201,1282,222,1340,249,1334,249,1280,227,1215,206,1104,182,1009,166,925,158,845,157,766,162,680,171,470,201,424,209"/>
+<area shape="rect" id="Node000008" href="$df/dbb/namespace_field_tracing.html#aa9b344ad87cfb176e35cc1d5f3d74008" title="Trace magnetic field lines forward and backward from each DCCRG cell to record the connectivity and d..." alt="" coords="478,358,680,402"/>
+<area shape="poly" id="edge7_Node000002_Node000008" title=" " alt="" coords="351,246,404,295,437,321,471,343,484,351,478,351,469,348,434,325,401,299,351,251"/>
+<area shape="rect" id="Node000021" href="$df/dbb/namespace_field_tracing.html#a9d4aa84782f7f9d2b5179f3f91a40a8e" title=" " alt="" coords="738,187,932,232"/>
+<area shape="poly" id="edge25_Node000002_Node000021" title=" " alt="" coords="421,220,725,211,721,214,423,225"/>
+<area shape="rect" id="Node000005" href="$d7/d8b/class_vec_simple.html#a145923009b9b82410c5a072b8f8127f0" title=" " alt="" coords="1548,467,1683,495"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="857,87,965,48,1042,27,1129,11,1222,3,1315,8,1360,17,1404,30,1446,49,1486,74,1527,113,1559,160,1583,213,1599,268,1609,322,1615,373,1617,453,1613,450,1610,373,1604,323,1594,269,1578,215,1555,163,1523,116,1483,78,1444,54,1403,35,1359,22,1314,14,1222,9,1130,16,1044,33,967,53,860,91"/>
+<area shape="rect" id="Node000006" href="$d7/d8b/class_vec_simple.html#ae16798cf2ee14257d0706c60613cd733" title=" " alt="" coords="1747,467,1912,495"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="1683,479,1733,481,1728,481,1683,484"/>
+<area shape="poly" id="edge12_Node000008_Node000007" title=" " alt="" coords="680,368,924,341,1216,299,1339,275,1333,276,1216,304,925,346,681,373"/>
+<area shape="rect" id="Node000009" href="$de/daa/fieldtracing_8h.html#aa05445c6a2a66c42650658b95c37d0d6" title=" " alt="" coords="735,256,935,301"/>
+<area shape="poly" id="edge8_Node000008_Node000009" title=" " alt="" coords="655,355,686,343,734,317,765,306,761,309,737,322,688,348,657,359"/>
+<area shape="rect" id="Node000011" href="$d8/dbc/vectorclass__fallback_8h.html#a92b2075c51472d120e4ef0a663e3814b" title=" " alt="" coords="810,474,860,502"/>
+<area shape="poly" id="edge10_Node000008_Node000011" title=" " alt="" coords="634,400,798,471,793,472,634,405"/>
+<area shape="rect" id="Node000012" href="$df/dbb/namespace_field_tracing.html#a60e934706171c3fc058da120902ba239" title=" " alt="" coords="739,397,931,424"/>
+<area shape="poly" id="edge13_Node000008_Node000012" title=" " alt="" coords="680,389,726,397,721,398,681,395"/>
+<area shape="rect" id="Node000010" href="$de/daa/fieldtracing_8h.html#ae5921c1344f5e09968087098b4674503" title=" " alt="" coords="1006,244,1193,289"/>
+<area shape="poly" id="edge9_Node000009_Node000010" title=" " alt="" coords="935,271,993,271,988,272,936,277"/>
+<area shape="poly" id="edge11_Node000011_Node000005" title=" " alt="" coords="860,489,983,504,1124,513,1234,517,1343,515,1484,504,1541,498,1536,499,1485,509,1344,520,1234,523,1124,518,982,509,861,495"/>
+<area shape="rect" id="Node000013" href="$df/dbb/namespace_field_tracing.html#ab9ec0b5cdf987ba0a0427bade61c546b" title=" " alt="" coords="987,363,1212,391"/>
+<area shape="poly" id="edge14_Node000012_Node000013" title=" " alt="" coords="931,396,974,393,969,394,932,401"/>
+<area shape="rect" id="Node000014" href="$df/dbb/namespace_field_tracing.html#a59b59e2981e9f1e92e985f2702a4a2aa" title=" " alt="" coords="989,607,1210,635"/>
+<area shape="poly" id="edge16_Node000012_Node000014" title=" " alt="" coords="869,422,903,439,936,460,1076,596,1070,596,933,465,900,444,869,428"/>
+<area shape="rect" id="Node000018" href="$df/dbb/namespace_field_tracing.html#a8b5ab68b738e39c3f0f2637246d20e1c" title=" " alt="" coords="983,467,1216,495"/>
+<area shape="poly" id="edge21_Node000012_Node000018" title=" " alt="" coords="882,422,983,452,1020,463,1015,463,982,457,882,428"/>
+<area shape="rect" id="Node000020" href="$df/dbb/namespace_field_tracing.html#ad58e139440ba1a357a4e1a08ca563e2a" title=" " alt="" coords="1015,415,1184,443"/>
+<area shape="poly" id="edge24_Node000012_Node000020" title=" " alt="" coords="931,415,1002,422,997,423,932,420"/>
+<area shape="poly" id="edge15_Node000013_Node000007" title=" " alt="" coords="1160,360,1215,343,1280,314,1335,288,1340,286,1282,319,1217,348,1162,365"/>
+<area shape="rect" id="Node000015" href="$df/dbb/namespace_field_tracing.html#a2e2efcf29f4b87a8ea98cde5290c9761" title=" " alt="" coords="1532,667,1699,695"/>
+<area shape="poly" id="edge17_Node000014_Node000015" title=" " alt="" coords="1210,631,1520,670,1515,670,1209,637"/>
+<area shape="rect" id="Node000016" href="$df/dbb/namespace_field_tracing.html#ab35d5c9372a7d3d0c4933e113f9b0956" title=" " alt="" coords="1264,570,1484,614"/>
+<area shape="poly" id="edge18_Node000014_Node000016" title=" " alt="" coords="1210,607,1246,606,1251,605,1210,612"/>
+<area shape="rect" id="Node000017" href="$df/dbb/namespace_field_tracing.html#a5586166d34e82a2723217131921e50ec" title=" " alt="" coords="1287,690,1461,734"/>
+<area shape="poly" id="edge19_Node000014_Node000017" title=" " alt="" coords="1144,633,1293,685,1287,684,1143,638"/>
+<area shape="poly" id="edge20_Node000017_Node000015" title=" " alt="" coords="1461,698,1514,694,1519,694,1462,703"/>
+<area shape="rect" id="Node000019" href="$d8/dbc/vectorclass__fallback_8h.html#ad1eccb49237393bcbb5b6b97556fa4e2" title=" " alt="" coords="1352,467,1396,495"/>
+<area shape="poly" id="edge22_Node000018_Node000019" title=" " alt="" coords="1216,479,1339,481,1334,482,1217,484"/>
+<area shape="poly" id="edge23_Node000019_Node000005" title=" " alt="" coords="1396,479,1535,481,1530,481,1397,484"/>
+<area shape="poly" id="edge29_Node000021_Node000007" title=" " alt="" coords="932,208,1067,214,1216,229,1280,241,1339,256,1333,257,1279,246,1216,235,1067,220,933,213"/>
+<area shape="poly" id="edge26_Node000021_Node000010" title=" " alt="" coords="932,228,993,243,988,243,933,233"/>
+<area shape="rect" id="Node000022" href="$d4/d24/fs__common_8cpp.html#af7cae9c4ed85ea1a5847908a56b9af65" title=" " alt="" coords="1017,87,1182,115"/>
+<area shape="poly" id="edge27_Node000021_Node000022" title=" " alt="" coords="891,184,1052,120,1047,123,893,189"/>
+<area shape="rect" id="Node000023" href="$d4/d24/fs__common_8cpp.html#ab310768fde20c6c258e758648323f485" title="Low&#45;level helper function." alt="" coords="1278,87,1470,115"/>
+<area shape="poly" id="edge28_Node000022_Node000023" title=" " alt="" coords="1181,99,1265,101,1260,102,1183,104"/>
+<area shape="poly" id="edge32_Node000024_Node000004" title=" " alt="" coords="669,286,685,274,704,250,711,227,717,201,733,173,764,142,801,118,797,121,768,146,737,176,722,203,716,228,709,253,689,278,672,290"/>
+<area shape="poly" id="edge31_Node000024_Node000009" title=" " alt="" coords="687,294,722,292,717,294,689,299"/>
+<area shape="poly" id="edge33_Node000024_Node000012" title=" " alt="" coords="654,331,688,343,793,389,787,390,686,348,654,336"/>
+<area shape="poly" id="edge34_Node000024_Node000021" title=" " alt="" coords="658,285,686,274,710,258,734,242,750,237,746,239,737,246,713,262,689,278,661,290"/>
+</map>

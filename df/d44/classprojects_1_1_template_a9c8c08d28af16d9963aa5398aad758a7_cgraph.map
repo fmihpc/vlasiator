@@ -1,0 +1,9 @@
+<map id="projects::Template::probePhaseSpace" name="projects::Template::probePhaseSpace">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,57,150,102"/>
+<area shape="rect" id="Node000002" href="$d4/d0b/ionosphere_solver_tests_2main_8cpp.html#a9bf4cdc41d466e8710b8aa33a33d32e0" title=" " alt="" coords="226,5,365,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="149,56,197,42,226,36,221,39,198,47,151,61"/>
+<area shape="rect" id="Node000003" href="$df/d44/classprojects_1_1_template.html#aa0f4938f41672577ee090f952a105335" title="Return a vector containing the velocity coordinate of the centre of each ion population in the distri..." alt="" coords="225,57,366,102"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="149,77,212,78,207,80,150,82"/>
+<area shape="rect" id="Node000004" href="$d9/df1/namespaceprojects.html#a5225e191b92fd7d52b3b30c60f752346" title=" " alt="" coords="198,126,393,171"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="150,99,211,120,206,121,150,105"/>
+</map>

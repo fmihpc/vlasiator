@@ -1,0 +1,7 @@
+<map id="lat_send" name="lat_send">
+<area shape="rect" id="Node000001" title=" " alt="" coords="225,5,301,33"/>
+<area shape="rect" id="Node000002" href="$d8/d29/connectivity_8cpp.html#affe8cc04f2d12d76d9e839c5e95aaf35" title=" " alt="" coords="108,5,177,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="206,19,178,22,178,17,212,19"/>
+<area shape="rect" id="Node000003" href="$d8/d29/connectivity_8cpp.html#a3c04138a5bfe5d72780bb7e82a18e627" title=" " alt="" coords="5,5,60,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="89,20,60,22,60,17,94,18"/>
+</map>

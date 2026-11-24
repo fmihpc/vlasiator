@@ -1,0 +1,9 @@
+<map id="SysBoundary::checkRefinement" name="SysBoundary::checkRefinement">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,57,232,85"/>
+<area shape="rect" id="Node000002" href="$d9/df9/common_8cpp.html#a3ccffabea3435cf184592d88e6a470c8" title=" " alt="" coords="290,5,378,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="178,54,277,32,272,34,180,59"/>
+<area shape="rect" id="Node000003" href="$d4/d5b/vlasiator_8cpp.html#a0e89e9e9c29d929027088b0a8dd56585" title=" " alt="" coords="280,57,388,85"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="231,69,267,71,262,72,232,74"/>
+<area shape="rect" id="Node000004" href="$de/d31/_dispersion_8m.html#abc3775709fb5c6b8c5f7eb10b0119540" title=" " alt="" coords="313,109,354,137"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="179,83,300,114,295,116,179,88"/>
+</map>

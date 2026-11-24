@@ -1,0 +1,24 @@
+var searchData=
+[
+  ['recently_5frefined_0',['RECENTLY_REFINED',['../dd/dcb/namespace_cell_params.html#a90b8e80c381dc853e399330bc6936840a2ebabd4602b2995c39f872bdc6a0ef72',1,'CellParams']]],
+  ['rees1963_1',['Rees1963',['../d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#aca6df51f486ce104a3591ee097ae0ed2a20e1bd41416590e40d55fa10d719b2ec',1,'SBC::SphericalTriGrid']]],
+  ['rees1989_2',['Rees1989',['../d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#aca6df51f486ce104a3591ee097ae0ed2ae4f49f7c2c9024b1d6c84f48ae3de91b',1,'SBC::SphericalTriGrid']]],
+  ['refinement_5flevel_3',['REFINEMENT_LEVEL',['../dd/dcb/namespace_cell_params.html#a90b8e80c381dc853e399330bc6936840a255277513e4330bfdd46816f0b00cb1b',1,'CellParams']]],
+  ['residual_4',['RESIDUAL',['../dc/d54/common_8h.html#a25aa6efc6bd18ffbfde2f799af28c0b4a3ecb230b89d639d32e0dc7604bf1e7cb',1,'common.h']]],
+  ['rhom_5',['RHOM',['../dd/dcb/namespace_cell_params.html#a90b8e80c381dc853e399330bc6936840a44c333fb93b872d1df1deb1a39b9574d',1,'CellParams::RHOM'],['../d5/d45/namespacefsgrids.html#a3d62659849f76366aa10fc449da9f6c7a43851efb62698303c75d2a7e13561385',1,'fsgrids::RHOM']]],
+  ['rhom_5fdt2_6',['RHOM_DT2',['../dd/dcb/namespace_cell_params.html#a90b8e80c381dc853e399330bc6936840a4155f9704d3bf70ae075c9c15ab06001',1,'CellParams']]],
+  ['rhom_5fr_7',['RHOM_R',['../dd/dcb/namespace_cell_params.html#a90b8e80c381dc853e399330bc6936840a62446194adc736ca3a8a697e6bfd2bae',1,'CellParams']]],
+  ['rhom_5fv_8',['RHOM_V',['../dd/dcb/namespace_cell_params.html#a90b8e80c381dc853e399330bc6936840ae45eb310d95f497a821a608049a05a0d',1,'CellParams']]],
+  ['rhon_9',['RHON',['../dc/d54/common_8h.html#a25aa6efc6bd18ffbfde2f799af28c0b4ac98c54322c9a287f572e1bba494858bd',1,'common.h']]],
+  ['rhoq_10',['RHOQ',['../dd/dcb/namespace_cell_params.html#a90b8e80c381dc853e399330bc6936840ad241d4cc6e81fc8e9b0adbcaadd2dc8a',1,'CellParams::RHOQ'],['../d5/d45/namespacefsgrids.html#a3d62659849f76366aa10fc449da9f6c7aaab6331ec2ca801aa8e1cc74c79e3b9e',1,'fsgrids::RHOQ']]],
+  ['rhoq_5fdt2_11',['RHOQ_DT2',['../dd/dcb/namespace_cell_params.html#a90b8e80c381dc853e399330bc6936840aea47a4aa30039d1a451d9971399b4e30',1,'CellParams']]],
+  ['rhoq_5fr_12',['RHOQ_R',['../dd/dcb/namespace_cell_params.html#a90b8e80c381dc853e399330bc6936840a6f1c546951aef3d37866c7adf7fd3e12',1,'CellParams']]],
+  ['rhoq_5fv_13',['RHOQ_V',['../dd/dcb/namespace_cell_params.html#a90b8e80c381dc853e399330bc6936840a5160e23f7de312e4fae79bfd14f8e0ee',1,'CellParams']]],
+  ['ridley_14',['Ridley',['../da/d6b/class_s_b_c_1_1_ionosphere.html#ad58c2a28f8a6d702e3b15204a584dc73afad5d9303f66f29a337f57c545538eb8',1,'SBC::Ionosphere']]],
+  ['right_15',['RIGHT',['../d4/d0a/classprojects_1_1_riemann1.html#a2e3327603a6334d6cc6d4fe618929281a83a4e3052453a19c0f193f3f0807b1b9',1,'projects::Riemann1::RIGHT'],['../d5/dbc/classprojects_1_1_shocktest.html#a0b9fc1c0dc5246739d8d3bd400ee97f7a1ab2c40d16b612a16eeaf175adb42a1e',1,'projects::Shocktest::RIGHT']]],
+  ['rk_5forder1_16',['RK_ORDER1',['../dc/d54/common_8h.html#aadbcab6a2699188e3109b076601d818aa27b3d5ad8339ce093d4132cf6716d177',1,'common.h']]],
+  ['rk_5forder2_5fstep1_17',['RK_ORDER2_STEP1',['../dc/d54/common_8h.html#aadbcab6a2699188e3109b076601d818aa0d51eb3753f8bc7fa861bdf5fdca7670',1,'common.h']]],
+  ['rk_5forder2_5fstep2_18',['RK_ORDER2_STEP2',['../dc/d54/common_8h.html#aadbcab6a2699188e3109b076601d818aacea7dd8b82226466a781c26498e9b214',1,'common.h']]],
+  ['robinson2020_19',['Robinson2020',['../d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#aca6df51f486ce104a3591ee097ae0ed2a54f3f6a81edc74bf247e7182196e9cc9',1,'SBC::SphericalTriGrid']]],
+  ['rresidual_20',['RRESIDUAL',['../dc/d54/common_8h.html#a25aa6efc6bd18ffbfde2f799af28c0b4a95cb6357c69404314f491d3647fe7415',1,'common.h']]]
+];

@@ -1,0 +1,14 @@
+<map id="computePerbDerivatives" name="computePerbDerivatives">
+<area shape="rect" id="Node000001" title=" " alt="" coords="859,31,1041,58"/>
+<area shape="rect" id="Node000002" href="$d9/de3/derivatives_8cpp.html#a538118f0e57e26d4474bb6b2c5b39d7f" title="Low&#45;level spatial derivatives calculation." alt="" coords="656,31,811,58"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="841,45,812,47,812,42,846,44"/>
+<area shape="rect" id="Node000003" href="$d9/de3/derivatives_8cpp.html#a6961ee44131fac4d85b736af115b3c97" title="High&#45;level derivative calculation wrapper function." alt="" coords="407,31,608,58"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="637,45,608,47,608,42,643,44"/>
+<area shape="rect" id="Node000004" href="$de/dff/ldz__main_8cpp.html#ac91e0dc80c9375ba517e2f263308c64f" title="Top&#45;level field propagation function." alt="" coords="234,5,359,33"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="389,31,360,29,360,24,395,31"/>
+<area shape="rect" id="Node000005" href="$d4/d5b/vlasiator_8cpp.html#acfd343080edd07ae79384688a7e48693" title=" " alt="" coords="108,31,186,58"/>
+<area shape="poly" id="edge6_Node000003_Node000005" title=" " alt="" coords="391,47,186,47,186,42,392,42"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="221,32,187,41,186,35,216,33"/>
+<area shape="rect" id="Node000006" href="$d4/d5b/vlasiator_8cpp.html#a54790573f350e250ccca3cbb94733391" title=" " alt="" coords="5,31,60,58"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="89,45,60,47,60,42,94,44"/>
+</map>

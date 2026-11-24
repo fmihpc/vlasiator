@@ -1,0 +1,28 @@
+<map id="spatial_cell::SpatialCell::clear" name="spatial_cell::SpatialCell::clear">
+<area shape="rect" id="Node000001" title=" " alt="" coords="863,88,1036,132"/>
+<area shape="rect" id="Node000002" href="$d7/d70/grid_8cpp.html#a0610cd02e2b81e1d2bc25484a094bfd0" title=" " alt="" coords="591,5,799,33"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="892,80,814,47,777,36,777,31,816,42,897,80"/>
+<area shape="rect" id="Node000008" href="$da/ddf/class_s_b_c_1_1_maxwellian.html#a833c7cf658faf049300eec716cc4b8c7" title="Generate the template cell for the face corresponding to the index passed. This function generates a ..." alt="" coords="597,57,793,102"/>
+<area shape="poly" id="edge9_Node000001_Node000008" title=" " alt="" coords="845,98,793,94,793,88,850,98"/>
+<area shape="rect" id="Node000009" href="$d7/d70/grid_8cpp.html#ab889fc28d268ff8b7f32654247817acb" title=" " alt="" coords="637,125,753,153"/>
+<area shape="poly" id="edge10_Node000001_Node000009" title=" " alt="" coords="845,122,754,135,753,130,850,121"/>
+<area shape="rect" id="Node000011" href="$da/d6b/class_s_b_c_1_1_ionosphere.html#ac904b9ee61069aa1314aa2b638a2f4e9" title=" " alt="" coords="575,177,815,222"/>
+<area shape="poly" id="edge15_Node000001_Node000011" title=" " alt="" coords="885,138,816,167,780,179,778,174,814,162,880,139"/>
+<area shape="rect" id="Node000003" href="$d7/d70/grid_8cpp.html#ad1bdb09168de4bf51ffe7b6fada86915" title="Balance load." alt="" coords="408,65,512,93"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="604,38,575,47,506,67,504,62,574,42,609,36"/>
+<area shape="rect" id="Node000007" href="$da/daf/iowrite_8cpp.html#a5531f0481d1489a9c4fa85ef54be0b1f" title="Write out a restart of the simulation into a vlsv file. All block data in remote cells will be reset." alt="" coords="239,5,340,33"/>
+<area shape="poly" id="edge7_Node000002_Node000007" title=" " alt="" coords="573,21,341,22,340,17,577,18"/>
+<area shape="rect" id="Node000004" href="$d7/d70/grid_8cpp.html#a9e9166bda148ddef07e30ac56e3b7085" title="Initialize DCCRG and fsgrids." alt="" coords="234,107,345,134"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="391,96,346,110,345,104,396,95"/>
+<area shape="rect" id="Node000005" href="$d4/d5b/vlasiator_8cpp.html#acfd343080edd07ae79384688a7e48693" title=" " alt="" coords="108,81,186,109"/>
+<area shape="poly" id="edge6_Node000003_Node000005" title=" " alt="" coords="391,85,187,96,186,91,394,80"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="216,109,187,105,186,99,221,107"/>
+<area shape="rect" id="Node000006" href="$d4/d5b/vlasiator_8cpp.html#a54790573f350e250ccca3cbb94733391" title=" " alt="" coords="5,81,60,109"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="90,97,61,98,59,93,94,93"/>
+<area shape="poly" id="edge8_Node000007_Node000005" title=" " alt="" coords="247,42,176,83,173,78,251,39"/>
+<area shape="poly" id="edge14_Node000009_Node000003" title=" " alt="" coords="619,125,574,116,505,96,505,91,575,111,624,125"/>
+<area shape="rect" id="Node000010" href="$d7/d70/grid_8cpp.html#a7f1e42e11ccc6dccce8e4b9bd9d2f415" title=" " alt="" coords="393,125,527,153"/>
+<area shape="poly" id="edge11_Node000009_Node000010" title=" " alt="" coords="618,139,527,142,527,137,624,139"/>
+<area shape="poly" id="edge12_Node000010_Node000004" title=" " alt="" coords="375,130,346,129,346,124,380,130"/>
+<area shape="poly" id="edge13_Node000010_Node000005" title=" " alt="" coords="376,153,307,158,270,156,233,148,195,132,166,112,166,107,198,127,235,143,270,150,307,153,381,152"/>
+</map>

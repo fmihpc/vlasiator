@@ -1,0 +1,15 @@
+<map id="SBC::SphericalTriGrid::normalizeRadius" name="SBC::SphericalTriGrid::normalizeRadius">
+<area shape="rect" id="Node000001" title=" " alt="" coords="260,179,417,223"/>
+<area shape="rect" id="Node000002" href="$d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#a699ed539432cdbe47625b0d8614795a5" title=" " alt="" coords="24,5,193,50"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="310,166,268,114,240,88,210,65,191,53,189,48,213,60,244,84,271,111,316,165"/>
+<area shape="rect" id="Node000003" href="$d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#ad19124015dfc897cbbed5b4c7b3c57e2" title=" " alt="" coords="26,75,191,119"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="285,172,211,134,183,122,182,117,213,129,290,170"/>
+<area shape="rect" id="Node000004" href="$d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#a0d7a50ff99abb6320726111e2c91c97a" title=" " alt="" coords="28,144,189,189"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="242,188,190,181,188,176,247,186"/>
+<area shape="rect" id="Node000005" href="$d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#a0822de8d756442de02e01d252c8ef1c6" title=" " alt="" coords="5,213,212,258"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="242,216,213,223,211,218,247,214"/>
+<area shape="rect" id="Node000006" href="$d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#a7dd76050a4fb33eb8a62e7e2b42566a0" title=" " alt="" coords="27,283,190,327"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="285,232,213,273,183,285,181,280,211,268,290,230"/>
+<area shape="rect" id="Node000007" href="$d4/d8d/struct_s_b_c_1_1_spherical_tri_grid.html#a73daa33b9756ee449a7818e52a7ec990" title=" " alt="" coords="30,352,187,397"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="315,235,271,291,244,318,213,342,188,355,186,350,210,337,240,314,268,288,311,238"/>
+</map>

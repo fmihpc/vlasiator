@@ -1,0 +1,31 @@
+<map id="projects::TriAxisSearch" name="projects::TriAxisSearch">
+<area shape="rect" id="Node000001" title=" " alt="" coords="180,317,348,345"/>
+<area shape="rect" id="Node000003" href="$de/da7/classprojects_1_1_alfven_cascade.html" title=" " alt="" coords="398,5,576,33"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="268,301,281,247,305,177,342,106,366,73,394,44,417,32,413,36,398,48,370,76,346,108,310,179,286,248,273,303"/>
+<area shape="rect" id="Node000004" href="$d9/d69/classprojects_1_1_distributions.html" title=" " alt="" coords="405,57,569,85"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="271,301,287,257,313,201,348,144,370,118,394,96,419,84,415,87,398,100,374,122,352,148,317,204,292,259,276,304"/>
+<area shape="rect" id="Node000005" href="$dd/d62/classprojects_1_1_flowthrough.html" title=" " alt="" coords="406,109,568,137"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="276,302,294,267,321,225,354,183,394,148,421,136,417,139,398,152,358,187,325,228,299,270,280,305"/>
+<area shape="rect" id="Node000006" href="$dd/d9d/classprojects_1_1_fluctuations.html" title=" " alt="" coords="406,161,568,189"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="283,303,330,251,361,223,395,200,425,188,421,191,397,204,364,227,334,255,287,307"/>
+<area shape="rect" id="Node000007" href="$d2/d61/classprojects_1_1_harris.html" title=" " alt="" coords="427,213,547,241"/>
+<area shape="poly" id="edge6_Node000001_Node000007" title=" " alt="" coords="297,306,342,278,395,251,432,240,427,243,397,256,345,283,300,311"/>
+<area shape="rect" id="Node000008" href="$db/d4a/classprojects_1_1_i_p_shock.html" title=" " alt="" coords="421,265,553,293"/>
+<area shape="poly" id="edge7_Node000001_Node000008" title=" " alt="" coords="340,311,427,292,422,295,342,316"/>
+<area shape="rect" id="Node000009" href="$de/da1/classprojects_1_1_k_h_b.html" title=" " alt="" coords="432,317,542,345"/>
+<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="363,329,435,330,430,332,365,334"/>
+<area shape="rect" id="Node000010" href="$d9/da0/classprojects_1_1_loss_cone.html" title=" " alt="" coords="416,369,559,397"/>
+<area shape="poly" id="edge9_Node000001_Node000010" title=" " alt="" coords="341,346,427,368,422,370,342,352"/>
+<area shape="rect" id="Node000011" href="$df/d57/classprojects_1_1_magnetosphere.html" title=" " alt="" coords="396,421,578,449"/>
+<area shape="poly" id="edge10_Node000001_Node000011" title=" " alt="" coords="298,351,345,379,397,406,432,420,427,421,395,411,342,384,298,357"/>
+<area shape="rect" id="Node000012" href="$d4/dc0/classprojects_1_1_multi_peak.html" title=" " alt="" coords="414,473,560,501"/>
+<area shape="poly" id="edge11_Node000001_Node000012" title=" " alt="" coords="285,355,334,408,364,435,397,458,425,473,420,473,395,463,361,439,330,412,284,360"/>
+<area shape="rect" id="Node000013" href="$d5/dbc/classprojects_1_1_shocktest.html" title=" " alt="" coords="414,525,560,553"/>
+<area shape="poly" id="edge12_Node000001_Node000013" title=" " alt="" coords="278,356,299,393,325,434,358,475,398,510,421,525,416,525,394,515,354,479,321,437,294,395,277,362"/>
+<area shape="rect" id="Node000014" href="$df/d44/classprojects_1_1_template.html" title=" " alt="" coords="416,577,558,605"/>
+<area shape="poly" id="edge13_Node000001_Node000014" title=" " alt="" coords="274,357,292,404,317,459,352,515,374,540,398,562,419,577,414,576,394,567,370,544,348,518,313,461,287,406,273,362"/>
+<area shape="rect" id="Node000015" href="$da/df8/classprojects_1_1test__fp.html" title=" " alt="" coords="424,629,550,657"/>
+<area shape="poly" id="edge14_Node000001_Node000015" title=" " alt="" coords="271,358,286,414,310,483,346,554,370,586,398,614,426,633,421,632,394,619,366,590,342,557,305,485,281,416,269,363"/>
+<area shape="rect" id="Node000002" href="$db/d19/classprojects_1_1_project.html" title=" " alt="" coords="5,317,132,345"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="146,329,181,330,177,333,148,334"/>
+</map>

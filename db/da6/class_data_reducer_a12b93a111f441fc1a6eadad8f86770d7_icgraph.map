@@ -1,0 +1,10 @@
+<map id="DataReducer::reduceDiagnostic" name="DataReducer::reduceDiagnostic">
+<area shape="rect" id="Node000001" title=" " alt="" coords="405,29,632,57"/>
+<area shape="poly" id="edge1_Node000001_Node000001" title=" " alt="" coords="555,14,543,10,518,8,495,10,483,15,479,20,485,30,480,28,474,20,479,11,494,5,519,3,545,5,560,14"/>
+<area shape="rect" id="Node000002" href="$da/daf/iowrite_8cpp.html#a74aed0c404d5ffe2ac37c3f6a02cffeb" title="Write out simulation diagnostics into diagnostic.txt." alt="" coords="234,29,357,57"/>
+<area shape="poly" id="edge2_Node000001_Node000002" title=" " alt="" coords="387,43,358,46,358,41,393,43"/>
+<area shape="rect" id="Node000003" href="$d4/d5b/vlasiator_8cpp.html#acfd343080edd07ae79384688a7e48693" title=" " alt="" coords="108,29,186,57"/>
+<area shape="poly" id="edge3_Node000002_Node000003" title=" " alt="" coords="216,43,186,46,186,41,221,43"/>
+<area shape="rect" id="Node000004" href="$d4/d5b/vlasiator_8cpp.html#a54790573f350e250ccca3cbb94733391" title=" " alt="" coords="5,29,60,57"/>
+<area shape="poly" id="edge4_Node000003_Node000004" title=" " alt="" coords="89,44,60,46,60,41,94,42"/>
+</map>

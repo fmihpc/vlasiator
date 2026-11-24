@@ -1,0 +1,18 @@
+<map id="writeVspaceDataCompressionNone" name="writeVspaceDataCompressionNone">
+<area shape="rect" id="Node000001" title=" " alt="" coords="844,48,1095,76"/>
+<area shape="rect" id="Node000002" href="$da/daf/iowrite_8cpp.html#a49817a67f73d66653dbc59a35e916b57" title=" " alt="" coords="614,40,796,84"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="826,62,797,64,796,59,831,62"/>
+<area shape="rect" id="Node000003" href="$da/daf/iowrite_8cpp.html#a5531f0481d1489a9c4fa85ef54be0b1f" title="Write out a restart of the simulation into a vlsv file. All block data in remote cells will be reset." alt="" coords="234,5,335,33"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="607,35,565,30,442,20,336,20,335,15,442,15,566,25,613,35"/>
+<area shape="rect" id="Node000006" href="$da/daf/iowrite_8cpp.html#a3984a5fea05db1b41e31b02365468004" title=" " alt="" coords="383,40,566,84"/>
+<area shape="poly" id="edge5_Node000002_Node000006" title=" " alt="" coords="596,62,566,64,566,59,601,62"/>
+<area shape="rect" id="Node000007" href="$da/daf/iowrite_8cpp.html#ae6d9152d3306ea3c3d03693dcffed0b3" title=" " alt="" coords="402,108,547,136"/>
+<area shape="poly" id="edge6_Node000002_Node000007" title=" " alt="" coords="605,88,531,110,530,105,599,89"/>
+<area shape="rect" id="Node000004" href="$d4/d5b/vlasiator_8cpp.html#acfd343080edd07ae79384688a7e48693" title=" " alt="" coords="108,49,186,77"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="222,39,188,53,186,48,227,37"/>
+<area shape="rect" id="Node000005" href="$d4/d5b/vlasiator_8cpp.html#a54790573f350e250ccca3cbb94733391" title=" " alt="" coords="5,49,60,77"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="90,65,61,66,59,61,94,62"/>
+<area shape="rect" id="Node000008" href="$da/daf/iowrite_8cpp.html#a10cc5a5af4d327af60e9f6c42480b333" title="Write out system into a vlsv file." alt="" coords="244,75,325,102"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="384,106,326,98,326,93,389,106"/>
+<area shape="poly" id="edge8_Node000008_Node000004" title=" " alt="" coords="226,79,186,73,186,68,231,78"/>
+</map>

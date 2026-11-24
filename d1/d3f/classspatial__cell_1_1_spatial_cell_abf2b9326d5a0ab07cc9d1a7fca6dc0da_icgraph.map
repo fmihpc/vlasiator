@@ -1,0 +1,32 @@
+<map id="spatial_cell::SpatialCell::get_velocity_grid_length" name="spatial_cell::SpatialCell::get_velocity_grid_length">
+<area shape="rect" id="Node000001" title=" " alt="" coords="1197,161,1387,206"/>
+<area shape="rect" id="Node000002" href="$db/d19/classprojects_1_1_project.html#a5a857d2b4393cdb81f5eaaa322624e02" title="Prepares a list of blocks to loop through when initialising." alt="" coords="972,23,1130,67"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="1235,153,1091,71,1092,65,1241,153"/>
+<area shape="rect" id="Node000009" href="$dc/d2c/classprojects_1_1_tri_axis_search.html#a10106fe679bbce733a8f5692d667e5ad" title="Find blocks above the threshold centred isotropically around a bulk velocity." alt="" coords="966,127,1135,171"/>
+<area shape="poly" id="edge8_Node000001_Node000009" title=" " alt="" coords="1179,168,1135,164,1135,158,1185,168"/>
+<area shape="rect" id="Node000010" href="$d4/de8/namespace_s_b_c.html#a0cea5d5845a2d12ad49a0b3b048460be" title="SBC::findMaxwellianBlocksToInitialize returns a list of blocks to construct the VDF with." alt="" coords="952,196,1149,241"/>
+<area shape="poly" id="edge9_Node000001_Node000010" title=" " alt="" coords="1184,199,1150,207,1149,201,1179,200"/>
+<area shape="rect" id="Node000015" href="$d6/d86/cpu__pitch__angle__diffusion_8cpp.html#aa434e645358fc0eb01e07d5b0168d75d" title=" " alt="" coords="467,238,616,266"/>
+<area shape="poly" id="edge14_Node000001_Node000015" title=" " alt="" coords="1240,213,1173,249,1091,286,1000,319,905,342,837,355,783,361,729,359,663,342,630,327,599,307,555,269,557,264,603,303,632,323,665,337,730,354,782,356,836,349,903,337,998,314,1089,281,1171,244,1235,214"/>
+<area shape="rect" id="Node000003" href="$db/d19/classprojects_1_1_project.html#ad425d38e349f5797d870c8047ad1973c" title="Sets the distribution function in a cell." alt="" coords="717,5,851,50"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="953,39,852,35,851,29,959,38"/>
+<area shape="rect" id="Node000004" href="$db/d19/classprojects_1_1_project.html#afb2a412ae6cedce4e914650ea35b8f42" title="Set the perturbed fields and distribution of a cell according to the default simulation settings...." alt="" coords="474,20,609,65"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="699,33,610,41,609,36,704,32"/>
+<area shape="rect" id="Node000005" href="$d5/d71/class_s_b_c_1_1_outflow.html#ad84f9747b6fc7215052b5b4940a59896" title=" " alt="" coords="234,20,419,65"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="456,43,420,45,419,40,461,41"/>
+<area shape="rect" id="Node000006" href="$d7/d70/grid_8cpp.html#a9e9166bda148ddef07e30ac56e3b7085" title="Initialize DCCRG and fsgrids." alt="" coords="271,103,382,131"/>
+<area shape="poly" id="edge5_Node000004_Node000006" title=" " alt="" coords="459,71,370,105,368,100,464,69"/>
+<area shape="rect" id="Node000007" href="$d4/d5b/vlasiator_8cpp.html#acfd343080edd07ae79384688a7e48693" title=" " alt="" coords="108,156,186,184"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="261,137,188,161,185,156,265,134"/>
+<area shape="rect" id="Node000008" href="$d4/d5b/vlasiator_8cpp.html#a54790573f350e250ccca3cbb94733391" title=" " alt="" coords="5,156,60,184"/>
+<area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="90,172,61,173,59,168,94,169"/>
+<area shape="rect" id="Node000011" href="$dd/d8a/class_s_b_c_1_1_copysphere.html#a489a1683d7537fb427aafbb3528387b5" title=" " alt="" coords="685,75,883,119"/>
+<area shape="poly" id="edge10_Node000010_Node000011" title=" " alt="" coords="957,188,950,186,935,172,926,159,917,146,903,134,881,123,882,117,905,129,921,143,930,156,939,169,954,182,962,189"/>
+<area shape="rect" id="Node000012" href="$da/d6b/class_s_b_c_1_1_ionosphere.html#a66dd6c8d7e5b91522b6b05c51910d982" title=" " alt="" coords="687,144,880,189"/>
+<area shape="poly" id="edge11_Node000010_Node000012" title=" " alt="" coords="934,196,881,188,881,182,939,196"/>
+<area shape="rect" id="Node000013" href="$da/ddf/class_s_b_c_1_1_maxwellian.html#a833c7cf658faf049300eec716cc4b8c7" title="Generate the template cell for the face corresponding to the index passed. This function generates a ..." alt="" coords="686,213,882,258"/>
+<area shape="poly" id="edge12_Node000010_Node000013" title=" " alt="" coords="934,226,883,232,882,227,939,225"/>
+<area shape="rect" id="Node000014" href="$da/d6b/class_s_b_c_1_1_ionosphere.html#ac904b9ee61069aa1314aa2b638a2f4e9" title=" " alt="" coords="664,283,904,327"/>
+<area shape="poly" id="edge13_Node000010_Node000014" title=" " alt="" coords="976,246,905,273,866,285,865,280,903,268,971,247"/>
+<area shape="poly" id="edge15_Node000015_Node000007" title=" " alt="" coords="454,236,186,181,186,176,458,232"/>
+</map>

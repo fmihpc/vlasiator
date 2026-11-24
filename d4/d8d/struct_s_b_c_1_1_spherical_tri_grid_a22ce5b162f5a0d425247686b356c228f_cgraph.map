@@ -1,0 +1,5 @@
+<map id="SBC::SphericalTriGrid::elementArea" name="SBC::SphericalTriGrid::elementArea">
+<area shape="rect" id="Node000001" title=" " alt="" coords="5,5,163,50"/>
+<area shape="rect" id="Node000002" href="$de/d31/_dispersion_8m.html#af276a2aede715061015c735080cf65df" title=" " alt="" coords="211,14,257,42"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="163,25,198,27,193,28,163,30"/>
+</map>
