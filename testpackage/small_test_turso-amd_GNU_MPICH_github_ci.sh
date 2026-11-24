@@ -106,6 +106,20 @@ echo "----------"
 echo -e "### Testpackage output:\n" >> $GITHUB_STEP_SUMMARY
 echo "CI_reference pointed to $reference_revision_parsed" >> $GITHUB_STEP_SUMMARY
 
+# GitHub drops a step summary larger than 1 MiB, so it gets only the end of each log; testpackage_logs/ keeps them whole.
+summary_stdout_bytes=12000
+summary_stderr_bytes=6000
+summary_log() { # stream (stdout or stderr), byte limit, test name
+   local file=$GITHUB_WORKSPACE/$1.txt size
+   mkdir -p "$GITHUB_WORKSPACE/testpackage_logs"
+   cp "$file" "$GITHUB_WORKSPACE/testpackage_logs/$3.$1.txt"
+   size=$(stat -c %s "$file")
+   if (( size > $2 )); then
+      echo "[... first $(( size - $2 )) bytes left out here, full log in the testpackage-logs artifact ...]"
+   fi
+   tail -c "$2" "$file"
+}
+
 NONZEROTESTS=0
 ZEROTESTS=0
 FAILEDTESTS=0
@@ -148,9 +162,9 @@ for run in ${run_tests[*]}; do
    if [[ $RUN_ERROR != 0 ]]; then
       echo -e "<details><summary>:red_circle: ${test_name[$run]}: Failed to run or died with an error.</summary>\n"  >> $GITHUB_STEP_SUMMARY
       echo -e "Stdout:\n \`\`\`\n" >> $GITHUB_STEP_SUMMARY
-      cat $GITHUB_WORKSPACE/stdout.txt >> $GITHUB_STEP_SUMMARY
+      summary_log stdout $summary_stdout_bytes ${test_name[$run]} >> $GITHUB_STEP_SUMMARY
       echo -e "\`\`\`\nStderr:\n \`\`\`\n" >> $GITHUB_STEP_SUMMARY
-      cat $GITHUB_WORKSPACE/stderr.txt >> $GITHUB_STEP_SUMMARY
+      summary_log stderr $summary_stderr_bytes ${test_name[$run]} >> $GITHUB_STEP_SUMMARY
       echo -e "\`\`\`\n</details>" >> $GITHUB_STEP_SUMMARY
       FAILEDTESTS=$((FAILEDTESTS+1))
 
@@ -223,6 +237,7 @@ for run in ${run_tests[*]}; do
            continue
        fi
        echo "Comparing file ${vlsv_dir_short}/${vlsv} against reference"
+       timeDiff="" # the file time is the same for every variable, so any successful diff below supplies it
        COMPAREDFILES=$((COMPAREDFILES+1))
        echo $COMPAREDFILES > $RUNNER_TEMP/COMPAREDFILES.txt
 
@@ -235,6 +250,7 @@ for run in ${run_tests[*]}; do
                   RUN_ERROR=1
                   touch $GITHUB_WORKSPACE/testpackage_failed
                fi
+               dt=$(grep "The delta t between both datasets is" <<< "$A" | gawk '{print $8}'); timeDiff=${dt:-$timeDiff}
                relativeValue=$(grep "The relative 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
                absoluteValue=$(grep "The absolute 0-distance between both datasets" <<< $A |gawk '{print $8}'  )
                #print the results
@@ -262,6 +278,7 @@ for run in ${run_tests[*]}; do
                   RUN_ERROR=1
                   touch $GITHUB_WORKSPACE/testpackage_failed
                fi
+               dt=$(grep "The delta t between both datasets is" <<< "$B" | gawk '{print $8}'); timeDiff=${dt:-$timeDiff}
                relativeValue=$(grep "The relative 0-distance between both datasets" <<< $B |gawk '{print $8}'  )
                absoluteValue=$(grep "The absolute 0-distance between both datasets" <<< $B |gawk '{print $8}'  )
                # print the results
@@ -289,6 +306,7 @@ for run in ${run_tests[*]}; do
                   RUN_ERROR=1
                   touch $GITHUB_WORKSPACE/testpackage_failed
                fi
+               dt=$(grep "The delta t between both datasets is" <<< "$C" | gawk '{print $8}'); timeDiff=${dt:-$timeDiff}
                relativeValue=$(grep "The relative 0-distance between both datasets" <<< $C |gawk '{print $8}'  )
                absoluteValue=$(grep "The absolute 0-distance between both datasets" <<< $C |gawk '{print $8}'  )
                #print the results
@@ -325,12 +343,13 @@ for run in ${run_tests[*]}; do
        done # loop over variables
 
        # Check if dt is nonzero
-       timeDiff=$(grep "delta t" <<< $C |gawk '{print $8}'  )
        if [ -z $timeDiff ]; then
            echo "VLSV timesteps not tested."
-       elif (( $(awk 'BEGIN{print ('$timeDiff'!= 0.0)?1:0}') )); then
-           if (( $( echo "${timeDiff#-} $MAXDT" | awk '{ if($1 > $2) print 1; else print 0 }' ) )); then
-               MAXDT=$timeDiff
+       elif [[ $timeDiff != 0 && $timeDiff != -0 ]]; then # iostream prints an exact zero as 0 or -0; nan counts as differing
+           if [[ $timeDiff == *nan* || $MAXDT == nan ]]; then
+               MAXDT=nan # awk cannot order nan, so keep it explicitly as the largest difference
+           elif (( $( echo "${timeDiff#-} $MAXDT" | awk '{ if($1 > $2) print 1; else print 0 }' ) )); then
+               MAXDT=${timeDiff#-} # magnitude: the summary only flags MAXDT > 0
            fi
            echo "WARNING! VLSV file timestamps differ by ${timeDiff}s."
        else
@@ -375,7 +394,7 @@ for run in ${run_tests[*]}; do
    if [[ $COMPAREDFILES -ne $TOCOMPAREFILES ]]; then
       echo -e "<details><summary>:red_square: ${test_name[$run]}: Comparison failure, accessed \`$COMPAREDFILES\` out of \`$TOCOMPAREFILES\` files: \`$MAXERRVAR\` has absolute error $MAXERR, \`$MAXRELVAR\` has relative error $MAXREL. Max timestamp difference is $MAXDT.   Speedup: $speedup</summary>\n" >> $GITHUB_STEP_SUMMARY
       NONZEROTESTS=$((NONZEROTESTS+1))
-   elif (( $( echo "$MAXERR 0." | awk '{ if($1 > $2) print 1; else print 0 }' ) )) || (( $( echo "$MAXDT 0." | awk '{ if($1 > $2) print 1; else print 0 }' ) )); then
+   elif (( $( echo "$MAXERR 0." | awk '{ if($1 > $2) print 1; else print 0 }' ) )) || [[ $MAXDT == nan ]] || (( $( echo "$MAXDT 0." | awk '{ if($1 > $2) print 1; else print 0 }' ) )); then
       echo -e "<details><summary>:large_orange_diamond: ${test_name[$run]}: Nonzero diffs: \`$MAXERRVAR\` has absolute error $MAXERR, \`$MAXRELVAR\` has relative error $MAXREL. Max timestamp difference is $MAXDT.   Speedup: $speedup</summary>\n" >> $GITHUB_STEP_SUMMARY
       NONZEROTESTS=$((NONZEROTESTS+1))
    else
@@ -384,9 +403,9 @@ for run in ${run_tests[*]}; do
    fi
 
    echo -e "Stdout:\n \`\`\`\n" >> $GITHUB_STEP_SUMMARY
-   cat $GITHUB_WORKSPACE/stdout.txt >> $GITHUB_STEP_SUMMARY
+   summary_log stdout $summary_stdout_bytes ${test_name[$run]} >> $GITHUB_STEP_SUMMARY
    echo -e "\`\`\`\nStderr:\n \`\`\`\n" >> $GITHUB_STEP_SUMMARY
-   cat $GITHUB_WORKSPACE/stderr.txt >> $GITHUB_STEP_SUMMARY
+   summary_log stderr $summary_stderr_bytes ${test_name[$run]} >> $GITHUB_STEP_SUMMARY
    echo -e "\`\`\`\n</details>" >> $GITHUB_STEP_SUMMARY
 
    # -------- Generate JUnit output ----------

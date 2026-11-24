@@ -4,6 +4,10 @@ on:
   # Only run when triggered manually
   workflow_dispatch:
 
+# Read-only suffices: artifact upload/download uses the runtime token, not GITHUB_TOKEN.
+permissions:
+  contents: read
+
 jobs:
   # This should be kept ~identical to the build_TP job in github-ci.yml
 
@@ -24,10 +28,13 @@ jobs:
           )
           srun -C c bash -c "$RUN_STRING"
       - name: Checkout source
-        uses: actions/checkout@v4
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
       - name: Make clean
         run: VLASIATOR_ARCH=hile_cpu make clean
-      - uses: ursg/gcc-problem-matcher@master
+      - name: Register GCC problem matcher
+        run: echo "::add-matcher::$GITHUB_WORKSPACE/.github/gcc-problem-matcher.json"
       - name: Build libraries
         run: |
          WORKSPACE=`pwd`
@@ -41,14 +48,14 @@ jobs:
         run: |
           srun -C c --job-name CI_tp_C_compile --interactive --nodes=1 -n 1 -c 16 --mem-per-cpu=2G -t 0:20:0 bash -c 'set -e; export VLASIATOR_ARCH=hile_cpu; source modules/modules.sh; make -j 16 testpackage fluxfunction; sleep 10s'
       - name: Make sure the output binary is visible in lustre
-        uses: nick-fields/retry@v3
+        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
         with:
           timeout_seconds: 15
           max_attempts: 3
           retry_on: error
           command: ls vlasiator
       - name: Upload testpackage binary
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: vlasiator-testpackage-HILE-C
           path: vlasiator
@@ -63,15 +70,16 @@ jobs:
 
     steps:
     - name: Checkout source
-      uses: actions/checkout@v4
+      uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
       with:
         submodules: false
+        persist-credentials: false
     - name: Download testpackage binary
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
       with:
         name: vlasiator-testpackage-HILE-C
     - name: Download tools
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
       with:
         name: vlasiator-tools-HILE-C
     - name: Run testpackage

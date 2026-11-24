@@ -598,8 +598,9 @@ __host__ void gpu_acc_allocate_perthread(
    //value is nonzero, in which case it is the column allocation count
    uint columnSetAllocationCount
    ) {
+   const bool exactCounts = (columnSetAllocationCount != 0);
    uint columnAllocationCount;
-   if (columnSetAllocationCount==0) {
+   if (!exactCounts) {
       /*
         Estimate column count from maxblockcount, non-critical if ends up being too small.
         This makes a rough guess that we have a cubic velocity space domain, and thus one edge
@@ -619,9 +620,14 @@ __host__ void gpu_acc_allocate_perthread(
 
    // columndata contains several splitvectors. columnData is host/device, but splitvector contents are unified.
    gpuStream_t stream = gpu_getStream();
-   // Reallocate if necessary
-   if ( (columnAllocationCount > host_columnOffsetData[allocID].capacityCols()) ||
-        (columnSetAllocationCount > host_columnOffsetData[allocID].capacityColSets()) ) {
+   if (exactCounts) {
+      // scan_probe skipped device_setSizes for this cell, and the column extent and acceleration
+      // kernels take the set count from setColumnOffsets.size(): padded sizes make them run stale sets.
+      host_columnOffsetData[allocID].setCapacities(columnAllocationCount*BLOCK_ALLOCATION_PADDING, columnSetAllocationCount*BLOCK_ALLOCATION_PADDING);
+      host_columnOffsetData[allocID].setSizes(columnAllocationCount, columnSetAllocationCount);
+      CHK_ERR( gpuMemcpyAsync(GET_POINTER(gpuMemoryManager, ColumnOffsets, dev_columnOffsetData)+allocID, host_columnOffsetData+allocID, sizeof(ColumnOffsets), gpuMemcpyHostToDevice, stream));
+   } else if ( (columnAllocationCount > host_columnOffsetData[allocID].capacityCols()) ||
+               (columnSetAllocationCount > host_columnOffsetData[allocID].capacityColSets()) ) {
       // Also set size to match input
       host_columnOffsetData[allocID].setSizes(columnAllocationCount*BLOCK_ALLOCATION_PADDING, columnSetAllocationCount*BLOCK_ALLOCATION_PADDING);
       CHK_ERR( gpuMemcpyAsync(GET_POINTER(gpuMemoryManager, ColumnOffsets, dev_columnOffsetData)+allocID, host_columnOffsetData+allocID, sizeof(ColumnOffsets), gpuMemcpyHostToDevice, stream));

@@ -86,6 +86,13 @@ if [[ -z ${mem_flags[$VLASIATOR_ARCH]} ]]; then
   exit 1
 fi
 
+#Testpackage job time limits for quick (TP_QUICK=true) and full runs, overriding the #SBATCH -t of the CI test script.
+#Arches without an entry keep the script's limit. Keep the full limit below GitHub's 6 h job timeout.
+declare -A tp_time_quick
+declare -A tp_time_full
+tp_time_quick["turso-v100_GNU_MPICH"]="01:00:00"
+tp_time_full["turso-v100_GNU_MPICH"]="05:00:00"
+
 #Production compile flags
 declare -A compile_flags_prod
 declare -A compile_flags_tp
@@ -109,7 +116,7 @@ modules="hostname; realpath modules/modules.sh; source modules/$VLASIATOR_ARCH.s
 if [[ $1 == "CLEANUP" ]]; then
   CLEAN_STRING=$(
     cat <<MORO
-rm -rf libraries-$VLASIATOR_ARCH library-build testpackage libraries submodules
+rm -rf libraries-$VLASIATOR_ARCH library-build testpackage libraries submodules testpackage_logs
 rm -f libraries-$VLASIATOR_ARCH.tar.gz testpackage_check_description.txt testpackage-output-$VLASIATOR_ARCH.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
 rm -f *.xml
 echo "Cleaned up workspace"
@@ -175,7 +182,30 @@ if [[ $1 == "RUN_TP" ]]; then
     # Delete any old run directories
     rm -rf run_20*
     echo "TP_PID=$$" >> $GITHUB_OUTPUT
-    sbatch -W -o testpackage_run_output.txt -J "CI_TP_$$" ./small_test_${VLASIATOR_ARCH}_github_ci.sh || true
+    if [[ $TP_QUICK == true ]]; then
+      tp_time=${tp_time_quick[$VLASIATOR_ARCH]}
+    else
+      tp_time=${tp_time_full[$VLASIATOR_ARCH]}
+    fi
+    tp_jobid=$(sbatch --parsable -W ${tp_time:+-t $tp_time} -o testpackage_run_output.txt -J "CI_TP_$$" ./small_test_${VLASIATOR_ARCH}_github_ci.sh) || true
+    tp_jobid=${tp_jobid%%;*}
+    # A job that Slurm stops (time limit, node failure, memory) never gets to record its own failure.
+    tp_state=$(sacct -n -X -P -o State -j "$tp_jobid" 2>/dev/null | head -n 1)
+    echo "Testpackage job ${tp_jobid:-?} ended in state ${tp_state:-unknown}"
+    tp_problem=""
+    if [[ -z $tp_jobid ]]; then
+      tp_problem="could not be submitted"
+    elif [[ $tp_state =~ ^(TIMEOUT|NODE_FAIL|OUT_OF_MEMORY|PREEMPTED|DEADLINE|BOOT_FAIL) ]]; then
+      tp_problem="was stopped by Slurm ($tp_state)"
+    fi
+    if [[ -n $tp_problem ]]; then
+      echo -e "\n:red_circle: The testpackage job $tp_problem; tests it did not reach have no results." >> $GITHUB_STEP_SUMMARY
+      if [[ ! -f $GITHUB_WORKSPACE/testpackage_output_variables.txt ]]; then
+        echo "summary=The testpackage job $tp_problem." >> $GITHUB_WORKSPACE/testpackage_output_variables.txt
+        echo "conclusion=failure" >> $GITHUB_WORKSPACE/testpackage_output_variables.txt
+      fi
+      touch $GITHUB_WORKSPACE/testpackage_failed
+    fi
     PARSE_OUTPUT_CMD=$(
       cat <<MORO
 echo "Job finished, checking output."

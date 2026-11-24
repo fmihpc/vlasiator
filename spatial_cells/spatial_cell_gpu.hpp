@@ -120,6 +120,9 @@ namespace spatial_cell {
          vmesh::LocalID toLID = vmesh->warpGetLocalID(GID,ti);
          #else
          vmesh::LocalID toLID = vmesh->getLocalID(GID);
+         // As in warpGetLocalID: all lookups must finish before thread 0 inserts GID below,
+         // or a lagging warp finds the new block before blockContainer holds it.
+         __syncthreads();
          #endif
          if (toLID == vmesh->invalidLocalID()) {
             #ifdef USE_WARPACCESSORS
@@ -1245,10 +1248,12 @@ __global__ static void resize_and_empty_kernel (
       populations[popID].Upload();
 
       // Copy data to GPU
-      SUBPOINTER_ALLOCATE_ASYNC(gpuMemoryManager, gpuInitBuffer, gpu_getThread(), WID3*nBlocks*sizeof(fileReal), stream);
-      SUBPOINTER_ALLOCATE_ASYNC(gpuMemoryManager, gpuInitBlocks, gpu_getThread(), nBlocks*sizeof(vmesh::GlobalID), stream);
-      fileReal* gpuInitBuffer = GET_POINTER(gpuMemoryManager, fileReal, gpuInitBuffer);
-      vmesh::GlobalID* gpuInitBlocks = GET_POINTER(gpuMemoryManager, vmesh::GlobalID, gpuInitBlocks);
+      // Restart reading calls this from an OpenMP loop, so use this thread's buffers, not thread 0's.
+      const uint cpuThreadID = gpu_getThread();
+      SUBPOINTER_ALLOCATE_ASYNC(gpuMemoryManager, gpuInitBuffer, cpuThreadID, WID3*nBlocks*sizeof(fileReal), stream);
+      SUBPOINTER_ALLOCATE_ASYNC(gpuMemoryManager, gpuInitBlocks, cpuThreadID, nBlocks*sizeof(vmesh::GlobalID), stream);
+      fileReal* gpuInitBuffer = GET_SUBPOINTER(gpuMemoryManager, fileReal, gpuInitBuffer, cpuThreadID);
+      vmesh::GlobalID* gpuInitBlocks = GET_SUBPOINTER(gpuMemoryManager, vmesh::GlobalID, gpuInitBlocks, cpuThreadID);
       // TODO: re-use per-thread buffers here, ensuring sufficient allocation.;
       CHK_ERR( gpuMemcpyAsync(gpuInitBuffer, initBuffer,
                               WID3*nBlocks*sizeof(fileReal), gpuMemcpyHostToDevice, stream) );

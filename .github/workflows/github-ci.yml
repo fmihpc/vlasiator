@@ -12,6 +12,10 @@ on:
   # ... or when the workflow is started manually
   workflow_dispatch:
 
+# Read-only suffices: artifact upload/download uses the runtime token, not GITHUB_TOKEN.
+permissions:
+  contents: read
+
 concurrency:
    group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
    cancel-in-progress: true
@@ -24,16 +28,17 @@ jobs:
        RUN_TP: ${{ steps.gitdiff.outputs.RUN_TP }}
     steps:
       - name: Checkout source
-        uses: actions/checkout@v4
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
           fetch-depth: 0
+          persist-credentials: false
       - name: Get git diff and determine whether to run testpackage
         id: gitdiff
         run: |
           cd $GITHUB_WORKSPACE
           #chmod +x ./.github/workflows/CI_git_diff.sh
-          echo Comparing PR branch against ${{ github.base_ref }}
-          if [[ $(./.github/workflows/CI_git_diff.sh ${{ github.base_ref }} ) == "no_test" ]]; then
+          echo Comparing PR branch against ${GITHUB_BASE_REF}
+          if [[ -n "$GITHUB_BASE_REF" && $(./.github/workflows/CI_git_diff.sh "$GITHUB_BASE_REF") == "no_test" ]]; then
             echo "RUN_TP=False" >> $GITHUB_OUTPUT
             echo "Not running testpackage"
             exit 0
@@ -47,6 +52,7 @@ jobs:
       matrix:
         #Each (arch, name) pair must be unique: together they name the uploaded artifacts
         #At most one run_tp: true entry per arch: the testpackage output artifact is named by arch alone
+        #tp_quick: true limits pushes and PRs to the quick test subset; scheduled and manual runs use all tests
         include:
           - name: prod
             runner: hile       #Tag of the github runner to run on
@@ -86,7 +92,8 @@ jobs:
             runner: ukko
             arch: turso-v100_GNU_MPICH
             compile_tp: true
-            run_tp: false # until we fix the bugs this found
+            run_tp: true
+            tp_quick: true # all tests take about 4 h in this debug build
             debug: true
 
           - name: testpackage run
@@ -129,11 +136,14 @@ jobs:
     if: github.repository_owner == 'fmihpc'
     env:
       VLASIATOR_ARCH: ${{ matrix.arch }}
+      TP_QUICK: ${{ matrix.tp_quick == true && (github.event_name == 'push' || github.event_name == 'pull_request') }}
     steps:
       #The & tags can be reused in other job steps with `- *tagname` scroll down for examples on how *checkoutSource has been used
     - &checkoutSource
       name: Checkout source
-      uses: actions/checkout@v4
+      uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      with:
+        persist-credentials: false
     - &cleanWorkspace
       name: Clean workspace
       run: |
@@ -142,7 +152,8 @@ jobs:
     - &makeClean
       name: Make clean
       run: make clean
-    - uses: ursg/gcc-problem-matcher@master
+    - name: Register GCC problem matcher
+      run: echo "::add-matcher::$GITHUB_WORKSPACE/.github/gcc-problem-matcher.json"
     - &buildLibs
       name: Run library build script ${{ matrix.arch }}
       run: |
@@ -172,7 +183,7 @@ jobs:
       wait-all: true
     - &checkVlasiatorBinaryVisibility
       name: Make sure the output binary is visible in lustre
-      uses: nick-fields/retry@v3
+      uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
       with:
         timeout_seconds: 15
         max_attempts: 3
@@ -194,20 +205,30 @@ jobs:
     - &uploadTestpackageOutput
       name: Upload testpackage output
       continue-on-error: true
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
       # Fixed per-arch name: pr_report*.yml download it by name.
       if: ${{ always() && matrix.run_tp }}
       with:
         name: testpackage-output-${{ matrix.arch }}
         path: testpackage-output-${{ matrix.arch }}.tar.gz
+    - name: Upload full testpackage logs
+      # The step summary keeps only the end of each test's log.
+      continue-on-error: true
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      if: ${{ always() && matrix.run_tp }}
+      with:
+        name: testpackage-logs-${{ matrix.arch }}
+        path: testpackage_logs/
+        retention-days: 14
     - &fluxTest
       name: Run fluxfunction test
-      if: ${{ matrix.run_tp && needs.get_git_diff.outputs.RUN_TP != 'False' }}
+      # Needs Magnetosphere_small and Magnetosphere_polar_small, which the quick subset leaves out.
+      if: ${{ matrix.run_tp && needs.get_git_diff.outputs.RUN_TP != 'False' && env.TP_QUICK != 'true' }}
       run: |
         ./.github/workflows/slurm_run.sh "FLUXTEST"
     - &uploadTools
       name: Upload tools binaries
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
       with:
         name: vlasiator-tools-${{ matrix.arch }}-${{ matrix.name }}
         path: |
@@ -217,14 +238,14 @@ jobs:
         if-no-files-found: error
     - &uploadTP
       name: Upload testpackage binary
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
       with:
         name: vlasiator-testpackage-${{ matrix.arch }}-${{ matrix.name }}
         path: vlasiator
         if-no-files-found: error
     - &uploadLibs
       name: Upload libraries as artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
       with:
         name: libraries-${{ matrix.arch }}-${{ matrix.name }}
         path: libraries-${{ matrix.arch }}.tar.gz
@@ -239,7 +260,7 @@ jobs:
     container: ursg/vlasiator_ci:20260910_1
 
     steps:
-      - uses: lukka/get-cmake@latest
+      - uses: lukka/get-cmake@a1a8216777d3cbbf5602c73b9ddd3e98257ecdc4 # v4.5.1
       - *checkoutSource
       - &githubLibs
         name: Install build dependencies
@@ -251,7 +272,7 @@ jobs:
       - name: Build libraries tar
         run: tar --zstd -cf libraries-docker.tar.zstd libraries-docker/
       - name: Upload libraries as artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: libraries-docker
           path: libraries-docker.tar.zstd
@@ -273,7 +294,7 @@ jobs:
       - name: Build libraries tar
         run: tar --zstd -cf libraries-arm64.tar.zstd libraries-arm64
       - name: Upload libraries as artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: libraries-arm64
           path: libraries-arm64.tar.zstd
@@ -300,12 +321,13 @@ jobs:
     - name: Fetch submodule libraries
       run: ./fetch_submodules.sh
     - name: Download libraries
-      uses: actions/download-artifact@v5
+      uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
       with:
         name: libraries-docker
     - name: Unpack libraries
       run: tar --zstd -xf libraries-docker.tar.zstd
-    - uses: ursg/gcc-problem-matcher@master
+    - name: Register GCC problem matcher
+      run: echo "::add-matcher::$GITHUB_WORKSPACE/.github/gcc-problem-matcher.json"
 
     - name: Compile vlasiator (Release build)
       shell: bash
@@ -326,7 +348,7 @@ jobs:
         fi
 
     - name: Upload release binary
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
       with:
         name: vlasiator-${{ matrix.compile_flags }}
         path: vlasiator
@@ -342,7 +364,7 @@ jobs:
     - name: Fetch submodule libraries
       run: ./fetch_submodules.sh
     - name: Download libraries
-      uses: actions/download-artifact@v5
+      uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
       with:
         name: libraries-docker
     - name: Unpack libraries
@@ -352,7 +374,7 @@ jobs:
         cd mini-apps/ionosphereSolverTests/
         VLASIATOR_ARCH=github_actions make -j 3
     - name: Upload ionosphereTest binaries
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
       with:
         name: ionosphereTests
         path: |
@@ -361,9 +383,9 @@ jobs:
           mini-apps/ionosphereSolverTests/sigmaProfiles
         if-no-files-found: error
     - name: Set up Python
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
     - name: Install uv
-      uses: astral-sh/setup-uv@v6
+      uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
     - name: install Gnuplot
       run: |
         apt update
@@ -395,7 +417,7 @@ jobs:
         ./sigmaProfiles 1e6 1.16046e9 > atmosphere100.dat
         ./plotAtmosphere.gp
     - name: Upload ionosphereTest result images
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
       with:
         name: ionosphereTestResults
         path: |
@@ -409,17 +431,18 @@ jobs:
     needs: build_github
     steps:
     - name: Checkout source
-      uses: actions/checkout@v4
+      uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
       with:
         submodules: false
+        persist-credentials: false
     - name: Download libraries
-      uses: actions/download-artifact@v5
+      uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
       with:
         name: libraries-docker
     - name: Unpack libraries
       run: tar --zstd -xf libraries-docker.tar.zstd
     - name: Download release binary
-      uses: actions/download-artifact@v5
+      uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
       with:
         name: vlasiator-prod
     - name: Ensure the binary is executable
