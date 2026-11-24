@@ -42,6 +42,7 @@
 int gpuMultiProcessorCount = 0;
 int blocksPerMP = 0;
 int threadsPerMP = 0;
+int maxCellsPerIteration = 65535;
 
 extern Logger logFile;
 int myDevice;
@@ -296,7 +297,7 @@ int gpu_reportMemory(const size_t local_cells_capacity, const size_t ghost_cells
    */
    uint maxNThreads = gpu_getMaxThreads();
 
-   size_t miniBuffers = 
+   size_t miniBuffers =
       sizeof(std::array<vmesh::MeshParameters,MAX_VMESH_PARAMETERS_COUNT>) // velocityMeshes_upload
       + sizeof(vmesh::MeshWrapper); // MWdev
    // DT reduction buffers are deallocated every step (GPUTODO, make persistent)
@@ -365,7 +366,7 @@ __host__ void gpu_vlasov_allocate(
    ) {
    // Always prepare for at least VLASOV_BUFFER_MINBLOCKS blocks
    const uint maxBlocksPerCell = max(VLASOV_BUFFER_MINBLOCKS, maxBlockCount);
-   
+
    CREATE_UNIQUE_POINTER(gpuMemoryManager, host_blockDataOrdered);
    CREATE_UNIQUE_POINTER(gpuMemoryManager, dev_blockDataOrdered);
    ALLOCATE_GPU(gpuMemoryManager, dev_blockDataOrdered, allocationCount*sizeof(Realf*));
@@ -389,7 +390,7 @@ __host__ void gpu_calculateProbeAllocation(
    ) {
    // Always prepare for at least VLASOV_BUFFER_MINBLOCKS blocks
    const uint maxBlocksPerCell = max(VLASOV_BUFFER_MINBLOCKS, maxBlockCount);
-   
+
    // Evaluate required size for acceleration probe cube (based on largest population)
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
       const uint c0 = (*vmesh::getMeshWrapper()->velocityMeshes)[popID].gridLength[0];

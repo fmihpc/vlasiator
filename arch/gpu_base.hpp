@@ -50,6 +50,7 @@
 extern int gpuMultiProcessorCount;
 extern int blocksPerMP;
 extern int threadsPerMP;
+extern int maxCellsPerIteration;
 
 // Magic multipliers used to make educated guesses for initial allocations
 // and for managing dynamic increases in allocation sizes. Some of these are
@@ -442,7 +443,7 @@ struct GPUMemoryManager {
          //No need to reallocate
          return false;
       }
-      
+
       if (gpuMemoryPointers[pointerIndex] != nullptr) {
          CHK_ERR( gpuFree(gpuMemoryPointers[pointerIndex]) );
       }
@@ -583,7 +584,7 @@ struct GPUMemoryManager {
 
       int padding = offset - dev_sessionSize;
       dev_sessionSize += bytes + padding;
-      
+
       sessionPointerOffset.push_back(offset);
       sessionPointers.push_back(nullptr);
       sessionPointerDevice.push_back(DEVICE_POINTER);
@@ -626,7 +627,7 @@ struct GPUMemoryManager {
 
       int padding = offset - host_sessionSize;
       host_sessionSize += bytes + padding;
-      
+
       sessionPointerOffset.push_back(offset);
       sessionPointers.push_back(nullptr);
       sessionPointerDevice.push_back(HOST_POINTER);
@@ -656,7 +657,7 @@ struct GPUMemoryManager {
          //No need to reallocate
          return false;
       }
-      
+
       if (gpuMemoryPointers[pointerIndex] != nullptr) {
          CHK_ERR( gpuFreeAsync(gpuMemoryPointers[pointerIndex], stream) );
       }
@@ -681,7 +682,7 @@ struct GPUMemoryManager {
 
       return allocateAsync(pointerIndex, bytes, stream);
    }
-   
+
    // Free a pointer
    bool freePointer(size_t& pointerIndex) {
       if (pointerIndex == 0) {
@@ -700,7 +701,7 @@ struct GPUMemoryManager {
       allocationSizes[pointerIndex] = (size_t)(0);
       pointerDevice[pointerIndex] = NO_POINTER_DEVICE;
       gpuMemoryPointers[pointerIndex] = nullptr;
-      
+
       return true;
    }
 
@@ -848,7 +849,7 @@ struct GPUMemoryManager {
       if (offset > dev_sessionAllocationSize){
          return static_cast<T*>(sessionPointers[pointerIndex]);
       }
-      
+
       return reinterpret_cast<T*>(sessionPointer + offset);
    }
 
@@ -868,7 +869,7 @@ struct GPUMemoryManager {
       if (offset > host_sessionAllocationSize){
          return static_cast<T*>(sessionPointers[pointerIndex]);
       }
-      
+
       return reinterpret_cast<T*>(sessionPointer + offset);
    }
 
