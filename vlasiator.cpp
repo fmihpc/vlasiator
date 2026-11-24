@@ -1471,7 +1471,7 @@ int main(int argn, char* args[]) {
    int required=MPI_THREAD_FUNNELED;
    int provided, resultlen;
    char mpiversion[MPI_MAX_LIBRARY_VERSION_STRING];
-   bool overrideMCAompio = false;
+   bool overrideMCAompio = false, bailMCA = false;
 
    MPI_Get_library_version(mpiversion, &resultlen);
    string versionstr = string(mpiversion);
@@ -1480,6 +1480,14 @@ int main(int argn, char* args[]) {
    if(versionstr.find("Open MPI") != std::string::npos) {
       #ifdef VLASIATOR_ALLOW_MCA_OMPIO
          mpiioMessage << "We detected OpenMPI but the compilation flag VLASIATOR_ALLOW_MCA_OMPIO was set so we do not override the default MCA io flag." << endl;
+         const char* mpiioenv = std::getenv("OMPI_MCA_io");
+         if(mpiioenv != nullptr) {
+            std::string mpiioenvstr(mpiioenv);
+            if(mpiioenvstr.find("^ompio") != std::string::npos) {
+               mpiioMessage << "However, the environment is setting OMPI_MCA_io=^ompio, which will likely not work! Please check your job script - you likely have a legacy `export OMPI_MCA_io=^ompio` somewhere. Aborting." <<endl;
+               bailMCA = true;
+            }
+         }
       #else
          overrideMCAompio = true;
          int index, count;
@@ -1511,6 +1519,10 @@ int main(int argn, char* args[]) {
          std::string mpiioenvstr(mpiioenv);
          if(mpiioenvstr.find("^ompio") == std::string::npos) {
             cout << mpiioMessage.str();
+         }
+         if(bailMCA){
+            cerr << mpiioMessage.str();
+            abort();
          }
       }
    }
