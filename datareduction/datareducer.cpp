@@ -363,6 +363,8 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             continue;
          }
       }
+
+#ifdef DEBUG_PENCILS
       if(P::systemWriteAllDROs || lowercase == "pencils" || lowercase == "vg_pencils") {
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_pencils_n",CellParams::NPENCILS,1));
          outputReducer->addMetadata(outputReducer->size()-1,"","","$N_\\mathrm{Pencils}$","");
@@ -392,6 +394,8 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
              continue;
           }
        }
+
+#endif
       
       if(P::systemWriteAllDROs || lowercase == "maxvdt" || lowercase == "vg_maxdt_acceleration") {
          // Overall maximum timestep constraint as calculated by the velocity space vlasov update

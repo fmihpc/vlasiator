@@ -319,6 +319,7 @@ void prepareGhostTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cart
    } // end loop over y-translation sources
    ghostZTimer.stop();
 
+#ifdef DEBUG_PENCILS
    if ((std::find(P::outputVariableList.begin(), P::outputVariableList.end(), "vg_pencils") != P::outputVariableList.end())
       || (std::find(P::outputVariableList.begin(), P::outputVariableList.end(), "pencils") != P::outputVariableList.end())
    ) {
@@ -328,6 +329,7 @@ void prepareGhostTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cart
          mpiGrid[c]->parameters[CellParams::ACTIVE_Z] = std::count(ghostTranslate_active_z.begin(), ghostTranslate_active_z.end(), c);
       }
    }
+#endif
 
    // Gather and report statistics
    std::vector<int64_t> localCounts;
@@ -1427,7 +1429,6 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
    vector<CellID> seedIds;
    getSeedIds(mpiGrid, propagatedCells, dimension, seedIds);
    getSeedIdsTimer.stop();
-
    if (printSeeds) {
       for (int rank=0; rank<mpi_size; ++rank) {
          MPI_Barrier(MPI_COMM_WORLD);
@@ -1524,6 +1525,8 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
    }
    buildPencilsTimer.stop();
 
+
+#ifdef DEBUG_PENCILS
    // write into each cell the ID of their pencil in each dimension
    // logic copied from printPencilsFunc
    // we only do this if the pencil data reducer is active
@@ -1593,6 +1596,7 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
          ibeg  = iend;
       }
    }
+#endif
 
 
    //GPUTODO: move gpu buffers and their upload to separate gpu_trans_pencils .hpp and .cpp files
