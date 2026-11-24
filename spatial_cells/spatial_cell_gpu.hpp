@@ -587,6 +587,9 @@ __global__ static void resize_and_empty_kernel (
 
       Population & get_population(const uint popID);
       const Population & get_population(const uint popID) const;
+      Population & get_population(const PopIndex popID);
+      const Population & get_population(const PopIndex popID) const;
+
       void set_population(const Population& pop, cuint popID);
       void scale_population(creal factor, cuint popID);
       void increment_population(const Population& pop, creal factor, cuint popID);
@@ -845,6 +848,14 @@ __global__ static void resize_and_empty_kernel (
 
    inline const Population & SpatialCell::get_population(const uint popID) const {
       return populations[popID];
+   }
+
+   inline Population & SpatialCell::get_population(const PopIndex popID) {
+      return populations[popID.PopID];
+   }
+
+   inline const Population & SpatialCell::get_population(const PopIndex popID) const {
+      return populations[popID.PopID];
    }
 
    inline void SpatialCell::set_population(const Population& pop, cuint popID) {
