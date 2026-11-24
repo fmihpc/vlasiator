@@ -124,7 +124,7 @@ namespace FieldTracing {
                   }
 
                   // Make one step along the fieldline
-                  stepFieldLine(x, v, nodeTracingStepSize[n], fieldTracingParameters.min_tracer_dx_full_box, fsgrid.getGridSpacing()[0] / 2, fieldTracingParameters.tracingMethod, tracingFullField, (no.x[2] < 0));
+                  stepFieldLine(x, v, nodeTracingStepSize[n], fieldTracingParameters.min_tracer_dx_full_box, fsgrid.getGridSpacing()[0] / 2, fieldTracingParameters.tracingMethod, tracingFullField, (SBC::ionosphereGrid.magneticZ(no.x) < 0));
 
                   // If we map back into the ionosphere, we obviously don't couple out to SBC::Ionosphere::downmapRadius.
                   if (x.at(0)*x.at(0) + x.at(1)*x.at(1) + x.at(2)*x.at(2) < SBC::Ionosphere::innerRadius * SBC::Ionosphere::innerRadius) {
@@ -138,7 +138,7 @@ namespace FieldTracing {
                      const std::array<Real, 3> x_out = x;
 
                      // Take a step back and find the downmapRadius crossing point
-                     stepFieldLine(x, v, nodeTracingStepSize[n], fieldTracingParameters.min_tracer_dx_full_box, fsgrid.getGridSpacing()[0] / 2, fieldTracingParameters.tracingMethod, tracingFullField, !(no.x[2] < 0));
+                     stepFieldLine(x, v, nodeTracingStepSize[n], fieldTracingParameters.min_tracer_dx_full_box, fsgrid.getGridSpacing()[0] / 2, fieldTracingParameters.tracingMethod, tracingFullField, !(SBC::ionosphereGrid.magneticZ(no.x) < 0));
                      Real r_out = sqrt(x_out[0] * x_out[0] + x_out[1] * x_out[1] + x_out[2] * x_out[2]);
                      Real r_in = sqrt(x[0] * x[0] + x[1] * x[1] + x[2] * x[2]);
                      Real alpha = (SBC::Ionosphere::downmapRadius - r_out) / (r_in - r_out);
@@ -552,7 +552,7 @@ namespace FieldTracing {
 
                   // Make one step along the fieldline
                   // If the node is in the North, trace along -B (false for last argument), in the South, trace along B
-                  stepFieldLine(x, v, nodeTracingStepSize[n], (TReal)fieldTracingParameters.min_tracer_dx_full_box, (TReal)fsgrid.getGridSpacing()[0] / 2, fieldTracingParameters.tracingMethod, tracingFullField, (no.x[2] < 0));
+                  stepFieldLine(x, v, nodeTracingStepSize[n], (TReal)fieldTracingParameters.min_tracer_dx_full_box, (TReal)fsgrid.getGridSpacing()[0] / 2, fieldTracingParameters.tracingMethod, tracingFullField, (SBC::ionosphereGrid.magneticZ(no.x) < 0));
                   nodeTracingStepCount[n]++;
 
                   // Look up the fsgrid cell belonging to these coordinates

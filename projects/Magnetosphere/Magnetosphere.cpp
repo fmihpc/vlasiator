@@ -72,7 +72,7 @@ namespace projects {
       RP::add<Real>("Magnetosphere.refine_L1radius","Radius of L1-refined sphere", this->refine_L1radius,1.59275e8); // 25 RE
       RP::add<Real>("Magnetosphere.refine_L1tailthick","Thickness of L1-refined tail region", this->refine_L1tailthick,6.371e7); // 10 RE
                                                                                                                                                        //
-      RP::add<Real>("Magnetosphere.dipoleTiltPhi","Magnitude of dipole tilt, in degrees", this->dipoleTiltPhi,0.0);
+      RP::add<Real>("Magnetosphere.dipoleTiltPhi","Magnitude of dipole tilt from the z-axis, in degrees", this->dipoleTiltPhi,0.0);
       RP::add<Real>("Magnetosphere.dipoleTiltTheta","Direction of dipole tilt from Sun-Earth-line, in degrees", this->dipoleTiltTheta,0.0);
       RP::add<Real>("Magnetosphere.dipoleXFull","X-coordinate up to which dipole is at full strength, in metres", this->dipoleXFull,9.5565e7); // 15 RE
       RP::add<Real>("Magnetosphere.dipoleXZero","X-coordinate after which dipole is at zero strength, in metres", this->dipoleXZero,1.9113e8); // 30 RE
@@ -125,6 +125,17 @@ namespace projects {
             <<"correction terms in the solar wind. Thus overriding the config and setting Magnetosphere.noDipoleInSW=0."<<std::endl;
          }
          this->noDipoleInSW = false;
+      }
+
+      if (this->dipoleTiltPhi != 0.0 && this->dipoleType != 4 && myRank == MASTER_RANK) {
+         std::cerr<<"Warning in initializing Magnetosphere: dipoleTiltPhi/dipoleTiltTheta are only applied with "
+         <<"dipoleType 4. The dipole of dipoleType "<<this->dipoleType<<" is NOT tilted."<<std::endl;
+      }
+      if (this->dipoleType == 4) {
+         // Set here, not in setProjectBField: the ionosphere mesh is refined in magnetic latitude before that.
+         const Real phi = this->dipoleTiltPhi * M_PI / 180.;
+         const Real theta = this->dipoleTiltTheta * M_PI / 180.;
+         SBC::ionosphereGrid.setDipoleAxis({sin(phi) * cos(theta), sin(phi) * sin(theta), cos(phi)});
       }
 
       /** Read inner boundary parameters from either ionospheric or copysphere sysboundary condition */
@@ -322,22 +333,26 @@ namespace projects {
                //Append mirror dipole                
                bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, this->dipoleMirrorLocationX, 0.0, 0.0, 0.0 );//mirror
                setBackgroundField(bgFieldDipole, bgb, technical, fsgrid, true);
-               break; 
-            case 4:  // Vector potential dipole, vanishes or optionally scales to static inflow value after a given x-coordinate
+               break;
+            case 4: {// Vector potential dipole, vanishes or optionally scales to static inflow value after a given x-coordinate
                // What we in fact do is we place the regular dipole in the background field, and the
                // corrective terms in the perturbed field. This maintains the BGB as curl-free.
+               const Real moment = 8e15 * this->dipoleScalingFactor;
+               const Real tiltPhi = this->dipoleTiltPhi * M_PI / 180.;
+               const Real tiltTheta = this->dipoleTiltTheta * M_PI / 180.;
                //bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 ); //set dipole moment
-               
-               //GG 28.5.26: Adding dipole offset code. Assuming SI units + guessing what the params will be named in cfg
-               bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, this->dipoleXOffset, this->dipoleYOffset, this->dipoleZOffset, 0.0 ); //set dipole moment
 
+               //GG 28.5.26: Adding dipole offset code. Assuming SI units + guessing what the params will be named in cfg
+               // Tilt goes into BGB so that BGB, the ionosphere and the inner boundary all see the same dipole.
+               bgFieldDipole.initialize(moment, this->dipoleXOffset, this->dipoleYOffset, this->dipoleZOffset, tiltPhi, tiltTheta);
                setBackgroundField(bgFieldDipole, bgb, technical, fsgrid);
                SBC::ionosphereGrid.setDipoleField(bgFieldDipole);
                // Now we calculate the difference required to scale the dipole to zero as we approach the inflow,
                // and store it inside the BgBGrid object for use by e.g. boundary conditions.
-               bgFieldDipole.initialize(-8e15 *this->dipoleScalingFactor, this->dipoleXOffset, this->dipoleYOffset, this->dipoleZOffset, 0.0 );
+               // Same tilt as BGB, so the correction is only the x-taper and vanishes for x < dipoleXFull.
+               bgFieldDipole.initialize(-moment, this->dipoleXOffset, this->dipoleYOffset, this->dipoleZOffset, tiltPhi, tiltTheta);
                setPerturbedField(bgFieldDipole, bgb, technical, fsgrid, fsgrids::bgbfield::BGBXVDCORR);
-               bgVectorDipole.initialize(8e15 *this->dipoleScalingFactor, this->dipoleXOffset, this->dipoleYOffset, this->dipoleZOffset, this->dipoleTiltPhi*M_PI/180., this->dipoleTiltTheta*M_PI/180., this->dipoleXFull, this->dipoleXZero, this->dipoleInflowB[0], this->dipoleInflowB[1], this->dipoleInflowB[2]);
+               bgVectorDipole.initialize(moment, this->dipoleXOffset, this->dipoleYOffset, this->dipoleZOffset, tiltPhi, tiltTheta, this->dipoleXFull, this->dipoleXZero, this->dipoleInflowB[0], this->dipoleInflowB[1], this->dipoleInflowB[2]);
                setPerturbedField(bgVectorDipole, bgb, technical, fsgrid, fsgrids::bgbfield::BGBXVDCORR, true);
                if (P::isRestart == false) {
                   // If we are starting a new simulation, we also copy this data into perB.
@@ -352,6 +367,7 @@ namespace projects {
                   });
                }
                break;
+            }
             default:
                setBackgroundFieldToZero(fsgrid, technical, bgb);
       }

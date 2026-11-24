@@ -32,13 +32,14 @@ Background magnetic field class of Vlasiator.
 class Dipole {
 private:
    bool initialized = false;
-   double q[3];      // Dipole moment; set to (0,0,moment)
+   double q[3];      // Dipole moment; set to -moment*(sin(phi)cos(theta), sin(phi)sin(theta), cos(phi))
    double center[3]; // Coordinates where the dipole sits; set to (0,0,0)
 public:
    
    Dipole() {}
 
-   void initialize(const double moment,const double center_x, const double center_y, const double center_z, const double tilt_angle);
+   // tilt_angle (phi) from the z-axis, tilt_theta azimuth from +x, in radians; matches VectorDipole.
+   void initialize(const double moment, const double center_x, const double center_y, const double center_z, const double tilt_angle, const double tilt_theta = 0.0);
    double operator()(double x, double y, double z, coordinate component, unsigned int derivative=0, coordinate dcomponent=X) const;
 };
 
