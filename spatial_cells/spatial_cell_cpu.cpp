@@ -758,7 +758,7 @@ namespace spatial_cell {
       #ifdef DEBUG_SPATIAL_CELL
       for(auto index : popIndices){
          if (index.PopID >= getObjectWrapper().particleSpecies.size()) {
-            std::cerr << "ERROR, popID " << index.first << " exceeds species.size() " << getObjectWrapper().particleSpecies.size() << " in ";
+            std::cerr << "ERROR, popID " << index.toString() << " exceeds species.size() " << getObjectWrapper().particleSpecies.size() << " in ";
             std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
             exit(1);
          }

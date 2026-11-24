@@ -591,6 +591,10 @@ namespace spatial_cell{
       PopIndex(const int PopID) : PopID(PopID)
       {  
       };
+
+      std::string toString(){
+         return std::to_string(this->PopID);
+      };
    };
 }
 

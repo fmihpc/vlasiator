@@ -355,6 +355,9 @@ namespace spatial_cell {
       void setNewSizeClear(const uint popID, const vmesh::LocalID& newSize);
       void setNewSizeClear(const uint popID);
 
+      void setNewSizeClear(Population& pop, const vmesh::LocalID& newSize);
+      void setNewSizeClear(Population& pop);
+
       uint64_t get_cell_memory_capacity();
       uint64_t get_cell_memory_size();
       void merge_values(const uint popID);
@@ -736,6 +739,19 @@ namespace spatial_cell {
    }
    inline void SpatialCell::setNewSizeClear(const uint popID) {
       populations[popID].ResizeClear(populations[popID].N_blocks);
+   }
+
+   
+   /*!
+     Ensures the selected population vmesh localToGlobalMap has sufficient capacity and is of correct size. Does not alter
+     its contents. Ensures the selected population vmesh globalToLocalMap has sufficient capacity and is empty.
+     Ensures the selected population VBC has sufficient capacity and is of correct size.
+   */
+   inline void SpatialCell::setNewSizeClear(Population& pop, const vmesh::LocalID& newSize) {
+      pop.ResizeClear(newSize);
+   }
+   inline void SpatialCell::setNewSizeClear(Population& pop) {
+      pop.ResizeClear(pop.N_blocks);
    }
 
    /*!
