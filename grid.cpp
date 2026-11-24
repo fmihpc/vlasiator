@@ -589,7 +589,7 @@ void transferInParts(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGr
 
          int prepareReceives {phiprof::initializeTimer("Preparing receives")};
          int receives = 0;
-         #pragma omp parallel for schedule(guided)
+         #pragma omp parallel for schedule(guided) reduction(+:receives)
          for (const CellID cell_id : incoming_cells_list) {
             SpatialCell* cell = mpiGrid[cell_id];
             if (get_transfer_part(mpiGrid, num_part_transfers, cell_id) == transfer_part) {

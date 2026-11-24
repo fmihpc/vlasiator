@@ -326,8 +326,8 @@ namespace vmesh {
       if (shrink) {
          ltg_capacity = 1;
          gtl_sizepower = 4;
-         globalToLocalMap = Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(ltg_capacity);
-         localToGlobalMap = split::SplitVector<vmesh::GlobalID>(gtl_sizepower);
+         globalToLocalMap = Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(gtl_sizepower);
+         localToGlobalMap = split::SplitVector<vmesh::GlobalID>(ltg_capacity);
          localToGlobalMap.clear();
       } else {
          gpuStream_t stream = gpu_getStream();
