@@ -657,7 +657,7 @@ __host__ void gpu_trans_allocate(
          // New allocation
          void *buf0 = malloc(sizeof(Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>));
          unionOfBlocksSet = ::new (buf0) Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(HashmapReqSize);
-         dev_unionOfBlocksSet = unionOfBlocksSet->upload<true>(stream); // <true> == optimize to GPU
+         dev_unionOfBlocksSet = unionOfBlocksSet->upload<false>(stream); // <true> == optimize to GPU
          gpu_allocated_largestVmeshSizePower = HashmapReqSize;
       } else {
          // Ensure allocation
@@ -665,7 +665,7 @@ __host__ void gpu_trans_allocate(
             ::delete unionOfBlocksSet;
             void *buf0 = malloc(sizeof(Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>));
             unionOfBlocksSet = ::new (buf0) Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(HashmapReqSize);
-            dev_unionOfBlocksSet = unionOfBlocksSet->upload<true>(stream); // <true> == optimize to GPU
+            dev_unionOfBlocksSet = unionOfBlocksSet->upload<false>(stream); // <true> == optimize to GPU
             gpu_allocated_largestVmeshSizePower = HashmapReqSize;
          } else {
             // Ensure map is empty
@@ -681,13 +681,13 @@ __host__ void gpu_trans_allocate(
          unionOfBlocks = ::new (buf0) split::SplitVector<vmesh::GlobalID>(unionSetSize);
          unionOfBlocks->clear();
          //unionOfBlocks->optimizeGPU(stream);
-         dev_unionOfBlocks = unionOfBlocks->upload<true>(stream); // <true> == optimize to GPU
+         dev_unionOfBlocks = unionOfBlocks->upload<false>(stream); // <true> == optimize to GPU
       } else {
          // Clear is enough
          unionOfBlocks->clear();
          unionOfBlocks->reserve(unionSetSize);
          //unionOfBlocks->optimizeGPU(stream);
-         dev_unionOfBlocks = unionOfBlocks->upload<true>(stream); // <true> == optimize to GPU
+         dev_unionOfBlocks = unionOfBlocks->upload<false>(stream); // <true> == optimize to GPU
       }
       gpu_allocated_unionSetSize = unionSetSize;
    }

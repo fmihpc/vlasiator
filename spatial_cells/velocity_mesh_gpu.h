@@ -285,10 +285,6 @@ namespace vmesh {
          printf("VMESH CHECK ERROR Encountered %lu failures.\n",fail);
          return false;
       }
-      #if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
-      localToGlobalMap.optimizeGPU(stream);
-      globalToLocalMap.optimizeGPU(stream);
-      #endif
       return ok;
    }
 
@@ -315,10 +311,6 @@ namespace vmesh {
          const vmesh::GlobalID localID = it->second;
          printf("vmesh LID [%6u] => GID [%6u] => [%6u]\n",b,globalID,localID);
       }
-      #if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
-      localToGlobalMap.optimizeGPU(stream);
-      globalToLocalMap.optimizeGPU(stream);
-      #endif
    }
 
    inline void VelocityMesh::clear(bool shrink=true) {
@@ -678,7 +670,6 @@ namespace vmesh {
          }
          localToGlobalMap.insert(localToGlobalMap.end(),blocks.begin(),blocks.end());
          vmesh::GlobalID* _localToGlobalMapData = localToGlobalMap.data();
-         localToGlobalMap.optimizeGPU(stream);
          globalToLocalMap.insertIndex<false>(_localToGlobalMapData,blocksSize,0.5,stream);
          ltg_size = blocksSize;
          gtl_sizepower = globalToLocalMap.getSizePower();
@@ -703,7 +694,6 @@ namespace vmesh {
          localToGlobalMap.resize(ltg_size+newElements,true,stream);
          ltg_size += newElements;
          gtl_sizepower = globalToLocalMap.getSizePower();
-         localToGlobalMap.optimizeGPU(stream);
          return newElements;
       }
    }
@@ -746,7 +736,6 @@ namespace vmesh {
          }
          localToGlobalMap.insert(localToGlobalMap.end(),blocks->begin(),blocks->end());
          vmesh::GlobalID* _localToGlobalMapData = localToGlobalMap.data();
-         localToGlobalMap.optimizeGPU(stream);
          globalToLocalMap.insertIndex<false>(_localToGlobalMapData,blocksSize,0.5,stream);
          ltg_size = blocksSize;
          ltg_capacity = localToGlobalMap.capacity();
@@ -770,7 +759,6 @@ namespace vmesh {
             }
          }
          localToGlobalMap.resize(ltg_size+newElements,true,stream);
-         localToGlobalMap.optimizeGPU(stream);
          ltg_size += newElements;
          ltg_capacity = localToGlobalMap.capacity();
          gtl_sizepower = globalToLocalMap.getSizePower();
