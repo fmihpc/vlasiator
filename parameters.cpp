@@ -74,6 +74,8 @@ Real P::vlasovSolverMaxCFL = 0.99;
 Real P::vlasovSolverMinCFL = 0.8;
 bool P::vlasovSolverGhostTranslate = false;
 uint P::vlasovSolverGhostTranslateExtent = 0;
+bool P::coalesceGhostComms = false;
+
 Real P::fieldSolverMaxCFL = 0.5;
 Real P::fieldSolverMinCFL = 0.4;
 uint P::fieldSolverSubcycles = 1;
@@ -1203,5 +1205,3 @@ void Parameters::getParameters() {
       abort();
    }
 }
-
-
