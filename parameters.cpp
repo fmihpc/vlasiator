@@ -440,7 +440,7 @@ bool P::addParameters() {
    RP::add("timeclasses.timeclassExactHaloExtent", "Exact halo extent for timeclass halos", P::timeclassExactHaloExtent);
    RP::add("timeclasses.timeclassOuterHaloExtent", "Outer halo extent for timeclass halos", P::timeclassOuterHaloExtent);
    RP::add("timeclasses.tcDebugBox", "Use a forced timeclass box.", P::tcDebugBox);
-   RP::add("timeclasses.tcOverrideTimeclass", "Use a forced timeclass everywhere.", P::tcDebugBox);
+   RP::add("timeclasses.tcOverrideTimeclass", "Use a forced timeclass everywhere.", P::tcOverrideTimeclass);
    RP::add("timeclasses.tcBoxHalfWidthX", "Forced timeclass box half-width, X, meters", P::tcBoxHalfWidthX);
    RP::add("timeclasses.tcBoxHalfWidthY", "Forced timeclass box half-width, Y, meters", P::tcBoxHalfWidthY);
    RP::add("timeclasses.tcBoxHalfWidthZ", "Forced timeclass box half-width, Z, meters", P::tcBoxHalfWidthZ);
