@@ -35,7 +35,7 @@ using namespace std;
 
 namespace spatial_cell {
    PopIndex SpatialCell::activePopID = PopIndex(0);
-   std::vector<PopIndex> SpatialCell::activePopIndices = {};
+   std::vector<PopIndex> SpatialCell::activePopIndices = {PopIndex(0)};
 
    uint64_t SpatialCell::mpi_transfer_type = 0;
    bool SpatialCell::mpiTransferAtSysBoundaries = false;
@@ -374,20 +374,20 @@ namespace spatial_cell {
          if ((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_WITH_CONTENT_STAGE1) !=0) {
             //Communicate size of list so that buffers can be allocated on receiving side
             if (!receiving) {
-               this->velocity_block_with_content_list_size = this->velocity_block_with_content_list->size();
+               pop.velocity_block_with_content_list_size = pop.velocity_block_with_content_list->size();
             }
-            displacements.push_back((uint8_t*) &(this->velocity_block_with_content_list_size) - (uint8_t*) this);
+            displacements.push_back((uint8_t*) &(pop.velocity_block_with_content_list_size) - (uint8_t*) this);
             block_lengths.push_back(sizeof(vmesh::LocalID));
          }
          if ((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_WITH_CONTENT_STAGE2) !=0) {
             if (receiving) {
-               this->velocity_block_with_content_list->resize(this->velocity_block_with_content_list_size);
+               pop.velocity_block_with_content_list->resize(pop.velocity_block_with_content_list_size);
             }
    
             //velocity_block_with_content_list_size should first be updated, before this can be done (STAGE1)
-            if(velocity_block_with_content_list_size > 0) {
-               displacements.push_back((uint8_t*) this->velocity_block_with_content_list->data() - (uint8_t*) this);
-               block_lengths.push_back(sizeof(vmesh::GlobalID)*this->velocity_block_with_content_list_size);
+            if(pop.velocity_block_with_content_list_size > 0) {
+               displacements.push_back((uint8_t*) pop.velocity_block_with_content_list->data() - (uint8_t*) this);
+               block_lengths.push_back(sizeof(vmesh::GlobalID)*pop.velocity_block_with_content_list_size);
             } else {
                displacements.push_back(0);
                block_lengths.push_back(0);
@@ -395,7 +395,7 @@ namespace spatial_cell {
          }
    
          if ((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_DATA) !=0) {
-            displacements.push_back((uint8_t*) pop.blockContainer.getData() - (uint8_t*) this);
+            displacements.push_back((uint8_t*) pop.blockContainer->getData() - (uint8_t*) this);
             block_lengths.push_back(sizeof(Realf) * WID3 * pop.blockContainer->size());
          }
 
@@ -498,12 +498,12 @@ namespace spatial_cell {
          }
 
          if ((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_PARAMETERS) !=0) {
-            displacements.push_back((uint8_t*) get_block_parameters(activePopID) - (uint8_t*) this);
+            displacements.push_back((uint8_t*) pop.blockContainer->getParameters() - (uint8_t*) this);
             block_lengths.push_back(sizeof(Real) * size(activePopID) * BlockParams::N_VELOCITY_BLOCK_PARAMS);
          }
          // Copy particle species metadata
          if ((SpatialCell::mpi_transfer_type & Transfer::POP_METADATA) != 0) {
-            for (uint popID=0; popID<populations.size(); ++popID) {
+            for (auto popID=populations.begin(); popID!=populations.end(); ++popID) {
                displacements.push_back((uint8_t*) &(populations[popID].RHO) - (uint8_t*)this);
                block_lengths.push_back(offsetof(spatial_cell::Population, N_blocks));
             }
