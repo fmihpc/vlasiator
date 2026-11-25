@@ -1319,7 +1319,7 @@ namespace DRO {
    VariableRhoNonthermal::VariableRhoNonthermal(cuint _popID): DataReductionOperator(),popID(_popID) {
       popName = getObjectWrapper().particleSpecies[popID].name;
       if (P::activateVamr) {
-	    popName += std::to_string(getObjectWrapper().particleSpecies[popID].RefinementLevel);
+            popName += std::to_string(getObjectWrapper().particleSpecies[popID].RefinementLevel);
       }
       doSkip = (getObjectWrapper().particleSpecies[popID].thermalRadius == 0.0) ? true : false;
    }
@@ -1351,7 +1351,7 @@ namespace DRO {
    VariableRhoThermal::VariableRhoThermal(cuint _popID): DataReductionOperator(),popID(_popID) {
       popName = getObjectWrapper().particleSpecies[popID].name;
       if (P::activateVamr) {
-	    popName += std::to_string(getObjectWrapper().particleSpecies[popID].RefinementLevel);
+            popName += std::to_string(getObjectWrapper().particleSpecies[popID].RefinementLevel);
       }
       doSkip = (getObjectWrapper().particleSpecies[popID].thermalRadius == 0.0) ? true : false;
    }
@@ -1382,7 +1382,7 @@ namespace DRO {
    // v nonthermal:
    VariableVNonthermal::VariableVNonthermal(cuint _popID): DataReductionOperator(),popID(_popID) {
       popName = getObjectWrapper().particleSpecies[popID].name;
-	  if (P::activateVamr) {
+      if (P::activateVamr) {
         popName += std::to_string(getObjectWrapper().particleSpecies[popID].RefinementLevel);
       }
       doSkip = (getObjectWrapper().particleSpecies[popID].thermalRadius == 0.0) ? true : false;
@@ -1557,7 +1557,7 @@ namespace DRO {
 
    VariablePTensorNonthermalOffDiagonal::VariablePTensorNonthermalOffDiagonal(cuint _popID): DataReductionOperator(),popID(_popID) {
       popName = getObjectWrapper().particleSpecies[popID].name;
-	  if (P::activateVamr) {
+      if (P::activateVamr) {
         popName += std::to_string(getObjectWrapper().particleSpecies[popID].RefinementLevel);
       }
       doSkip = (getObjectWrapper().particleSpecies[popID].thermalRadius == 0.0) ? true : false;
@@ -1916,7 +1916,7 @@ namespace DRO {
    VariablePrecipitationLineDiffFlux::VariablePrecipitationLineDiffFlux(cuint _popID): DataReductionOperatorHasParameters(),popID(_popID) {
       popName = getObjectWrapper().particleSpecies[popID].name;
       if (P::activateVamr) {
-	    popName += std::to_string(getObjectWrapper().particleSpecies[popID].RefinementLevel);
+            popName += std::to_string(getObjectWrapper().particleSpecies[popID].RefinementLevel);
       }
       emin = getObjectWrapper().particleSpecies[popID].precipitationEmin;    // already converted to SI
       emax = getObjectWrapper().particleSpecies[popID].precipitationEmax;    // already converted to SI
@@ -2062,7 +2062,7 @@ namespace DRO {
    VariableEnergyDensity::VariableEnergyDensity(cuint _popID): DataReductionOperatorHasParameters(),popID(_popID) {
       popName = getObjectWrapper().particleSpecies[popID].name;
       if (P::activateVamr) {
-	    popName += std::to_string(getObjectWrapper().particleSpecies[popID].RefinementLevel);
+         popName += std::to_string(getObjectWrapper().particleSpecies[popID].RefinementLevel);
       }
       // Store internally in SI units
       solarwindenergy = getObjectWrapper().particleSpecies[popID].SolarWindEnergy;
@@ -2199,9 +2199,9 @@ namespace DRO {
                              + (VY - averageVY) * (VY - averageVY)
                              + (VZ - averageVZ) * (VZ - averageVZ);
 
-	                  lsum[0] += block_data[cellIndex(i,j,k)] * VSQ * (VX - averageVX) * DV3;
-	                  lsum[1] += block_data[cellIndex(i,j,k)] * VSQ * (VY - averageVY) * DV3;
-	                  lsum[2] += block_data[cellIndex(i,j,k)] * VSQ * (VZ - averageVZ) * DV3;
+                          lsum[0] += block_data[cellIndex(i,j,k)] * VSQ * (VX - averageVX) * DV3;
+                          lsum[1] += block_data[cellIndex(i,j,k)] * VSQ * (VY - averageVY) * DV3;
+                          lsum[2] += block_data[cellIndex(i,j,k)] * VSQ * (VZ - averageVZ) * DV3;
          }, sum);
 
          HeatFlux[0] = sum[0] * HALF * getObjectWrapper().particleSpecies[popID].mass;

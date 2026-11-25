@@ -75,7 +75,7 @@ void ObjectWrapper::initpop(std::string pop) {
            "1e3<cell.rho<1e5",
            newSpecies->sparseDynamicBulkValue2,0.0);
    RP::add<int>(pop + "_vspace.max_refinement_level",
-			  "Old maximum allowed mesh refinement level.",
+                          "Old maximum allowed mesh refinement level.",
            newSpecies->MaxRefinementLevel, 1);
    RP::add<int>(pop + "_vspace.vamr_refinement_level",
            "New maximum allowed mesh refinement level. 0 is an homogenous grid, X will give X+1 grids.",
@@ -157,7 +157,7 @@ bool ObjectWrapper::getPopulationParameters() {
    if(P::activateVamr) {
      const int nbpopinit = static_cast<int>(getObjectWrapper().particleSpeciesRead.size());
      int shift=0;
-   
+
      for(int popID=0; popID < nbpopinit; popID++) {
        species::Species& species=*getObjectWrapper().particleSpeciesRead[popID+shift];
        vmesh::MeshParameters& vMesh=*vmesh::getMeshWrapper()->velocityMeshesCreation->at(popID+shift);
@@ -179,7 +179,7 @@ bool ObjectWrapper::getPopulationParameters() {
 
             species2.RefinementLevel=R+1;
             species2.MaxRefinementLevel= species.MaxRefinementLevel;
-      
+
             shift+=1;
         }
        }else {
@@ -188,12 +188,12 @@ bool ObjectWrapper::getPopulationParameters() {
        }
      }
    }
-      
+
    // Particle population parameters
    for (unsigned int i = 0; i < getObjectWrapper().particleSpeciesRead.size(); i++) {
 
       species::Species& species =*getObjectWrapper().particleSpeciesRead[i];
-    
+
       vmesh::MeshParameters& vMesh = *vmesh::getMeshWrapper()->velocityMeshesCreation->at(i);
       const std::string& pop = species.name;
       // Sanity check name
@@ -221,7 +221,7 @@ bool ObjectWrapper::getPopulationParameters() {
          //species.sparseMinValue *= std::pow(species.minValueRefinementShift, species.RefinementLevel);
          species.sparseBlockAddWidthV=0;
       }
-      
+
       if (vMesh.gridLength[0] > MAX_BLOCKS_PER_DIM || vMesh.gridLength[1] > MAX_BLOCKS_PER_DIM ||
           vMesh.gridLength[2] > MAX_BLOCKS_PER_DIM) {
 

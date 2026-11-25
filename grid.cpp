@@ -286,12 +286,12 @@ void initializeGrids(
       }
 
       if (P::activateVamr){
-		 //Fixed ghost to 1 for all the initial velocity cells to avoid destruction
-	     FixedGhost(mpiGrid,cells);
-      } 
+         //Fixed ghost to 1 for all the initial velocity cells to avoid destruction
+         FixedGhost(mpiGrid,cells);
+      }
 
       for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID) {
-	     adjustVelocityBlocks(mpiGrid,cells,true,popID,true);
+         adjustVelocityBlocks(mpiGrid,cells,true,popID,true);
          // set initial LB metric based on number of blocks
          #pragma omp parallel for schedule(static)
          for (size_t i = 0; i < cells.size(); ++i) {
@@ -342,7 +342,7 @@ void initializeGrids(
    setBTimer.stop();
    if (P::isRestart) {
       // There are projects that have non-uniform and non-zero perturbed B, e.g. Magnetosphere with dipole type 4.
-      // If restarting with reapplyUponRestart active, we need to set PerB again 
+      // If restarting with reapplyUponRestart active, we need to set PerB again
       // in boundary cells after setProjectBField has populated the BGBXVDCORR etc. terms
       sysBoundaries.applyInitialState(mpiGrid, technical.view(), fsgrid, perb.view(), bgb.view(), project);
    }
@@ -834,7 +834,7 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& 
                           const vector<CellID>& cellsToAdjust,
                           bool doPrepareToReceiveBlocks,
                           const uint popID,
-			              bool useGhost) {
+                          bool useGhost) {
    phiprof::Timer readjustBlocksTimer {"re-adjust blocks", {"Block adjustment"}};
    SpatialCell::setCommunicatedSpecies(popID);
 

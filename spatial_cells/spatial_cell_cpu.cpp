@@ -301,36 +301,36 @@ namespace spatial_cell {
       }
 
       bool has_content = false;
-     
-      if (!P::activateVamr || (getObjectWrapper().particleSpecies[popID].RefinementLevel==0 && (P::vAMRorder!=3 && P::vAMRorder!=5)) || !useGhost ){ 
-	     const Real velocity_block_min_value = getVelocityBlockMinValue(popID);
-	     const Realf* block_data = populations[popID].blockContainer->getData(blockLID);
-	     for (unsigned int i=0; i<WID3; ++i) {
-	        if (block_data[i] >= velocity_block_min_value) {
-               has_content = true;
-               break;
-	        }
-	     }
+
+      if (!P::activateVamr || (getObjectWrapper().particleSpecies[popID].RefinementLevel==0 && (P::vAMRorder!=3 && P::vAMRorder!=5)) || !useGhost ){
+         const Real velocity_block_min_value = getVelocityBlockMinValue(popID);
+         const Realf* block_data = populations[popID].blockContainer->getData(blockLID);
+         for (unsigned int i=0; i<WID3; ++i) {
+           if (block_data[i] >= velocity_block_min_value) {
+              has_content = true;
+              break;
+           }
+         }
       }else{
-		 //Newly created cells that don't respect the vAMR criterion should be destroyed
-	     uint8_t *ghost =  populations[popID].blockContainer->getGhost(blockLID);
-	     bool has_content1 = false;
-	     if (ghost[0]==1){// ghost=2 may be used later for border
-	        has_content1 = true;
-	     }
-	     bool has_content2 = false;
-	     const Real velocity_block_min_value = getVelocityBlockMinValue(popID);
-	     const Realf* block_data = populations[popID].blockContainer->getData(blockLID);
-	     for (unsigned int i=0; i<WID3; ++i) {
-	        if (block_data[i] >= velocity_block_min_value) {
+         //Newly created cells that don't respect the vAMR criterion should be destroyed
+         uint8_t *ghost =  populations[popID].blockContainer->getGhost(blockLID);
+         bool has_content1 = false;
+         if (ghost[0]==1){// ghost=2 may be used later for border
+            has_content1 = true;
+         }
+         bool has_content2 = false;
+         const Real velocity_block_min_value = getVelocityBlockMinValue(popID);
+         const Realf* block_data = populations[popID].blockContainer->getData(blockLID);
+         for (unsigned int i=0; i<WID3; ++i) {
+            if (block_data[i] >= velocity_block_min_value) {
                has_content2 = true;
-	           break;
-	        }
-	     }
-	     if (has_content1 && has_content2){
-	        has_content = true;
-	     }
-      }   
+               break;
+            }
+         }
+         if (has_content1 && has_content2){
+            has_content = true;
+         }
+      }
 
       return has_content;
    }
@@ -433,7 +433,7 @@ namespace spatial_cell {
          }
 
          if ((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_REFINED) !=0) {
-			//Not used but can be to share the Refined parameter
+                        //Not used but can be to share the Refined parameter
             displacements.push_back((uint8_t*) get_refined(activePopID) - (uint8_t*) this);
             block_lengths.push_back(sizeof(uint8_t) * WID3 * populations[activePopID].blockContainer->size());
          }

@@ -256,15 +256,15 @@ namespace vmesh {
       if (shrink) {
          cachedCapacity = 1;
          block_data = split::SplitVector<Realf>(WID3);
-	     refined = split::SplitVector<uint8_t>(WID3);
-	     ghost = split::SplitVector<uint8_t>();
+             refined = split::SplitVector<uint8_t>(WID3);
+             ghost = split::SplitVector<uint8_t>();
          parameters = split::SplitVector<Real>(BlockParams::N_VELOCITY_BLOCK_PARAMS);
       }
 #else
       if (shrink) {
          block_data = std::vector<Realf,aligned_allocator<Realf,WID3>>(WID3);
-	     refined = std::vector<uint8_t>(WID3);
-	     ghost = std::vector<uint8_t>();
+             refined = std::vector<uint8_t>(WID3);
+             ghost = std::vector<uint8_t>();
          parameters = std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS>>(BlockParams::N_VELOCITY_BLOCK_PARAMS);
       }
 #endif
@@ -294,17 +294,17 @@ namespace vmesh {
       #ifdef DEBUG_VBC
          bool ok = true;
          const vmesh::LocalID currentCapacity = block_data.capacity()/WID3;
-	     const vmesh::LocalID currentCapacityR = refined.capacity()/WID3;
-	     const vmesh::LocalID currentCapacityG = ghost.capacity();
+         const vmesh::LocalID currentCapacityR = refined.capacity()/WID3;
+         const vmesh::LocalID currentCapacityG = ghost.capacity();
          const vmesh::LocalID currentCapacityP = parameters.capacity()/BlockParams::N_VELOCITY_BLOCK_PARAMS;
-	     const vmesh::LocalID numberOfBlocksR = refined.size()/WID3;
-	     const vmesh::LocalID numberOfBlocksG = ghost.size();
+         const vmesh::LocalID numberOfBlocksR = refined.size()/WID3;
+         const vmesh::LocalID numberOfBlocksG = ghost.size();
          const vmesh::LocalID numberOfBlocksP = parameters.size()/BlockParams::N_VELOCITY_BLOCK_PARAMS;
          if (source >= numberOfBlocks) ok = false;
          if (source >= currentCapacity) ok = false;
-	     if (source >= numberOfBlocksR) ok = false;
+         if (source >= numberOfBlocksR) ok = false;
          if (source >= currentCapacityR) ok = false;
-	     if (source >= numberOfBlocksG) ok = false;
+         if (source >= numberOfBlocksG) ok = false;
          if (source >= currentCapacityG) ok = false;
          if (source >= numberOfBlocksP) ok = false;
          if (source >= currentCapacityP) ok = false;
@@ -313,13 +313,13 @@ namespace vmesh {
          if (numberOfBlocks > currentCapacity) ok = false;
          if (source != numberOfBlocks-1) ok = false; // only allows moving from last entry
          if (source != numberOfBlocksP-1) ok = false;
-	     if (source != numberOfBlocksR-1) ok = false;
+         if (source != numberOfBlocksR-1) ok = false;
          #ifdef USE_GPU
          if (cachedCapacity != currentCapacity) ok = false;
          #endif
-	     if (currentCapacityR != currentCapacity) ok = false;
+         if (currentCapacityR != currentCapacity) ok = false;
          if (numberOfBlocksR != numberOfBlocks) ok = false;
-	     if (currentCapacityG != currentCapacity) ok = false;
+         if (currentCapacityG != currentCapacity) ok = false;
          if (numberOfBlocksG != numberOfBlocks) ok = false;
          if (currentCapacityP != currentCapacity) ok = false;
          if (numberOfBlocksP != numberOfBlocks) ok = false;
@@ -344,7 +344,7 @@ namespace vmesh {
       }
       for (unsigned int i=0; i<WID3; ++i) {
          refined[target*WID3+i] = refined[source*WID3+i];
-      }   
+      }
       ghost[target] = ghost[source];
       for (int i=0; i<BlockParams::N_VELOCITY_BLOCK_PARAMS; ++i) {
          parameters[target*BlockParams::N_VELOCITY_BLOCK_PARAMS+i] = parameters[source*BlockParams::N_VELOCITY_BLOCK_PARAMS+i];
@@ -823,7 +823,7 @@ namespace vmesh {
          refined[newIndex*WID3+i] = false;
       }
       for (size_t i=0; i<N_blocks; ++i) {
-	     ghost[newIndex+i] = 0;
+             ghost[newIndex+i] = 0;
       }
       for (size_t i=0; i<BlockParams::N_VELOCITY_BLOCK_PARAMS*N_blocks; ++i) {
          parameters[newIndex*BlockParams::N_VELOCITY_BLOCK_PARAMS+i] = 0.0;
@@ -918,7 +918,7 @@ namespace vmesh {
          refined_new[i] = refined[i];
       }
       for (size_t i=0; i<numberOfBlocks; ++i) {
-	     ghost_new[i] = ghost[i];
+             ghost_new[i] = ghost[i];
       }
       for (size_t i=0; i<numberOfBlocks*BlockParams::N_VELOCITY_BLOCK_PARAMS; ++i) {
          parameters_new[i] = parameters[i];
@@ -1206,7 +1206,7 @@ namespace vmesh {
 
       ghost[blockLID+cell] = value;
    }
-   
+
 #endif //debug VBC
 
 } // namespace block_cont

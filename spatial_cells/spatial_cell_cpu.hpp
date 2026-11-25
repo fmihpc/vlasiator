@@ -242,9 +242,9 @@ namespace spatial_cell {
       // Following functions return velocity grid metadata //
       template<int PAD> void fetch_data(const vmesh::GlobalID& blockGID,const vmesh::VelocityMesh* vmesh,
                                         const Realf* src,Realf* array);
-      template<int PAD>	void fetch_acc_data(const vmesh::GlobalID& blockGID,const int& dim,
-					    vmesh::VelocityMesh* vmesh,
-					    const Realf* src,Realf* array,Real cellSizeFractions[2]);
+      template<int PAD> void fetch_acc_data(const vmesh::GlobalID& blockGID,const int& dim,
+                                            vmesh::VelocityMesh* vmesh,
+                                            const Realf* src,Realf* array,Real cellSizeFractions[2]);
 
       vmesh::GlobalID find_velocity_block(vmesh::GlobalID cellIndices[3],const uint popID);
       Realf* get_data(const uint popID);
@@ -317,7 +317,7 @@ namespace spatial_cell {
       size_t count(const vmesh::GlobalID& block,const uint popID) const;
 
       void add_values(const vmesh::GlobalID& targetGID,
-		      std::unordered_map<vmesh::GlobalID,Realf[(WID+2)*(WID+2)*(WID+2)]>& sourceData,
+                      std::unordered_map<vmesh::GlobalID,Realf[(WID+2)*(WID+2)*(WID+2)]>& sourceData,
                       const uint popID);
 
       void printMeshSizes();

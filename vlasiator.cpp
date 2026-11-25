@@ -1105,7 +1105,7 @@ int simulate(int argn,char* args[]) {
          shrink_to_fit_grid_data(mpiGrid);
          shrinkTimer.stop();
 
-         if (refineNow || (!dtIsChanged && P::adaptRefinement && P::tstep % (P::rebalanceInterval * P::refineCadence) == 0 && P::t > P::refineAfter)) { 
+         if (refineNow || (!dtIsChanged && P::adaptRefinement && P::tstep % (P::rebalanceInterval * P::refineCadence) == 0 && P::t > P::refineAfter)) {
             logFile << "(AMR): Adapting refinement!"  << endl << writeVerbose;
             refineNow = false;
             if (!adaptRefinement(mpiGrid, technical.view(), fsgrid, sysBoundaryContainer, *project)) {
@@ -1348,19 +1348,19 @@ int simulate(int argn,char* args[]) {
 
       phiprof::Timer vspaceTimer {"Velocity-space"};
       if ( P::propagateVlasovAcceleration ) {
-		 if(P::activateVamr && (P::tstep % P::vAMRrefineStep) == 0){
-	  	    calculateAcceleration(mpiGrid,P::dt, true);
-		 }else{
-	  	    calculateAcceleration(mpiGrid,P::dt, false);
-		 }
+                 if(P::activateVamr && (P::tstep % P::vAMRrefineStep) == 0){
+                    calculateAcceleration(mpiGrid,P::dt, true);
+                 }else{
+                    calculateAcceleration(mpiGrid,P::dt, false);
+                 }
          addTimedBarrier("barrier-after-ad just-blocks");
       } else {
          //zero step to set up moments _v
-		 if(P::activateVamr && (P::tstep % P::vAMRrefineStep) == 0){
-	  	    calculateAcceleration(mpiGrid, 0.0,true);
-		 }else{
-	  	    calculateAcceleration(mpiGrid, 0.0,false);
-		 }
+                 if(P::activateVamr && (P::tstep % P::vAMRrefineStep) == 0){
+                    calculateAcceleration(mpiGrid, 0.0,true);
+                 }else{
+                    calculateAcceleration(mpiGrid, 0.0,false);
+                 }
       }
       vspaceTimer.stop(computedCells, "Cells");
       addTimedBarrier("barrier-after-acceleration");
@@ -1368,7 +1368,7 @@ int simulate(int argn,char* args[]) {
       if (P::artificialPADiff){
          phiprof::Timer diffusionTimer {"Pitch-angle diffusion"};
          for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-	      pitchAngleDiffusion(mpiGrid,popID);
+              pitchAngleDiffusion(mpiGrid,popID);
          }
          diffusionTimer.stop(computedCells, "Cells");
       }

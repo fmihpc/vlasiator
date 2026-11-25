@@ -68,7 +68,7 @@ uint P::zcells_ini = numeric_limits<uint>::max();
 Real P::t = 0;
 Real P::t_min = 0;
 Real P::t_max = LARGE_REAL;
-Real P::dt_ceil = -1.0; 
+Real P::dt_ceil = -1.0;
 Real P::dt = 0;
 Real P::vlasovSolverMaxCFL = 0.99;
 Real P::vlasovSolverMinCFL = 0.8;
@@ -499,7 +499,7 @@ bool P::addParameters() {
            "If 1, write a restart file on bailout. Gets reset when sending a STOP (1) or a KILL (0).", P::bailout_write_restart);
    RP::add("bailout.min_dt", "Minimum time step below which bailout occurs (s).", P::bailout_min_dt);
    RP::add("bailout.max_memory", "Maximum amount of memory used per node (in GiB) over which bailout occurs.",P::bailout_max_memory);
-   RP::add("bailout.velocity_space_wall_block_margin", 
+   RP::add("bailout.velocity_space_wall_block_margin",
            "Distance from the velocity space limits in blocks, if the distribution function reaches that distance from the wall we bail out to avoid hitting the wall.",
            P::bailout_velocity_space_wall_margin);
 
@@ -527,7 +527,7 @@ bool P::addParameters() {
    RP::add("AMR.refine_cadence","Refine every nth load balance", P::refineCadence);
    RP::add("AMR.refine_after","Start refinement after this many simulation seconds", P::refineAfter);
    RP::add("AMR.refine_radius","Maximum distance from origin to allow refinement within. Only induced refinement allowed outside this radius.", P::refineRadius);
-   RP::add("AMR.number_of_refine_boxes", "How many boxes outside which to suppress refinement, that number of box edges have to then be defined as well. If more than 1 box is defined, refinement is suppressed outside the union of the volumes of all boxes.", 
+   RP::add("AMR.number_of_refine_boxes", "How many boxes outside which to suppress refinement, that number of box edges have to then be defined as well. If more than 1 box is defined, refinement is suppressed outside the union of the volumes of all boxes.",
            P::refineBoxNumber);
    RP::add("AMR.refinement_min_x", "Refinement minimum X coordinate, no refinement at x < this value (m) except induced refinement.",P::refinementMinX);
    RP::add("AMR.refinement_min_y", "Refinement minimum Y coordinate, no refinement at y < this value (m) except induced refinement.",P::refinementMinY);
@@ -561,7 +561,7 @@ bool P::addParameters() {
    RP::add("PAD.mubins","number of bins for mu",P::PADmubins);
    RP::add("PAD.file","Path of txt file for nu0", P::PADnu0);
    RP::add("PAD.fudge","Divide diffusion coefficient nu0 (read from file) by a fudge factor (see Dubart et al 2023)",P::PADfudge);
-   
+
    // Fieldtracing
    RP::add("fieldtracing.fieldLineTracer", "Field line tracing method to use for coupling ionosphere and magnetosphere (options are: Euler, BS)", tracerString);
    RP::add<Real>("fieldtracing.tracer_max_allowed_error", "Maximum allowed error for the adaptive field line tracers ", FieldTracing::fieldTracingParameters.max_allowed_error,1000);
@@ -803,8 +803,8 @@ void Parameters::getParameters() {
       P::systemWriteName.at(i)=P::systemWriteName.at(i).substr(slashIndx+1,P::systemWriteName.at(i).size());
       slashIndx=P::systemWriteName.at(i).find("/");
     }
-   } 
-   
+   }
+
    for (uint i = 0; i < P::systemWritePath.size(); i++) {
       if (access(&(P::systemWritePath.at(i)[0]), W_OK) != 0) {
           if (myRank == MASTER_RANK) {
@@ -815,7 +815,7 @@ void Parameters::getParameters() {
          //P::systemWritePath.at(i) = prefix;
       }
    }
-   
+
 
    // system write hints
    if (P::mpiioKeysWrite.size() != P::mpiioValuesWrite.size()) {
@@ -924,7 +924,7 @@ void Parameters::getParameters() {
       MPI_Abort(MPI_COMM_WORLD, 1);
    }
 
-  
+
    if (P::useAnisotropy && P::anisotropyCoarsenThreshold < 0) {
       P::anisotropyCoarsenThreshold = P::anisotropyRefineThreshold * 2.0;
    }
@@ -1208,5 +1208,3 @@ void Parameters::getParameters() {
       abort();
    }
 }
-
-
