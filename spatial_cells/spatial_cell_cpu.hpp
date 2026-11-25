@@ -761,7 +761,6 @@ namespace spatial_cell {
         capacity += populations[p].blockContainer->capacityInBytes();
         capacity += populations[p].velocity_block_with_content_list->capacity()  * sizeof(vmesh::GlobalID);
         capacity += populations[p].velocity_block_with_no_content_list->capacity()  * sizeof(vmesh::GlobalID);
-
       }
 
       return capacity;
