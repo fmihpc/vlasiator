@@ -194,7 +194,7 @@ int getNeighborhood(const uint dimension, const uint stencil) {
          abort();
       }
    }
-   else if (stencil == P::timeclassFullHaloExtent) { // timeclass stencil, relegate to GT stencil above if that is enough
+   else if ((int)stencil == P::timeclassFullHaloExtent) { // timeclass stencil, relegate to GT stencil above if that is enough
       switch (dimension) {
       case 0:
          return Neighborhoods::VLASOV_SOLVER_X_GHOST_TIMECLASS;
@@ -972,7 +972,7 @@ CellID selectPositiveNeighbor(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
       if (tictoc == Timeclasses::TIC) {
          active_list = &timeghost_active_tic;
       }
-      else if (tictoc == Timeclasses::TOC) {
+      else {
          active_list = &timeghost_active_toc;
       }
       if (check_is_active(grid, myNeighbors[neighborIndex], dimension, (*active_list)[timeclass])) {
@@ -1279,7 +1279,7 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
    if (tictoc == Timeclasses::TIC) {
       active_list = &timeghost_active_tic;
    }
-   else if (tictoc == Timeclasses::TOC) {
+   else {
       active_list = &timeghost_active_toc;
    }
 
@@ -1608,7 +1608,7 @@ void check_ghost_cells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>
             distances.insert(-nbrPair.second[dimension]);
          }
       }
-      uint foundcells = 0;
+      int foundcells = 0;
       CellID lastcell = INVALID_CELLID;
       // Iterate through distances for VLASOV_STENCIL_WIDTH elements starting from the smallest distance.
       for (auto it = distances.begin(); it != distances.end(); ++it) {
