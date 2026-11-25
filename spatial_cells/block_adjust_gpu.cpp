@@ -26,8 +26,6 @@
 #include "../object_wrapper.h"
 #include "../velocity_mesh_parameters.h"
 
-const int maxCellsPerIteration = 65535;
-
 namespace spatial_cell {
 
    /*!\brief spatial_cell::update_velocity_block_content_lists Finds blocks above the sparsity threshold
