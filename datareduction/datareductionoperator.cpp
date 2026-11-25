@@ -67,7 +67,7 @@ namespace DRO {
     * @return If true, DataReductionOperator reduced data successfully.
     */
    bool DataReductionOperator::reduceDiagnostic(const SpatialCell* cell,Real* result) {
-      cerr << "ERROR: DataReductionOperator::reduceData called instead of derived class function! (variable " <<
+      cerr << "ERROR: DataReductionOperator::reduceDiagnostic called instead of derived class function! (variable " <<
               getName() << ")" << endl;
       cerr << "       Did you use a bulk reducer for writing diagnostic data?" << endl;
       return false;

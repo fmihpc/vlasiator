@@ -449,7 +449,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             species::Species& species=getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
             outputReducer->addOperator(new DRO::DataReductionOperatorPopulations<Real>(pop + "/vg_maxdt_translation", i, offsetof(spatial_cell::Population, max_dt[0]), 1));
-	    outputReducer->addMetadata(outputReducer->size()-1,"s","$\\mathrm{s}$","$\\Delta t_\\mathrm{"+pop+",R,max}$","1.0");
+            outputReducer->addMetadata(outputReducer->size()-1,"s","$\\mathrm{s}$","$\\Delta t_\\mathrm{"+pop+",R,max}$","1.0");
          }
          if(!P::systemWriteAllDROs) {
             continue;
@@ -3007,19 +3007,6 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          // Overall mass density
          diagnosticReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_rhom",CellParams::RHOM,1));
          if(!P::diagnosticWriteAllDROs) {
-            continue;
-         }
-      }
-      if(P::diagnosticWriteAllDROs || lowercase == "vg_p" || lowercase == "p") {
-	 // Overall mass density
-         diagnosticReducer->addOperator(new DRO::VariablePressureSolver);
-         if(!P::diagnosticWriteAllDROs) {
-	      continue;
-	 }
-      }
-      if(P::diagnosticWriteAllDROs || lowercase == "perturbedvolb" || lowercase == "vg_b_perturbed_vol") {
-         diagnosticReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_b_perturbed_vol",CellParams::PERBXVOL,3));
-         if(!P::systemWriteAllDROs) {
             continue;
          }
       }
