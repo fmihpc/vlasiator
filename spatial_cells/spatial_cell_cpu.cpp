@@ -341,6 +341,63 @@ namespace spatial_cell {
       if (this->mpiTransferEnabled && (SpatialCell::mpiTransferAtSysBoundaries==false ||
                                        this->sysBoundaryLayer ==1 || this->sysBoundaryLayer ==2 )) {
 
+         //add data to send/recv to displacement and block length lists
+         if ((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_LIST_STAGE1) != 0) {
+            //first copy values in case this is the send operation
+            pop.N_blocks = pop.blockContainer->size();
+   
+            // send velocity block list size
+            displacements.push_back((uint8_t*) &(pop.N_blocks) - (uint8_t*) this);
+            block_lengths.push_back(sizeof(vmesh::LocalID));
+         }
+   
+         if ((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_LIST_STAGE2) != 0) {
+            // STAGE1 should have been done, otherwise we have problems...
+            if (receiving) {
+               //mpi_number_of_blocks transferred earlier
+               pop.vmesh->setNewSize(pop.N_blocks);
+            } else {
+                //resize to correct size (it will avoid reallocation if it is big enough, I assume)
+                pop.N_blocks = pop.blockContainer->size();
+            }
+   
+            // send velocity block list
+            if(pop.vmesh->size() > 0) {
+               displacements.push_back((uint8_t*) pop.vmesh->getGrid()->data() - (uint8_t*) this);
+               block_lengths.push_back(sizeof(vmesh::GlobalID) * pop.vmesh->size());
+            } else {
+               displacements.push_back(0);
+               block_lengths.push_back(0);
+            }
+         }
+   
+         if ((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_WITH_CONTENT_STAGE1) !=0) {
+            //Communicate size of list so that buffers can be allocated on receiving side
+            if (!receiving) {
+               this->velocity_block_with_content_list_size = this->velocity_block_with_content_list->size();
+            }
+            displacements.push_back((uint8_t*) &(this->velocity_block_with_content_list_size) - (uint8_t*) this);
+            block_lengths.push_back(sizeof(vmesh::LocalID));
+         }
+         if ((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_WITH_CONTENT_STAGE2) !=0) {
+            if (receiving) {
+               this->velocity_block_with_content_list->resize(this->velocity_block_with_content_list_size);
+            }
+   
+            //velocity_block_with_content_list_size should first be updated, before this can be done (STAGE1)
+            if(velocity_block_with_content_list_size > 0) {
+               displacements.push_back((uint8_t*) this->velocity_block_with_content_list->data() - (uint8_t*) this);
+               block_lengths.push_back(sizeof(vmesh::GlobalID)*this->velocity_block_with_content_list_size);
+            } else {
+               displacements.push_back(0);
+               block_lengths.push_back(0);
+            }
+         }
+   
+         if ((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_DATA) !=0) {
+            displacements.push_back((uint8_t*) pop.blockContainer.getData() - (uint8_t*) this);
+            block_lengths.push_back(sizeof(Realf) * WID3 * pop.blockContainer->size());
+         }
 
          if ((SpatialCell::mpi_transfer_type & Transfer::NEIGHBOR_VEL_BLOCK_DATA) != 0) {
             /*We are actually transferring the data of a

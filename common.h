@@ -595,6 +595,8 @@ namespace spatial_cell{
       std::string toString(){
          return std::to_string(this->PopID);
       };
+
+      auto operator<=>(const PopIndex&) const = default;
    };
 }
 
