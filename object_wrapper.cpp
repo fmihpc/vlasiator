@@ -74,6 +74,19 @@ void ObjectWrapper::initpop(std::string pop) {
            "sparse.dynamicBulkValue1 = 1e3, sparse.dynamicBulkValue2=1e5, we apply the algorithm to cells for which "
            "1e3<cell.rho<1e5",
            newSpecies->sparseDynamicBulkValue2,0.0);
+   RP::add<int>(pop + "_vspace.max_refinement_level",
+                          "Old maximum allowed mesh refinement level.",
+           newSpecies->MaxRefinementLevel, 1);
+   RP::add<int>(pop + "_vspace.vamr_refinement_level",
+           "New maximum allowed mesh refinement level. 0 is an homogenous grid, X will give X+1 grids.",
+           newSpecies->RefinementLevel, 0);
+   RP::add<int>(pop + "_vspace.vamr_criteria_method",
+           "Choice of the method for the vamr criteria. 0 : d><population>_sparse.minValue ,  1 : d > eps  , 2 : d > eps 2^-R . Either 0 will be taken.",
+           newSpecies->CriteriaMethod, 0);
+   RP::add<Real>(pop + "_vspace.vamr_criteria_value",
+           "Value of epsilon (eps) for the vamr refinement criteria. Used only if vamr_criteria_method is 1 or 2.",
+           newSpecies->CriteriaValue, 1e-15);
+
 
    // Grid parameters
    RP::add(pop + "_vspace.vx_min", "Minimum value for velocity mesh vx-coordinates.", newVMesh->meshLimits[0]);
@@ -131,21 +144,56 @@ void ObjectWrapper::initpop(std::string pop) {
 }
 
 bool ObjectWrapper::addPopulationParameters() {
-  typedef Readparameters RP;
-  for (auto pop : RP::populations){
+   typedef Readparameters RP;
+   for (auto pop : RP::populations) {
     this->initpop(pop);
-  }
-  return true;
+   }
+   return true;
 }
 
 bool ObjectWrapper::getPopulationParameters() {
-   typedef Readparameters RP;
+
+   //Creation of the new species for each vAMR level
+   if(P::activateVamr) {
+     const int nbpopinit = static_cast<int>(getObjectWrapper().particleSpeciesRead.size());
+     int shift=0;
+
+     for(int popID=0; popID < nbpopinit; popID++) {
+       species::Species& species=*getObjectWrapper().particleSpeciesRead[popID+shift];
+       vmesh::MeshParameters& vMesh=*vmesh::getMeshWrapper()->velocityMeshesCreation->at(popID+shift);
+       const std::string& pop = species.name;
+       species.velocityMesh=popID+shift;
+       if ( species.MaxRefinementLevel > 0) {
+        species.RefinementLevel=0;
+        for (int R=0; R< species.MaxRefinementLevel; ++R) {
+          species::Species* newSpecies = new species::Species(species);
+          vmesh::MeshParameters* newVMesh = new vmesh::MeshParameters(vMesh);
+
+            newSpecies->name = newVMesh->name = pop; // + std::to_string(R+1); Will only be done for the output files
+            newSpecies->velocityMesh = popID+shift+1;
+            //Insertion of the new level in order to have continuity for the same population in the future popID loop
+            getObjectWrapper().particleSpeciesRead.insert(getObjectWrapper().particleSpeciesRead.begin()+popID+shift+1, newSpecies);
+            vmesh::getMeshWrapper()->velocityMeshesCreation->insert(vmesh::getMeshWrapper()->velocityMeshesCreation->begin()+popID+shift+1, newVMesh);
+
+            species::Species& species2=*getObjectWrapper().particleSpeciesRead[popID+shift+1];
+
+            species2.RefinementLevel=R+1;
+            species2.MaxRefinementLevel= species.MaxRefinementLevel;
+
+            shift+=1;
+        }
+       }else {
+        species.MaxRefinementLevel=0;
+        species.RefinementLevel=0;
+       }
+     }
+   }
 
    // Particle population parameters
    for (unsigned int i = 0; i < getObjectWrapper().particleSpeciesRead.size(); i++) {
 
       species::Species& species =*getObjectWrapper().particleSpeciesRead[i];
-    
+
       vmesh::MeshParameters& vMesh = *vmesh::getMeshWrapper()->velocityMeshesCreation->at(i);
       const std::string& pop = species.name;
       // Sanity check name
@@ -165,7 +213,15 @@ bool ObjectWrapper::getPopulationParameters() {
          return false;
       }
 
-      // Particle velocity space properties
+      if(P::activateVamr && species.RefinementLevel>0) {
+         //Nv(R)=Nv(R=0)*2^R
+         vMesh.gridLength[0] *= (1u << species.RefinementLevel);
+         vMesh.gridLength[1] *= (1u << species.RefinementLevel);
+         vMesh.gridLength[2] *= (1u << species.RefinementLevel);
+         //species.sparseMinValue *= std::pow(species.minValueRefinementShift, species.RefinementLevel);
+         species.sparseBlockAddWidthV=0;
+      }
+
       if (vMesh.gridLength[0] > MAX_BLOCKS_PER_DIM || vMesh.gridLength[1] > MAX_BLOCKS_PER_DIM ||
           vMesh.gridLength[2] > MAX_BLOCKS_PER_DIM) {
 

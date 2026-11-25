@@ -136,6 +136,9 @@ struct Parameters {
    static bool propagateVlasovTranslation;  /*!< If true, distribution function is propagated in ordinary space during
                                                the simulation.*/
 
+   static bool activateVamr;                /*!< If true, the velocity mesh refinement is activated.*/
+   static uint vAMRorder;                   /*!< Order of the vAMR method */
+   static uint vAMRrefineStep;              /*!< Number of step between two vAMR grid refinement*/
    static Real maxWaveVelocity;         /*!< Maximum wave velocity allowed in LDZ. */
    static uint maxFieldSolverSubcycles; /*!< Maximum allowed field solver subcycles. */
    static Real resistivity;             /*!< Resistivity in Ohm's law eta*J term. */
@@ -163,7 +166,7 @@ struct Parameters {
 
    static std::string loadBalanceAlgorithm; /*!< Algorithm to be used for load balance.*/
    static std::map<std::string, std::string> loadBalanceOptions;  // Other Load balancing options
-   
+
    static std::vector<std::string> loadBalanceKeys;
    static std::vector<std::string> loadBalanceValues;
    static uint rebalanceInterval;           /*!< Load rebalance interval (steps). */
@@ -243,7 +246,7 @@ struct Parameters {
    static int PADvbins; // Number of bins in velocity for pitch-angle diffusion
    static int PADmubins; // Number of bins in mu for pitch-angle diffusion
    static std::string PADnu0; // Path to txt file for nu0
-   static Realf PADfudge; // Fudge factore for diffusion   
+   static Realf PADfudge; // Fudge factore for diffusion
    static std::vector<std::string> mpiioKeysWrite;
    static std::vector<std::string> mpiioValuesWrite;
    static std::vector<std::string> mpiioKeysRestartRead;

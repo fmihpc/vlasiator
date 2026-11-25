@@ -26,20 +26,20 @@
  */
 
 #ifndef PARTICLE_SPECIES_H
-#define	PARTICLE_SPECIES_H
+#define PARTICLE_SPECIES_H
 
 #include "definitions.h"
 #include <array>
 #include <string>
 namespace species {
-    
+
    // Aliases for the maximum dt values stored in spatial_cell::Population::max_dt array.
    enum Dt_Elements {
       MAXRDT,                           /**< Maximum spatial translation dt.*/
       MAXVDT,                           /**< Maximum acceleration dt.*/
       SIZE_DT_ELEMENTS                  /**< Number of elements in array.*/
    };
-   
+
    /** Variables common to a particle species.*/
    struct Species {
       std::string name;               /**< Name of the species.*/
@@ -69,6 +69,10 @@ namespace species {
       Real precipitationEmin;                  /*!< Lowest energy channel (in keV) for precipitation differential flux evaluation. Default 0.1. */
       Real precipitationEmax;                  /*!< Highest energy channel (in keV) for precipitation differential flux evaluation. Default 100. */
       Real precipitationLossConeAngle;         /*!< Fixed loss cone opening angle (in deg) for precipitation differential flux evaluation. Default 10. */
+      int RefinementLevel;                      /*!< The level of refinement of this vmesh with 0 the coarsest velocity grid */
+      int MaxRefinementLevel;                   /*!< The maximum level of refinement of the velocity grid of this population */
+      int CriteriaMethod;                   /*!< The method used for the vamr criteria */
+      Real CriteriaValue;                   /*!< The value epsilon in the vamr criteria */
 
       Species();
       Species(const Species& other); //this is partial copy
@@ -78,5 +82,4 @@ namespace species {
 
 } // namespace species
 
-#endif	// PARTICLE_SPECIES_H
-
+#endif  // PARTICLE_SPECIES_H
