@@ -1677,7 +1677,6 @@ int simulate(int argn,char* args[]) {
       }
 
       // These are for outputs only, and may conflict with TP ref data - needs some resolution
-      #ifdef DEBUG_TIMECLASSES
       interpolateMomentsForTimeclasses(
          mpiGrid,
          P::t + P::dt,
@@ -1689,7 +1688,6 @@ int simulate(int argn,char* args[]) {
       );
       
       updateParticlePopulations(mpiGrid, P::t+P::dt);
-      #endif
 
       // momentsTimer.stop();
 
