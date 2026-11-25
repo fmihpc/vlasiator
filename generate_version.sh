@@ -2,6 +2,7 @@
 #
 # This file is part of Vlasiator.
 # Copyright 2010-2016 Finnish Meteorological Institute
+# Copyright 2022-2026 University of Helsinki
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by

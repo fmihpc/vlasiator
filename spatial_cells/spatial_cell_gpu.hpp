@@ -1,6 +1,8 @@
 /*
  * This file is part of Vlasiator.
- * Copyright 2010-2024 Finnish Meteorological Institute and University of Helsinki
+ * Copyright 2010-2024 Finnish Meteorological Institute
+ * Copyright 2010-2026 University of Helsinki
+ * Copyright 2015 CSC - IT Center for Science
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
  * at http://www.physics.helsinki.fi/vlasiator/

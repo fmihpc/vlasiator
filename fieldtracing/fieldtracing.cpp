@@ -1,5 +1,7 @@
 /*
  * This file is part of Vlasiator.
+ * Copyright 2022-2024 University of Helsinki
+ * Copyright 2025 CSC - IT Center for Science
  *
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
