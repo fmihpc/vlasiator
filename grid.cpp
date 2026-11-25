@@ -286,7 +286,8 @@ void initializeGrids(
       }
 
       for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID) {
-         adjustVelocityBlocks(mpiGrid, cells, true, popID);
+         PopIndex popInd = PopIndex(popID);
+         adjustVelocityBlocks(mpiGrid, cells, true, popInd);
          // set initial LB metric based on number of blocks
          #pragma omp parallel for schedule(static)
          for (size_t i = 0; i < cells.size(); ++i) {
@@ -295,9 +296,9 @@ void initializeGrids(
                SC->parameters[CellParams::LBWEIGHTCOUNTER] = 0;
             } else if (SC->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
                // Set sysb cells to a small weight
-               SC->parameters[CellParams::LBWEIGHTCOUNTER] += 0.5 * SC->get_number_of_velocity_blocks(popID);
+               SC->parameters[CellParams::LBWEIGHTCOUNTER] += 0.5 * SC->get_number_of_velocity_blocks(popInd);
             } else {
-               SC->parameters[CellParams::LBWEIGHTCOUNTER] += 3.0 * SC->get_number_of_velocity_blocks(popID);
+               SC->parameters[CellParams::LBWEIGHTCOUNTER] += 3.0 * SC->get_number_of_velocity_blocks(popInd);
             }
          }
       }
@@ -861,9 +862,9 @@ void prepareAMRLists(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGr
 bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                           const vector<CellID>& cellsToAdjust,
                           bool doPrepareToReceiveBlocks,
-                          const uint popID) {
+                          const PopIndex& popInd) {
    phiprof::Timer readjustBlocksTimer {"re-adjust blocks", {"Block adjustment"}};
-   SpatialCell::setCommunicatedSpecies(popID);
+   SpatialCell::setCommunicatedSpecies(popInd);
 
    // Only adjust simulation cells
    vector<CellID> validCells;
@@ -875,7 +876,7 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& 
    }
 
    // Batch call
-   update_velocity_block_content_lists(mpiGrid,validCells, popID);
+   update_velocity_block_content_lists(mpiGrid,validCells, popInd);
 
    // Get updated lists for blocks with content in spatial neighbours
    phiprof::Timer transferTimer {"Transfer with_content_list", {"MPI"}};
@@ -886,14 +887,14 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& 
    transferTimer.stop();
 
    // Batch adjusts velocity blocks in local spatial cells, doesn't adjust velocity blocks in remote cells.
-   adjust_velocity_blocks_in_cells(mpiGrid, validCells, popID);
+   adjust_velocity_blocks_in_cells(mpiGrid, validCells, popInd);
 
    // prepare to receive full block data for all cells (irrespective of list of cells to adjust)
    if (doPrepareToReceiveBlocks) {
       if (P::vlasovSolverGhostTranslate) {
-         updateRemoteVelocityBlockLists(mpiGrid, popID, Neighborhoods::VLASOV_SOLVER_GHOST);
+         updateRemoteVelocityBlockLists(mpiGrid, popInd, Neighborhoods::VLASOV_SOLVER_GHOST);
       } else {
-         updateRemoteVelocityBlockLists(mpiGrid, popID);
+         updateRemoteVelocityBlockLists(mpiGrid, popInd);
       }
    }
    return true;
@@ -936,24 +937,22 @@ void deallocateRemoteCellBlocks(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geome
       uint64_t cell_id=incoming_cells[i];
       SpatialCell* cell = mpiGrid[cell_id];
       if (cell != NULL) {
-         for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID)
+         for (auto& [popID, pop] : cell->get_populations()){
             cell->clear(popID, true); // flag true shrinks allocation
+         }
       }
    }
    memory_purge(); // Purge jemalloc allocator to actually release memory
 }
 
-/*
-Updates velocity block lists between remote neighbors and prepares local
-copies of remote neighbors for receiving velocity block data.
-*/
+
 void updateRemoteVelocityBlockLists(
    dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
-   const uint popID,
+   const PopIndex& popID,
    const uint neighborhood/*=Neighborhoods::DIST_FUNC default*/
 )
 {
-   SpatialCell::setCommunicatedSpecies(popID);
+   SpatialCell::setCommunicatedSpecies(popID.PopID);
 
    // update velocity block lists For small velocity spaces it is
    // faster to do it in one operation, and not by first sending size,
@@ -1547,7 +1546,8 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGr
    // Update as ghost cell refLevels may have changed
    fsgrid.updateGhostCells(technical);
    for (size_t popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID) {
-      updateRemoteVelocityBlockLists(mpiGrid, popID, Neighborhoods::NEAREST);
+      PopIndex popInd = PopIndex(popID);
+      updateRemoteVelocityBlockLists(mpiGrid, popInd, Neighborhoods::NEAREST);
    }
 
    if (P::shouldFilter) {

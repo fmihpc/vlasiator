@@ -46,12 +46,12 @@ namespace spatial_cell {
    void update_velocity_block_content_lists(
       dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const vector<CellID>& cells,
-      const uint popID=0);
+      const PopIndex& popID=PopIndex(0));
 
    void adjust_velocity_blocks_in_cells(
       dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const vector<CellID>& cells,
-      const uint popID=0);
+      const PopIndex& popID=PopIndex(0));
 
 } // namespaces
 #endif

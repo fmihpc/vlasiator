@@ -1,6 +1,8 @@
 CMP = mpic++
 LNK = mpic++
 
+export OMPI_CC=gcc-16
+export OMPI_CXX=g++-16
 # Markku's ~~Markus'~~ desktop computer
 
 #======== Vectorization ==========

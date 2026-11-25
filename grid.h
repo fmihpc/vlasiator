@@ -22,6 +22,7 @@
 #ifndef GRID_H
 #define GRID_H
 
+#include "common.h"
 #include "definitions.h"
 #include "spatial_cells/spatial_cell_wrapper.hpp"
 #include "spatial_cells/block_adjust_wrapper.hpp"
@@ -110,7 +111,7 @@ data. This is needed if one has locally adjusted velocity blocks
 */
 void updateRemoteVelocityBlockLists(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-   const uint popID,
+   const PopIndex& popID,
    const uint neighborhood=Neighborhoods::DIST_FUNC
 );
 
@@ -135,7 +136,7 @@ void deallocateRemoteCellBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
 bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                           const std::vector<CellID>& cellsToAdjust,
                           bool doPrepareToReceiveBlocks,
-                          const uint popID);
+                          const PopIndex& popID);
 
 /*! Shrink to fit velocity space data to save memory.
  * \param mpiGrid Spatial grid

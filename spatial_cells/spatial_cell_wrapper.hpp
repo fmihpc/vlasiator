@@ -46,7 +46,6 @@ as an index that would be outside of the velocity block
 #define error_velocity_cell_index 0xFFFFFFFFu
 
 namespace spatial_cell {
-
    namespace Transfer {
       static const uint64_t NONE                     = 0;
       static const uint64_t CELL_PARAMETERS          = (1ull<<0);

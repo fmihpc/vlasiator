@@ -635,7 +635,7 @@ void calculateScaledDeltas(SpatialCell* cell, std::vector<SpatialCell*>& neighbo
            .normalized()
            .toRotationMatrix();
    Real Panisotropy{calculateAnisotropy(rot, myPressure)};
-   for (const auto& pop : cell->get_populations()) {
+   for (const auto& [popID, pop] : cell->get_populations()) {
       // TODO I hate this. Change all this crap to std::vectors?
       std::array<Real, 6> popP{pop.P[0], pop.P[1], pop.P[2], pop.P[3], pop.P[4], pop.P[5]};
       Real popPanisotropy{calculateAnisotropy(rot, popP)};

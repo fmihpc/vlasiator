@@ -3789,11 +3789,11 @@ namespace SBC {
       cellParams[CellParams::BULKV_FORCING_Z] = (E[0] * B[1] - E[1] * B[0]) / Bsqr;
    }
 
+   // popID here is referring to species-type population. Will need to loop over potential PopIndices corresponding to that species.
    void Ionosphere::vlasovBoundaryCondition(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, const CellID& cellID, const uint popID, const bool calculate_V_moments) {
       // TODO Make this a more elegant solution
       // Now it's hacky as the counter is incremented in vlasiator.cpp
       if (globalflags::ionosphereJustSolved) { // else we don't update this boundary
-
          // If we are to couple to the ionosphere grid, we better be part of its communicator.
          assert(ionosphereGrid.communicator != MPI_COMM_NULL);
 
@@ -3852,7 +3852,7 @@ namespace SBC {
          case AverageMoments: {
             // Fill velocity space with new maxwellian data
             SpatialCell& cell = *mpiGrid[cellID];
-            cell.clear(popID, false); // Clear previous velocity space completely, do not de-allocate memory
+            cell.clear(PopIndex(popID), false); // Clear previous velocity space completely, do not de-allocate memory
             creal initRho = density;
             creal initT = temperature;
             creal initV0X = vDrift[0];
@@ -3866,7 +3866,7 @@ namespace SBC {
             // with count in cell.get_population(popID).N_blocks
 
             // Resize and populate mesh
-            cell.prepare_to_receive_blocks(popID);
+            cell.prepare_to_receive_blocks(PopIndex(popID));
 
             // Set the reservation value (capacity is increased in add_velocity_blocks
 
@@ -3878,8 +3878,8 @@ namespace SBC {
             vmesh::VelocityMesh* vmesh = cell.dev_get_velocity_mesh(popID);
             vmesh::VelocityBlockContainer* VBC = cell.dev_get_velocity_blocks(popID);
 #else
-            vmesh::VelocityMesh* vmesh = cell.get_velocity_mesh(popID);
-            vmesh::VelocityBlockContainer* VBC = cell.get_velocity_blocks(popID);
+            vmesh::VelocityMesh* vmesh = cell.get_velocity_mesh(PopIndex(popID));
+            vmesh::VelocityBlockContainer* VBC = cell.get_velocity_blocks(PopIndex(popID));
 #endif
             // Loop over blocks
             Realf rhosum = 0;
@@ -3950,7 +3950,7 @@ namespace SBC {
             creal RY = cell.parameters[CellParams::YCRD] + 0.5 * cell.parameters[CellParams::DY];
             creal RZ = cell.parameters[CellParams::ZCRD] + 0.5 * cell.parameters[CellParams::DZ];
 
-            cell.clear(popID, false); // Clear previous velocity space completely, do not de-allocate memory
+            cell.clear(PopIndex(popID), false); // Clear previous velocity space completely, do not de-allocate memory
             creal initRho = speciesParams[popID].rho;
             creal initT = speciesParams[popID].T;
             creal initV0X = vDrift[0];
@@ -3965,7 +3965,7 @@ namespace SBC {
             // with count in cell.get_population(popID).N_blocks
 
             // Resize and populate mesh
-            cell.prepare_to_receive_blocks(popID);
+            cell.prepare_to_receive_blocks(PopIndex(popID));
 
             // Set the reservation value (capacity is increased in add_velocity_blocks
             // const Realf minValue = cell.getVelocityBlockMinValue(popID);
@@ -3976,8 +3976,8 @@ namespace SBC {
             vmesh::VelocityMesh* vmesh = cell.dev_get_velocity_mesh(popID);
             vmesh::VelocityBlockContainer* VBC = cell.dev_get_velocity_blocks(popID);
 #else
-            vmesh::VelocityMesh* vmesh = cell.get_velocity_mesh(popID);
-            vmesh::VelocityBlockContainer* VBC = cell.get_velocity_blocks(popID);
+            vmesh::VelocityMesh* vmesh = cell.get_velocity_mesh(PopIndex(popID));
+            vmesh::VelocityBlockContainer* VBC = cell.get_velocity_blocks(PopIndex(popID));
 #endif
             // Loop over blocks
             Realf rhosum = 0;
@@ -4045,7 +4045,7 @@ namespace SBC {
          break;
          } // end switch VDF method
          // let's get rid of blocks not fulfilling the criteria here to save memory.
-         mpiGrid[cellID]->adjustSingleCellVelocityBlocks(popID, true);
+         mpiGrid[cellID]->adjustSingleCellVelocityBlocks(PopIndex(popID), true);
 
          // In principle this could call _R or _V instead according to calculate_V_moments (unused at the moment)
          // But the relevant moments will get recomputed in other spots when needed.
@@ -4071,7 +4071,7 @@ namespace SBC {
       Real initRho, initT, initV0X, initV0Y, initV0Z;
       // Loop over particle species
       for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID) {
-         templateCell.clear(popID, false); // clear, do not de-allocate memory
+         templateCell.clear(PopIndex(popID), false); // clear, do not de-allocate memory
          const IonosphereSpeciesParameters& sP = this->speciesParams[popID];
          const Real mass = getObjectWrapper().particleSpecies[popID].mass;
          initRho = sP.rho;
@@ -4086,7 +4086,7 @@ namespace SBC {
          // with count in cell.get_population(popID).N_blocks
 
          // Resize and populate mesh
-         templateCell.prepare_to_receive_blocks(popID);
+         templateCell.prepare_to_receive_blocks(PopIndex(popID));
 
          // Set the reservation value (capacity is increased in add_velocity_blocks
          // const Realf minValue = templateCell.getVelocityBlockMinValue(popID);
@@ -4097,8 +4097,8 @@ namespace SBC {
          vmesh::VelocityMesh* vmesh = templateCell.dev_get_velocity_mesh(popID);
          vmesh::VelocityBlockContainer* VBC = templateCell.dev_get_velocity_blocks(popID);
 #else
-         vmesh::VelocityMesh* vmesh = templateCell.get_velocity_mesh(popID);
-         vmesh::VelocityBlockContainer* VBC = templateCell.get_velocity_blocks(popID);
+         vmesh::VelocityMesh* vmesh = templateCell.get_velocity_mesh(PopIndex(popID));
+         vmesh::VelocityBlockContainer* VBC = templateCell.get_velocity_blocks(PopIndex(popID));
 #endif
          // Loop over blocks
          Realf rhosum = 0;
@@ -4135,7 +4135,7 @@ namespace SBC {
 #endif
 
          // let's get rid of blocks not fulfilling the criteria here to save memory.
-         templateCell.adjustSingleCellVelocityBlocks(popID, true);
+         templateCell.adjustSingleCellVelocityBlocks(PopIndex(popID), true);
       } // for-loop over particle species
 
       calculateCellMoments(&templateCell, true, false, true);
