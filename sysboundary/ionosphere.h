@@ -574,7 +574,7 @@ namespace SBC {
       Ionosphere();
       virtual ~Ionosphere();
 
-      static void addParameters();
+      void addParameters();
       virtual void getParameters() override;
 
       virtual void initSysBoundary(creal& t, Project& project) override;
@@ -616,6 +616,7 @@ namespace SBC {
       virtual std::string getName() const override;
       virtual uint getIndex() const override;
       static Real radius; /*!< Radius of the inner simulation boundary */
+      static std::vector<IonosphereSpeciesParameters*> speciesParamsRead;
       static std::vector<IonosphereSpeciesParameters> speciesParams;
 
       // Parameters of the ionosphere model
@@ -637,6 +638,7 @@ namespace SBC {
       static Real backgroundIonisation; /*!< Background ionisation due to stellar UV and cosmic rays */
       static Real downmapRadius; /*!< Radius from which FACs are downmapped (RE) */
       static Real downmapSamplingWidth; /*!< Stencil width for FACs downmapping routines */
+      static string downmapSamplingModeStr;
       static enum downmapSamplingMode { // How to sample possibly under-resolved FACs at the downmap radius
          Pointwise,  // Just sample the FAC at the downmapping point
          Boxcar27   // 27-point boxcar, samples a cube of +-downmapSamplingWidth*fsgrid.dx/2 from the downmapping point
@@ -664,13 +666,13 @@ namespace SBC {
          cint j,
          cint k
       );
-
+      std::string VDFmodeString; 
+      std::string gaugeFixingString;
+      std::string ionizationModelString;
       Real center[3]; /*!< Coordinates of the centre of the ionosphere. */
       uint geometry; /*!< Geometry of the ionosphere, 0: inf-norm (diamond), 1: 1-norm (square), 2: 2-norm (circle, DEFAULT), 3: polar-plane cylinder with line dipole. */
-
-
-      std::string baseShape; /*!< Basic mesh shape (fromFile / sphericalFibonacci / icosahedron / tetrahedron) */
-      std::string path; /*!< Path to ionosphere grid mesh file */
+      std::string gridFilePath;
+      std::string baseShape; /*!< Basic mesh shape (sphericalFibonacci / icosahedron / tetrahedron) */
       int fibonacciNodeNum;  /*!< If spherical fibonacci: number of nodes to generate */
       Real earthAngularVelocity; /*!< Earth rotation vector, in radians/s */
       Real plasmapauseL; /*!< L-Value at which the plasma pause resides (everything inside corotates) */

@@ -206,7 +206,7 @@ namespace spatial_cell {
             // Get local ID of the target block. If the block doesn't exist, create it.
             vmesh::GlobalID toBlockLID = vmesh->getLocalID(incBlockGID);
             if (toBlockLID == vmesh->invalidLocalID()) {
-               bool success = vmesh->push_back(incBlockGID);
+               vmesh->push_back(incBlockGID);
                toBlockLID = blockContainer->push_back_and_zero();
                Real* parameters = blockContainer->getParameters(toBlockLID);
                vmesh->getBlockInfo(incBlockGID, parameters+BlockParams::VXCRD);
@@ -396,7 +396,6 @@ namespace spatial_cell {
       bool compute_block_has_content(const vmesh::GlobalID& block,const uint popID,const bool useGhost) const;
 
       static int activePopID;
-      bool initialized;
       bool mpiTransferEnabled;
 
       std::vector<spatial_cell::Population> populations;                        /**< Particle population variables.*/

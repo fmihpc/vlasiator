@@ -1,14 +1,17 @@
-name: Generate testpackage reference data on Carrington
+name: Generate GPU testpackage reference data on Turso V100
 
 on:
   # Only run when triggered manually
   workflow_dispatch:
 
+# Read-only suffices: artifact upload/download uses the runtime token, not GITHUB_TOKEN.
+permissions:
+  contents: read
+
 jobs:
-  # This should be kept ~identical to the build_TP_ukkoGPU job in github-ci.yml
-  build_TP_ukkoGPU:
-    # Build Vlasiator with testpackage flags, on the ukko cluster using
-    # its nvidia gpus
+  # srun flags should be kept ~identical to the turso-v100_GNU_MPICH entries in slurm_run.sh
+  build_TP_turso_v100:
+    # Build Vlasiator with testpackage flags, on the V100 nodes of turso
     # also builds the fluxfunction tool
     runs-on: carrington
 
@@ -16,77 +19,89 @@ jobs:
     - name: Clean workspace
       run: |
         RUN_STRING=$( cat << MORO
-        rm -rf libraries library-build testpackage
-        rm -f libraries.tar.zst testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
+        rm -rf libraries-turso-v100_GNU_MPICH library-build testpackage submodules
+        rm -f libraries-binaries-turso-v100_GNU_MPICH.tar.gz testpackage_check_description.txt testpackage-output.tar.gz metrics.txt stdout.txt stderr.txt testpackage_output_variables.txt
         rm -f *.xml
         MORO
         )
         srun --constraint="carrington" bash -c "$RUN_STRING"
     - name: Checkout source
-      uses: actions/checkout@v4
+      uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
       with:
-        submodules: true
+        persist-credentials: false
     - name: Make clean
-      run: VLASIATOR_ARCH=ukko_dgx make clean
-    - uses: ursg/gcc-problem-matcher@master
+      run: VLASIATOR_ARCH=turso-v100_GNU_MPICH make clean
+    - name: Register GCC problem matcher
+      run: echo "::add-matcher::$GITHUB_WORKSPACE/.github/gcc-problem-matcher.json"
     - name: Build libraries
       run: |
         WORKSPACE=`pwd`
         rm -rf library-build
         mkdir -p library-build
         BUILDDIR=library-build
-        bash ./fetch_libraries.sh ukko_dgx
-        srun --constraint="v100" --gres="gpu:V100" -pgpu --job-name CI_ref_build_lib --interactive --nodes=1 -n 1 -c 8 --mem-per-cpu=2G -t 0:20:0 bash -c 'set -e; export VLASIATOR_ARCH=ukko_dgx; source modules/modules.sh ; ./build_fetched_libraries.sh ukko_dgx'
+        bash ./fetch_libraries.sh turso-v100_GNU_MPICH
+        # V100 node: linking against the CUDA-aware MPICH needs the NVIDIA driver
+        srun --constraint=V100 --job-name CI_ref_build_lib --interactive --nodes=1 -n 1 -c 16 --mem=64G -t 0:20:0 bash -c 'set -e; export VLASIATOR_ARCH=turso-v100_GNU_MPICH; source modules/modules.sh ; ./build_fetched_libraries.sh turso-v100_GNU_MPICH'
         rm -rf $BUILDDIR
     - name: Compile vlasiator (Testpackage build w/ CUDA) and fluxfunction
       run: |
-        srun --constraint="v100" --gres="gpu:V100" -pgpu --job-name CI_tp_compile --interactive --nodes=1 -n 1 -c 8 --mem-per-cpu=2G -t 0:20:0 bash -c 'set -e; export VLASIATOR_ARCH=ukko_dgx; source modules/modules.sh ; make -j 9 testpackage fluxfunction; sleep 10s'
+        srun --gres=gpu:V100:1 --job-name CI_tp_compile --interactive --nodes=1 -n 1 -c 16 --mem=64G -t 0:30:0 bash -c 'set -e; export VLASIATOR_ARCH=turso-v100_GNU_MPICH; source modules/modules.sh ; make -j 16 testpackage fluxfunction; sleep 10s'
     - name: Make sure the output binary is visible in lustre
-      uses: nick-fields/retry@v3
+      uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
       with:
         timeout_seconds: 15
         max_attempts: 3
         retry_on: error
         command: ls vlasiator
+    - name: Pack libraries and binaries
+      # checkout in the run job deletes untracked files, and the binaries need these libraries
+      run: tar -zcf libraries-binaries-turso-v100_GNU_MPICH.tar.gz libraries-turso-v100_GNU_MPICH/ vlasiator fluxfunction
     - name: Upload testpackage binary
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
       with:
-        name: vlasiator-testpackage-ukkoGPU
-        path: |
-          vlasiator
-          fluxfunction
+        name: vlasiator-reference-testpackage-turso-v100
+        path: libraries-binaries-turso-v100_GNU_MPICH.tar.gz
         if-no-files-found: error
 
-  run_TP_ukkoGPU:
-    # Run the testpackage on the Ukko GPU cluster (via Carrington frontend)
+  run_TP_turso_v100:
+    # Run the testpackage on the V100 nodes of turso
     runs-on: carrington
-    needs: [build_TP_ukkoGPU]
+    needs: [build_TP_turso_v100]
 
     steps:
     - name: Checkout source
-      uses: actions/checkout@v4
+      uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
       with:
         submodules: false
+        persist-credentials: false
+    - name: Clean libraries
+      run: |
+        rm -rf libraries-turso-v100_GNU_MPICH
+        rm -f libraries-binaries-turso-v100_GNU_MPICH.tar.gz
     - name: Download testpackage binary
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
       with:
-        name: vlasiator-testpackage-ukkoGPU
+        name: vlasiator-reference-testpackage-turso-v100
+    - name: Unpack libraries and binaries
+      run: tar -zxf libraries-binaries-turso-v100_GNU_MPICH.tar.gz
     - name: Run GPU testpackage
       id: run
       run: |
         chmod +x $GITHUB_WORKSPACE/vlasiator
         cd testpackage
-        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/libraries-ukko_dgx/lib
+        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/libraries-turso-v100_GNU_MPICH/lib
         # Fudge the run script
-        sed -i 's/\/proj\/USERNAME\/BINARYNAME/$GITHUB_WORKSPACE\/vlasiator/' ./small_test_ukko_dgx.sh
-        sed -i 's/create_verification_files=0/create_verification_files=1/' ./small_test_ukko_dgx.sh
-        sbatch -W -o testpackage_run_output.txt --job-name CI_GPU_ref_generate ./small_test_ukko_dgx.sh
+        sed -i 's/\.\.\/vlasiator/$GITHUB_WORKSPACE\/vlasiator/' ./small_test_turso-v100_GNU_MPICH.sh
+        sed -i 's/create_verification_files=0/create_verification_files=1/' ./small_test_turso-v100_GNU_MPICH.sh
+        sbatch -W -o testpackage_run_output.txt --job-name CI_GPU_ref_generate ./small_test_turso-v100_GNU_MPICH.sh
         cat testpackage_run_output.txt
     - name: Generate reference fluxfunction files
       run: |
+        echo "Generating fluxfunction files for revision $REFERENCE_REVISION"
         chmod +x $GITHUB_WORKSPACE/fluxfunction
-        srun --job-name fluxtest_gpu --constraint="v100" --gres="gpu:V100" -pgpu -N 1 -c 1 --mem=1G bash -c "source modules/ukko_dgx.sh; $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_small/bulk.0000001.vlsv equatorial.bin"
-        srun --job-name fluxtest_gpu --constraint="v100" --gres="gpu:V100" -pgpu -N 1 -c 1 --mem=1G bash -c "source modules/ukko_dgx.sh; $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_polar_small/bulk.0000001.vlsv polar.bin"
+        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/libraries-turso-v100_GNU_MPICH/lib
+        srun --job-name fluxtest_gpu --constraint=V100 -N 1 -c 1 --mem=1G bash -c "source modules/turso-v100_GNU_MPICH.sh; $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_small/bulk.0000001.vlsv equatorial.bin"
+        srun --job-name fluxtest_gpu --constraint=V100 -N 1 -c 1 --mem=1G bash -c "source modules/turso-v100_GNU_MPICH.sh; $GITHUB_WORKSPACE/fluxfunction testpackage/run_*/Magnetosphere_polar_small/bulk.0000001.vlsv polar.bin"
         chmod 775 polar.bin equatorial.bin
         cp equatorial.bin polar.bin $REFERENCE_REVISION
         # No longer overwrites files in $reference_dir/CI_reference/ but places in proper folder

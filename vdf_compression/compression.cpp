@@ -154,10 +154,14 @@ void ASTERIX::compress_vdfs(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>
 std::vector<std::pair<std::size_t, std::size_t>> partition(std::size_t array_size, std::size_t chunk_size,
                                                            std::size_t max_chunks) {
    std::vector<std::pair<std::size_t, std::size_t>> result;
-   if (array_size == 0 || chunk_size <= 0 || max_chunks <= 0) {
+   if (chunk_size == 0 || max_chunks == 0) {
       throw std::runtime_error("ERROR: catastrophic failure in VDF partitioning.");
    }
-   std::size_t optimal_chunks = std::max(1.0,std::ceil(array_size / chunk_size));
+   if (array_size == 0) {
+      return result; // A rank can legitimately have no cells to compress.
+   }
+   // Integer ceil; (n + c - 1) / c would overflow for the default chunk_size of SIZE_MAX.
+   std::size_t optimal_chunks = (array_size / chunk_size) + ((array_size % chunk_size) != 0);
    std::size_t numChunks = std::min(optimal_chunks, max_chunks);
    std::size_t baseSize = array_size / numChunks;
    std::size_t largerChunks = array_size % numChunks;
@@ -225,14 +229,14 @@ float compress_vdfs_fourier_mlp(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geome
       // for (std::size_t ii=0;ii<partitionScheme.size();++ii){
       //    printf("\tChunk(%zu): [%zu,%zu) ->len=(%zu)\n",ii, partitionScheme[ii].first,partitionScheme[ii].second,partitionScheme[ii].second-partitionScheme[ii].first  );
       // }
-      const std::size_t threads_needed = partitionScheme.size();
-      total_samples += partitionScheme.size();
-      omp_set_num_threads(threads_needed);
-      std::vector<std::vector<char>> thread_bytes(threads_needed);
-#pragma omp parallel
-      {
-         std::size_t thread_id = omp_get_thread_num();
-         const std::pair<std::size_t, std::size_t> index_range = partitionScheme.at(thread_id);
+      const std::size_t nChunks = partitionScheme.size();
+      total_samples += nChunks;
+      std::vector<std::vector<char>> chunk_bytes(nChunks);
+      // num_threads clause, not omp_set_num_threads(), which would persist for every later parallel region.
+      // Loop over chunks rather than thread ids: the team may get fewer threads than requested.
+#pragma omp parallel for num_threads(static_cast<int>(std::max<std::size_t>(nChunks, 1))) schedule(static, 1)
+      for (std::size_t chunk = 0; chunk < nChunks; ++chunk) {
+         const std::pair<std::size_t, std::size_t> index_range = partitionScheme.at(chunk);
          const std::size_t count = index_range.second - index_range.first;
          printf("Count = %zu \n",count);
          const auto start = local_cells.data() + index_range.first;
@@ -266,14 +270,17 @@ float compress_vdfs_fourier_mlp(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geome
             mpiGrid[sc]->get_population(popID).mlp_epochs = epochs;
          } 
          assert(network_size == nn_mem_footprint_bytes && "Mismatch betweeen estimated and actual network size!!!");
-         thread_bytes.at(thread_id) = std::vector<char>(b.total_serialized_size_bytes());
-         b.serialize_into(reinterpret_cast<unsigned char*>(thread_bytes.at(thread_id).data()));
+         chunk_bytes.at(chunk) = std::vector<char>(b.total_serialized_size_bytes());
+         b.serialize_into(reinterpret_cast<unsigned char*>(chunk_bytes.at(chunk).data()));
 
          free(b._network_weights);
          local_compression_achieved +=
              static_cast<float>(b._effective_vdf_size) / static_cast<float>(nn_mem_footprint_bytes);
       }
-      bytes = thread_bytes;
+      bytes = chunk_bytes;
+   }
+   if (total_samples == 0) {
+      return 0.0; // Avoid 0/0 poisoning the global average.
    }
    return local_compression_achieved / static_cast<float>(total_samples);
 }

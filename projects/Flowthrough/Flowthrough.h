@@ -44,7 +44,7 @@ namespace projects {
       virtual ~Flowthrough();
 
       virtual bool initialize(void) override;
-      static void addParameters(void);
+      virtual void addParameters(void) override;
       virtual void getParameters(void) override;
       virtual void setProjectBField(
          fsgrids::perbspan perb,
@@ -70,11 +70,13 @@ namespace projects {
                                     * and matter will flow in only through the boundaries.*/
 
       Real densityWidth;
+      string densityModelString;
       bool rescaleDensityFlag;
       Real Bx;
       Real By;
       Real Bz;
       std::vector<FlowthroughSpeciesParameters> speciesParams;
+      std::vector<FlowthroughSpeciesParameters*> speciesParamsRead;
    }; // class Flowthrough
 } // namespace projects
 

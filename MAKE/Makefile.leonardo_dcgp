@@ -53,8 +53,8 @@ CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 
 #======== Compiled Libraries ===========
-INC_BOOST = -isystem $(LIBRARY_PREFIX)/include
-LIB_BOOST = -L$(LIBRARY_PREFIX)/lib -lboost_program_options
+
+
 
 INC_JEMALLOC = -isystem $(LIBRARY_PREFIX)/include
 LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/lib -ljemalloc

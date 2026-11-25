@@ -66,8 +66,8 @@ JEMALLOC_VERSION = 5.2.1
 LIBRARY_PREFIX =  /projappl/project_2000203/libraries_rhel8_openmpi/
 
 # module libraries
-INC_BOOST = -I$(LIBRARY_PREFIX)/boost/include
-LIB_BOOST = -L$(LIBRARY_PREFIX)/boost/lib -lboost_program_options -Wl,-rpath=$(LIBRARY_PREFIX)/boost/lib
+
+
 LIB_JEMALLOC = -ljemalloc
 LIB_PAPI = -lpapi
 

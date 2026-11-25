@@ -68,8 +68,8 @@ LIBRARY_PREFIX =  $(CURDIR)/libraries-roihu_cpu/
 LIB_PAPI = -lpapi
 INC_PAPI =
 
-INC_BOOST =
-LIB_BOOST = -lboost_program_options
+
+
 
 # compiled libraries
 

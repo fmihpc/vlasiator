@@ -38,16 +38,6 @@ void calculateVolumeAveragedFields(fsgrids::perbspan perb,
    std::array<Real, fsgrids::volfields::N_VOL>& vol = vols[center];
    const auto sbflag = sysBoundaryFlag;
 
-#ifdef DEBUG_FSOLVER
-   const bool ok = stencil.cellExists(0, 1, 0) && stencil.cellExists(0, 0, 1) && stencil.cellExists(0, 1, 1) &&
-                   stencil.cellExists(1, 0, 0) && stencil.cellExists(1, 1, 0) && stencil.cellExists(1, 0, 1);
-
-   if (ok == false) {
-      std::cerr << "Out-of-bounds access in " << __FILE__ << ":" << __LINE__ << endl;
-      exit(1);
-   }
-#endif
-
    // Calculate reconstruction coefficients for this cell:
    // This handles domain edges so no need to skip DO_NOT_COMPUTE or OUTER_BOUNDARY_PADDING cells.
    const auto perturbedCoefficients = reconstructionCoefficients(perb, dperb, stencil, 2);
@@ -63,6 +53,16 @@ void calculateVolumeAveragedFields(fsgrids::perbspan perb,
    }
 
    if (sbflag == sysboundarytype::NOT_SYSBOUNDARY || sysBoundaryLayer == 1) {
+#ifdef DEBUG_FSOLVER
+      // fsgrid silently substitutes the centre cell for a missing neighbour, which would corrupt EVOL.
+      const bool ok = stencil.cellExists(0, 1, 0) && stencil.cellExists(0, 0, 1) && stencil.cellExists(0, 1, 1) &&
+                      stencil.cellExists(1, 0, 0) && stencil.cellExists(1, 1, 0) && stencil.cellExists(1, 0, 1);
+
+      if (ok == false) {
+         std::cerr << "Missing neighbour for EVOL in " << __FILE__ << ":" << __LINE__ << endl;
+         exit(1);
+      }
+#endif
       const std::array<Real, fsgrids::efield::N_EFIELD>& E_i1j1k1 = e[center];
       const std::array<Real, fsgrids::efield::N_EFIELD>& E_i1j2k1 = e[stencil.opo()];
       const std::array<Real, fsgrids::efield::N_EFIELD>& E_i1j1k2 = e[stencil.oop()];

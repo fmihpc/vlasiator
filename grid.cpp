@@ -594,7 +594,7 @@ void transferInParts(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGr
 
          int prepareReceives {phiprof::initializeTimer("Preparing receives")};
          int receives = 0;
-         #pragma omp parallel for schedule(guided)
+         #pragma omp parallel for schedule(guided) reduction(+:receives)
          for (const CellID cell_id : incoming_cells_list) {
             SpatialCell* cell = mpiGrid[cell_id];
             if (get_transfer_part(mpiGrid, num_part_transfers, cell_id) == transfer_part) {
@@ -646,9 +646,7 @@ void transferInParts(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGr
                      // Make sure cell contents aren't garbage
                      *mpiGrid[parent] = *mpiGrid[id];
 
-                     for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID) {
-                        SBC::averageCellData(mpiGrid, children, mpiGrid[parent], popID, 1);
-                     }
+                     SBC::averageCellData(mpiGrid, children, mpiGrid[parent], popID, 1);
 
                      // Averaging moments
                      calculateCellMoments(mpiGrid[parent], true, false);

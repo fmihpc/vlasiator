@@ -72,7 +72,7 @@ namespace vmesh {
 
    struct MeshWrapper {
       MeshWrapper() {
-         velocityMeshesCreation = new std::vector<vmesh::MeshParameters>(1);
+         velocityMeshesCreation = new std::vector<vmesh::MeshParameters*>(1);
          velocityMeshesCreation->clear();
       }
       ~MeshWrapper() {
@@ -80,15 +80,15 @@ namespace vmesh {
          delete velocityMeshesCreation;
       }
       MeshWrapper(const MeshWrapper& other) {
-         velocityMeshesCreation = new std::vector<vmesh::MeshParameters>(*(other.velocityMeshesCreation));
+         velocityMeshesCreation = new std::vector<vmesh::MeshParameters*>(*(other.velocityMeshesCreation));
       }
       MeshWrapper& operator=(const MeshWrapper& other) {
          delete velocityMeshes;
          delete velocityMeshesCreation;
-         velocityMeshesCreation = new std::vector<vmesh::MeshParameters>(*(other.velocityMeshesCreation));
+         velocityMeshesCreation = new std::vector<vmesh::MeshParameters*>(*(other.velocityMeshesCreation));
          return *this;
       }
-      std::vector<vmesh::MeshParameters> *velocityMeshesCreation;
+      std::vector<vmesh::MeshParameters*> *velocityMeshesCreation;
       // We also need an array so we can copy this data into direct GPU-device memory.
       // On the CPU side we actually reserve enough room for
       // MAX_VMESH_PARAMETERS_COUNT MeshParameters.

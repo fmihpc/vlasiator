@@ -1,0 +1,89 @@
+# Makefile for the V100 GPU nodes of the Turso cluster at UH (EL9 software stack).
+#
+# Libraries (once, on a node with internet access or with HY_proxy loaded):
+#   ./fetch_and_build_libraries.sh turso-v100_GNU_MPICH
+# Build:
+#   export VLASIATOR_ARCH=turso-v100_GNU_MPICH
+#   source modules/turso-v100_GNU_MPICH.sh
+#   make -j 8
+#
+# Oneliner for command line:
+# module purge; module load PrgEnv-gnu-v100/14.3.0 CUDA/12.9.1 MPICH/5.0.1-CUDA-12.9.1
+#
+# Toolchain constraints:
+# * CUDA 13 dropped sm_70, so CUDA 12.9 is the newest usable toolkit.
+# * CUDA 12.9 rejects GCC > 14, hence GCC 14.3.0 and not the default GCC 15.2.0.
+#   Do not use -allow-unsupported-compiler instead.
+#
+# Run with srun --mpi=pmix (MPICH is built against PMIx, no Hydra) and one visible GPU per rank,
+# e.g. --gpus-per-task=1, or export CUDA_VISIBLE_DEVICES=$SLURM_LOCALID.
+#################################################################################
+
+#======== Vectorization ==========
+#GPU Vlasov solvers no longer use any vectorclass.
+VECTORCLASS = VEC_FALLBACK_GENERIC
+
+# VMesh Block size: (historical value 4, also 8 supported)
+#WID=8
+WID=4
+
+#======= Compiler and compilation flags =========
+# NOTES on compiler flags:
+# CXXFLAGS is for compiler flags, they are always used
+# MATHFLAGS are for special math etc. flags, these are only applied on solver functions
+# LDFLAGS flags for linker
+
+USE_CUDA=1
+
+# -ccbin rather than MPICH_CXX=nvcc: the MPICH wrapper adds -Wl,... link flags that nvcc rejects.
+CMP = nvcc -ccbin mpicxx
+LNK = nvcc -ccbin mpicxx
+
+# sm_70 SASS only; nvcc 12.9 warns that pre-sm_75 targets are deprecated.
+GPUARCH = -gencode arch=compute_70,code=sm_70 -Wno-deprecated-gpu-targets
+
+#-ggdb not available on nvcc
+#-G (device debug) overrides --generate-line-info but also requires more device-side resources to run
+# use "-Xptxas -v" for verbose output of ptx compilation
+NVCCFLAGS = -x cu -std=c++20 --extended-lambda --expt-relaxed-constexpr $(GPUARCH) --generate-line-info -Xcompiler=-fopenmp -Xcompiler=-fpermissive -maxrregcount 24 -Wno-deprecated-declarations -Xcudafe --diag_suppress=20012
+
+# Broadwell is the oldest host CPU among the V100 nodes (dgx1-*); kale-g90* are Skylake/Cascade Lake.
+# Not for testpackage: it would enable host FMA contraction, while testpackage disables device FMA (--fmad=false).
+HOSTARCH = -Xcompiler=-march=broadwell
+
+CXXFLAGS = -g -O3 $(NVCCFLAGS) $(HOSTARCH)
+testpackage: CXXFLAGS = -g -O2 $(NVCCFLAGS)
+
+MATHFLAGS = --use_fast_math
+# nvcc fast_math does not assume only finite math
+testpackage: MATHFLAGS = --prec-sqrt=true --prec-div=true --ftz=false --fmad=false
+
+# Shared cudart: a CUDA-aware MPICH loads libcudart.so, and a second static runtime copy must be avoided.
+# GPUARCH also at link, otherwise nvcc embeds an empty sm_52 stub.
+LDFLAGS = -g $(GPUARCH) --cudart shared -Xcompiler=-fopenmp -Xlinker=-rpath=$(LIBRARY_PREFIX)/lib -Xlinker=-rpath=$(CUDA_HOME)/lib64
+# mpicxx already adds the MPI libraries.
+LIB_MPI =
+
+#======== PAPI ==========
+#Add PAPI_MEM define to use papi to report memory consumption?
+CXXFLAGS += -DPAPI_MEM
+testpackage: CXXFLAGS += -DPAPI_MEM
+
+#======== Allocator =========
+# No allocator for GPU versions now
+
+#======== Libraries ===========
+
+LIBRARY_PREFIX = $(CURDIR)/libraries-$(ARCH)
+
+LIB_PROFILE = -L$(LIBRARY_PREFIX)/lib -lphiprof
+INC_PROFILE = -isystem $(LIBRARY_PREFIX)/include
+
+LIB_VLSV = -L$(LIBRARY_PREFIX)/lib -lvlsv
+INC_VLSV = -I$(LIBRARY_PREFIX)/include
+
+LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/lib64 -lzoltan
+INC_ZOLTAN = -isystem $(LIBRARY_PREFIX)/include
+
+LIB_PAPI = -L$(LIBRARY_PREFIX)/lib -lpapi
+INC_PAPI = -isystem $(LIBRARY_PREFIX)/include

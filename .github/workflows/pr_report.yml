@@ -12,31 +12,44 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: download testpackage output
+        id: download
         # Note we are downloading an artifact from a
         # *different* workflow here.
-        uses: ursg/action-download-artifact@v2
+        uses: ursg/action-download-artifact@5e780fc7bbd0cac69fc73271ed86edf5dcb72d67 # v2
         with:
-          name: testpackage-output
+          name: testpackage-output-turso-amd_GNU_MPICH
           workflow: ${{ github.event.workflow.id }}
           run_id: ${{ github.event.workflow_run.id }}
+          # No artifact when the testpackage did not run, e.g. for docs-only changes.
+          if_no_artifact_found: warn
       - name: unpack and process pr output
         id: unpack
+        if: steps.download.outputs.found_artifact == 'true'
+        env:
+          ARCHIVE: testpackage-output-turso-amd_GNU_MPICH.tar.gz
         run: |
-          tar -xzvf testpackage-output.tar.gz
-          cat testpackage_output_variables.txt >> $GITHUB_OUTPUT
-          # Limit Report filesize, as github only allows 64k PR reports
-          truncate --size='<60K' testpackage_check_description.txt
+          # -O emits regular-file data only, so planted links yield nothing
+          tar -xzOf "$ARCHIVE" testpackage_check_description.txt | head -c 61440 > "$RUNNER_TEMP/description.txt"
+          vars=$(tar -xzOf "$ARCHIVE" testpackage_output_variables.txt)
+          conclusion=$(sed -n 's/^conclusion=//p' <<<"$vars" | head -n1)
+          summary=$(sed -n 's/^summary=//p' <<<"$vars" | head -n1)
+          # Allowlist: untrusted input must not pick arbitrary output keys
+          case "$conclusion" in
+            success|failure|neutral|cancelled|timed_out|action_required) ;;
+            *) conclusion=neutral ;;
+          esac
+          printf 'conclusion=%s\nsummary=%s\n' "$conclusion" "$summary" >> "$GITHUB_OUTPUT"
       - name: Generate PR check report
-        uses: ursg/checks-action@v1.6.0
-        if: always()
+        uses: ursg/checks-action@9a0aa980f3bfa365788965ed309f7f0090cfcf29 # v1.6.0
+        if: steps.unpack.outcome == 'success'
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          sha: ${{github.event.workflow_run.head_sha}}
+          sha: ${{ github.event.workflow_run.head_sha }}
           name: Testpackage result
           conclusion: ${{ steps.unpack.outputs.conclusion }}
           output: |
-            {"title": "Testpackage result", "summary":"${{ steps.unpack.outputs.summary }}"}
-          output_text_description_file: testpackage_check_description.txt
+            {"title": "Testpackage result", "summary": ${{ toJSON(steps.unpack.outputs.summary) }}}
+          output_text_description_file: ${{ runner.temp }}/description.txt
 
      ## No need to bother with JUnit reports if the check runs work
      #- name: Build test report

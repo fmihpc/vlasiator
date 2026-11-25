@@ -11,6 +11,7 @@ else
 fi
 echo "Using platform $PLATFORM"
 
+
 # Clean up old libraries for this platform
 rm -rf libraries${PLATFORM}
 
@@ -24,17 +25,22 @@ cd library-build
 # Some platforms allow for nice parallel builds.
 if [[ $PLATFORM == "-pioneer" ]]; then
    PARALLEL=64
-elif [[ $PLATFORM == "-hile_cpu" || $PLATFORM == "-hile_gpu" || $PLATFORM == "-lumi_2403" || $PLATFORM == "-carrington" || $PLATFORM == "-frankenstein_hopper2_cuda" || $PLATFORM != "-roihu_gpu" ]]; then
+elif [[ $PLATFORM == "-hile_cpu" || $PLATFORM == "-hile_gpu" || $PLATFORM == "-lumi_2503" || $PLATFORM == "-lumi_2503_gpu"  || $PLATFORM == "-frankenstein_hopper2_cuda" || $PLATFORM == "-turso-amd_GNU_MPICH" || $PLATFORM == "-turso-v100_GNU_MPICH" ]]; then
    PARALLEL=128
 else
    # Otherwise we are friendly to other users and limit our parallelism
    PARALLEL=4
 fi
 
+# If we are in a Slurm job and we know the cores we have, we can just use that many cores
+if [[ -n $SLURM_CPUS_PER_TASK ]]; then
+   PARALLEL=$SLURM_CPUS_PER_TASK
+fi
 
 
 # Build phiprof
 #git clone https://github.com/fmihpc/phiprof/
+echo "################# Building phiprof ######################"
 cd phiprof/src
 make clean
 if [[ $PLATFORM == "-pioneer" ]]; then
@@ -44,12 +50,15 @@ elif [[ $PLATFORM == "-appleM1" ]]; then
    make -j $PARALLEL CCC=mpic++ CC=appleLLVM CCFLAGS="-fpic -O2 -std=c++17 -DCLOCK_ID=CLOCK_MONOTONIC -fopenmp" LDFLAGS="-fopenmp"
 elif [[ $PLATFORM == "-leonardo_dcgp_intel" ]]; then
    make -j $PARALLEL CCC="mpiicpc -cxx=icpx" CC="mpiicc -cc=icx" CCFLAGS="-fpic -O2 -std=c++17 -DCLOCK_ID=CLOCK_MONOTONIC -qopenmp" LDFLAGS="-qopenmp"
-elif [[ $PLATFORM == "-hile_cpu" || $PLATFORM == "-hile_gpu" || $PLATFORM == "-lumi_2403" ]]; then
+elif [[ $PLATFORM == "-hile_cpu" || $PLATFORM == "-hile_gpu" || $PLATFORM == "-lumi_2503" || $PLATFORM == "-lumi_2503_gpu" ]]; then
    make -j $PARALLEL CCC=CC CC=cc CCFLAGS="-fpic -O2 -std=c++17 -DCLOCK_ID=CLOCK_MONOTONIC -fopenmp" LDFLAGS="-fopenmp"
 elif [[ $PLATFORM == "-lumi_hipcc" ]]; then
    make -j $PARALLEL CC=hipcc CCFLAGS="-fpic -O2 -std=c++17 -DCLOCK_ID=CLOCK_MONOTONIC -fopenmp" LDFLAGS="-lstdc++ -fopenmp -lgomp -lroctx64 -lroctracer64"
 elif [[ $PLATFORM == "-roihu_cpu" || $PLATFORM == "-roihu_cpu_aocc" ]]; then
    make -j $PARALLEL CCC=mpic++ CCFLAGS="-fpic -O2 -std=c++17 -DCLOCK_ID=CLOCK_MONOTONIC -fopenmp" LDFLAGS="-fopenmp"
+elif [[ $PLATFORM == "-roihu_gpu" ]]; then
+   sed -i 's/-lnvToolsExt//' Makefile
+   make -j $PARALLEL CC=nvcc CCC="nvcc -ccbin mpic++ -I$CUDA_HOME/include/nvtx3 -L$CUDA_HOME/lib"
 else
    make -j $PARALLEL CCC=mpic++
 fi
@@ -63,11 +72,12 @@ cd ../..
 # else
 #    git clone -b appleM1Build https://github.com/ursg/vlsv.git
 # fi
+echo "################# Building VLSV #########################"
 cd vlsv
 make clean ARCH=arch
 if [[ $PLATFORM == "-leonardo_dcgp_intel" ]]; then
    make ARCH=arch CMP="mpiicpc -cxx=icpx"
-elif [[ $PLATFORM == "-hile_cpu" || $PLATFORM == "-hile_gpu" || $PLATFORM == "-lumi_hipcc" || $PLATFORM == "-lumi_2403" ]]; then
+elif [[ $PLATFORM == "-hile_cpu" || $PLATFORM == "-hile_gpu" || $PLATFORM == "-lumi_hipcc" || $PLATFORM == "-lumi_2503" || $PLATFORM == "-lumi_2503_gpu" ]]; then
    make ARCH=arch CMP=CC
 else
    make ARCH=arch
@@ -77,10 +87,11 @@ cp *.h $WORKSPACE/libraries${PLATFORM}/include
 cd ..
 
 # Build papi
-if [[ $PLATFORM != "-pioneer" && $PLATFORM != "-appleM1" && $PLATFORM != "-ukko_dgx" && $PLATFORM != "-hile_cpu" && $PLATFORM != "-hile_gpu" && $PLATFORM != "-lumi_hipcc" && $PLATFORM != "-lumi_2403" && $PLATFORM != "-mahti_gcc_build" && $PLATFORM != "-mahti_cuda" && $PLATFORM != "-frankenstein_hopper2_cuda" && $PLATFORM != "-roihu_cpu" && $PLATFORM != "-roihu_cpu_aocc" && $PLATFORM != "-roihu_gpu" ]]; then
+if [[ $PLATFORM != "-pioneer" && $PLATFORM != "-appleM1" && $PLATFORM != "-hile_cpu" && $PLATFORM != "-hile_gpu" && $PLATFORM != "-lumi_hipcc" && $PLATFORM != "-lumi_2503" && $PLATFORM != "-lumi_2503_gpu" && $PLATFORM != "-mahti_gcc_build" && $PLATFORM != "-mahti_cuda" && $PLATFORM != "-frankenstein_hopper2_cuda" && $PLATFORM != "-roihu_cpu" && $PLATFORM != "-roihu_cpu_aocc" && $PLATFORM != "-roihu_gpu" ]]; then
     # This fails on RISCV and MacOS
     # LUMI, UkkoGPU and HILE use system module
     # git clone https://github.com/icl-utk-edu/papi
+    echo echo "################# Building papi #########################"
     cd papi/src
     if [[ $PLATFORM == "-leonardo_dcgp_intel" ]]; then
         # OneAPI compilers should use CC="mpiicc -cc=iccx" but this fails in configure. Needed to modify few files to pass configure and compilation phases
@@ -88,6 +99,8 @@ if [[ $PLATFORM != "-pioneer" && $PLATFORM != "-appleM1" && $PLATFORM != "-ukko_
         sed -i 's/DBG?=-g -Wall -Werror -Wextra -Wno-unused-parameter/DBG?=-g -Wall -Wextra/g' libpfm4/config.mk
         ./configure --prefix=$WORKSPACE/libraries${PLATFORM} CC="mpiicc -cc=icx" CXX="mpiicpc -cxx=icpx" MPICC="mpiicc -cc=icx"
     else
+        # Libpfm4 fails to build due to -Werror, probably because gcc 15 got pickier. So skip -Werror here.
+        sed -i 's/DBG?=-g -Wall -Werror -Wextra -Wno-unused-parameter/DBG?=-g -Wall -Wextra/g' libpfm4/config.mk
         ./configure --prefix=$WORKSPACE/libraries${PLATFORM} CC=mpicc CXX=mpic++
     fi
     make clean
@@ -96,15 +109,17 @@ if [[ $PLATFORM != "-pioneer" && $PLATFORM != "-appleM1" && $PLATFORM != "-ukko_
 fi
 
 # Build jemalloc (not for GPU versions or Mahti)
-if [[ $PLATFORM != "-leonardo_booster" && $PLATFORM != "-karolina_cuda" && $PLATFORM != "-ukko_dgx" && $PLATFORM != "-hile_gpu" && $PLATFORM != "-lumi_hipcc" && $PLATFORM != "-mahti_cuda" && $PLATFORM != "-mahti_gcc_build" &&  $PLATFORM != "-frankenstein_hopper2_cuda" &&  $PLATFORM != "-roihu_gpu" ]]; then
-    # curl -O -L https://github.com/jemalloc/jemalloc/releases/download/5.3.0/jemalloc-5.3.0.tar.bz2
-    # tar xjf jemalloc-5.3.0.tar.bz2
-    cd jemalloc-5.3.0
+if [[ $PLATFORM != "-leonardo_booster" && $PLATFORM != "-karolina_cuda" && $PLATFORM != "-hile_gpu" && $PLATFORM != "-lumi_hipcc" && $PLATFORM != "-lumi_2503_gpu" && $PLATFORM != "-mahti_cuda" && $PLATFORM != "-mahti_gcc_build" &&  $PLATFORM != "-frankenstein_hopper2_cuda" &&  $PLATFORM != "-roihu_gpu" ]]; then
+    # curl -O -L https://github.com/jemalloc/jemalloc/releases/download/5.4.0/jemalloc-5.4.0.tar.bz2
+    # tar xjf jemalloc-5.4.0.tar.bz2
+    echo "################# Building jemalloc #####################"
+    cd jemalloc
+    ./autogen.sh
     if [[ $PLATFORM == "-pioneer" ]]; then
         ./configure --prefix=$WORKSPACE/libraries${PLATFORM} --with-jemalloc-prefix=je_
     elif [[ $PLATFORM == "-leonardo_dcgp_intel" ]]; then
         ./configure --prefix=$WORKSPACE/libraries${PLATFORM} --with-jemalloc-prefix=je_ CC="mpiicc -cc=icx" CXX="mpiicpc -cxx=icpx"
-    elif [[ $PLATFORM == "-hile_cpu" || $PLATFORM == "-lumi_2403" ]]; then
+    elif [[ $PLATFORM == "-hile_cpu" || $PLATFORM == "-lumi_2503" ]]; then
         ./configure --prefix=$WORKSPACE/libraries${PLATFORM} --with-jemalloc-prefix=je_ CC="cc" CXX="CC"
     else
         ./configure --prefix=$WORKSPACE/libraries${PLATFORM} --with-jemalloc-prefix=je_ CC=mpicc CXX=mpic++
@@ -116,19 +131,20 @@ if [[ $PLATFORM != "-leonardo_booster" && $PLATFORM != "-karolina_cuda" && $PLAT
 fi
 
 # Build Zoltan
+echo "################# Building Zoltan #######################"
 rm -rf zoltan-build
 mkdir zoltan-build
 cd zoltan-build
 if [[ $PLATFORM == "-pioneer" ]]; then
-    cmake ../Trilinos -DCMAKE_INSTALL_PREFIX=$WORKSPACE/libraries${PLATFORM} -DTPL_ENABLE_MPI=ON -DTrilinos_ENABLE_Zoltan=ON -DZoltan_ENABLE_ULLONG_IDS:Bool=ON #--host=riscv64-unknown-linux-gnu --build=arm-linux-gnu
+    cmake ../Trilinos -DCMAKE_INSTALL_PREFIX=$WORKSPACE/libraries${PLATFORM} -DTPL_ENABLE_MPI=ON -DTrilinos_ENABLE_Fortran=OFF -DTrilinos_ENABLE_Zoltan=ON -DZoltan_ENABLE_ULLONG_IDS:Bool=ON #--host=riscv64-unknown-linux-gnu --build=arm-linux-gnu
 elif [[ $PLATFORM == "-arm64" ]]; then
-    cmake ../Trilinos -DCMAKE_INSTALL_PREFIX=$WORKSPACE/libraries${PLATFORM} -DTPL_ENABLE_MPI=ON -DTrilinos_ENABLE_Zoltan=ON -DZoltan_ENABLE_ULLONG_IDS:Bool=ON -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpic++ #--build=arm-linux-gnu --host=arm-linux-gnu
+    cmake ../Trilinos -DCMAKE_INSTALL_PREFIX=$WORKSPACE/libraries${PLATFORM} -DTPL_ENABLE_MPI=ON -DTrilinos_ENABLE_Fortran=OFF -DTrilinos_ENABLE_Zoltan=ON -DZoltan_ENABLE_ULLONG_IDS:Bool=ON -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpic++ #--build=arm-linux-gnu --host=arm-linux-gnu
 elif [[ $PLATFORM == "-appleM1" || $PLATFORM == "-meluxina" ]]; then
-    cmake ../Trilinos -DCMAKE_INSTALL_PREFIX=$WORKSPACE/libraries${PLATFORM} -DTPL_ENABLE_MPI=ON -DTrilinos_ENABLE_Zoltan=ON -DZoltan_ENABLE_ULLONG_IDS:Bool=ON -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpic++ #CC=mpicc CXX=mpic++
+    cmake ../Trilinos -DCMAKE_INSTALL_PREFIX=$WORKSPACE/libraries${PLATFORM} -DTPL_ENABLE_MPI=ON -DTrilinos_ENABLE_Fortran=OFF -DTrilinos_ENABLE_Zoltan=ON -DZoltan_ENABLE_ULLONG_IDS:Bool=ON -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpic++ #CC=mpicc CXX=mpic++
 elif [[ $PLATFORM == "-frankenstein_hopper2_cuda" ||  $PLATFORM == "-roihu_gpu"  ]]; then
-    cmake ../Trilinos -DCMAKE_INSTALL_PREFIX=$WORKSPACE/libraries${PLATFORM} -DTPL_ENABLE_MPI=ON -DTrilinos_ENABLE_Zoltan=ON -DZoltan_ENABLE_ULLONG_IDS:Bool=ON -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpic++ #--build=aarch64-unknown-linux-gnu
+    cmake ../Trilinos -DCMAKE_INSTALL_PREFIX=$WORKSPACE/libraries${PLATFORM} -DTPL_ENABLE_MPI=ON -DTrilinos_ENABLE_Fortran=OFF -DTrilinos_ENABLE_Zoltan=ON -DZoltan_ENABLE_ULLONG_IDS:Bool=ON -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpic++ #--build=aarch64-unknown-linux-gnu
 elif [[ $PLATFORM == "-leonardo_dcgp_intel" ]]; then
-    cmake ../Trilinos -DCMAKE_INSTALL_PREFIX=$WORKSPACE/libraries${PLATFORM} -DTPL_ENABLE_MPI=ON -DTrilinos_ENABLE_Zoltan=ON -DZoltan_ENABLE_ULLONG_IDS:Bool=ON -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpic++ -DCMAKE_C_FLAGS:STRING="-cc=icx" -DCMAKE_CXX_FLAGS:STRING="-cxx=icpx"
+    cmake ../Trilinos -DCMAKE_INSTALL_PREFIX=$WORKSPACE/libraries${PLATFORM} -DTPL_ENABLE_MPI=ON -DTrilinos_ENABLE_Fortran=OFF -DTrilinos_ENABLE_Zoltan=ON -DZoltan_ENABLE_ULLONG_IDS:Bool=ON -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpic++ -DCMAKE_C_FLAGS:STRING="-cc=icx" -DCMAKE_CXX_FLAGS:STRING="-cxx=icpx"
 #    # Although configured with new compilers, the compilations ignores the -cc=icx and -cxx=icpx flags. Need to add them manually.
 #    sed -i 's/mpiicc/mpiicc -cc=icx/g' Makefile
 #    sed -i 's/mpiicc/mpiicc -cc=icx/g' src/Makefile
@@ -136,37 +152,20 @@ elif [[ $PLATFORM == "-leonardo_dcgp_intel" ]]; then
 #    sed -i 's/mpiicpc/mpiicpc -cxx=icpx/g' Makefile
 #    sed -i 's/mpiicpc/mpiicpc -cxx=icpx/g' src/Makefile
 #    sed -i 's/mpiicpc/mpiicpc -cxx=icpx/g' src/driver/Makefile
-elif [[ $PLATFORM == "-hile_cpu" ||  $PLATFORM == "-hile_gpu" || $PLATFORM == "-lumi_2403" ]]; then
-    cmake ../Trilinos -DCMAKE_INSTALL_PREFIX=$WORKSPACE/libraries${PLATFORM} -DTPL_ENABLE_MPI=ON -DTrilinos_ENABLE_Zoltan=ON -DZoltan_ENABLE_ULLONG_IDS:Bool=ON -DCMAKE_C_COMPILER=cc -DCMAKE_CXX_COMPILER=CC -DCMAKE_Fortran_COMPILER=ftn
+elif [[ $PLATFORM == "-hile_cpu" ||  $PLATFORM == "-hile_gpu" || $PLATFORM == "-lumi_2503" || $PLATFORM == "-lumi_2503_gpu" ]]; then
+    cmake ../Trilinos -DCMAKE_INSTALL_PREFIX=$WORKSPACE/libraries${PLATFORM} -DTPL_ENABLE_MPI=ON -DTrilinos_ENABLE_Fortran=OFF -DTrilinos_ENABLE_Zoltan=ON -DZoltan_ENABLE_ULLONG_IDS:Bool=ON -DCMAKE_C_COMPILER=cc -DCMAKE_CXX_COMPILER=CC -DCMAKE_Fortran_COMPILER=ftn
 elif [[ $PLATFORM == "-roihu_cpu_aocc" ]]; then
     /projappl/project_2001659/pfaukemp/CPU/vlasiator-libraries/libraries-roihu_cpu/bin/cmake \
-    ../Trilinos -DCMAKE_INSTALL_PREFIX=$WORKSPACE/libraries${PLATFORM} -DTPL_ENABLE_MPI=ON -DTrilinos_ENABLE_Zoltan=ON -DZoltan_ENABLE_ULLONG_IDS:Bool=ON -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpic++ -DCMAKE_C_FLAGS:STRING="-fPIC" -DCMAKE_CXX_FLAGS:STRING="-fPIC"
+    ../Trilinos -DCMAKE_INSTALL_PREFIX=$WORKSPACE/libraries${PLATFORM} -DTPL_ENABLE_MPI=ON -DTrilinos_ENABLE_Fortran=OFF -DTrilinos_ENABLE_Zoltan=ON -DZoltan_ENABLE_ULLONG_IDS:Bool=ON -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpic++ -DCMAKE_C_FLAGS:STRING="-fPIC" -DCMAKE_CXX_FLAGS:STRING="-fPIC"
 else
-    cmake ../Trilinos -DCMAKE_INSTALL_PREFIX=$WORKSPACE/libraries${PLATFORM} -DTPL_ENABLE_MPI=ON -DTrilinos_ENABLE_Zoltan=ON -DZoltan_ENABLE_ULLONG_IDS:Bool=ON -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpic++
+    cmake ../Trilinos -DCMAKE_INSTALL_PREFIX=$WORKSPACE/libraries${PLATFORM} -DTPL_ENABLE_MPI=ON -DTrilinos_ENABLE_Fortran=OFF -DTrilinos_ENABLE_Zoltan=ON -DZoltan_ENABLE_ULLONG_IDS:Bool=ON -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpic++
 fi
 make clean
 make -j $PARALLEL && make install
 cd ..
 
-# Build boost (only if system module is not available)
-if [[ $PLATFORM == "-leonardo_booster" || $PLATFORM == "-leonardo_dcgp" || $PLATFORM == "-karolina_cuda" || $PLATFORM == "-karolina_gcc" || $PLATFORM == "-ukko_dgx" ||  $PLATFORM == "-mahti_gcc_build" || $PLATFORM == "-frankenstein_hopper2_cuda" ]]; then
-    # echo "### Downloading boost. ###"
-    # wget -q https://archives.boost.io/release/1.86.0/source/boost_1_86_0.tar.gz
-    # echo "### Extracting boost. ###"
-    # tar -xzf boost_1_86_0.tar.gz
-    echo "### Building boost. ###"
-    cd boost_1_86_0
-    ./bootstrap.sh --with-libraries=program_options --prefix=$WORKSPACE/libraries${PLATFORM} stage
-    echo "using mpi ;" >> ./tools/build/src/user-config.jam
-    ./b2
-
-    echo "### Installing boost. ###"
-    ./b2 --prefix=$WORKSPACE/libraries${PLATFORM} install > /dev/null
-    cd ..
-fi
-
 # Generate cmake for eigen so that zfp and Octree can be built
-echo "### Creating eigen CMakeFiles ###"
+echo "################# Generate Eigen CMakeFiles #############"
 prev="$(pwd)"
 cd "$WORKSPACE/submodules/eigen"
 mkdir -p build
@@ -175,10 +174,11 @@ cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$WORKSPACE/libraries
 cd "$prev"
 
 #Build and test ZFP for ASTERIX
-echo "### Building ZFP. ###"
+echo "################# Building ZFP ##########################"
 cd zfp
 mkdir -p  build
 cd build
+export LDFLAGS="-openmp -lpthread"
 cmake .. -DCMAKE_INSTALL_PREFIX=$WORKSPACE/libraries${PLATFORM}
 cmake --build . --config Release -j ${PARALLEL}
 ZFP=$PWD
@@ -187,6 +187,7 @@ cmake --install .
 cd ../../
 
 #Build OCTREE for ASTERIX
+echo "################# Building OCTREE #######################"
 cd tucker-octree/
 sed -i s/"ColMajor"/"RowMajor"/g toctree.cpp
 rm -rf build

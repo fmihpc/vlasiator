@@ -24,8 +24,8 @@ LIB_MPI = -lgomp
 
 LIBRARY_PREFIX = ${CURDIR}/libraries-home
 
-INC_BOOST = -I${LIBRARY_PREFIX}/include
-LIB_BOOST = -L${LIBRARY_PREFIX}/lib -lboost_program_options
+
+
 
 INC_ZOLTAN = -I$(LIBRARY_PREFIX)/include
 LIB_ZOLTAN = -L${LIBRARY_PREFIX}/lib -lzoltan

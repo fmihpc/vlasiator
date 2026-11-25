@@ -51,116 +51,81 @@ namespace SBC {
 
    void Outflow::addParameters() {
       const string defStr = "Copy";
-      Readparameters::addComposing( "outflow.faceNoFields", "List of faces on which no field outflow boundary conditions are to be applied ([xyz][+-]).");
-      Readparameters::add("outflow.precedence", "Precedence value of the outflow system boundary condition (integer), the higher the stronger.", 4);
-      Readparameters::add("outflow.reapplyUponRestart", "If 0 (default), keep going with the state existing in the restart file. If 1, calls again applyInitialState. Can be used to change boundary condition behaviour during a run.", 0);
-
+      Readparameters::add("outflow.faceNoFields", "List of faces on which no field outflow boundary conditions are to be applied ([xyz][+-]).",this->faceNoFieldsList);
+      Readparameters::add<uint>("outflow.precedence", "Precedence value of the outflow system boundary condition (integer), the higher the stronger.", this->precedence,4);
+      Readparameters::add<bool>("outflow.reapplyUponRestart", "If 0 (default), keep going with the state existing in the restart file. If 1, calls again applyInitialState. Can be used to change boundary condition behaviour during a run.", this->applyUponRestart,false);
+      //Fill the arrays with default values
+      /* The array of bool describes which of the x+, x-, y+, y-, z+, z- faces are to have outflow system boundary conditions.
+       * A true indicates the corresponding face will have outflow.
+       * The 6 elements correspond to x+, x-, y+, y-, z+, z- respectively.
+       */
+      for(uint i=0; i<6; i++) {
+        facesToProcess[i] = false;
+        facesToSkipFields[i] = false;
+        facesToReapply[i] = false;
+      }
       // Per-population parameters
-      for (uint i = 0; i < getObjectWrapper().particleSpecies.size(); i++) {
-         const string& pop = getObjectWrapper().particleSpecies[i].name;
+      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
+        const string& pop = getObjectWrapper().particleSpecies[i].name;
+        
+        OutflowSpeciesParameters* sP = new OutflowSpeciesParameters;
 
-         Readparameters::addComposing(pop + "_outflow.reapplyFaceUponRestart", "List of faces on which outflow boundary conditions are to be reapplied upon restart ([xyz][+-]).");
-         Readparameters::addComposing(pop + "_outflow.face", "List of faces on which outflow boundary conditions are to be applied ([xyz][+-]).");
-         Readparameters::add(pop + "_outflow.vlasovScheme_face_x+", "Scheme to use on the face x+ (Copy, None)", defStr);
-         Readparameters::add(pop + "_outflow.vlasovScheme_face_x-", "Scheme to use on the face x- (Copy, None)", defStr);
-         Readparameters::add(pop + "_outflow.vlasovScheme_face_y+", "Scheme to use on the face y+ (Copy, None)", defStr);
-         Readparameters::add(pop + "_outflow.vlasovScheme_face_y-", "Scheme to use on the face y- (Copy, None)", defStr);
-         Readparameters::add(pop + "_outflow.vlasovScheme_face_z+", "Scheme to use on the face z+ (Copy, None)", defStr);
-         Readparameters::add(pop + "_outflow.vlasovScheme_face_z-", "Scheme to use on the face z- (Copy, None)", defStr);
+        this->speciesParamsRead.push_back(sP);
+        // Unless we find out otherwise, we assume that this species will not be treated at any boundary
+        for(int j=0; j<6; j++) {
+          sP->facesToSkipVlasov[j] = true;
+        }
+        sP->faceVlasovScheme={0,0,0,0,0,0};
+        Readparameters::add(pop + "_outflow.reapplyFaceUponRestart", "List of faces on which outflow boundary conditions are to be reapplied upon restart ([xyz][+-]).",sP->faceToReapplyUponRestartList);
 
-         Readparameters::add(pop + "_outflow.quench", "Factor by which to quench the inflowing parts of the velocity distribution function.", 1.0);
+        Readparameters::add<vector<string>>(pop + "_outflow.face", "List of faces on which outflow boundary conditions are to be applied ([xyz][+-]).",this->faceList);
+        Readparameters::add<string>(pop + "_outflow.vlasovScheme_face_x+", "Scheme to use on the face x+ (Copy, None)", this->vlasovSysBoundarySchemeName[0],"Copy");
+        Readparameters::add<string>(pop + "_outflow.vlasovScheme_face_x-", "Scheme to use on the face x- (Copy, None)", this->vlasovSysBoundarySchemeName[1],"Copy");
+        Readparameters::add<string>(pop + "_outflow.vlasovScheme_face_y+", "Scheme to use on the face y+ (Copy, None)", this->vlasovSysBoundarySchemeName[2],"Copy");
+        Readparameters::add<string>(pop + "_outflow.vlasovScheme_face_y-", "Scheme to use on the face y- (Copy, None)", this->vlasovSysBoundarySchemeName[3],"Copy");
+        Readparameters::add<string>(pop + "_outflow.vlasovScheme_face_z+", "Scheme to use on the face z+ (Copy, None)", this->vlasovSysBoundarySchemeName[4],"Copy");
+        Readparameters::add<string>(pop + "_outflow.vlasovScheme_face_z-", "Scheme to use on the face z- (Copy, None)", this->vlasovSysBoundarySchemeName[5],"Copy");
+
+        Readparameters::add<Real>(pop + "_outflow.quench", "Factor by which to quench the inflowing parts of the velocity distribution function.", sP->quenchFactor,1.0);
       }
    }
 
    void Outflow::getParameters() {
       int myRank;
-      MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
-      Readparameters::get("outflow.faceNoFields", this->faceNoFieldsList);
-      Readparameters::get("outflow.precedence", precedence);
-      uint reapply;
-      Readparameters::get("outflow.reapplyUponRestart", reapply);
-      this->applyUponRestart = false;
-      if (reapply == 1) {
-         this->applyUponRestart = true;
-      }
-
+      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
       // Per-species parameters
-      for (uint i = 0; i < getObjectWrapper().particleSpecies.size(); i++) {
-         const string& pop = getObjectWrapper().particleSpecies[i].name;
-         OutflowSpeciesParameters sP;
+      this->speciesParams.resize(getObjectWrapper().particleSpecies.size());
+      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
+        OutflowSpeciesParameters* sP=this->speciesParamsRead.at(i);
 
-         // Unless we find out otherwise, we assume that this species will not be treated at any boundary
-         for (int j = 0; j < 6; j++) {
-            sP.facesToSkipVlasov[j] = true;
-         }
+        for(auto& face :this->faceList) {
+          if(face == "x+") { this->facesToProcess[0] = true; sP->facesToSkipVlasov[0] = false; }
+          if(face == "x-") { this->facesToProcess[1] = true; sP->facesToSkipVlasov[1] = false; }
+          if(face == "y+") { this->facesToProcess[2] = true; sP->facesToSkipVlasov[2] = false; }
+          if(face == "y-") { this->facesToProcess[3] = true; sP->facesToSkipVlasov[3] = false; }
+          if(face == "z+") { this->facesToProcess[4] = true; sP->facesToSkipVlasov[4] = false; }
+          if(face == "z-") { this->facesToProcess[5] = true; sP->facesToSkipVlasov[5] = false; }
+        }
 
-         vector<string> thisSpeciesFaceList;
-         Readparameters::get(pop + "_outflow.face", thisSpeciesFaceList);
 
-         for (auto& face : thisSpeciesFaceList) {
-            if (face == "x+") {
-               facesToProcess[0] = true;
-               sP.facesToSkipVlasov[0] = false;
-            }
-            if (face == "x-") {
-               facesToProcess[1] = true;
-               sP.facesToSkipVlasov[1] = false;
-            }
-            if (face == "y+") {
-               facesToProcess[2] = true;
-               sP.facesToSkipVlasov[2] = false;
-            }
-            if (face == "y-") {
-               facesToProcess[3] = true;
-               sP.facesToSkipVlasov[3] = false;
-            }
-            if (face == "z+") {
-               facesToProcess[4] = true;
-               sP.facesToSkipVlasov[4] = false;
-            }
-            if (face == "z-") {
-               facesToProcess[5] = true;
-               sP.facesToSkipVlasov[5] = false;
-            }
-         }
+        for(uint j=0; j<6 ; j++) {
+           if(this->vlasovSysBoundarySchemeName[j] == "None") {
+              sP->faceVlasovScheme[j] = vlasovscheme::NONE;
+           } else if (this->vlasovSysBoundarySchemeName[j] == "Copy") {
+              sP->faceVlasovScheme[j] = vlasovscheme::COPY;
+           } else {
+              abort_mpi("ERROR: " + this->vlasovSysBoundarySchemeName[j] + " is an invalid Outflow Vlasov scheme!");
+           }
+        }
+        this->speciesParams.at(i)=*sP;
 
-         Readparameters::get(pop + "_outflow.reapplyFaceUponRestart", sP.faceToReapplyUponRestartList);
-         array<string, 6> vlasovSysBoundarySchemeName;
-         Readparameters::get(pop + "_outflow.vlasovScheme_face_x+", vlasovSysBoundarySchemeName[0]);
-         Readparameters::get(pop + "_outflow.vlasovScheme_face_x-", vlasovSysBoundarySchemeName[1]);
-         Readparameters::get(pop + "_outflow.vlasovScheme_face_y+", vlasovSysBoundarySchemeName[2]);
-
-         Readparameters::get(pop + "_outflow.vlasovScheme_face_y-", vlasovSysBoundarySchemeName[3]);
-         Readparameters::get(pop + "_outflow.vlasovScheme_face_z+", vlasovSysBoundarySchemeName[4]);
-         Readparameters::get(pop + "_outflow.vlasovScheme_face_z-", vlasovSysBoundarySchemeName[5]);
-         for (uint j = 0; j < 6; j++) {
-            if (vlasovSysBoundarySchemeName[j] == "None") {
-               sP.faceVlasovScheme[j] = vlasovscheme::NONE;
-            } else if (vlasovSysBoundarySchemeName[j] == "Copy") {
-               sP.faceVlasovScheme[j] = vlasovscheme::COPY;
-            } else {
-               abort_mpi("ERROR: " + vlasovSysBoundarySchemeName[j] + " is an invalid Outflow Vlasov scheme!");
-            }
-         }
-
-         Readparameters::get(pop + "_outflow.quench", sP.quenchFactor);
-
-         speciesParams.push_back(sP);
       }
    }
 
-   void Outflow::initSysBoundary(creal& t, Project& project) {
-      /* The array of bool describes which of the x+, x-, y+, y-, z+, z- faces are to have outflow system boundary
-       * conditions. A true indicates the corresponding face will have outflow. The 6 elements correspond to x+, x-, y+,
-       * y-, z+, z- respectively.
-       */
-      for (uint i = 0; i < 6; i++) {
-         facesToProcess[i] = false;
-         facesToSkipFields[i] = false;
-         facesToReapply[i] = false;
-      }
-
-      this->getParameters();
+   void Outflow::initSysBoundary(
+      creal& t,
+      Project &project
+   ) {
 
       dynamic = false;
 

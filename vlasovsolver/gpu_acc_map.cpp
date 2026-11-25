@@ -1070,6 +1070,8 @@ __global__ void __launch_bounds__(WID3, ACCELERATION_KERNEl_MIN_BLOCKS) accelera
                val = max(val, gpuKernelShflDown(val, offset));
             }
 
+            // A lagging warp may still be looping to loopN[0] of the previous block; overwriting it ends that loop early.
+            __syncthreads();
             if (indexInsideWarp == 0) {
                loopN[warpIndex] = val;
             }
@@ -1116,6 +1118,21 @@ __global__ void __launch_bounds__(WID3, ACCELERATION_KERNEl_MIN_BLOCKS) accelera
          // set the initial value for the integrand at the boundary at v = 0
          // (in reduced cell units), this will be shifted to target_density_1, see below.
          Realf target_density_r = (Realf)(0.0);
+         // Start the running integral at the image of the column's first target cell: at the lower
+         // velocity-space wall the part of this source cell that maps below the mesh is then not
+         // deposited. Elsewhere that image is at or below v_l, so this stays zero.
+         {
+            const Realf v_norm_l = (  std::min(  std::max( (col_mink * WID) * intersection_dk + intersection_min, v_l), v_r) - v_l) * i_dv;
+            #ifdef ACC_SEMILAG_PLM
+            target_density_r = v_norm_l * ( a[0] + v_norm_l * a[1] );
+            #endif
+            #ifdef ACC_SEMILAG_PPM
+            target_density_r = v_norm_l * ( a[0] + v_norm_l * ( a[1] + v_norm_l * a[2] ) );
+            #endif
+            #ifdef ACC_SEMILAG_PQM
+            target_density_r = v_norm_l * ( a[0] + v_norm_l * ( a[1] + v_norm_l * ( a[2] + v_norm_l * ( a[3] + v_norm_l * a[4] ) ) ) );
+            #endif
+         }
 
          // Perform the polynomial reconstruction for all cells the mapping streches into
          for(int loopgk = 0; loopgk < loopN[0]; loopgk++) {
@@ -1167,7 +1184,10 @@ __global__ void __launch_bounds__(WID3, ACCELERATION_KERNEl_MIN_BLOCKS) accelera
                const int tcell = target_cell_index_common
                                + gk_mod_WID * gpu_cell_indices_to_id[2];
                // Write values into block data
-               if (isfinite(tval) && (tval>(Realf)(0.0)) && (targetLID != invalidLID) ) {
+               // Only target cells of this column inside the velocity mesh: gk below 0 or above the last
+               // cell would give a negative gk_mod_WID or a block of another column.
+               if (isfinite(tval) && (tval>(Realf)(0.0)) && (targetLID != invalidLID)
+                   && gk >= col_mink * WID && gk <= (col_maxk + 1) * WID - 1) {
                   // gpu_blockData[targetLID * WID3 + tcell] += tval;
 
                   // We use atomicAdd to avoid the need for sync
@@ -1411,6 +1431,16 @@ __host__ bool gpu_acc_map_1d(
          // This function updates both CPU and GPU copies correctly.
          gpu_acc_allocate_perthread(cellIndex, host_totalColumns, host_totalColumnSets);
       }
+      #ifdef DEBUG_ACC
+      // The extent and acceleration kernels loop over setColumnOffsets.size() column sets.
+      const size_t nSetsVector = host_columnOffsetData[cellIndex].setColumnOffsets.size();
+      if (nSetsVector != host_totalColumnSets) {
+         std::cerr << "Error! " << __FILE__ << ":" << __LINE__ << " column set vector size " << nSetsVector
+                   << " != " << host_totalColumnSets << " column sets of cell " << launchCells[cellIndex]
+                   << " (dimension " << dimension << ")" << std::endl;
+         abort();
+      }
+      #endif
    } // end parallel region
    allocTimer.stop();
 
@@ -1514,12 +1544,15 @@ __host__ bool gpu_acc_map_1d(
          size_t newCapacity = (size_t)((SC->getReservation(popID)+(GET_POINTER(gpuMemoryManager, vmesh::LocalID, host_resizeSuccess))[cellOffset])*BLOCK_ALLOCATION_FACTOR);
          SC->setReservation(popID, newCapacity);
          SC->applyReservation(popID);
-         // Clear the vector which receives push_backs. The maps do not need to be cleared.
-         SC->list_with_replace_new->clear();
       }
    } // end parallel for
 
    if (needSecondLaunchColumnExtents) {
+      // The relaunch covers every cell, so lists that did fit would otherwise get each new block twice.
+      // The maps do not need to be cleared.
+      for (size_t cellIndex = 0; cellIndex < nLaunchCells; cellIndex++) {
+         mpiGrid[launchCells[cellIndex]]->list_with_replace_new->clear();
+      }
       // Reset counters, upload new pointers to splitvectors
       CHK_ERR( gpuMemsetAsync(GET_POINTER(gpuMemoryManager, vmesh::LocalID, dev_resizeSuccess)+cumulativeOffset, 0, nLaunchCells*sizeof(vmesh::LocalID), baseStream) );
       CHK_ERR( gpuMemsetAsync(GET_POINTER(gpuMemoryManager, vmesh::LocalID, dev_overflownElements)+cumulativeOffset, 0, nLaunchCells*sizeof(vmesh::LocalID), baseStream) );

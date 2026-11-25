@@ -108,6 +108,33 @@ uint64_t get_node_free_memory(){
       fclose(in_file);
    }
 
+   #ifdef USE_GPU
+   // On systems where GPU HBM is exposed as coherent NUMA memory (e.g. GH200),
+   // /proc/meminfo MemFree includes GPU free memory. Subtract free pages in
+   // Movable zones, which is where GPU HBM appears on such systems.
+   // On conventional systems Movable zones are empty, making this a no-op.
+   uint64_t movableFreeBytes = 0;
+   FILE *zoneinfo = fopen("/proc/zoneinfo", "r");
+   if (zoneinfo) {
+      char line[256];
+      bool inMovable = false;
+      while (fgets(line, sizeof(line), zoneinfo)) {
+         if (strncmp(line, "Node ", 5) == 0) {
+            inMovable = strstr(line, "Movable") != NULL;
+         } else if (inMovable) {
+            unsigned long pages = 0;
+            if (sscanf(line, " nr_free_pages %lu", &pages) == 1) {
+               movableFreeBytes += (uint64_t)pages * sysconf(_SC_PAGESIZE);
+            }
+         }
+      }
+      fclose(zoneinfo);
+   }
+   if (movableFreeBytes < mem_proc_free) {
+      mem_proc_free -= movableFreeBytes;
+   }
+   #endif
+
    return mem_proc_free;
 }
 /*! Measures memory consumption and writes it into logfile.
@@ -271,15 +298,47 @@ void report_memory_consumption(
          P::tstep, P::t, sum_mem[2]/GiB, sum_mem[5]/GiB);
    logFile << reportstring;
 
+   #ifdef USE_GPU
+   const double KiB = 1024.0;
+   // TODO: Clear duplicate output
+   // (local_cells_capacity, ghost_cells_capacity, local_cells_size, ghost_cells_size)
+   int gpuReportedUsage = gpu_reportMemory(mem[3], mem[4], mem[0], mem[1]);
+   int sumGpu = 0;
+   struct {
+      int value;
+      int rank;
+   } minGpu, gpuMemUsageLoc, maxGpu;
+   gpuMemUsageLoc.value = gpuReportedUsage;
+   gpuMemUsageLoc.rank = rank;
+
+   MPI_Reduce(&gpuReportedUsage, &sumGpu, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+   MPI_Reduce(&gpuMemUsageLoc, &maxGpu, 1, MPI_2INT, MPI_MAXLOC, 0, MPI_COMM_WORLD);
+   MPI_Reduce(&gpuMemUsageLoc, &minGpu, 1, MPI_2INT, MPI_MINLOC, 0, MPI_COMM_WORLD);
+
+   snprintf(reportstring,512, "(MEM) tstep %i t %.3g %-21s   (GiB/rank; avg, min, max, sum): %-8.3g %-8.3g %-8.3g %-8.3g min rank %i max rank %i\n",
+         P::tstep, P::t, "Total reported GPU memory usage",  (double)sumGpu/((double)nProcs*KiB), (double)minGpu.value/KiB, (double)maxGpu.value/KiB, (double)sumGpu/KiB, minGpu.rank, maxGpu.rank);
+   logFile << reportstring;
+
+   size_t free_byte;
+   size_t total_byte;
+   CHK_ERR( gpuMemGetInfo( &free_byte, &total_byte) );
+   gpuReportedUsage = (total_byte-free_byte)/(1024*1024);
+   sumGpu = 0;
+   gpuMemUsageLoc.value = gpuReportedUsage;
+   gpuMemUsageLoc.rank = rank;
+
+   MPI_Reduce(&gpuReportedUsage, &sumGpu, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+   MPI_Reduce(&gpuMemUsageLoc, &maxGpu, 1, MPI_2INT, MPI_MAXLOC, 0, MPI_COMM_WORLD);
+   MPI_Reduce(&gpuMemUsageLoc, &minGpu, 1, MPI_2INT, MPI_MINLOC, 0, MPI_COMM_WORLD);
+
+   snprintf(reportstring,512, "(MEM) tstep %i t %.3g %-21s (GiB/rank; avg, min, max, sum): %-8.3g %-8.3g %-8.3g %-8.3g min rank %i max rank %i\n",
+         P::tstep, P::t, "Total reported GPU hardware usage",  (double)sumGpu/((double)nProcs*KiB), (double)minGpu.value/KiB, (double)maxGpu.value/KiB, (double)sumGpu/KiB, minGpu.rank, maxGpu.rank);
+   logFile << reportstring;
+
+   #endif
+
    logFile << writeVerbose;
 
    MPI_Comm_free(&interComm);
    MPI_Comm_free(&nodeComm);
-
-   #ifdef USE_GPU
-   // TODO: Clear duplicate output
-   // (local_cells_capacity, ghost_cells_capacity, local_cells_size, ghost_cells_size)
-   gpu_reportMemory(mem[3], mem[4], mem[0], mem[1]);
-
-   #endif
 }

@@ -43,6 +43,7 @@ namespace species {
    /** Variables common to a particle species.*/
    struct Species {
       std::string name;               /**< Name of the species.*/
+      std::string mass_units;
       Real charge;                    /**< Particle species charge, in simulation units.*/
       Real mass;                      /**< Particle species mass, in simulation units.*/
       Real sparseMinValue;            /**< Sparse mesh threshold value for the population.*/
@@ -74,7 +75,8 @@ namespace species {
       Real CriteriaValue;                   /*!< The value epsilon in the vamr criteria */
 
       Species();
-      Species(const Species& other);
+      Species(const Species& other); //this is partial copy
+      Species& operator=(const Species& other)=default;
       ~Species();
     };
 

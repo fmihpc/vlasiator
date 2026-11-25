@@ -22,7 +22,7 @@ export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 export OMP_PLACES=cores
 
 module purge
-module load gcc/10.4.0 openmpi/4.1.5-cuda cuda/12.1.1 boost/1.82.0-mpi papi/7.1.0
+module load gcc/10.4.0 openmpi/4.1.5-cuda cuda/12.1.1 papi/7.1.0
 
 ulimit -c unlimited
 

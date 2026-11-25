@@ -7,6 +7,8 @@ shopt -s globstar nullglob
 
 declare -A seen
 
+echo "updateGpuMemoryPointerList: this parses ~260 files and will take between 1 and 500 seconds"
+
 # --- Collect unique identifiers ---
 for file in **/*.cpp **/*.h **/*.hpp; do
    # Skip any files inside directories named "libraries" or "submodules"
@@ -32,7 +34,6 @@ for file in **/*.cpp **/*.h **/*.hpp; do
 
    )
 done
-
 
 # --- Prepare the definitions content ---
 definitions=$(for key in "${!seen[@]}"; do echo "$key"; done | sort)

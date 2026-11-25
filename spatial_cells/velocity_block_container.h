@@ -734,7 +734,7 @@ namespace vmesh {
       #endif
 #else
       const vmesh::LocalID numberOfBlocks = block_data.size()/WID3;
-      const vmesh::LocalID currentCapacity = block_data.capacity()/WID3;
+      //const vmesh::LocalID currentCapacity = block_data.capacity()/WID3;
 #endif
       const vmesh::LocalID newIndex = numberOfBlocks;
 
@@ -779,7 +779,7 @@ namespace vmesh {
       #endif
 #else
       const vmesh::LocalID numberOfBlocks = block_data.size()/WID3;
-      const vmesh::LocalID currentCapacity = block_data.capacity()/WID3;
+      //const vmesh::LocalID currentCapacity = block_data.capacity()/WID3;
 #endif
       const vmesh::LocalID newIndex = numberOfBlocks;
 

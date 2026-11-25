@@ -1,0 +1,85 @@
+# LUMI-G: AMD MI250X (gfx90a) + EPYC Trento (zen3), LUMI/25.03 stack, ROCm 6.3.4
+#
+# Environment: source modules/lumi_2503_gpu.sh
+# Libraries:   ./fetch_and_build_libraries.sh lumi_2503_gpu
+#              (or ./fetch_libraries.sh lumi_2503_gpu on a login node and
+#               ./build_fetched_libraries.sh lumi_2503_gpu on a compute node)
+#
+# Runtime settings this build needs are exported by the modules file:
+#   HSA_XNACK=1                  xnack+ code objects refuse to load without it
+#   MPICH_GPU_SUPPORT_ENABLED=1  GPU-aware MPI
+# For performance, LD_PRELOAD a memory pool such as
+# https://github.com/sfantao/vlasiator-mempool built against the same ROCm.
+
+# fetch_and_build_libraries.sh loads the modules only in its own process; fail early, not on papi.h.
+ifeq ($(filter clean c allclean cleantools data d help,$(MAKECMDGOALS)),)
+ifeq ($(ROCM_PATH),)
+$(error ROCM_PATH is unset: run "source modules/lumi_2503_gpu.sh" first)
+endif
+ifeq ($(findstring papi/,$(LOADEDMODULES)),)
+$(error papi module not loaded: run "source modules/lumi_2503_gpu.sh" first)
+endif
+endif
+
+CMP = CC
+LNK = CC
+
+#======== Vectorization ==========
+# GPU Vlasov solvers do not use vectorclass.
+VECTORCLASS = VEC_FALLBACK_GENERIC
+
+# VMesh block size (historical value 4, also 8 supported)
+WID=4
+
+USE_HIP=1
+
+#======== Library directory ===========
+LIBRARY_PREFIX = $(CURDIR)/libraries-lumi_2503_gpu
+
+#======= Compiler and compilation flags =========
+# Important note: Do not edit COMPFLAGS in this file!
+
+# xnack+: managed memory needs GPU page-fault migration.
+# -munsafe-fp-atomics: splitvector advises its managed memory coarse-grained, where HW FP atomics are reliable.
+HIPFLAGS = -x hip --offload-arch=gfx90a:xnack+ -munsafe-fp-atomics
+WARNFLAGS = -W -Wall -Wno-unused-parameter -Wno-unused-result -Wno-unused-function -Wno-unused-variable -Wno-unknown-pragmas -Wno-deprecated-register -Wno-unused-but-set-variable -Wno-ignored-attributes -Wno-unused-lambda-capture
+
+CXXFLAGS += -g -ggdb -O3 $(HIPFLAGS) -march=znver3 -std=c++20 -funroll-loops -fopenmp $(WARNFLAGS)
+testpackage: CXXFLAGS = -g -ggdb -O2 $(HIPFLAGS) -march=znver3 -std=c++20 -fopenmp $(WARNFLAGS)
+
+# GTL linked explicitly: with MPICH_GPU_SUPPORT_ENABLED=1, MPI_Init aborts without it,
+# and this way it does not depend on craype-accel-amd-gfx90a staying loaded.
+# lib64: CMake-built libraries (e.g. Zoltan) install there.
+LDFLAGS = -fopenmp -lrt -lpthread \
+	-L$(LIBRARY_PREFIX)/lib -L$(LIBRARY_PREFIX)/lib64 -Wl,-rpath=$(LIBRARY_PREFIX)/lib -Wl,-rpath=$(LIBRARY_PREFIX)/lib64 \
+	-L${ROCM_PATH}/lib -lamdhip64 -Wl,-rpath=${ROCM_PATH}/lib \
+	${PE_MPICH_GTL_DIR_amd_gfx90a}
+LIB_MPI = ${PE_MPICH_GTL_LIBS_amd_gfx90a}
+
+#======== PAPI ==========
+CXXFLAGS += -DPAPI_MEM
+testpackage: CXXFLAGS += -DPAPI_MEM
+
+#======== Allocator =========
+# No jemalloc: not supported with GPUs.
+
+#======== ASTERIX ==========
+# Not yet tried with HIP; the libraries are built by the scripts regardless.
+#CXXFLAGS += -DASTERIX_ZFP -DASTERIX_OCTREE
+#LIB_ZFP = -lzfp
+#LIB_OCTREE_COMPRESSOR = -ltoctree_compressor
+
+#======== Libraries ===========
+# PAPI comes from the papi module through the Cray wrapper.
+INC_PAPI =
+LIB_PAPI = -lpapi
+
+#======== Compiled libraries ========
+INC_ZOLTAN = -isystem $(LIBRARY_PREFIX)/include
+LIB_ZOLTAN = -lzoltan
+
+INC_VLSV = -isystem $(LIBRARY_PREFIX)/include
+LIB_VLSV = -lvlsv
+
+INC_PROFILE = -isystem $(LIBRARY_PREFIX)/include
+LIB_PROFILE = -lphiprof

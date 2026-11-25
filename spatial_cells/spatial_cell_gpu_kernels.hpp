@@ -277,7 +277,7 @@ __global__ void update_vmesh_and_blockparameters_kernel (
 
    #ifdef USE_WARPACCESSORS
    const uint w_tid = ti % GPUTHREADS;
-   const vmesh::LocalID LID = ti/GPUTHREADS + blocki*blockSize;
+   const vmesh::LocalID LID = ti/GPUTHREADS + blocki*(blockSize/GPUTHREADS);
    #else
    const uint w_tid = 0;
    const vmesh::LocalID LID = ti + blocki*blockSize;

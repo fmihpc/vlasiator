@@ -41,14 +41,12 @@ namespace projects {
 
    void Template::addParameters() {
       typedef Readparameters RP;
-      RP::add("Template.param", "This is my project's parameter. Default is 0.0", 0.0);
+      RP::add<Real>("Template.param", "This is my project's parameter. Default is 0.0", this->param,0.0);
    }
 
    void Template::getParameters(){
-      Parameters::getParameters();
-
+      //Verify/change parameters after they have been read
       typedef Readparameters RP;
-      RP::get("Template.param", this->param);
    }
 
    bool Template::initialize() {

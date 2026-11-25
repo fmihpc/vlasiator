@@ -49,7 +49,7 @@ namespace projects {
 
    class ReadGaussianPopulation {
    public:
-      bool addParameters(const std::string& prefix);
+      bool addParameters(const std::string& prefix,projects::GaussianPopulation& populations);
       bool getParameters(const std::string& prefix,projects::GaussianPopulation& populations);
    };
 

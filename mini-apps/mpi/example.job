@@ -1,0 +1,25 @@
+#!/bin/bash
+#SBATCH --time=0-00:10:00          # (d-hh:mm:ss)
+#SBATCH --job-name=network_test
+#SBATCH --constraint=carrington,c
+#SBATCH --nodes=8
+#SBATCH --cpus-per-task=1
+#SBATCH --ntasks-per-node=32
+#SBATCH --hint=multithread
+#SBATCH --mem-per-cpu=2G           # memory per core
+
+. ~/.bashrc
+
+module purge
+module -I load PrgEnv-gnu/15.2.0
+module -I load MPICH/5.0.1
+module -I load bzip2
+module -I load CMake
+module -I load HY_proxy
+module -I load Automake
+module -I load git
+
+srun -n $SLURM_NTASKS -N $SLURM_NNODES ./ring
+
+# 30 second timeout, testing 100 rounds of communication
+srun -n $SLURM_NTASKS -N $SLURM_NNODES ./connectivity 30 100

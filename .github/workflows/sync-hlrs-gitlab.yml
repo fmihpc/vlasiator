@@ -4,6 +4,10 @@ on:
   push:
     branches : ["dev","master","vlasiator_gpu"]
 
+# Checkout only; the GitLab push uses its own secret.
+permissions:
+  contents: read
+
 jobs:
   push_to_gitlab:
     if: github.repository_owner == 'fmihpc'
@@ -11,9 +15,10 @@ jobs:
 
     steps:
     - name: Checkout source
-      uses: actions/checkout@v4
+      uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
       with:
         fetch-depth: 0
+        persist-credentials: false
     - name: Add Gitlab Remote
       run: |
         git remote add gitlab https://oauth2:${token}@codehub.hlrs.de/coes/plasma-pepsc/uoh/vlasiator.git

@@ -32,10 +32,11 @@
 
 #include <unordered_set>
 
+#include "readparameters.h"
+
 #include <vlsv_reader.h>
 #include <vlsv_writer.h>
 #include <vlsv_amr.h>
-#include <boost/program_options.hpp>
 #include <Eigen/Dense>
 #include <phiprof.hpp>
 
@@ -46,7 +47,22 @@
 using namespace std;
 using namespace Eigen;
 using namespace vlsv;
-namespace po = boost::program_options;
+
+// The command line options are registered with Readparameters (which uses the
+// qdparser based parsing) and the parsed values are stored into this struct.
+static struct {
+	bool debug;
+	uint64_t cellid;
+	std::vector<uint64_t> cellidlist;
+	bool rotate;
+	bool plasmaFrame;
+	std::vector<Real> coordinates;
+	std::string unit;
+	std::vector<Real> point1, point2;
+	unsigned int pointAmount;
+	std::vector<string> outputdirectory;
+	std::vector<string> filenames;
+} flags = {}; // static variables should be init with 0s anyway
 
 // If set to true, vlsvextract writes some debugging info to stderr
 static bool runDebug = false;
@@ -1531,50 +1547,48 @@ bool retrieveOptions( const int argn, char *args[], UserOptions & mainOptions ) 
       return false;
    }
    try {
-      //Create an options_description
-      po::options_description desc("Options");
-      //Add options -- cellID takes input of type uint64_t and coordinates takes a Real-valued std::vector
-      desc.add_options()
-         ("help", "display help")
-         ("debug", "write debugging info to stderr")
-         ("cellid", po::value<uint64_t>(), "Set cell id")
-         ("cellidlist", po::value< std::vector<uint64_t>>()->multitoken(), "Set list of cell ids")
-         ("rotate", "Rotate velocities so that they face z-axis")
-         ("plasmaFrame", "Shift the distribution so that the bulk velocity is 0")
-         ("coordinates", po::value< std::vector<Real> >()->multitoken(), "Set spatial coordinates x y z")
-         ("unit", po::value<string>(), "Sets the units. Options: re, km, m (OPTIONAL)")
-         ("point1", po::value< std::vector<Real> >()->multitoken(), "Set the starting point x y z of a line")
-         ("point2", po::value< std::vector<Real> >()->multitoken(), "Set the ending point x y z of a line")
-         ("pointamount", po::value<unsigned int>(), "Number of points along a line (OPTIONAL)")
-         ("outputdirectory", po::value< std::vector<string> >(), "The directory where the file is saved (default current folder) (OPTIONAL)");
-         
-      //For mapping input
-      po::variables_map vm;
-      //Store input into vm (Don't allow short options)
-      po::store(po::parse_command_line(argn, args, desc, po::command_line_style::unix_style ^ po::command_line_style::allow_short), vm);
-      po::notify(vm);
-      //Check if help was prompted
-      if( vm.count("help") ) {
-         //Display options
-         cout << desc << endl;
-         return false;
-      }
+      //Add options to the qdparser based parameter registry. The option values
+      //are stored into the flags struct when Readparameters::parse() runs below.
+      //The input file name mask is a positional argument, so it is not
+      //registered here; it is read directly from the arguments in main().
+      Readparameters params(argn, args);
+      Readparameters::addFlag("debug", "write debugging info to stderr", flags.debug);
+      Readparameters::add<uint64_t>("cellid", "Set cell id", flags.cellid, uint64_t(0));
+      Readparameters::add<std::vector<uint64_t> >("cellidlist", "Set list of cell ids", flags.cellidlist);
+      Readparameters::addFlag("rotate", "Rotate velocities so that they face z-axis", flags.rotate);
+      Readparameters::addFlag("plasmaFrame", "Shift the distribution so that the bulk velocity is 0", flags.plasmaFrame);
+      Readparameters::add<std::vector<Real> >("coordinates", "Set spatial coordinates x y z", flags.coordinates);
+      Readparameters::add<std::string>("unit", "Sets the units. Options: re, km, m (OPTIONAL)", flags.unit, std::string());
+      Readparameters::add<std::vector<Real> >("point1", "Set the starting point x y z of a line", flags.point1);
+      Readparameters::add<std::vector<Real> >("point2", "Set the ending point x y z of a line", flags.point2);
+      Readparameters::add<unsigned int>("pointamount", "Number of points along a line (OPTIONAL)", flags.pointAmount, 0);
+      Readparameters::add<std::vector<std::string> >("outputdirectory", "The directory where the file is saved (default current folder) (OPTIONAL)", flags.outputdirectory);
+
+      //Parse the command line options. Invalid options cause an error message
+      //to be printed and the program to exit.
+      std::vector<std::string> extras;
+      std::vector<std::string> filenames;
+      params.parse(extras, filenames, false);
+      flags.filenames = filenames;
+      //Print help and exit if --help was given on the command line.
+      params.helpMessage();
+
       //Check if coordinates have been input and make sure there's only 3 coordinates
       const size_t _size = 3;
-      if( !vm["coordinates"].empty() && vm["coordinates"].as< std::vector<Real> >().size() == _size ) {
+      if( !flags.coordinates.empty() && flags.coordinates.size() == _size ) {
         //Save input into coordinates vector (later on the values are stored into a *Real pointer
-	std::vector<Real> _coordinates = vm["coordinates"].as< std::vector<Real> >();
+	std::vector<Real> _coordinates = flags.coordinates;
         for( uint i = 0; i < 3; ++i ) {
            coordinates[i] = _coordinates[i];
         }
         //Let the program know we want to get the cell id from coordinates
         getCellIdFromCoordinates = true;
       }
-      if( !vm["point1"].empty() && vm["point1"].as< std::vector<Real> >().size() == _size
-       && !vm["point2"].empty() && vm["point2"].as< std::vector<Real> >().size() == _size ) {
+      if( !flags.point1.empty() && flags.point1.size() == _size
+       && !flags.point2.empty() && flags.point2.size() == _size ) {
         //Save input into point vector (later on the values are stored into a *Real pointer
-	std::vector<Real> _point1 = vm["point1"].as< std::vector<Real> >();
-	std::vector<Real> _point2 = vm["point2"].as< std::vector<Real> >();
+	std::vector<Real> _point1 = flags.point1;
+	std::vector<Real> _point2 = flags.point2;
         //Input the values
         for( uint i = 0; i < 3; ++i ) {
            point1[i] = _point1[i];
@@ -1583,43 +1597,44 @@ bool retrieveOptions( const int argn, char *args[], UserOptions & mainOptions ) 
         _point1.clear();
         _point2.clear();
         //Check if the user wants to specify number of coordinates we want to calculate:
-        if( vm.count("pointAmount") ) {
+        if( flags.pointAmount ) {
            //User specified the number of points -- set it
-           numberOfCoordinatesInALine = vm["pointAmount"].as<uint32_t>();
+           numberOfCoordinatesInALine = (uint32_t)flags.pointAmount;
         }
         //Let the program know we want to get the cell id from coordinates
         getCellIdFromLine = true;
       }
       //Check for rotation
-      if( vm.count("rotate") ) {
+      if( flags.rotate ) {
          //Rotate the vectors (used in convertVelocityBlocks2 as an argument)
          rotateVectors = true;
       }
-      if (vm.count("debug") ) {
+      if( flags.debug ) {
 	 // Turn on debugging mode
 	 runDebug = true;
       }
       //Check for plasma frame shifting
-      if( vm.count("plasmaFrame") ) {
+      if( flags.plasmaFrame ) {
          // Shift the velocity distribution to plasma frame
          plasmaFrame = true;
       }
       //Check for cell id input
-      if( vm.count("cellid") ) {
+      if( flags.cellid ) {
          //Save input
-         const uint64_t cellId = vm["cellid"].as<uint64_t>();
+         const uint64_t cellId = flags.cellid;
          cellIdList.push_back(cellId);
          getCellIdFromInput = true;
       }
-      if( vm.count("cellidlist") ) {
-         cellIdList = vm["cellidlist"].as< std::vector<uint64_t> >();
+      if( !flags.cellidlist.empty() ) {
+         cellIdList = flags.cellidlist;
          getCellIdFromInput = true;
       }
-      if( vm.count("outputdirectory") ) {
+      if( !flags.outputdirectory.empty() ) {
          //Save input
-         outputDirectoryPath = vm["outputdirectory"].as< std::vector<string> >();
+         outputDirectoryPath = flags.outputdirectory;
          //Make sure the vector is of length 1:
          if( outputDirectoryPath.size() != 1 ) {
+            cerr << "Too many output directories specified!" << endl;
             return false;
          }
          //If '/' or '\' was not added to the end of the path, add it:
@@ -1634,7 +1649,7 @@ bool retrieveOptions( const int argn, char *args[], UserOptions & mainOptions ) 
             //Check if the character was found:
             if( index1 != string::npos && index2 != string::npos ) {
                cout << "Do not use both '/' and '\\' in directory path! " << index1 << " " << index2 << endl;
-               cout << desc << endl;
+               printUsageMessage();
                return false;
             } else if( index1 != string::npos ) {
                //The user used '/' in the path
@@ -1654,9 +1669,9 @@ bool retrieveOptions( const int argn, char *args[], UserOptions & mainOptions ) 
       }
       //Declare unit conversion variable (the variable which will multiply coordinates -- by default 1)
       Real unit_conversion = 1;
-      if( vm.count("unit") ) {
+      if( !flags.unit.empty() ) {
          //Get the input into 'unit'
-         const string unit = vm["unit"].as<string>();
+         const string unit = flags.unit;
          if( unit.compare( "re" ) == 0 ) {
             //earth radius
             unit_conversion = 6371000;
@@ -1669,7 +1684,7 @@ bool retrieveOptions( const int argn, char *args[], UserOptions & mainOptions ) 
          } else {
             //No known unit
             cout << "Invalid unit!" << endl;
-            cout << desc << endl;
+            printUsageMessage();
             return false;
          }
          //Convert the coordinates into correct units:
@@ -1689,7 +1704,7 @@ bool retrieveOptions( const int argn, char *args[], UserOptions & mainOptions ) 
             }
          } else {
             cout << "Nothing to convert!" << endl;
-            cout << desc << endl;
+            printUsageMessage();
             return false;
          }
       }
@@ -2034,10 +2049,6 @@ int main(int argn, char* args[]) {
       }
    }
 
-   //Get the file name
-   const string mask = args[1];
-   std::vector<string> fileList = toolutil::getFiles(mask);
-
    //Retrieve options variables:
    UserOptions mainOptions;
 
@@ -2047,10 +2058,22 @@ int main(int argn, char* args[]) {
       printUsageMessage(); //Prints the usage message
       return 0;
    }
-   if (rank == 0 && argn < 3) {
-      //Failed to retrieve options (Due to contradiction or an error)
-      printUsageMessage(); //Prints the usage message
+
+   //Get the file names
+   if (flags.filenames.size() == 0) {
+
+      if (rank == 0) {
+         cerr << "No filenames specified!" << endl;
+         printUsageMessage();
+      }
+      MPI_Finalize();
       return 0;
+   }
+   std::vector<string> fileList;
+
+   for(unsigned int i=0; i< flags.filenames.size(); i++) {
+      std::vector<string> theseFiles = toolutil::getFiles(flags.filenames[i]);
+      fileList.insert(fileList.end(), theseFiles.begin(), theseFiles.end());
    }
 
    //Convert files

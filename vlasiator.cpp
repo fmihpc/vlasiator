@@ -253,8 +253,10 @@ int simulate(int argn,char* args[]) {
    #ifdef CATCH_FPE
    // WARNING FE_INEXACT is too sensitive to be used. See man fenv.
    //feenableexcept(FE_DIVBYZERO|FE_INVALID|FE_OVERFLOW|FE_UNDERFLOW);
-   feenableexcept(FE_DIVBYZERO|FE_INVALID|FE_OVERFLOW);
    //feenableexcept(FE_DIVBYZERO|FE_INVALID);
+   //Make sure we set that on every thread that got started in the pool that phiprof::initialize just created
+   #pragma omp parallel
+   feenableexcept(FE_DIVBYZERO|FE_INVALID|FE_OVERFLOW);
    signal(SIGFPE, fpehandler);
    #endif
 
@@ -274,25 +276,49 @@ int simulate(int argn,char* args[]) {
    // init parameter file reader
    Readparameters readparameters(argn,args);
 
-   P::addParameters();
-
-   // Add parameters for number of populations
    getObjectWrapper().addParameters();
-   readparameters.parse();
+   P::addParameters();
+   sysBoundaryContainer.addSysBoundaryParameters(); //add parameter for bonudary.boundaries
+
+   std::vector<std::string> extras;               // extra options we didn't expect but found
+   std::vector<std::string> filenames;            // things that don't start with -- and smell like a filename
+   readparameters.parse(extras, filenames, true); //true to ignore config extras
+   getObjectWrapper().populationsParsed=true;
+   if (Readparameters::helpRequested) {
+     getObjectWrapper().addHelp();
+   }
+
+   bool hasVersionOption = readparameters.versionMessage();
+   MPI_Bcast(&hasVersionOption, sizeof(bool), MPI_BYTE, 0, MPI_COMM_WORLD);
+   if (hasVersionOption) {
+     MPI_Finalize();
+     exit(0);
+   }
+   getObjectWrapper().addPopulationParameters();
+   //objectwrapper.AddParameters adds the parameters during parse
+   //but the callback works such that those added parameters do not make it to the parse above, so
+   //Second parse to get the population specific parameters read.
+   readparameters.parse(extras, filenames, true);
+   getObjectWrapper().getPopulationParameters(); //particleSpecies is populated here from particleSpeciesRead
+   sysBoundaryContainer.addParameters(); //add the parameters for parsed boundary.boundaries boundaries, including population specific ones
+   projects::createProject();
+
+   readparameters.parse(extras, filenames, false); // Final parse
+   readparameters.helpMessage(); // Call after last parse, exits after printing help if help requested
+   Readparameters::parseComposing(); //has to be done afterwards, will do callbacks on the final addComposing values that are parsed here
    P::getParameters();
 
-   getObjectWrapper().addPopulationParameters();
-   sysBoundaryContainer.addParameters();
-   projects::Project::addParameters();
+   Project* project = getObjectWrapper().project;
 
-   Project* project = projects::createProject();
-   getObjectWrapper().project = project;
-   readparameters.parse(true, false); // 2nd parsing for specific population parameters
-   readparameters.helpMessage(); // Call after last parse, exits after printing help if help requested
-   getObjectWrapper().getPopulationParameters();
-   sysBoundaryContainer.getParameters();
+   sysBoundaryContainer.getParameters(); //this is now here incase some sysbounadary changes parameter during getParameters, that would be
+                                        // read into some project parameters, for example how it is currently with magnetosphere an ionosphereRadius
    project->getParameters();
-
+   if (Readparameters::checkCfg){
+      std::cout << "Config valid" << std::endl;
+      MPI_Finalize();
+      exit(0);
+   }
+   // project->printPopulations();
    #ifdef USE_GPU
    // Activate device, create streams
    gpu_init_device();
@@ -421,6 +447,7 @@ int simulate(int argn,char* args[]) {
 
    // Initialize simplified Fieldsolver grids.
    // Needs to be done here already ad the background field will be set right away, before going to initializeGrid even
+   phiprof::Timer initGridsTimer {"Init grids"};
    phiprof::Timer initFsTimer {"Init fieldsolver grids"};
 
    const std::array<fsgrid::FsSize_t, 3> fsGridDimensions = {
@@ -438,17 +465,6 @@ int simulate(int argn,char* args[]) {
    const std::array physicalGlobalStart{P::xmin, P::ymin, P::zmin};
    const auto decomposition = P::manualFsGridDecomposition;
 
-   // Checking that spatial cells are cubic, otherwise field solver is incorrect (cf. derivatives in E, Hall term)
-   constexpr Real uniformTolerance = 1e-3;
-   if ((abs((gridSpacing[0] - gridSpacing[1]) / gridSpacing[0]) > uniformTolerance) ||
-       (abs((gridSpacing[0] - gridSpacing[2]) / gridSpacing[0]) > uniformTolerance) ||
-       (abs((gridSpacing[1] - gridSpacing[2]) / gridSpacing[1]) > uniformTolerance)) {
-      if (myRank == MASTER_RANK) {
-         std::cerr << "WARNING: Your spatial cells seem not to be cubic. The simulation will now abort!" << std::endl;
-      }
-      // just abort sending SIGTERM to all tasks
-      MPI_Abort(MPI_COMM_WORLD, -1);
-   }
 
    MPI_Comm parentComm = MPI_COMM_WORLD;
    const auto numFsProcs = [&]() {
@@ -477,7 +493,7 @@ int simulate(int argn,char* args[]) {
    fsgrid::FsData<std::array<Real, fsgrids::dmoments::N_DMOMENTS>> dmomentsdt2(fsgridNumElements);
    fsgrid::FsData<std::array<Real, fsgrids::bgbfield::N_BGB>> bgb(fsgridNumElements);
    fsgrid::FsData<std::array<Real, fsgrids::volfields::N_VOL>> vol(fsgridNumElements);
-
+   initFsTimer.stop();
 
    // Initialize grid.  After initializeGrid local cells have dist
    // functions, and B fields set. Cells have also been classified for
@@ -485,7 +501,6 @@ int simulate(int argn,char* args[]) {
    // created. All spatial date computed this far is up to date for
    // FULL_NEIGHBORHOOD. Block lists up to date for
    // VLASOV_SOLVER_NEIGHBORHOOD (but dist function has not been communicated)
-   phiprof::Timer initGridsTimer {"Init grids"};
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> mpiGrid;
 
    initializeGrids(
@@ -520,6 +535,8 @@ int simulate(int argn,char* args[]) {
    // because we need a copy of the value from initialization in both perBGrid and perBDt2Grid and it isn't
    // touched as we are in boundary cells for components that aren't solved. We do a straight full copy instead
    // of looping and detecting boundary types here.
+   initFsTimer.start();
+
    fsgrid::FsData<std::array<Real, fsgrids::bfield::N_BFIELD>> perbdt2(perb.view());
    // fieldSolverData not const as we need to update the spans for moments and momentsdt2 when filtering
    FieldSolverData fieldSolverData(
@@ -1464,7 +1481,7 @@ int main(int argn, char* args[]) {
    int required=MPI_THREAD_FUNNELED;
    int provided, resultlen;
    char mpiversion[MPI_MAX_LIBRARY_VERSION_STRING];
-   bool overrideMCAompio = false;
+   bool overrideMCAompio = false, bailMCA = false;
 
    MPI_Get_library_version(mpiversion, &resultlen);
    string versionstr = string(mpiversion);
@@ -1473,6 +1490,14 @@ int main(int argn, char* args[]) {
    if(versionstr.find("Open MPI") != std::string::npos) {
       #ifdef VLASIATOR_ALLOW_MCA_OMPIO
          mpiioMessage << "We detected OpenMPI but the compilation flag VLASIATOR_ALLOW_MCA_OMPIO was set so we do not override the default MCA io flag." << endl;
+         const char* mpiioenv = std::getenv("OMPI_MCA_io");
+         if(mpiioenv != nullptr) {
+            std::string mpiioenvstr(mpiioenv);
+            if(mpiioenvstr.find("^ompio") != std::string::npos) {
+               mpiioMessage << "However, the environment is setting OMPI_MCA_io=^ompio, which will likely not work! Please check your job script - you likely have a legacy `export OMPI_MCA_io=^ompio` somewhere. Aborting." <<endl;
+               bailMCA = true;
+            }
+         }
       #else
          overrideMCAompio = true;
          int index, count;
@@ -1504,6 +1529,10 @@ int main(int argn, char* args[]) {
          std::string mpiioenvstr(mpiioenv);
          if(mpiioenvstr.find("^ompio") == std::string::npos) {
             cout << mpiioMessage.str();
+         }
+         if(bailMCA){
+            cerr << mpiioMessage.str();
+            abort();
          }
       }
    }

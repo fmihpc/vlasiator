@@ -1,0 +1,13 @@
+#!/bin/bash
+#SBATCH --job-name=failing
+#SBATCH --nodes=4                    # all compute nodes; for another count: sbatch -N <n> hello.sbatch
+#SBATCH --ntasks-per-node=2
+#SBATCH --time=00:20:00
+#SBATCH --output=%x-%j.out   # default lands in the batch node's local home, invisible from head
+
+set -euo pipefail
+export SLURM_MPI_TYPE=pmix
+ 
+srun ./ringperf
+
+echo "reached the end"
