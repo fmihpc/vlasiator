@@ -33,7 +33,7 @@ namespace spatial_cell {
    void update_velocity_block_content_lists(
       dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const vector<CellID>& cells,
-      const uint popID) {
+      const PopIndex& popID) {
 
       if (cells.size()==0) {
          return;
@@ -55,7 +55,7 @@ namespace spatial_cell {
    void adjust_velocity_blocks_in_cells(
       dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const vector<CellID>& cellsToAdjust,
-      const uint popID
+      const PopIndex& popID
       ) {
 
       const size_t n_cells = cellsToAdjust.size();
@@ -93,7 +93,7 @@ namespace spatial_cell {
                neighbor_ptrs.push_back(mpiGrid[neighbor_id]);
             }
 
-            if (getObjectWrapper().particleSpecies[popID].sparse_conserve_mass) {
+            if (getObjectWrapper().particleSpecies[popID.PopID].sparse_conserve_mass) {
                for (size_t i=0; i<cell->get_number_of_velocity_blocks(popID)*WID3; ++i) {
                   density_pre_adjust += cell->get_data(popID)[i];
                }
@@ -101,7 +101,7 @@ namespace spatial_cell {
 
             cell->adjust_velocity_blocks(neighbor_ptrs,popID);
 
-            if (getObjectWrapper().particleSpecies[popID].sparse_conserve_mass) {
+            if (getObjectWrapper().particleSpecies[popID.PopID].sparse_conserve_mass) {
                for (size_t i=0; i<cell->get_number_of_velocity_blocks(popID)*WID3; ++i) {
                   density_post_adjust += cell->get_data(popID)[i];
                }
