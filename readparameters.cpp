@@ -356,7 +356,8 @@ void Readparameters::parse(std::vector<std::string>& invalid, std::vector<std::s
       configFileName = finalizeFileName(tokens);
 
       if (configFileName != "defaultConfigName.cfg" && !std::filesystem::is_regular_file(configFileName)) {
-         abort_mpi("The provided config file is not a regular file!");
+         std::cerr << "The provided config file is not a regular file!\n";
+         MPI_Abort(MPI_COMM_WORLD, 1);
       }
 
       applyConfigFile(configFileName, extras, invalid);
@@ -366,7 +367,7 @@ void Readparameters::parse(std::vector<std::string>& invalid, std::vector<std::s
          for (const auto& name : invalid) {
             std::cerr << " " << name << "\n";
          }
-         abort_mpi("");
+         MPI_Abort(MPI_COMM_WORLD, 1);
       }
 
       conf = serializeAll();
