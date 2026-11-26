@@ -23,6 +23,7 @@
 #include <cstdio>
 #include "readparameters.h"
 #include "common.h"
+#include <filesystem>
 using namespace std;
 bool Readparameters::helpRequested = false;
 bool Readparameters::versionRequested = false;
@@ -32,7 +33,7 @@ map<string, string> Readparameters::subcommandDescriptions;
 
 int Readparameters::argc;
 char** Readparameters::argv;
-string Readparameters::configFileName = "config.cfg";
+string Readparameters::configFileName = "defaultConfigName.cfg";
 
 Readparameters::Readparameters(int cmdargc, char* cmdargv[]) {
    argc = cmdargc;
@@ -54,7 +55,7 @@ Readparameters::Option* Readparameters::registerOption(const std::string& key, O
 void Readparameters::addDefaultParameters() {
    add<std::string>("run_config",
                     "Configuration file, overridden by options given on the command line.",
-                    configFileName, std::string("config.cfg"));
+                    configFileName, std::string("defaultConfigName.cfg"));
    addFlag("help", "print help message", Readparameters::helpRequested);
    addFlag("version", "print version ", Readparameters::versionRequested);
    addFlag("check_cfg", "flag whether to validate the config file", Readparameters::checkCfg);
@@ -354,6 +355,11 @@ void Readparameters::parse(std::vector<std::string>& invalid, std::vector<std::s
       const std::vector<std::string> tokens = make_tokens(argc-1, argv+1); // skip the program name in argv[0]
       configFileName = finalizeFileName(tokens);
 
+      if (configFileName != "defaultConfigName.cfg" && !std::filesystem::is_regular_file(configFileName)) {
+         std::cerr << "The provided config file is not a regular file!\n";
+         MPI_Abort(MPI_COMM_WORLD, 1);
+      }
+
       applyConfigFile(configFileName, extras, invalid);
       applyArgTokens(tokens, extras, invalid, filenames);
       if (!extras && !invalid.empty()) {
@@ -361,9 +367,7 @@ void Readparameters::parse(std::vector<std::string>& invalid, std::vector<std::s
          for (const auto& name : invalid) {
             std::cerr << " " << name << "\n";
          }
-         std::cerr << std::endl;
-         MPI_Finalize();
-         exit(1);
+         MPI_Abort(MPI_COMM_WORLD, 1);
       }
 
       conf = serializeAll();
