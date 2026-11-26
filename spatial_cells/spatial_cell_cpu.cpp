@@ -55,6 +55,11 @@ namespace spatial_cell {
          this->derivativesBVOL[i]=0;
       }
 
+      // reset derivativesV
+      for (unsigned int i = 0; i < vderivatives::N_V_DERIVATIVES; i++) {
+         this->derivativesV[i]=0;
+      }
+
       for (unsigned int i = 0; i < MAX_NEIGHBORS_PER_DIM; ++i) {
          this->neighbor_number_of_blocks[i] = 0;
          this->neighbor_block_data[i] = NULL;
@@ -101,6 +106,9 @@ namespace spatial_cell {
       for (unsigned int i=0; i<bvolderivatives::N_BVOL_DERIVATIVES; ++i) {
          derivativesBVOL[i] = other.derivativesBVOL[i];
       }
+      for (unsigned int i=0; i<vderivatives::N_V_DERIVATIVES; ++i) {
+         derivativesV[i] = other.derivativesV[i];
+      }
       for (unsigned int i=0; i<CellParams::N_SPATIAL_CELL_PARAMS; ++i) {
          parameters[i] = other.parameters[i];
       }
@@ -136,6 +144,9 @@ namespace spatial_cell {
       mpiTransferEnabled = other.mpiTransferEnabled;
       for (unsigned int i=0; i<bvolderivatives::N_BVOL_DERIVATIVES; ++i) {
          derivativesBVOL[i] = other.derivativesBVOL[i];
+      }
+      for (unsigned int i=0; i<vderivatives::N_V_DERIVATIVES; ++i) {
+         derivativesV[i] = other.derivativesV[i];
       }
       for (unsigned int i=0; i<CellParams::N_SPATIAL_CELL_PARAMS; ++i) {
          parameters[i] = other.parameters[i];
