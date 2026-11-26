@@ -42,7 +42,14 @@
 #endif
 
 namespace SBC {
-   Inflow::Inflow() : OuterBoundaryCondition() {}
+   Inflow::Inflow() : OuterBoundaryCondition() {
+      templateCells.reserve(6);
+      for (int i = 0; i < 6; ++i){
+         templateCells.push_back(spatial_cell::SpatialCell());
+         templateB[i][0] = templateB[i][1] = templateB[i][2] = 0;
+      }
+   }
+
    Inflow::~Inflow() {}
 
    void Inflow::initSysBoundary(creal& t, Project& project) {
