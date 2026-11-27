@@ -58,6 +58,7 @@ namespace projects {
       Real By_guiding;
       Real Bz_guiding;
       Real ALPHA;
+      Real ALPHAPLUS;
       Real WAVELENGTH;
       Real A_MAG;
       std::vector<AlfvenSpeciesParameters> speciesParams;

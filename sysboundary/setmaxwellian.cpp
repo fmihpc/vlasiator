@@ -190,22 +190,40 @@ namespace SBC {
 
       calculateCellMoments(&templateCell,true,false,true);
 
-      templateCell.parameters[CellParams::RHOM_R] = templateCell.parameters[CellParams::RHOM];
-      templateCell.parameters[CellParams::VX_R] = templateCell.parameters[CellParams::VX];
-      templateCell.parameters[CellParams::VY_R] = templateCell.parameters[CellParams::VY];
-      templateCell.parameters[CellParams::VZ_R] = templateCell.parameters[CellParams::VZ];
-      templateCell.parameters[CellParams::RHOQ_R] = templateCell.parameters[CellParams::RHOQ];
-      templateCell.parameters[CellParams::P_11_R] = templateCell.parameters[CellParams::P_11];
-      templateCell.parameters[CellParams::P_22_R] = templateCell.parameters[CellParams::P_22];
-      templateCell.parameters[CellParams::P_33_R] = templateCell.parameters[CellParams::P_33];
+      
+      Real rhom = templateCell.parameters[CellParams::RHOM_R] = templateCell.parameters[CellParams::RHOM];
+      Real rhoq = templateCell.parameters[CellParams::RHOQ_R] = templateCell.parameters[CellParams::RHOQ];
+      Real timestamp = templateCell.parameters[CellParams::T_R] = t-0.5*P::timeclassDt[0];
+
       templateCell.parameters[CellParams::RHOM_V] = templateCell.parameters[CellParams::RHOM];
-      templateCell.parameters[CellParams::VX_V] = templateCell.parameters[CellParams::VX];
-      templateCell.parameters[CellParams::VY_V] = templateCell.parameters[CellParams::VY];
-      templateCell.parameters[CellParams::VZ_V] = templateCell.parameters[CellParams::VZ];
       templateCell.parameters[CellParams::RHOQ_V] = templateCell.parameters[CellParams::RHOQ];
-      templateCell.parameters[CellParams::P_11_V] = templateCell.parameters[CellParams::P_11];
-      templateCell.parameters[CellParams::P_22_V] = templateCell.parameters[CellParams::P_22];
-      templateCell.parameters[CellParams::P_33_V] = templateCell.parameters[CellParams::P_33];
+      templateCell.parameters[CellParams::T_V] = t;
+      
+      for (uint i=0; i<3; i++) {
+         templateCell.parameters[CellParams::VX_R + i] = templateCell.parameters[CellParams::VX+i];
+         templateCell.parameters[CellParams::VX_V + i] = templateCell.parameters[CellParams::VX+i];
+      }
+      for (uint i=0; i<6; i++) {
+         templateCell.parameters[CellParams::P_11_R + i] = templateCell.parameters[CellParams::P_11+i];
+         templateCell.parameters[CellParams::P_11_V + i] = templateCell.parameters[CellParams::P_11+i];
+      }
+
+      int n = 1;
+      if(P::t > 0) {n = 1;}
+      for(int i = 0; i < n; ++i){
+         templateCell.addNewValuesToTrueMoments(rhom, rhoq, 
+            {templateCell.parameters[CellParams::VX],templateCell.parameters[CellParams::VX+1],templateCell.parameters[CellParams::VX+2]},
+            {
+               templateCell.parameters[CellParams::P_11],
+               templateCell.parameters[CellParams::P_11+1],
+               templateCell.parameters[CellParams::P_11+2],
+               templateCell.parameters[CellParams::P_11+3],
+               templateCell.parameters[CellParams::P_11+4],
+               templateCell.parameters[CellParams::P_11+5]
+            },
+            timestamp);
+      }
+
    }
 
    std::string Maxwellian::getName() const { return "Maxwellian"; }

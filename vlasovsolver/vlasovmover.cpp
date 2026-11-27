@@ -20,10 +20,16 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#include "common.h"
+#include <array>
+#include <cassert>
 #include <cstdlib>
 #include <iostream>
+#include <string>
 #include <vector>
+#include <tuple>
 #include <stdint.h>
+#include <bitset>
 
 #ifdef _OPENMP
    #include <omp.h>
@@ -49,10 +55,128 @@
 #include "gpu_trans_map_amr.hpp"
 #else
 #include "cpu_acc_semilag.hpp"
+#include "cpu_trans_pencils.hpp"
 #include "cpu_trans_map_amr.hpp"
+#include "cpu_acc_transform.hpp"
+
+#include "spline.h"
 #endif
 
 using namespace spatial_cell;
+
+void calculateTrueMomentsPostAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
+
+   // takes a cell's moments_r and moments_v and calculates a set of true moments from them, and adds it to the cell's list of true moments
+
+   auto cells = getLocalCells();
+
+   #pragma omp parallel for
+   for (size_t c=0; c<cells.size(); ++c) {
+      const CellID cellID = cells[c];
+      SpatialCell* cell = mpiGrid[cellID];
+
+      if (cell->get_timeclass_turn_v()) {         // if the cell has just calculated _V moments
+         Real rhom;
+         Real rhoq;
+         std::array<Real, 3> V;
+         std::array<Real, 6> P;
+         Real timestamp;
+
+         rhom = 0.5 * (cell->parameters[CellParams::RHOM_R] + cell->parameters[CellParams::RHOM_V]);
+         rhoq = 0.5 * (cell->parameters[CellParams::RHOQ_R] + cell->parameters[CellParams::RHOQ_V]);
+
+         for (int i=0; i<3; ++i) {
+            V[i] = 0.5 * (cell->parameters[CellParams::VX_R+i] + cell->parameters[CellParams::VX_V+i]);
+         }
+         for (int i=0; i<6; ++i) {
+            P[i] = 0.5 * (cell->parameters[CellParams::P_11_R+i] + cell->parameters[CellParams::P_11_V+i]);
+         }
+         timestamp = min(cell->parameters[CellParams::T_R], cell->parameters[CellParams::T_V]);
+         cell->addNewValuesToTrueMoments(rhom, rhoq, V, P, timestamp);
+      }
+
+      // do the same for populations, check all timeclasses
+      for (int tc=0; tc<=P::currentMaxTimeclass; tc++) {
+         for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+            Population &pop = cell->get_population(popID, tc);
+            if (cell->get_timeclass_turn_v(tc)) {
+               Real rho;
+               std::array<Real, 3> V;
+               std::array<Real, 6> P;
+               Real timestamp;
+               
+               rho = 0.5 * (pop.RHO_R + pop.RHO_V);
+
+               for (int i=0; i<3; ++i) {
+                  V[i] = 0.5 * (pop.V_R[i] + pop.V_V[i]);
+               }
+               for (int i=0; i<6; ++i) {
+                  P[i] = 0.5 * (pop.P_R[i] + pop.P_V[i]);
+               }
+               timestamp = min(pop.T_R, pop.T_V);
+               pop.addNewValuesToTrueMoments(rho, V, P, timestamp);
+            }
+         }
+      }
+   }
+}
+
+void calculateTrueMomentsPostTranslation(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
+
+   // takes a cell's moments_r and moments_v and calculates a set of true moments from them, and adds it to the cell's list of true moments
+
+   auto cells = getLocalCells();
+
+   #pragma omp parallel for
+   for (size_t c=0; c<cells.size(); ++c) {
+      const CellID cellID = cells[c];
+      SpatialCell* cell = mpiGrid[cellID];
+
+      if (cell->get_timeclass_turn_r()) {         // if the cell has just calculated _R moments
+         Real rhom;
+         Real rhoq;
+         std::array<Real, 3> V;
+         std::array<Real, 6> P;
+         Real timestamp;
+
+         rhom = 0.5 * (cell->parameters[CellParams::RHOM_R] + cell->parameters[CellParams::RHOM_V]);
+         rhoq = 0.5 * (cell->parameters[CellParams::RHOQ_R] + cell->parameters[CellParams::RHOQ_V]);
+
+         for (int i=0; i<3; ++i) {
+            V[i] = 0.5 * (cell->parameters[CellParams::VX_R+i] + cell->parameters[CellParams::VX_V+i]);
+         }
+         for (int i=0; i<6; ++i) {
+            P[i] = 0.5 * (cell->parameters[CellParams::P_11_R+i] + cell->parameters[CellParams::P_11_V+i]);
+         }
+         timestamp = min(cell->parameters[CellParams::T_R], cell->parameters[CellParams::T_V]);
+         cell->addNewValuesToTrueMoments(rhom, rhoq, V, P, timestamp);
+      }
+
+      // do the same for populations, check all timeclasses
+      for (int tc=0; tc<=P::currentMaxTimeclass; tc++) {
+         for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+            Population &pop = cell->get_population(popID, tc);
+            if (cell->get_timeclass_turn_r(tc)) {
+               Real rho;
+               std::array<Real, 3> V;
+               std::array<Real, 6> P;
+               Real timestamp;
+               
+               rho = 0.5 * (pop.RHO_R + pop.RHO_V);
+
+               for (int i=0; i<3; ++i) {
+                  V[i] = 0.5 * (pop.V_R[i] + pop.V_V[i]);
+               }
+               for (int i=0; i<6; ++i) {
+                  P[i] = 0.5 * (pop.P_R[i] + pop.P_V[i]);
+               }
+               timestamp = min(pop.T_R, pop.T_V);
+               pop.addNewValuesToTrueMoments(rho, V, P, timestamp);
+            }
+         }
+      }
+   }
+}
 
 /** Propagates the distribution function in spatial space.
 
@@ -99,7 +223,7 @@ void calculateSpatialTranslation(
 
       t1 = MPI_Wtime();
       phiprof::Timer computeTimer {"compute-mapping-z"};
-      trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsz, nPencils, 2, dt,popID); // map along z//
+      trans_map_1d_amr(mpiGrid, DimensionPencils, local_propagated_cells, remoteTargetCellsz, nPencils, 2, dt, 0, popID); // map along z//
       computeTimer.stop();
       time += MPI_Wtime() - t1;
 
@@ -134,7 +258,7 @@ void calculateSpatialTranslation(
 
       t1 = MPI_Wtime();
       phiprof::Timer computeTimer {"compute-mapping-x"};
-      trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsx, nPencils, 0,dt,popID); // map along x//
+      trans_map_1d_amr(mpiGrid, DimensionPencils, local_propagated_cells, remoteTargetCellsx, nPencils, 0, dt, 0, popID); // map along x//
       computeTimer.stop();
       time += MPI_Wtime() - t1;
 
@@ -169,7 +293,7 @@ void calculateSpatialTranslation(
 
       t1 = MPI_Wtime();
       phiprof::Timer computeTimer {"compute-mapping-y"};
-      trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsy, nPencils, 1,dt,popID); // map along y//
+      trans_map_1d_amr(mpiGrid, DimensionPencils, local_propagated_cells, remoteTargetCellsy, nPencils, 1, dt, 0, popID); // map along y//
       computeTimer.stop();
       time += MPI_Wtime() - t1;
 
@@ -184,6 +308,11 @@ void calculateSpatialTranslation(
 
    }
 
+   for(CellID c : local_propagated_cells)
+   {
+      if(mpiGrid[c]->get_timeclass_turn_r())
+         mpiGrid[c]->parameters[CellParams::T_R] += dt;
+   }
    phiprof::Timer btpostimer {"barrier-trans-post-trans",{"Barriers","MPI"}};
    MPI_Barrier(MPI_COMM_WORLD);
    btpostimer.stop();
@@ -192,30 +321,45 @@ void calculateSpatialTranslation(
    // bailout(true, "", __FILE__, __LINE__);
 }
 
-/** Propagates the distribution function in spatial space.
+/** Communicate the distribution function from necessary remote neighbors
+ *  before ghost translation.
     Now does all required calculations on ghost cells,
     coalescing all interim MPI communication into one call..
-
-    Based on SLICE-3D algorithm: Zerroukat, M., and T. Allen. "A
-    three-dimensional monotone and conservative semi-Lagrangian scheme
-    (SLICE-3D) for transport problems." Quarterly Journal of the Royal
-    Meteorological Society 138.667 (2012): 1640-1651.
-
  */
-void calculateSpatialGhostTranslation(
+
+void communicatePreSpatialGhostTranslation(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const vector<CellID>& local_propagated_cells,
    vector<uint>& nPencils,
    const creal dt,
    const uint popID,
-   Real &time
+   Real &time,
+   const uint tictoc,
+   int tc
    ) {
 
    // Ghost translation, need all cell information, not just for a single direction.
    // No need for remote target cells; pass a dummy list.
    const vector<CellID> dummy_cells;
+   uint neighborhood;
 
-   updateRemoteVelocityBlockLists(mpiGrid,popID,Neighborhoods::VLASOV_SOLVER_GHOST);
+   // Select the pencil set and the required neighborhood based on the tictoc value
+   std::array<setOfPencils,3>* pencilSet;
+   if (P::currentMaxTimeclass == 0) {
+      neighborhood = Neighborhoods::VLASOV_SOLVER_GHOST;
+   }
+   else if (tictoc == Timeclasses::TIC) {
+      neighborhood = Neighborhoods::VLASOV_SOLVER_TIMEGHOST_OUTER_HALO;
+   }
+   else if (tictoc == Timeclasses::TOC) {
+      neighborhood = Neighborhoods::VLASOV_SOLVER_GHOST;
+   }
+   else {
+      std::cerr << __FILE__<<":"<<__LINE__<< " Unknown state: Current maxtimeclass=" << P::currentMaxTimeclass << ", tictoc = " << tictoc << std::endl;
+      abort();
+   }
+
+   updateRemoteVelocityBlockLists(mpiGrid,popID,neighborhood, tc);
    // Need to re-do in case block lists of boundary cells change after
    // the block adjustment just after ACC.
 
@@ -225,32 +369,322 @@ void calculateSpatialGhostTranslation(
 
    phiprof::Timer transferTimer {"transfer-stencil-data-all",{"MPI"}};
    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA,false);
-   mpiGrid.update_copies_of_remote_neighbors(Neighborhoods::VLASOV_SOLVER_GHOST);
+   mpiGrid.update_copies_of_remote_neighbors(neighborhood);
    transferTimer.stop();
 
-   phiprof::Timer preBarrierTimer {"MPI barrier-pre-trans"};
+   phiprof::Timer preBarrierTimer {"MPI barrier-post-comm-pre-trans"};
    MPI_Barrier(MPI_COMM_WORLD);
    preBarrierTimer.stop();
+}
 
+
+/** Communicate the distribution function from necessary remote neighbors
+ *  before ghost translation.
+    Now does all required calculations on ghost cells,
+    coalescing all interim MPI communication into one call..
+ */
+
+void communicatePreSpatialGhostTranslationCoalesced(
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   std::vector<std::pair<uint, int>>& population_indexes,
+   const uint tictoc,
+   int tc
+   ) {
+
+   // Ghost translation, need all cell information, not just for a single direction.
+   // No need for remote target cells; pass a dummy list.
+   const vector<CellID> dummy_cells;
+   uint neighborhood;
+
+   // Select the pencil set and the required neighborhood based on the tictoc value
+   std::array<setOfPencils,3>* pencilSet;
+   if (P::currentMaxTimeclass == 0) {
+      neighborhood = Neighborhoods::VLASOV_SOLVER_GHOST;
+   }
+   else if (tictoc == Timeclasses::TIC) {
+      neighborhood = Neighborhoods::VLASOV_SOLVER_TIMEGHOST_OUTER_HALO;
+   }
+   else if (tictoc == Timeclasses::TOC) {
+      neighborhood = Neighborhoods::VLASOV_SOLVER_GHOST;
+   }
+   else {
+      std::cerr << __FILE__<<":"<<__LINE__<< " Unknown state: Current maxtimeclass=" << P::currentMaxTimeclass << ", tictoc = " << tictoc << std::endl;
+      abort();
+   }
+
+   // updateRemoteVelocityBlockListsCoalesced(mpiGrid,population_indexes,neighborhood);
+   P::coalesceGhostComms = false;
+   for (auto& index : population_indexes) {
+      updateRemoteVelocityBlockLists(mpiGrid, index.first, neighborhood, index.second);
+   }
+   P::coalesceGhostComms = true;
+   // std::cerr << __FILE__<<":"<<__LINE__<< " Done updateing remote velocity block lists" << std::endl;
+   // Need to re-do in case block lists of boundary cells change after
+   // the block adjustment just after ACC.
+
+   phiprof::Timer prepreBarrierTimer {"MPI barrier-pre-trans-comm"};
+   MPI_Barrier(MPI_COMM_WORLD);
+   prepreBarrierTimer.stop();
+   SpatialCell::setCommunicatedSpecies(population_indexes);
+
+   phiprof::Timer transferTimer {"transfer-stencil-data-all",{"MPI"}};
+   SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA,false);
+   mpiGrid.update_copies_of_remote_neighbors(neighborhood);
+   transferTimer.stop();
+
+   //phiprof::Timer preBarrierTimer {"MPI barrier-post-comm-pre-trans"};
+   //MPI_Barrier(MPI_COMM_WORLD);
+   //preBarrierTimer.stop();
+}
+
+
+
+/** Propagates the distribution function in spatial space.
+    Now does all required calculations on ghost cells,
+    coalescing all interim MPI communication into one call..
+
+    Based on SLICE-3D algorithm: Zerroukat, M., and T. Allen. "A
+    three-dimensional monotone and conservative semi-Lagrangian scheme
+    (SLICE-3D) for transport problems." Quarterly Journal of the Royal
+    Meteorological Society 138.667 (2012): 1640-1651.
+ */
+
+void calculateSpatialGhostTranslation(
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   const vector<CellID>& local_propagated_cells,
+   vector<uint>& nPencils,
+   const creal dt,
+   const uint popID,
+   Real &time,
+   const uint tictoc,
+   int tc
+   ) {
+
+   // Ghost translation, need all cell information, not just for a single direction.
+   // No need for remote target cells; pass a dummy list.
+   const vector<CellID> dummy_cells;
+   
+   //uint neighborhood;
+
+   // Select the pencil set and the required neighborhood based on the tictoc value
+   std::array<setOfPencils,3>* pencilSet;
+   if (P::currentMaxTimeclass == 0) {
+     // neighborhood = Neighborhoods::VLASOV_SOLVER_GHOST;
+      pencilSet = &DimensionPencils;
+      // std::cerr << __FILE__<<":"<<__LINE__<< " tictoc = " << tictoc<< ", pencilSet->Nx = " << (*pencilSet)[0].N << ", pencilSet->Ny = " << (*pencilSet)[1].N << ", pencilSet->Nz = " << (*pencilSet)[2].N << std::endl;
+   }
+   else if (tictoc == Timeclasses::TIC) {
+      //neighborhood = Neighborhoods::VLASOV_SOLVER_TIMEGHOST_OUTER_HALO;
+      pencilSet = &DimensionPencils;
+      // std::cerr << __FILE__<<":"<<__LINE__<< "tc " << tc << (tictoc==Timeclasses::TIC?" tic":" toc")<< ", pencilSet->Nx = " << (*pencilSet)[0].N << ", pencilSet->Ny = " << (*pencilSet)[1].N << ", pencilSet->Nz = " << (*pencilSet)[2].N << std::endl;
+   }
+   else if (tictoc == Timeclasses::TOC) {
+      //neighborhood = Neighborhoods::VLASOV_SOLVER_TIMEGHOST_EXACT_HALO;
+      pencilSet = &DimensionPencils_toc;
+      // std::cerr << __FILE__<<":"<<__LINE__<< "tc " << tc<< (tictoc==Timeclasses::TIC?" tic":" toc")<< ", pencilSet->Nx = " << (*pencilSet)[0].N << ", pencilSet->Ny = " << (*pencilSet)[1].N << ", pencilSet->Nz = " << (*pencilSet)[2].N << std::endl;
+   }
+   else {
+      std::cerr << __FILE__<<":"<<__LINE__<< " Unknown state: Current maxtimeclass=" << P::currentMaxTimeclass << ", tictoc = " << tictoc << std::endl;
+      abort();
+   }
+/* --- this is now done ahead of this function
+   updateRemoteVelocityBlockLists(mpiGrid,popID,neighborhood, tc);
+   // Need to re-do in case block lists of boundary cells change after
+   // the block adjustment just after ACC.
+
+   phiprof::Timer prepreBarrierTimer {"MPI barrier-pre-trans-comm"};
+   MPI_Barrier(MPI_COMM_WORLD);
+   prepreBarrierTimer.stop();
+
+   phiprof::Timer transferTimer {"transfer-stencil-data-all",{"MPI"}};
+   SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA,false);
+   mpiGrid.update_copies_of_remote_neighbors(neighborhood);
+   transferTimer.stop();
+*/
+//   phiprof::Timer preBarrierTimer {"MPI barrier-pre-trans"}; // TODO is this even needed?
+//   MPI_Barrier(MPI_COMM_WORLD);
+//   preBarrierTimer.stop();
+
+   // Create temporary copies of copy-timeghosts so they are not overwritten and invalidated by the mapping
+   // on the fringes. This placement tries to minimize the temporary memory footprint.
+   #ifdef DEBUG_TIMECLASSES
+   std::cerr << "GT, tictoc = " << tictoc << ", pop " << popID << ", tc " << tc << "\n";
+   #endif
+   std::map<CellID, Population> copy_ghosts;
+   int expected_translations = 0; // count how many translation ops suffice for a complete translation
+   if (P::currentMaxTimeclass > 0 && tictoc == Timeclasses::TIC){
+      #ifdef DEBUG_TIMECLASSES
+      std::cerr << "Tic copy\n";
+      #endif
+      phiprof::Timer copyghostOuter {"copy-ghost temporaries"};
+      phiprof::Timer copyghostInner {"gather copies"};
+      for (auto c : getLocalCells()) {
+         // std::cerr << " check copy for cellid " << c << ": " << mpiGrid[c]->requested_timeclass_copy_ghosts.count(tc) << "\n"; 
+         if(mpiGrid[c]->requested_timeclass_copy_ghosts.count(tc) > 0){
+            copy_ghosts[c] = mpiGrid[c]->get_population(popID, tc);
+            // std::cerr << &copy_ghosts[c] << " vs " << &mpiGrid[c]->get_population(popID, tc) << "\n";
+         }
+         mpiGrid[c]->get_population(popID, tc).state = mpiGrid[c]->get_population(popID, tc).state & ~(1u << LastPropagationState::TRANSLATED_X);
+         mpiGrid[c]->get_population(popID, tc).state = mpiGrid[c]->get_population(popID, tc).state & ~(1u << LastPropagationState::TRANSLATED_Y);
+         mpiGrid[c]->get_population(popID, tc).state = mpiGrid[c]->get_population(popID, tc).state & ~(1u << LastPropagationState::TRANSLATED_Z);
+
+      }
+   }
+   setOfPencils* pencils;
+   std::set<CellID> target_cells = {}; // diagnostics and T_R updating (T_R should update the cells in active_list)
+   std::set<CellID> source_cells = {}; 
+
+   
    //#warning TODO: Implement also 2D / non-AMR ghost translation?
    // ------------- SLICE - map dist function in Z --------------- //
    phiprof::Timer mappingZTimer {"compute-mapping-z"};
-   trans_map_1d_amr(mpiGrid,local_propagated_cells, dummy_cells, nPencils, 2, dt,popID); // map along z//
+   trans_map_1d_amr(mpiGrid, *pencilSet, local_propagated_cells, dummy_cells, nPencils, 2, dt, tc, popID); // map along z//
+   
+   pencils = &pencilSet->at(2);
+   uint pencili = 0;
+   uint curend = 0;
+   if( pencils->N > 0){
+      expected_translations++;
+      curend = pencils->idsStart[pencili]+pencils->lengthOfPencils[pencili];
+      for (size_t i = 0; i < pencils->sumOfLengths; ++i){
+         if (i >=curend){ // in the next pencil already
+            pencili++;
+            curend = pencils->idsStart[pencili]+pencils->lengthOfPencils[pencili];
+         }
+         int tc = pencils->timeclasses[pencili];
+         if (pencils->targetRatios[i] > 0.0){
+            mpiGrid[pencils->ids[i]]->get_population(popID, tc).state = mpiGrid[pencils->ids[i]]->get_population(popID, tc).state | (1u << LastPropagationState::TRANSLATED_Z);
+            target_cells.insert(pencils->ids[i]);
+         }
+         source_cells.insert(pencils->ids[i]);
+      }
+   }
+   
    mappingZTimer.stop();
 
    // ------------- SLICE - map dist function in X --------------- //
    phiprof::Timer mappingXTimer {"compute-mapping-x"};
-   trans_map_1d_amr(mpiGrid,local_propagated_cells, dummy_cells, nPencils, 0,dt,popID); // map along x//
+   trans_map_1d_amr(mpiGrid, *pencilSet, local_propagated_cells, dummy_cells, nPencils, 0,dt, tc, popID); // map along x//
+   pencils = &pencilSet->at(0);
+   pencili = 0;
+   if( pencils->N > 0){
+      expected_translations++;
+      curend = pencils->idsStart[pencili]+pencils->lengthOfPencils[pencili];
+      for (size_t i = 0; i < pencils->sumOfLengths; ++i){
+         if (i >=curend){ // in the next pencil already
+            pencili++;
+            curend = pencils->idsStart[pencili]+pencils->lengthOfPencils[pencili];
+         }
+         int tc = pencils->timeclasses[pencili];
+         if (pencils->targetRatios[i] > 0.0){
+            mpiGrid[pencils->ids[i]]->get_population(popID, tc).state = mpiGrid[pencils->ids[i]]->get_population(popID, tc).state | (1u << LastPropagationState::TRANSLATED_X);
+            target_cells.insert(pencils->ids[i]);
+         }
+         source_cells.insert(pencils->ids[i]);
+      }
+   }
    mappingXTimer.stop();
 
    // ------------- SLICE - map dist function in Y --------------- //
    phiprof::Timer mappingYTimer {"compute-mapping-y"};
-   trans_map_1d_amr(mpiGrid,local_propagated_cells, dummy_cells, nPencils, 1,dt,popID); // map along y//
+   trans_map_1d_amr(mpiGrid, *pencilSet, local_propagated_cells, dummy_cells, nPencils, 1,dt, tc, popID); // map along y//
+   pencils = &pencilSet->at(1);
+   pencili = 0;
+   if( pencils->N > 0){
+      expected_translations++;
+      curend = pencils->idsStart[pencili]+pencils->lengthOfPencils[pencili];
+      for (size_t i = 0; i < pencils->sumOfLengths; ++i){
+         if (i >=curend){ // in the next pencil already
+            pencili++;
+            curend = pencils->idsStart[pencili]+pencils->lengthOfPencils[pencili];
+         }
+         int tc = pencils->timeclasses[pencili];
+         if (pencils->targetRatios[i] > 0.0){
+            mpiGrid[pencils->ids[i]]->get_population(popID, tc).state = mpiGrid[pencils->ids[i]]->get_population(popID, tc).state | (1u << LastPropagationState::TRANSLATED_Y);
+            target_cells.insert(pencils->ids[i]);
+         }
+         source_cells.insert(pencils->ids[i]);
+      }
+   }
    mappingYTimer.stop();
 
-   phiprof::Timer postBarrierTimer {"MPI barrier-post-trans"};
-   MPI_Barrier(MPI_COMM_WORLD);
-   postBarrierTimer.stop();
+//   phiprof::Timer postBarrierTimer {"MPI barrier-post-trans"};
+//   MPI_Barrier(MPI_COMM_WORLD);
+//   postBarrierTimer.stop();
+
+   Real t0 = 1e18;
+   for(CellID c : source_cells){
+      if(tictoc == Timeclasses::TIC){
+         if (t0 == 1e18 && do_translate_cell(mpiGrid[c]) && mpiGrid[c]->has_source_timeclass_tic(tc)){
+            t0 = mpiGrid[c]->get_population(popID, tc).T_V;
+         }
+      }else{
+         if (t0 == 1e18 && do_translate_cell(mpiGrid[c]) && mpiGrid[c]->has_source_timeclass_toc(tc)){
+            t0 = mpiGrid[c]->get_population(popID, tc).T_V;
+         }
+      }
+   }
+   for(CellID c : source_cells){
+      if (!do_translate_cell(mpiGrid[c])) continue;
+      if (tictoc == Timeclasses::TIC && !mpiGrid[c]->has_source_timeclass_tic(tc)) continue;
+      if (tictoc == Timeclasses::TOC && !mpiGrid[c]->has_source_timeclass_toc(tc)) continue;
+      Population& pop = mpiGrid[c]->get_population(popID, tc);
+      #ifdef DEBUG_TIMECLASSES
+      if(abs(t0 - pop.T_V) > dt/1e6){ // some scaled epsilon
+         std::cerr << *source_cells.begin() << " and " << c << " have differing source times: " << t0 << " and " << pop.T_V << ", respectively. Delta " << pop.T_V - t0 << std::endl;
+      }
+      #endif
+   }
+   for(CellID c : target_cells)
+   {
+      Population& pop = mpiGrid[c]->get_population(popID, tc);
+      Real popt = pop.T_R;
+      Real ddt = P::timeclassDt[tc];
+      if(pop.state & (1u << LastPropagationState::TRANSLATED_X)){
+         popt += ddt/expected_translations;
+      }
+      if(pop.state & (1u << LastPropagationState::TRANSLATED_Y)){
+         popt += ddt/expected_translations;
+      }
+      if(pop.state & (1u << LastPropagationState::TRANSLATED_Z)){
+         popt += ddt/expected_translations;
+      }
+      if((int)(bool)(pop.state & (1u << LastPropagationState::TRANSLATED_X)) +
+         (int)(bool)(pop.state & (1u << LastPropagationState::TRANSLATED_Y)) +
+         (int)(bool)(pop.state & (1u << LastPropagationState::TRANSLATED_Z)) == expected_translations){
+         // pop.T_R_PREV_PREV = pop.T_R_PREV;
+         // pop.T_R_PREV = pop.T_R;
+         pop.T_R = popt;
+         pop.state = pop.state | (1u << LastPropagationState::TRANSLATED);
+         pop.state = pop.state & ~(1u << LastPropagationState::TRANSLATED_X);
+         pop.state = pop.state & ~(1u << LastPropagationState::TRANSLATED_Y);
+         pop.state = pop.state & ~(1u << LastPropagationState::TRANSLATED_Z);
+         }
+      else{
+         #ifdef DEBUG_TIMECLASSES
+         string tictocstr = tictoc == Timeclasses::TIC ? "tic" : "toc";
+         if(do_translate_cell(mpiGrid[c]) && (
+            (tictoc == Timeclasses::TIC && mpiGrid[c]->has_active_timeclass_tic(tc)) ||
+            (tictoc == Timeclasses::TOC && mpiGrid[c]->has_active_timeclass_toc(tc))
+            )
+         ){
+            std::cerr << __FILE__ << ":" << __LINE__ << ": incomplete translation for " << mpiGrid[c]->parameters[CellParams::CELLID] << "t" << mpiGrid[c]->parameters[CellParams::TIMECLASS] << " t = " << P::t << " at timeclass " << tc << tictocstr << ", state = " << std::bitset<8>(pop.state) << ", tG flags " << mpiGrid[c]->requested_timeclass_ghosts.count(tc) << ", " << mpiGrid[c]->requested_timeclass_copy_ghosts.count(tc) << ", " << mpiGrid[c]->requested_timeclass_outer_ghosts.count(tc)<< ", expected translations: " << expected_translations << " " << (int)(pop.state & (1u << LastPropagationState::TRANSLATED_X)) << " " << (int)(pop.state & (1u << LastPropagationState::TRANSLATED_Y)) << " " << (int)(pop.state & (1u << LastPropagationState::TRANSLATED_Z)) << std::endl;
+         }
+         #endif
+      }
+
+   }
+
+   if(P::currentMaxTimeclass > 0 && tictoc == Timeclasses::TIC ){
+      phiprof::Timer copyghostOuter {"copy-ghost temporaries"};
+      phiprof::Timer copyghostInner {"restore copies"};
+      for (auto c : copy_ghosts) {
+         mpiGrid[c.first]->get_population(popID, tc) = c.second;
+         mpiGrid[c.first]->get_population(popID, tc).T_R += dt;
+      }
+   }
+   copy_ghosts.clear();
+
    return;
 }
 
@@ -266,9 +700,10 @@ void calculateSpatialGhostTranslation(
 */
 void calculateSpatialTranslation(
         dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-        const Real dt) {
+        creal dt,
+        const bool initializationOrLB) {
    typedef Parameters P;
-
+   // std::cerr << std::scientific << "calculateSpatialTranslation at t="<<P::t << "\n";//", for dtfactor="<<dt<<"\n";
    phiprof::Timer semilagTimer {"semilag-trans"};
 
    //double t1 = MPI_Wtime();
@@ -278,14 +713,51 @@ void calculateSpatialTranslation(
    vector<CellID> remoteTargetCellsy;
    vector<CellID> remoteTargetCellsz;
    vector<CellID> local_propagated_cells;
-   vector<uint> nPencils;
+   vector<vector<CellID>> tc_propagated_cells = vector<vector<CellID>>();
+   vector<CellID> local_target_cells;
+   vector<vector<CellID>> tc_target_cells = vector<vector<CellID>>();
+   vector<set<CellID>> tc_propagated_cell_sets = vector<set<CellID>>();
+   vector<set<CellID>> tc_target_cell_sets = vector<set<CellID>>();
+
+   vector<vector<uint>> nPencils(P::currentMaxTimeclass+1); // one for each timeclass
    Real time=0.0;
 
    // If dt=0 we are either initializing or distribution functions are not translated.
-   // In both cases go to the end of this function and calculate the moments.
-   if (dt == 0.0) {
+   if (dt == 0.0 && initializationOrLB == true) {
+      // if dt=0.0 and initialization == true, we are either initializing or load balancing.
+      // hence we can just calculate the moments and return.
       calculateMoments_R(mpiGrid,localCells,true,true);
       return;
+   }
+
+   // TC propagation lists, TODO move out of here somewhere sensible and less often called
+   if (P::currentMaxTimeclass > 0) {
+      for (int tc = 0; tc <= P::currentMaxTimeclass; tc++)
+      {
+         tc_propagated_cell_sets.push_back(set<CellID>());
+         for (auto c : localCells){
+            if(mpiGrid[c]->parameters[CellParams::TIMECLASS] == tc){
+               tc_propagated_cell_sets[tc].insert(c);
+            }
+         }
+         set<CellID> exact_halo_cells;
+         for (auto c : tc_propagated_cell_sets[tc]){
+            auto neighbors = mpiGrid.get_neighbors_of(c, Neighborhoods::VLASOV_SOLVER_TIMEGHOST_EXACT_HALO);
+            for (auto n : *neighbors){
+               exact_halo_cells.insert(n.first); // NB insert_range in C++23
+            }
+         }
+         for(auto c : exact_halo_cells) {
+         //   tc_propagated_cell_sets[tc].insert(c);
+         }
+
+         tc_propagated_cells.push_back(vector<CellID>(tc_propagated_cell_sets[tc].begin(),tc_propagated_cell_sets[tc].end()));
+         // std::cout << "initing up tc " << tc << " vectors \n";
+         // tc_propagated_cells.push_back(vector<CellID>(ghostTranslate_source[tc].begin(),ghostTranslate_source[tc].end()));
+         // tc_target_cells.push_back(vector<CellID>(ghostTranslate_active[tc].begin(),ghostTranslate_active[tc].end()));
+         // tc_propagated_cell_sets.push_back(set<CellID>(tc_propagated_cells_set));
+         // tc_target_cell_sets.push_back(set<CellID>(ghostTranslate_active[tc].begin(),ghostTranslate_active[tc].end()));
+      }
    }
 
    phiprof::Timer computeTimer {"compute_cell_lists"};
@@ -304,41 +776,190 @@ void calculateSpatialTranslation(
       }
    }
 
-   if (P::prepareForRebalance == true) {
-      // One more element to count the sums
-      nPencils.resize(local_propagated_cells.size()+1, 0);
+
+   // TC propagation lists, TODO move out of here somewhere sensible and less often called
+   computeTimer.stop();
+   if (P::currentMaxTimeclass > 0) {
+      for (int tc = 0; tc <= P::currentMaxTimeclass; tc++)
+      {
+         // std::cout << "initing up tc " << tc << " vectors \n";
+         tc_propagated_cells[tc] = vector<CellID>(tc_propagated_cell_sets[tc].begin(),tc_propagated_cell_sets[tc].end());
+         // tc_target_cells[tc] = vector<CellID>(tc_target_cell_sets[tc].begin(),tc_target_cell_sets[tc].end());
+      }
+   } else {
+      // If we are not using timeclasses, we can just use the local_propagated_cells vector
+      // for all the calculations.
+      
+      tc_propagated_cells.push_back(local_propagated_cells);
    }
    computeTimer.stop();
+
+   //
+   if (dt == 0.0 && initializationOrLB == false) {
+      // If we are not initializing, we are in the main loop, and we are not propagating.
+      // Here we have to update _R_PREV moments, update _R moments on a timeclass basis, and return.
+
+      for (int tc=0; tc <= P::currentMaxTimeclass; tc++) {
+         int mod = 1 << (P::currentMaxTimeclass - tc);
+         if ((P::fractionalTimestep % mod) == 0) {
+            for (size_t c=0; c<tc_propagated_cells.at(tc).size(); ++c) {
+               const CellID cellID = tc_propagated_cells.at(tc).at(c);
+               SpatialCell* SC = mpiGrid[cellID];
+
+               SC->parameters[CellParams::T_R] += P::timeclassDt[SC->parameters[CellParams::TIMECLASS]];
+               
+            }
+         }
+      }
+
+      //calculating moments based on timeclass
+      for (int tc=0; tc <= P::currentMaxTimeclass; tc++) {
+         int mod = 1 << (P::currentMaxTimeclass - tc);
+         if ((P::fractionalTimestep % mod) == 0) {
+            calculateMoments_R(mpiGrid,tc_propagated_cells.at(tc),true);
+         }
+      }
+      return;
+   }
+
+   for (size_t c=0; c<localCells.size(); ++c) {
+      auto cell = mpiGrid[localCells[c]];
+      if(cell->get_timeclass_turn_r() && dt > 0.0){
+         cell->parameters[CellParams::T_R] += dt*P::timeclassDt[cell->parameters[CellParams::TIMECLASS]];
+      }
+   }
+   
+   if (P::prepareForRebalance == true) {
+      // One more element to count the sums
+      for(int tc = 0; tc <= P::currentMaxTimeclass; tc++) {
+         nPencils.at(tc).resize(tc_propagated_cells.at(tc).size()+1, 0);
+      }
+   }
+
+   int myRank;
+   MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+   P::coalesceGhostComms = true;
+   if (P::vlasovSolverGhostTranslate){
+      phiprof::Timer pretrans {"Pre-ghostTranslate comms"};
+      std::vector<std::pair<uint, int>> population_indexes;
+      for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+      // if ghost translating, do the comms ahead of translations, which are now local ops
+         for(int tc = 0; tc <= P::currentMaxTimeclass; tc++){
+            SpatialCell::setCommunicatedSpecies(popID,tc);
+            int mod = 1 << (P::currentMaxTimeclass - tc);
+            int mod2 = 2 << (P::currentMaxTimeclass - tc);
+            if((P::fractionalTimestep % mod) == 0){
+               // std::cout << "rank " << myRank << ": " << tc_propagated_cells[tc].size() << " cells: calculateSpatialTranslation tc " << tc << " by dt " << P::timeclassDt[tc] <<"\n";
+               // Local translation without interim communication
+               uint tictoc = Timeclasses::TIC;
+               if (tc == 0) { // we are the coarsest timeclass, so we always have fine timeclass data to fetch and sync
+                  tictoc = Timeclasses::TOC;
+               }
+               else { // Other timeclasses need to get time ghost halo layers from the coarser timeclasses
+                     // to have the intermediate translation step (TIC)
+                  if ((P::fractionalTimestep % mod2) == 0){
+                     // Initial timeghost halo layer needs to have a larger source region
+                     tictoc = Timeclasses::TIC;
+                  }
+                  else{
+                     // Subsequent timeghost halo layers can do with a smaller layer, using the translation
+                     // targets from the TIC
+                     tictoc = Timeclasses::TOC;
+                  }
+               }
+               string tictocstr = (tictoc == Timeclasses::TIC ? "tic" : "toc");
+               //string profName = "pre-translate comm "+getObjectWrapper().particleSpecies[popID].name+" tc "+std::to_string(tc) + tictocstr;
+               //phiprof::Timer timer {profName};
+               population_indexes.push_back(std::make_pair(popID, tc));
+/*               if (!P::coalesceGhostComms) {
+                  communicatePreSpatialGhostTranslation(
+                     mpiGrid,
+                     tc_propagated_cells[tc], // Used for LB
+                     nPencils,
+                     P::timeclassDt[tc],
+                     popID,
+                     time,
+                     tictoc,
+                     tc
+                     );
+               }*/
+            }
+         }
+      }
+      pretrans.stop();
+      phiprof::Timer ccomms {"Coalesced comms"};
+      if (P::coalesceGhostComms) {
+         communicatePreSpatialGhostTranslationCoalesced(
+            mpiGrid,
+            population_indexes,
+            Timeclasses::TIC,
+            0
+            );
+      }
+      P::coalesceGhostComms = false;
+      ccomms.stop();
+   }
+
 
    // Translate all particle species
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
       string profName = "translate "+getObjectWrapper().particleSpecies[popID].name;
       phiprof::Timer timer {profName};
-      SpatialCell::setCommunicatedSpecies(popID);
-      if (P::vlasovSolverGhostTranslate ) {
-         // All-local ghost translation with coalesced communication
-         // Not yet implemented for non-AMR solver
-         calculateSpatialGhostTranslation(
-            mpiGrid,
-            local_propagated_cells, // Used for LB
-            nPencils,
-            (Realf)dt,
-            popID,
-            time
-            );
-      } else {
-         // Classic method with included remote contribution through MPI
-         calculateSpatialTranslation(
-            mpiGrid,
-            local_propagated_cells,
-            remoteTargetCellsx,
-            remoteTargetCellsy,
-            remoteTargetCellsz,
-            nPencils,
-            (Realf)dt,
-            popID,
-            time
-            );
+      //SpatialCell::setCommunicatedSpecies(popID);
+      for(int tc = 0; tc <= P::currentMaxTimeclass; tc++){
+         SpatialCell::setCommunicatedSpecies(popID,tc);
+         int mod = 1 << (P::currentMaxTimeclass - tc);
+         int mod2 = 2 << (P::currentMaxTimeclass - tc);
+         if((P::fractionalTimestep % mod) == 0){
+            // std::cout << "rank " << myRank << ": " << tc_propagated_cells[tc].size() << " cells: calculateSpatialTranslation tc " << tc << " by dt " << P::timeclassDt[tc] <<"\n";
+            if (P::vlasovSolverGhostTranslate) {
+               // Local translation without interim communication
+               uint tictoc = Timeclasses::TIC;
+               if(P::timeclassTictoc){
+                  if (tc == 0) { // we are the coarsest timeclass, so we always have fine timeclass data to fetch and sync
+                     tictoc = Timeclasses::TOC;
+                  }
+                  else { // Other timeclasses need to get time ghost halo layers from the coarser timeclasses
+                        // to have the intermediate translation step (TIC)
+                     if ((P::fractionalTimestep % mod2) == 0){
+                        // Initial timeghost halo layer needs to have a larger source region
+                        tictoc = Timeclasses::TIC;
+                     }
+                     else{
+                        // Subsequent timeghost halo layers can do with a smaller layer, using the translation
+                        // targets from the TIC
+                        tictoc = Timeclasses::TOC;
+                     }
+                  }
+               }
+               string tictocstr = (tictoc == Timeclasses::TIC ? " tic" : " toc");
+               string profNamet = profName + tictocstr;
+               phiprof::Timer timer {profNamet}; 
+               // std::cerr << "rank " << myRank << ", time " << P::t << " " << tc_propagated_cells[tc].size() << " cells: calculateSpatialTranslation tc " << tc << tictocstr << " by dt " << P::timeclassDt[tc] <<"\n";
+               calculateSpatialGhostTranslation(
+                  mpiGrid,
+                  tc_propagated_cells[tc], // Used for LB
+                  nPencils.at(tc),
+                  P::timeclassDt[tc],
+                  popID,
+                  time,
+                  tictoc,
+                  tc
+                  );
+            } else {
+               calculateSpatialTranslation(
+                  mpiGrid,
+                  tc_propagated_cells[tc], //local_propagated_cells,
+                  remoteTargetCellsx,
+                  remoteTargetCellsy,
+                  remoteTargetCellsz,
+                  nPencils.at(tc),
+                  P::timeclassDt[tc],//dt,
+                  popID,
+                  time
+               );
+            }
+         }
       }
    }
 
@@ -353,7 +974,9 @@ void calculateSpatialTranslation(
          SpatialCell* SC = mpiGrid[local_propagated_cells[c]];
          Real counter = 0;
          for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-            counter += SC->get_number_of_velocity_blocks(popID);
+            for(int timeclass = 0; timeclass <= P::currentMaxTimeclass; ++timeclass){
+              counter += pow(P::timeclassLBmantissa,timeclass)*SC->get_number_of_velocity_blocks(popID, timeclass);
+            }
          }
 
          // int accelerationsteps = 0; // Account for time spent in acceleration as well
@@ -376,8 +999,21 @@ void calculateSpatialTranslation(
       }
    }
 
-   // Mapping complete, update moments and maximum dt limits //
-   calculateMoments_R(mpiGrid,localCells,true);
+   //calculating moments based on timeclass
+   for (int tc=0; tc <= P::currentMaxTimeclass; tc++) {
+      int mod = 1 << (P::currentMaxTimeclass - tc);
+      if ((P::fractionalTimestep % mod) == 0) {
+         calculateMoments_R(mpiGrid,tc_propagated_cells.at(tc),true);
+      }
+   }
+
+   calculateTrueMomentsPostTranslation(mpiGrid);
+
+   if (P::vlasovSolverGhostTranslate){
+      phiprof::Timer postBarrierTimer {"MPI barrier-post-trans"};
+      MPI_Barrier(MPI_COMM_WORLD);
+      postBarrierTimer.stop();
+   }
 }
 
 /*
@@ -395,9 +1031,22 @@ void calculateSpatialTranslation(
  * @param popID ID of the accelerated particle species.
 */
 
-uint getAccelerationSubcycles(const SpatialCell* spatial_cell, const Real dt, const uint popID)
+int getAccelerationSubcycles(const SpatialCell* spatial_cell, const Real dt, const uint popID)
 {
-   return max( convert<uint>(ceil(dt / spatial_cell->get_max_v_dt(popID))), 1u);
+   //return max( convert<uint>(ceil(dt*spatial_cell->CellParams[CELLPARAMS::TIMECLASSDT] / spatial_cell->get_max_v_dt(popID))), 1u);
+   return max( convert<int>(ceil(dt / spatial_cell->get_max_v_dt(popID))), 1);
+}
+/*!
+  Compute the number of subcycles needed from maxVdt and target dt.
+
+ * @param spatial_cell Spatial cell containing the accelerated population.
+ * @param popID ID of the accelerated particle species.
+*/
+
+int getAccelerationSubcycles(Real maxVdt, Real dt)
+{
+   //return max( convert<uint>(ceil(dt*spatial_cell->CellParams[CELLPARAMS::TIMECLASSDT] / spatial_cell->get_max_v_dt(popID))), 1u);
+   return max( convert<int>(ceil(dt / maxVdt)), 1);
 }
 
 /** Accelerate the given population to new time t+dt.
@@ -406,167 +1055,588 @@ uint getAccelerationSubcycles(const SpatialCell* spatial_cell, const Real dt, co
  * @param step The current subcycle step.
  * @param mpiGrid Parallel grid library.
  * @param acceleratedCells List of cells in which the population is accelerated.
- * @param dt Timestep.*/
-void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const uint step,
+ * @param dt Timestep factor.
+ * @param tc Timeclass */
+ 
+void calculateAcceleration(const uint popID,const int globalMaxSubcycles,const int step,
                            dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                           const std::vector<CellID>& acceleratedCells,
-                           const Real dt) {
+                           // const std::vector<CellID>& propagatedCells,
+                           const std::vector<AccelerationPayload> acceleratedCells,
+                           const Real& dt, const int tc = -1) {
    // Set active population
-   SpatialCell::setCommunicatedSpecies(popID);
+   SpatialCell::setCommunicatedSpecies(popID,tc);
 
    // Calculate velocity moments, these are needed to
    // calculate the transforms used in the accelerations.
    // Calculated moments are stored in the "_V" variables.
-   calculateMoments_V(mpiGrid, acceleratedCells, false);
+   std::set<CellID> propagatedSet = {}; // Find the unique cells from the payload vector
+   std::map<int,set<CellID>> tcPropagatedSets;
+   for (int timeclass = 0; timeclass <= P::currentMaxTimeclass; ++timeclass){
+      tcPropagatedSets[timeclass] = {};
+   }
+   for(auto& payload:acceleratedCells){
+      propagatedSet.insert(payload.cellptr->get_cellid());
+      tcPropagatedSets[payload.timeclass].insert(payload.cellptr->get_cellid());
+   }
+
+   calculateMoments_V(mpiGrid, std::vector<CellID>(propagatedSet.begin(),propagatedSet.end()), false);
 
    // set seed, initialise generator and get value. The order is the same
    // for all cells, but varies with timestep.
    std::default_random_engine rndState;
-   rndState.seed(P::tstep);
-   uint map_order = std::uniform_int_distribution<>(0,2)(rndState);
+   //rndState.seed(P::tstep);
+   rndState.seed(P::tstep * (int)(pow(2.0, P::currentMaxTimeclass)) + P::fractionalTimestep);
+   //rndState.seed(P::tstep + P::fractionalTimestep); // WARNING this formulation actually has some correlations (P::tstep + P::fractionalTimestep can do aliasing...)
+   #ifndef DEBUG_TIMECLASSES
+      uint map_order=std::uniform_int_distribution<>(0,2)(rndState);
+   #else
+      uint map_order=1;
+   #endif
+   // Semi-Lagrangian acceleration for those cells which are subcycled
+   // std::cout << "Propagating (ACC) cells ";
+   // #pragma omp parallel for schedule(dynamic,1)
+   // for (size_t c=0; c<propagatedCells.size(); ++c) {
+   //    const CellID cellID = propagatedCells[c];
+   //    std::cout << cellID << " ";
+   // }
+   // std::cout << "\n";
+   // for (size_t c=0; c<propagatedCells.size(); ++c) {
+      // std::cout << "Accelerating payload at fract " << P::fractionalTimestep << ", cells(timeclass,dt,): \n\t"; }
+   // for(auto& payload:acceleratedCells){
+      
+   //    std::cout << payload.cellptr->get_cellid() <<"("<< payload.timeclass << ", " << payload.dt <<") ";
+   // }
+   // std::cout<<"\n";
+   for(auto& payload:acceleratedCells){
+      
+      
+      const CellID cellID = payload.cellptr->get_cellid();
+      const Real maxVdt = payload.cellptr->get_max_v_dt(popID);//mpiGrid[cellID]->get_max_v_dt(popID);
+      Real celldt = payload.dt;//dt*mpiGrid[cellID]->get_tc_dt();
 
-   // Calculate length of step for each cell
-   #pragma omp parallel for
-   for (size_t c=0; c<acceleratedCells.size(); ++c) {
-      const CellID cellID = acceleratedCells[c];
-      const Real maxVdt = mpiGrid[cellID]->get_max_v_dt(popID);
-
-      /**
-         Compute subcycle dt. The length is maxVdt on all steps
-         except the (possible) last one. This was to keep neighboring
-         spatial cells in sync (with respect to gyration), so that
-         two neighboring cells with different number of subcycles
-         have similar gyration angles, but adjusting the length of the
-         last step so all are accelerated for the same amount of time.
-         This keeps spatial block neighbors as much in sync as possible
-         for block adjustment.
-      **/
-
+      
+      //compute subcycle dt. The length is maxVdt on all steps
+      //except the last one. This is to keep the neighboring
+      //spatial cells in sync, so that two neighboring cells with
+      //different number of subcycles have similar timesteps,
+      //except that one takes an additional short step. This keeps
+      //spatial block neighbors as much in sync as possible for
+      //adjust blocks.
       Real thisSubcycleDt;
-      if( (step + 1) * maxVdt > fabs(dt)) {
-         thisSubcycleDt = max(fabs(dt) - step * maxVdt, 0.0);
+      if( (step + 1) * maxVdt > fabs(celldt)) {
+	      thisSubcycleDt = max(fabs(celldt) - step * maxVdt, 0.0);
       } else{
          thisSubcycleDt = maxVdt;
       }
       if (dt<0) {
          thisSubcycleDt = -thisSubcycleDt;
       }
-      spatial_cell::Population& pop = mpiGrid[cellID]->get_population(popID);
+      spatial_cell::Population& pop = mpiGrid[cellID]->get_population(popID, payload.timeclass);
       pop.subcycleDt = thisSubcycleDt;
    }
 
-   // Semi-Lagrangian acceleration for all cells
+      //generate pseudo-random order which is always the same irrespective of parallelization, restarts, etc.
+      //std::default_random_engine rndState;
+      // set seed, initialise generator and get value. The order is the same
+      // for all cells, but varies with timestep.
+      //rndState.seed(P::tstep + P::fractionalTimestep); // WARNING this formulation actually has some correlations (P::tstep + P::fractionalTimestep can do aliasing...)
+
+
+   phiprof::Timer semilagAccTimer {"cell-semilag-acc"};
 #ifdef USE_GPU
-   gpu_accelerate_cells(mpiGrid,acceleratedCells,popID,map_order);
+   gpu_accelerate_cells(mpiGrid[cellID],popID,map_order,subcycleDt);
 #else
-   cpu_accelerate_cells(mpiGrid,acceleratedCells,popID,map_order);
+   cpu_accelerate_cells(mpiGrid, acceleratedCells, popID, map_order);
 #endif
 
-   /**
-      Adjust velocity blocks after each subcycle to keep number of blocks managable. This
-      call does not perform a full neighbour block list update (third argument) but
-      still needs to consider has_content lists for spatial neighbours.
-      The last subcycle adjustment is performed in a higher level function, and it
-      performs a full neighbour block list update, and is called for all accelerated cells.
-   **/
-   if (step < (globalMaxSubcycles - 1)) {
-      adjustVelocityBlocks(mpiGrid, acceleratedCells, false, popID);
+   for (auto& payload:acceleratedCells){
+      spatial_cell::Population& pop = payload.cellptr->get_population(popID, payload.timeclass);
+      pop.T_V += pop.subcycleDt;
+   }
+   semilagAccTimer.stop();
+
+   //global adjust after each subcycle to keep number of blocks managable. Even the ones not
+   //accelerating anyore participate. It is important to keep
+   //the spatial dimension to make sure that we do not loose
+   //stuff streaming in from other cells, perhaps not connected
+   //to the existing distribution function in the cell.
+   //- All cells update and communicate their lists of content blocks
+   //- Only cells which were accerelated on this step need to be adjusted (blocks removed or added).
+   //- Not done here on last step (done after loop)
+
+   if(step < (globalMaxSubcycles - 1)){
+      for (int timeclass = 0; timeclass <= P::currentMaxTimeclass; timeclass++){ // Filter to necessary tcs - adjustVelocityBlocks comms need COMM-WORLD yet     
+         adjustVelocityBlocks(mpiGrid, std::vector<CellID>(tcPropagatedSets[timeclass].begin(),tcPropagatedSets[timeclass].end()), false, popID, timeclass);
+      }
    }
 }
 
+/* Set timeghosts from the native VDF state before translation on the corresponding timeclass
+*/
+void setAccelerationTimeGhosts( SpatialCell* spatial_cell, const uint popID){
+
+   bool addPayload = false;
+   for(auto i : spatial_cell->get_all_ghosts()) {
+         // Example: On tc-0 cell, tc-1 ghosts requested ghosts of tc-0
+         /*               |0--1/4-2/4-3/4-4/4-5/4-6/4--|
+         tc-1 after-acc   |----x-------x-------x-------|
+         tc-1 after-trans |x-------x-------x-------x---|
+         tc-0 after-acc   |----o---x---o-------o---x---|
+         tc-0 after-trans |x---------------x-----------|
+         legend:
+         - x: true state 
+         - o: ghost state
+         */
+      int tc_d = i-spatial_cell->get_tc();
+      if(tc_d > 0) {
+         // Ghosts for finer cadences
+         if (true /*spatial_cell->requested_timeclass_ghosts.count(i) > 0*/){ // folding copy-ghosts here, they are copied over at translation if needed
+            
+            if (!P::tc_leapfrog_init) {
+               // Leapfrogging not yet initialized - initialize
+               spatial_cell->set_ghost_population(spatial_cell->get_population(popID,spatial_cell->get_tc()),popID,i);
+            }
+            else if (spatial_cell->get_timeclass_turn_v()) {
+               // This cell has been natively propagated. We update the ghost population to the current state, and then acc by half the timeclass dt to sync with the finer timeclass leapfrog state.
+               spatial_cell->set_ghost_population(spatial_cell->get_population(popID,spatial_cell->get_tc()),popID,i);
+            }
+            else if (spatial_cell->get_timeclass_turn_v(i)) {
+               // The finer timeclass is to be propagated, and we do not have a native state to update the VDF from. Just propagate.
+            }
+            else{
+               //do nothing
+            }
+         }
+
+         else{
+             // No ghosts requested from at this timeclass, do nothing
+         }
+         
+      }
+      else if (tc_d < 0){
+         // Ghosts for coarser cadences.
+         // Example: on tc-1 cell, tc-0 ghosts requested from us
+         /*                    |0--1/4-2/4-3/4-4/4-5/4-6/4--|
+         tc-1      after-acc   |----x-------x---.---x-------|
+         tc-1      after-trans |x-------x-------x-------x---|
+         tc-1ghost after-acc   |--------o---------------o---|
+         tc-1ghost after-trans |o---------------o-----------|
+         tc-0      after-acc   |--------x---------------x---|
+         tc-0      after-trans |x---------------x-----------|
+         legend:
+         - x: true state 
+         - o: ghost state
+         */
+         if (true /*spatial_cell->requested_timeclass_ghosts.count(i) > 0*/){
+
+            if (!P::tc_leapfrog_init){
+                              
+               // if it is slower-tc's turn, we are synced at after-trans state
+               // -> Copy state, but needs to acc by half-tc-0-dt ("always init")
+               spatial_cell->set_ghost_population(spatial_cell->get_population(popID,spatial_cell->get_tc()),popID,i);
+
+            }
+            else if (spatial_cell->get_timeclass_turn_v(i) || (P::tstep == 0 && P::fractionalTimestep == 0)) {
+               
+               // if it is slower-tc's turn, we are synced at after-trans state
+               // -> Copy state, but needs to acc by half-tc-0-dt ("always init")
+               spatial_cell->set_ghost_population(spatial_cell->get_population(popID,spatial_cell->get_tc()),popID,i);
+            }
+            else{ //do nothing
+            }
+         }
+
+         else{
+             // No ghosts requested from at this timeclass, do nothing
+         }
+      }
+   } // for over ghost requests
+}
+
+
+/* Get structs (timeclass, SpatialCell*, dt, subcycle step) for acceleration
+*/
+void setAccelerationPayloads(vector<AccelerationPayload>& outvec, SpatialCell* spatial_cell, const uint popID, const Real& dt){
+
+   // if(spatial_cell->get_timeclass_turn_v() || (accelerateSpecificCells && std::find(cellsToAccelerate.begin(), cellsToAccelerate.end(), spatial_cell->get_cellid()) != cellsToAccelerate.end())){
+   //    AccelerationPayload payload = {spatial_cell->get_tc(),spatial_cell,dt,0};
+   //    outvec.push_back(payload);
+   // }
+
+   if(spatial_cell->get_timeclass_turn_v()){
+      outvec.push_back(AccelerationPayload(spatial_cell->get_tc(),spatial_cell,dt));
+   }
+
+   // std::cout << "outvec size: " << outvec.size() << "\n";
+
+   bool addPayload = false;
+   for(auto i : spatial_cell->get_all_ghosts()) {
+         // Example: On tc-0 cell, tc-1 ghosts requested ghosts of tc-0
+         /*               |0--1/4-2/4-3/4-4/4-5/4-6/4--|
+         tc-1 after-acc   |----x-------x-------x-------|
+         tc-1 after-trans |x-------x-------x-------x---|
+         tc-0 after-acc   |----o---x---o-------o---x---|
+         tc-0 after-trans |x---------------x-----------|
+         legend:
+         - x: true state 
+         - o: ghost state
+         */
+      int tc_d = i-spatial_cell->get_tc();
+      if(tc_d > 0) {
+         // Ghosts for finer cadences
+         if (true /*spatial_cell->requested_timeclass_ghosts.count(i) > 0*/){ // folding copy-ghosts here, they are copied over at translation if needed
+            
+            if (!P::tc_leapfrog_init) {
+               // Leapfrogging not yet initialized - initialize
+               // std::cerr << "leapfrog init for " << spatial_cell->parameters[CellParams::CELLID] << " for tc " << i << std::endl;
+               // spatial_cell->set_ghost_population(spatial_cell->get_population(popID,spatial_cell->get_tc()),popID,i);
+               
+               outvec.push_back(AccelerationPayload(i, spatial_cell, dt/pow(2,tc_d)));
+            }
+            else if (spatial_cell->get_timeclass_turn_v()) {
+               // This cell has been natively propagated. We update the ghost population to the current state, and then acc by half the timeclass dt to sync with the finer timeclass leapfrog state.
+               // spatial_cell->set_ghost_population(spatial_cell->get_population(popID,spatial_cell->get_tc()),popID,i);
+
+               outvec.push_back(AccelerationPayload(i, spatial_cell, dt/pow(2,tc_d)*1/2));
+            }
+            else if (spatial_cell->get_timeclass_turn_v(i)) {
+               // The finer timeclass is to be propagated, and we do not have a native state to update the VDF from. Just propagate.
+               outvec.push_back(AccelerationPayload(i, spatial_cell, dt/pow(2,tc_d)));
+            }
+            else{
+               //do nothing
+            }
+         }
+         // else if(spatial_cell->requested_timeclass_copy_ghosts.count(i) > 0 || spatial_cell->requested_timeclass_outer_ghosts.count(i) > 0){
+         //    // Copy ghosts needed, and regular ghosts are not available, so initialize and accelerate those as needed.
+         //    if (!P::tc_leapfrog_init) {
+         //       // Leapfrogging not yet initialized - initialize
+         //       spatial_cell->set_ghost_population(spatial_cell->get_population(popID,spatial_cell->get_tc()),popID,i);
+
+         //       outvec.push_back(AccelerationPayload(i, spatial_cell, dt/pow(2,tc_d)));
+         //    }
+         //    else if (spatial_cell->get_timeclass_turn_v(i)){
+         //       spatial_cell->set_ghost_population(spatial_cell->get_population(popID,spatial_cell->get_tc()),popID,i);
+
+         //       outvec.push_back(AccelerationPayload(i, spatial_cell, dt/pow(2,tc_d)*3/2));
+         //    }
+         //    else{
+         //       spatial_cell->set_ghost_population(spatial_cell->get_population(popID,spatial_cell->get_tc()),popID,i);
+         //    }
+         // }
+         else{
+             // No ghosts requested from at this timeclass, do nothing
+         }
+         
+      }
+      else if (tc_d < 0){
+         // Ghosts for coarser cadences.
+         // Example: on tc-1 cell, tc-0 ghosts requested from us
+         /*                    |0--1/4-2/4-3/4-4/4-5/4-6/4--|
+         tc-1      after-acc   |----x-------x---.---x-------|
+         tc-1      after-trans |x-------x-------x-------x---|
+         tc-1ghost after-acc   |--------o---------------o---|
+         tc-1ghost after-trans |o---------------o-----------|
+         tc-0      after-acc   |--------x---------------x---|
+         tc-0      after-trans |x---------------x-----------|
+         legend:
+         - x: true state 
+         - o: ghost state
+         */
+         if (true /*spatial_cell->requested_timeclass_ghosts.count(i) > 0*/){
+
+            if (!P::tc_leapfrog_init){
+                              
+               // if it is slower-tc's turn, we are synced at after-trans state
+               // -> Copy state, but needs to acc by half-tc-0-dt ("always init")
+               // spatial_cell->set_ghost_population(spatial_cell->get_population(popID,spatial_cell->get_tc()),popID,i);
+
+               outvec.push_back(AccelerationPayload(i, spatial_cell,  dt/pow(2,tc_d)));
+            }
+            else if (spatial_cell->get_timeclass_turn_v(i) || (P::tstep == 0 && P::fractionalTimestep == 0)) {
+               
+               // if it is slower-tc's turn, we are synced at after-trans state
+               // -> Copy state, but needs to acc by half-tc-0-dt ("always init")
+               // spatial_cell->set_ghost_population(spatial_cell->get_population(popID,spatial_cell->get_tc()),popID,i);
+
+               outvec.push_back(AccelerationPayload(i, spatial_cell,  5./4.*dt/pow(2,tc_d)));
+            }
+            else{ //do nothing
+            }
+         }
+         // else if(spatial_cell->requested_timeclass_copy_ghosts.count(i) > 0 || spatial_cell->requested_timeclass_outer_ghosts.count(i) > 0){
+         //    // Copy ghosts needed, and regular ghosts are not available, so initialize and accelerate those as needed.
+         //    if (!P::tc_leapfrog_init){
+                              
+         //       // if it is slower-tc's turn, we are synced at after-trans state
+         //       // -> Copy state, but needs to acc by half-tc-0-dt ("always init")
+         //       spatial_cell->set_ghost_population(spatial_cell->get_population(popID,spatial_cell->get_tc()),popID,i);
+
+         //       outvec.push_back(AccelerationPayload(i, spatial_cell,  dt/pow(2,tc_d)));
+         //    }
+         //    else if (spatial_cell->get_timeclass_turn_v(i)){
+         //       spatial_cell->set_ghost_population(spatial_cell->get_population(popID,spatial_cell->get_tc()),popID,i);
+
+         //       outvec.push_back(AccelerationPayload(i, spatial_cell, dt/pow(2,tc_d)*5/4));
+         //    }
+         //    else{
+         //       spatial_cell->set_ghost_population(spatial_cell->get_population(popID,spatial_cell->get_tc()),popID,i);
+         //    }
+         // }
+         else{
+             // No ghosts requested from at this timeclass, do nothing
+         }
+      }
+   } // for over ghost requests
+}
+
 /** Accelerate all particle populations to new time t+dt.
- * This function is AMR safe.
+ * This function is AMR safe. NB: acceleration by dt = 0 is not a no-op.
  * @param mpiGrid Parallel grid library.
- * @param dt Time step.*/
+ * @param dt Time step factor: cells will propagated by dt*CellParams[CellParams::CELLDT] if needed.*/
 void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                           const Real dt
+                           const Real dt,
+                           bool accelerateSpecificCells,
+                           const vector<CellID>& cellsToAccelerate
                           ) {
    typedef Parameters P;
    const vector<CellID>& cells = getLocalCells();
-
+   set<CellID> cellsToPropagateSet;
+   vector<CellID> cellsToPropagateVector;
    int myRank;
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
 
-   if (dt == 0.0 && P::tstep > 0) {
+   if (dt==0.0) {
+      for (auto c : cells) {
+         cellsToPropagateSet.insert(c);
+      }
+   }
+
+   // std::cout << "-----------------calculateAcceleration at t="<<P::t << ", for dtfactor="<<dt<<"\n";
+   if (dt == 0.0 && (P::tstep > 0 || P::fractionalTimestep > 0)) {
 
       // Even if acceleration is turned off we need to adjust velocity blocks
       // because the boundary conditions may have altered the velocity space,
       // and to update changes in no-content blocks during translation.
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-         adjustVelocityBlocks(mpiGrid, cells, true, popID);
+// std::cerr << __FILE__<<":"<<__LINE__<< " calling adjustVelocityBlocks at t = "
+//          << P::t << ", preparing to receive; len cells = " << cells.size() <<
+//          "\n";
+         for (int tc = 0; tc <= P::currentMaxTimeclass; tc++){ // Filter to necessary tcs
+            adjustVelocityBlocks(mpiGrid, cells, true, popID, tc);
+         }
       }
+   //    // Needed to calculate _V moments afterwards for the local cells
+   //    // TODO also for ghost cells?
+   //    for (auto c : cells){
+   //       cellsToPropagateSet.insert(c);
+   //    }
+   // } else if (dt == 0.0 && (P::tstep == 0 && P::fractionalTimestep == 0)) { // zero dt step to initialize moments at the start of the sim, collect all cells
+   //    for (auto c : cells){
+   //       cellsToPropagateSet.insert(c);
+   //    }
    } else {
       // Fairly ugly but no goto
       phiprof::Timer accTimer {"semilag-acc"};
 
+      std::set<int> timeclasses_handled;
       // Accelerate all particle species
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          int maxSubcycles=0;
          int globalMaxSubcycles;
 
          // Set active population
-         SpatialCell::setCommunicatedSpecies(popID);
+         SpatialCell::setCommunicatedSpecies(popID); // FIXME: should this have a timeclass argument?
+
+         vector<AccelerationPayload> propagatePayloads; // <timeclass, SpatialCell*, dt, subcycle step>
 
          // Iterate through all local cells and collect cells to propagate.
          // Ghost cells (spatial cells at the boundary of the simulation
          // volume) do not need to be propagated:
-         phiprof::Timer gatherTimer {"Gather subcycles and propagated cells"};
-         vector<CellID> acceleratedCells;
-         #pragma omp parallel for
-         for (size_t c=0; c<cells.size(); ++c) {
-            SpatialCell* SC = mpiGrid[cells[c]];
-            const vmesh::VelocityMesh* vmesh = SC->get_velocity_mesh(popID);
-            // disregard boundary cells, in preparation for acceleration
-            if (  (SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) ||
-                  // Include inflow-Maxwellian
-                  (P::vlasovAccelerateMaxwellianBoundaries && (SC->sysBoundaryFlag == sysboundarytype::MAXWELLIAN)) ) {
-               uint blockCount = vmesh->size();
-               if (blockCount != 0){
-                  //do not propagate spatial cells with no blocks
-                  #pragma omp critical
-                  {
-                     acceleratedCells.push_back(cells[c]);
+         // vector<CellID> propagatedCells;
+
+
+         if (!accelerateSpecificCells) {
+            //std::cout << "Accelerating all cells for popID " << popID << "\n";
+            for (size_t c=0; c<cells.size(); ++c) {
+               SpatialCell* SC = mpiGrid[cells[c]];
+               Real dt_cell;
+               dt_cell = dt*SC->get_tc_dt();
+
+               const vmesh::VelocityMesh* vmesh = SC->get_velocity_mesh(popID);
+               // disregard boundary cells, in preparation for acceleration
+               if (  (SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) ||
+                     // Include inflow-Maxwellian
+                     (P::vlasovAccelerateMaxwellianBoundaries && (SC->sysBoundaryFlag == sysboundarytype::MAXWELLIAN)) ) {
+                        if (vmesh->size() != 0){   //do not propagate spatial cells with no blocks
+
+                              setAccelerationPayloads(propagatePayloads, mpiGrid[cells[c]], 0, dt_cell);
+                              // propagatePayloads.insert(propagatePayloads.end(), outvec.begin(),outvec.end());
+                  
+                        }
+                        //prepare for acceleration, updates max dt for each cell, it
+                        //needs to be set to something sensible for _all_ cells, even if
+                        //they are not propagated
+                        updateAccelerationMaxdt(SC, popID);
+
+                     //update max subcycles for all cells in this process - population-specific
+                     // maxSubcycles = max((int)getAccelerationSubcycles(SC->get_max_v_dt(popID), dt_cell), maxSubcycles);
+                     // spatial_cell::Population& pop = SC->get_population(popID);
+                     // pop.ACCSUBCYCLES = getAccelerationSubcycles(SC->get_max_v_dt(popID), dt_cell);
+                     #ifdef USE_GPU
+                     #pragma omp critical
+                     {
+                        if (blockCount > gpuMaxBlockCount) {
+                           gpuMaxBlockCount = blockCount;
+                        }
+                     }
+                     #endif                  
+               } // if propagate loop
+            } // for loop over cells
+         } // if !accelerateSpecificCells
+         else {
+            //std::cout << "Accelerating specific cells for popID " << popID << "\n";
+            for (size_t c=0; c<cellsToAccelerate.size(); ++c) {
+               SpatialCell* SC = mpiGrid[cellsToAccelerate[c]];
+               Real dt_cell;
+               if(dt < 0.0) { // Revert to previous real time, stored in cell
+                     // dt_cell = SC->parameters[CellParams::TIME_R] - P::t;
+                     dt_cell = dt*SC->get_tc_dt();
+
                   }
-               }
-               //prepare for acceleration, updates max dt for each cell, it
-               //needs to be set to somthing sensible for _all_ cells, even if
-               //they are not propagated
-               updateAccelerationMaxdt(SC, popID);
-               //update max subcycles for all cells in this process
-               maxSubcycles = max((int)getAccelerationSubcycles(SC, dt, popID), maxSubcycles);
-               spatial_cell::Population& pop = SC->get_population(popID);
-               pop.ACCSUBCYCLES = getAccelerationSubcycles(SC, dt, popID);
-            }
+               else { // dt is a factor of 0.5 or 1.0; so dt_cell is local timestep * dt factor
+                     dt_cell = dt*SC->get_tc_dt();
+                  }
+                  std::cout << "dt_cell: " << dt_cell << "\n";
+
+               // if ( (SC->parameters[CellParams::CELLID] == 9 || SC->parameters[CellParams::CELLID] == 11 || SC->parameters[CellParams::CELLID] == 12))
+                  // std::cout << "vdt on tc  " << SC->parameters[CellParams::TIMECLASS] << " on ftstep " << P::fractionalTimestep << ", dt " << dt_cell <<"\n";
+
+               const vmesh::VelocityMesh* vmesh = SC->get_velocity_mesh(popID);
+               // disregard boundary cells, in preparation for acceleration
+               if (  (SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) ||
+                     // Include inflow-Maxwellian
+                     (P::vlasovAccelerateMaxwellianBoundaries && (SC->sysBoundaryFlag == sysboundarytype::MAXWELLIAN)) ) {
+                        if (vmesh->size() != 0){   //do not propagate spatial cells with no blocks
+                              setAccelerationPayloads(propagatePayloads, mpiGrid[cellsToAccelerate[c]], 0, dt_cell);
+                        }
+                        //prepare for acceleration, updates max dt for each cell, it
+                        //needs to be set to something sensible for _all_ cells, even if
+                        //they are not propagated
+                        updateAccelerationMaxdt(SC, popID);
+
+                     #ifdef USE_GPU
+                     #pragma omp critical
+                     {
+                        if (blockCount > gpuMaxBlockCount) {
+                           gpuMaxBlockCount = blockCount;
+                        }
+                     }
+                     #endif                  
+               } // if propagate loop
+            } // for loop over cells
+         } // else accelerateSpecificCells
+         // This can possibly have funky dts, lets check those 
+         for(auto& payload : propagatePayloads){
+            //
+            //update max subcycles for all cells in this process - population-specific
+            // std::cerr << __FILE__ <<":"<<__LINE__<<" "<<myRank <<" : cell " << payload.cellptr->parameters[CellParams::CELLID] << " acc dt " << payload.cellptr->get_max_v_dt(popID) << "; payload.dt " << payload.dt << " maxSubcycles " << maxSubcycles << "\n";
+            maxSubcycles = max(getAccelerationSubcycles(payload.cellptr->get_max_v_dt(popID), payload.dt), maxSubcycles);
+            spatial_cell::Population& pop = payload.cellptr->get_population(popID,payload.timeclass);
+            // pop.T_V_PREV_PREV = pop.T_V_PREV;
+            // pop.T_V_PREV = pop.T_V; // acceleration will push pop.T_V forward over subcycles, roll forward the previous stamps here
+            pop.ACCSUBCYCLES = getAccelerationSubcycles(payload.cellptr->get_max_v_dt(popID), payload.dt);
+            timeclasses_handled.insert(payload.cellptr->get_tc());
          }
-         gatherTimer.stop();
+
+#ifdef USE_GPU
+         // Ensure accelerator has enough temporary memory allocated
+         phiprof::Timer verificationTimer {"gpu allocation verifications"};
+         gpu_vlasov_allocate(gpuMaxBlockCount);
+         gpu_acc_allocate(gpuMaxBlockCount);
+         verificationTimer.stop();
+#endif
 
          // Compute global maximum for number of subcycles
+         // std::cerr << __FILE__ <<":"<<__LINE__<<" " <<myRank <<": maxSubcycles = " << maxSubcycles <<"\n";
          MPI_Allreduce(&maxSubcycles, &globalMaxSubcycles, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+         // std::cerr << __FILE__ <<":"<<__LINE__<<" " <<myRank <<": globalMaxSubcycles = " << globalMaxSubcycles <<"\n";
+         // propagatedCells = std::vector<CellID>(cellsToPropagateSet.begin(),cellsToPropagateSet.end());
+         std::vector<CellID> propagatedCells = std::vector<CellID>(); // so that it compiles, REMOVE
 
-         // TODO: move subcycling to lower level call in order to optimize GPU memory calls
+         // propagatedCells = std::vector<AccelerationPayload>(propagatePayloads.begin(),propagatePayloads.end());
          // substep global max times
-         for(uint step=0; step<(uint)globalMaxSubcycles; ++step) {
+         for(int step=0; step<globalMaxSubcycles; ++step) {
             if(step > 0) {
                // prune list of cells to propagate to only contained those which are now subcycled
-               vector<CellID> temp;
-               for (const auto& cell: acceleratedCells) {
-                  if (step < getAccelerationSubcycles(mpiGrid[cell], dt, popID) ) {
-                     temp.push_back(cell);
+               std::vector<AccelerationPayload> temp;
+               for (const auto& payload: propagatePayloads) {
+                  // if (step < getAccelerationSubcycles(mpiGrid[cell], dt*mpiGrid[cell]->get_tc_dt(), popID) ) {
+                  if (step < getAccelerationSubcycles(payload.cellptr->get_max_v_dt(popID), payload.dt) ) {
+                     temp.push_back(payload);
                   }
                }
-               acceleratedCells.swap(temp);
+
+               propagatePayloads.swap(temp);
             }
             // Accelerate population over one subcycle step
-            calculateAcceleration(popID,(uint)globalMaxSubcycles,step,mpiGrid,acceleratedCells,dt);
+            // std::cout << "--------------------- an ACC subcycle " << step << " ------------------\n";
+            calculateAcceleration(popID,globalMaxSubcycles,step,mpiGrid,propagatePayloads,dt);
+            if (step == 0){ // we're not getting new cells after the first subcycle step
+               for(auto& payload:propagatePayloads){
+                  cellsToPropagateSet.insert(payload.cellptr->get_cellid());
+               }
+            }
          } // for-loop over acceleration substeps
 
-         // final adjust for all cells, also updating full remote block lists
-         adjustVelocityBlocks(mpiGrid, cells, true, popID);
+         // final adjust for all cells, also fixing remote cells.
+// std::cerr << __FILE__<<":"<<__LINE__<< " calling adjustVelocityBlocks at t = "
+//          << P::t << ", preparing to receive; len cells = " << cells.size() <<
+//          "\n";
+
+         for (int timeclass : timeclasses_handled){
+            for(auto& payload:propagatePayloads){
+               spatial_cell::Population& pop = payload.cellptr->get_population(popID, payload.timeclass);
+               if (pop.state & (1u << LastPropagationState::TRANSLATED)||(pop.state == LastPropagationState::UNINITIALIZED)){
+                  pop.state = LastPropagationState::ACCELERATED;
+               }
+               else{
+                  if(do_translate_cell(payload.cellptr) && dt != 0.0 && pop.state != LastPropagationState::ACCELERATED){
+                     std::cerr << __FILE__ << ":" << __LINE__ << ": Accelerated a badly-translated cell " << payload.cellptr->parameters[CellParams::CELLID] << "t" << payload.cellptr->parameters[CellParams::TIMECLASS] << " t = " << P::t << " at timeclass " << timeclass << ", state = " << std::bitset<8>(pop.state) << " tG flags " << payload.cellptr->requested_timeclass_ghosts.count(timeclass) << ", " << payload.cellptr->requested_timeclass_copy_ghosts.count(timeclass) << ", " << payload.cellptr->requested_timeclass_outer_ghosts.count(timeclass) << std::endl;
+                  }
+                  pop.state = LastPropagationState::ACCELERATED;
+               }
+            }
+         }
+         for (int tc = 0; tc <= P::currentMaxTimeclass; tc++){ // Filter to necessary tcs - adjustVelocityBlocks comms need COMM-WORLD yet
+            adjustVelocityBlocks(mpiGrid, cells, true, popID, tc);
+         }
       } // for-loop over particle species
+
+      //now cellsToPropagateSet contains all cells which have been propagated and whose moments need updating
+
+   } //else
+
+   // std::cout << "---------------------------- ACC finished --------------------\n";
+
+
+   //converting cellsToPropagateSet to vector
+   for (auto cell : cellsToPropagateSet) {
+      cellsToPropagateVector.push_back(cell);
    }
 
+   for (auto cell : cellsToPropagateSet){
+      if(mpiGrid[cell]->get_timeclass_turn_v()){
+         mpiGrid[cell]->parameters[CellParams::T_V] += dt*mpiGrid[cell]->get_tc_dt();
+      }
+   }
+   
    // Recalculate "_V" velocity moments
-   calculateMoments_V(mpiGrid,cells,true,(dt==0));
+   calculateMoments_V(mpiGrid,cellsToPropagateVector,true,(dt==0.0));
+
+   calculateTrueMomentsPostAcceleration(mpiGrid);
+
+   // std::cerr << "calculated V moments...\n";
 
    // Set CellParams::MAXVDT to be the minimum dt of all per-species values
    #pragma omp parallel for
@@ -577,26 +1647,74 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
          cell->parameters[CellParams::MAXVDT]
             = min(cell->get_max_v_dt(popID), cell->parameters[CellParams::MAXVDT]);
       }
+      if(abs(cell->parameters[CellParams::XCRD]+cell->parameters[CellParams::DX]/2) < 6*P::dx_ini) {
+            //cell->parameters[CellParams::MAXVDT] /= 2;
+            // cout << "maxvdt \n";
+         }
+      if(abs(cell->parameters[CellParams::XCRD]+cell->parameters[CellParams::DX]/2) < 2*P::dx_ini) {
+            //cell->parameters[CellParams::MAXVDT] /= 2;
+            // cout << "maxvdt \n";
+         }
    }
+   // std::cerr << "reaches end of accel top level\n";
+
 }
+
+
 
 /*--------------------------------------------------
   Functions for computing moments
   --------------------------------------------------*/
 
+
+void initializeTrueMomentSets(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
+ 
+   //this function assumes that the first moment set exist, calculated at init
+   const vector<CellID>& cells = getLocalCells();
+   for (size_t c=0; c<cells.size(); ++c) {
+      SpatialCell* SC = mpiGrid[cells[c]];
+      
+      // population moment sets
+      for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+         for (int tc=0; tc<=P::currentMaxTimeclass; tc++) {
+            Population& pop = SC->get_population(popID, tc);
+            for (uint mset = 0; mset < (uint)P::tcInterpolationPoints; ++mset) {
+               pop.popTrueRho[mset] = pop.popTrueRho.back();
+               pop.popTrueV[mset] = pop.popTrueV.back();
+               pop.popTrueP[mset] = pop.popTrueP.back();
+            }
+
+            // set the timestamp to go backwards in time
+            const Real dt = P::timeclassDt[tc]*0.5;
+            for (uint mset = 0; mset < (uint)P::tcInterpolationPoints; ++mset) {
+               pop.popTimestamp[mset] = -dt*(pop.popTimestamp.size()-1-mset);
+            }
+         }
+      }
+      for (uint mset = 0; mset < (uint)P::tcInterpolationPoints; ++mset) {
+         SC->trueRhom[mset] = SC->trueRhom.back();
+         SC->trueRhoq[mset] = SC->trueRhoq.back();
+         SC->trueV[mset] = SC->trueV.back();
+         SC->trueP[mset] = SC->trueP.back();
+      }
+
+      // set the timestamp to go backwards in time
+      const Real dt = P::timeclassDt[SC->get_tc()]*0.5;
+      for (uint mset = 0; mset < (uint)P::tcInterpolationPoints; ++mset) {
+         SC->timestamps[mset] -= dt*(SC->timestamps.size()-1-mset);
+      }
+   }
+}
+
+// simply takes the momentSets _R and _V of the cell and gets their means
+// does the same for moments
 void calculateInterpolatedVelocityMoments(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const int cp_rhom,
-   const int cp_vx,
-   const int cp_vy,
-   const int cp_vz,
    const int cp_rhoq,
    const int cp_p11,
-   const int cp_p22,
-   const int cp_p33,
-   const int cp_p23,
-   const int cp_p13,
-   const int cp_p12
+   const int cp_vx,
+   const int cp_t
 ) {
    const vector<CellID>& cells = getLocalCells();
 
@@ -605,30 +1723,228 @@ void calculateInterpolatedVelocityMoments(
    for (size_t c=0; c<cells.size(); ++c) {
       const CellID cellID = cells[c];
       SpatialCell* SC = mpiGrid[cellID];
-      SC->parameters[cp_rhom  ] = 0.5* ( SC->parameters[CellParams::RHOM_R] + SC->parameters[CellParams::RHOM_V] );
-      SC->parameters[cp_vx] = 0.5* ( SC->parameters[CellParams::VX_R] + SC->parameters[CellParams::VX_V] );
-      SC->parameters[cp_vy] = 0.5* ( SC->parameters[CellParams::VY_R] + SC->parameters[CellParams::VY_V] );
-      SC->parameters[cp_vz] = 0.5* ( SC->parameters[CellParams::VZ_R] + SC->parameters[CellParams::VZ_V] );
-      SC->parameters[cp_rhoq  ] = 0.5* ( SC->parameters[CellParams::RHOQ_R] + SC->parameters[CellParams::RHOQ_V] );
-      SC->parameters[cp_p11]   = 0.5* ( SC->parameters[CellParams::P_11_R] + SC->parameters[CellParams::P_11_V] );
-      SC->parameters[cp_p22]   = 0.5* ( SC->parameters[CellParams::P_22_R] + SC->parameters[CellParams::P_22_V] );
-      SC->parameters[cp_p33]   = 0.5* ( SC->parameters[CellParams::P_33_R] + SC->parameters[CellParams::P_33_V] );
-      SC->parameters[cp_p23]   = 0.5* ( SC->parameters[CellParams::P_23_R] + SC->parameters[CellParams::P_23_V] );
-      SC->parameters[cp_p13]   = 0.5* ( SC->parameters[CellParams::P_13_R] + SC->parameters[CellParams::P_13_V] );
-      SC->parameters[cp_p12]   = 0.5* ( SC->parameters[CellParams::P_12_R] + SC->parameters[CellParams::P_12_V] );
 
-      for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-         spatial_cell::Population& pop = SC->get_population(popID);
-         pop.RHO = 0.5 * ( pop.RHO_R + pop.RHO_V );
-         for (int i = 0; i < 3; i++) {
-            pop.V[i] = 0.5 * ( pop.V_R[i] + pop.V_V[i] );
-         }
-         for (int i = 0; i < 6; i++) {
-            pop.P[i] = 0.5 * ( pop.P_R[i] + pop.P_V[i] );
+      SC->parameters[cp_rhom] = 0.5 * (SC->parameters[CellParams::RHOM_R] + SC->parameters[CellParams::RHOM_V]);
+      SC->parameters[cp_rhoq] = 0.5 * (SC->parameters[CellParams::RHOQ_R] + SC->parameters[CellParams::RHOQ_V]);
+      SC->parameters[cp_t] = min(SC->parameters[CellParams::T_R], SC->parameters[CellParams::T_V]);
+      for (uint i=0; i<3; i++) {
+         SC->parameters[cp_vx + i] = 0.5 * (SC->parameters[CellParams::VX_R + i] + SC->parameters[CellParams::VX_V + i]);
+      }
+      for (uint i=0; i<6; i++) {
+         SC->parameters[cp_p11 + i] = 0.5 * (SC->parameters[CellParams::P_11_R + i] + SC->parameters[CellParams::P_11_V + i]);
+      }
+
+      for (int timeclass = 0; timeclass <=P::currentMaxTimeclass; timeclass++){   
+         for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+            spatial_cell::Population& pop = SC->get_population(popID, timeclass);
+
+            pop.RHO = 0.5 * (pop.RHO_R + pop.RHO_V);
+            pop.T = min(pop.T_R, pop.T_V);
+
+            for (uint i=0; i<3; i++) {
+               pop.V[i] = 0.5 * (pop.V_R[i] + pop.V_V[i]);
+            }
+
+            for (uint i=0; i<6; i++) {
+               pop.P[i] = 0.5 * (pop.P_R[i] + pop.P_V[i]);
+            }
          }
       }
    }
 }
+
+Real interpolation(std::vector<Real> x, std::vector<Real> y, const Real t, const std::string interpolationType) {
+
+   assert(x.size() == y.size() && "The inputs are not the same size!\n");
+
+   for (uint i=0; i<x.size()-1; ++i) {
+      assert(x[i] <= x[i+1] && "The x values are not monotonically increasing!\n");
+   }
+
+   // epsilon added to account for float fuckery
+
+   if (t < x[0]*(1.0 - 1e-6) || t > x[x.size()-1]*(1.0 + 1e-6)) {
+      #ifdef DEBUG_TIMECLASSES
+      std::cerr << "The target time is outside the range of the x values!\n";
+      std::cerr << "t = " << t << ", x[0] = " << x[0] << ", x[x.size()-1] = " << x[x.size()-1] << "\n";
+      std::cerr << "x = [";
+      for (uint i=0; i<x.size(); ++i) {
+         std::cerr << x[i];
+         if (i < x.size()-1) {
+            std::cerr << ", ";
+         }
+      }
+      std::cerr << "]\n";
+      #endif
+      //assert(false);
+   }
+
+   if (interpolationType == "linear") {
+   
+      for (uint i=0; i<x.size()-1; ++i) {
+
+         if (abs(t - x[i]) < 1e-6) {
+            return y[i];
+         }
+
+         if (t >= x[i] && t <= x[i+1]) {
+            return y[i] + (y[i+1] - y[i]) * (t - x[i]) / (x[i+1] - x[i]);
+         }
+      }
+
+      // If we reach this point, the target time is not within any interval of the x values
+      // then we linearly extrapolate using the last two points
+      // or the first two points if t < x[0]
+      if (t < x[0]) {
+         return y[0] + (y[1] - y[0]) * (t - x[0]) / (x[1] - x[0]);
+      } else if (t > x[x.size()-1]) {
+         return y[x.size()-2] + (y[x.size()-1] - y[x.size()-2]) * (t - x[x.size()-2]) / (x[x.size()-1] - x[x.size()-2]);
+      }
+   } else {
+      std::cerr << "Interpolation type " << interpolationType << " not implemented!\n";
+      assert(false);
+   }
+
+   // for compiler
+   return 0.0;
+}
+
+void interpolateMomentsForTimeclasses(
+  dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   const Real target_time,
+   const int cp_rhom,
+   const int cp_rhoq,
+   const int cp_p11,
+   const int cp_vx,
+   const int cp_t,
+   const bool postR
+) {
+
+   const vector<CellID>& cells = getLocalCells();
+
+   //#pragma omp parallel for
+   for (size_t c=0; c<cells.size(); ++c) {
+      const CellID cellID = cells[c];
+      SpatialCell* SC = mpiGrid[cellID];
+      const int timeclass = SC->parameters[CellParams::TIMECLASS];
+
+      if (P::currentMaxTimeclass == 0 || timeclass == P::currentMaxTimeclass) {
+         if (postR){ // To not overwrite P::t values with the exact same values as DT2, pre-R values hold
+            continue;
+         }
+
+         SC->parameters[cp_rhom] = 0.5 * (SC->parameters[CellParams::RHOM_R] + SC->parameters[CellParams::RHOM_V]);
+         SC->parameters[cp_rhoq] = 0.5 * (SC->parameters[CellParams::RHOQ_R] + SC->parameters[CellParams::RHOQ_V]);
+         SC->parameters[cp_t] = min(SC->parameters[CellParams::T_R], SC->parameters[CellParams::T_V]);
+         for (uint i=0; i<3; i++) {
+            SC->parameters[cp_vx + i] = 0.5 * (SC->parameters[CellParams::VX_R + i] + SC->parameters[CellParams::VX_V + i]);
+         }
+         for (uint i=0; i<6; i++) {
+            SC->parameters[cp_p11 + i] = 0.5 * (SC->parameters[CellParams::P_11_R + i] + SC->parameters[CellParams::P_11_V + i]);
+         }
+
+      } else { // this block if timeclass != maxTC
+
+         std::vector<Real> timestamps;
+         std::vector<Real> rhoms;
+         std::vector<Real> rhoqs;
+         std::array<std::vector<Real>, 3> Vs;
+         std::array<std::vector<Real>, 6> Ps;
+
+         timestamps = SC->timestamps;
+         rhoms = SC->trueRhom;
+         rhoqs = SC->trueRhoq;
+
+         // we have to change the layout of V and P from vector of arrays to array of vectors
+         for (uint i=0; i<(uint)P::tcInterpolationPoints; i++) {
+            for (uint j=0; j<3; j++) {
+               Vs[j].push_back(SC->trueV[i][j]);
+            }
+            for (uint j=0; j<6; j++) {
+               Ps[j].push_back(SC->trueP[i][j]);
+            }
+         }
+
+         SC->parameters[cp_rhom] = interpolation(std::vector<Real>(timestamps.begin(), timestamps.end()), std::vector<Real>(rhoms.begin(), rhoms.end()), target_time);
+         SC->parameters[cp_rhoq] = interpolation(std::vector<Real>(timestamps.begin(), timestamps.end()), std::vector<Real>(rhoqs.begin(), rhoqs.end()), target_time);
+         for (uint i=0; i<3; i++) {
+            SC->parameters[cp_vx + i] = interpolation(std::vector<Real>(timestamps.begin(), timestamps.end()), std::vector<Real>(Vs[i].begin(), Vs[i].end()), target_time);
+         }
+         for (uint i=0; i<6; i++) {
+            SC->parameters[cp_p11 + i] = interpolation(std::vector<Real>(timestamps.begin(), timestamps.end()), std::vector<Real>(Ps[i].begin(), Ps[i].end()), target_time);
+         }
+         SC->parameters[cp_t] = target_time;
+
+      }
+   }
+}
+
+void updateParticlePopulations(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, const Real target_time) {
+
+   const vector<CellID>& cells = getLocalCells();
+   #pragma omp parallel for
+   for (size_t c=0; c<cells.size(); ++c) {
+
+      const CellID cellID = cells[c];
+      SpatialCell* SC = mpiGrid[cellID];
+      // const int timeclass = SC->parameters[CellParams::TIMECLASS];
+      for (int timeclass = 0; timeclass <=P::currentMaxTimeclass; timeclass++){
+   
+         if (P::currentMaxTimeclass == 0 || timeclass == P::currentMaxTimeclass) {
+      
+            for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+               spatial_cell::Population& pop = SC->get_population(popID, timeclass);
+
+               pop.RHO = 0.5 * (pop.RHO_R + pop.RHO_V);
+               pop.T = min(pop.T_R, pop.T_V);
+
+               for (uint i=0; i<3; i++) {
+                  pop.V[i] = 0.5 * (pop.V_R[i] + pop.V_V[i]);
+               }
+
+               for (uint i=0; i<6; i++) {
+                  pop.P[i] = 0.5 * (pop.P_R[i] + pop.P_V[i]);
+               }
+            }
+   
+         } else {
+
+            for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+               spatial_cell::Population& pop = SC->get_population(popID,timeclass);
+
+               std::vector<Real> timestamps;
+               std::vector<Real> rhos;
+               std::array<std::vector<Real>, 3> Vs;
+               std::array<std::vector<Real>, 6> Ps;
+
+               timestamps = pop.popTimestamp;
+               rhos = pop.popTrueRho;
+
+               // we have to change the layout of V and P from vector of arrays to array of vectors
+               for (uint i=0; i<(uint)P::tcInterpolationPoints; i++) {
+                  for (uint j=0; j<3; j++) {
+                     Vs[j].push_back(pop.popTrueV[i][j]);
+                  }
+                  for (uint j=0; j<6; j++) {
+                     Ps[j].push_back(pop.popTrueP[i][j]);
+                  }
+               }
+
+               pop.RHO = interpolation(std::vector<Real>(timestamps.begin(), timestamps.end()), std::vector<Real>(rhos.begin(), rhos.end()), target_time);
+               for (uint i=0; i<3; i++) {
+                  pop.V[i] = interpolation(std::vector<Real>(timestamps.begin(), timestamps.end()), std::vector<Real>(Vs[i].begin(), Vs[i].end()), target_time);
+               }
+               for (uint i=0; i<6; i++) {
+                  pop.P[i] = interpolation(std::vector<Real>(timestamps.begin(), timestamps.end()), std::vector<Real>(Ps[i].begin(), Ps[i].end()), target_time);
+               }
+               pop.T = target_time;
+
+            }
+         }
+      }
+   }
+}
+
 
 void calculateInitialVelocityMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
    const vector<CellID>& cells = getLocalCells();
@@ -653,8 +1969,9 @@ void calculateInitialVelocityMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_G
       SC->parameters[CellParams::P_11_DT2] = SC->parameters[CellParams::P_11];
       SC->parameters[CellParams::P_22_DT2] = SC->parameters[CellParams::P_22];
       SC->parameters[CellParams::P_33_DT2] = SC->parameters[CellParams::P_33];
-      SC->parameters[CellParams::P_12_DT2] = SC->parameters[CellParams::P_12];
-      SC->parameters[CellParams::P_13_DT2] = SC->parameters[CellParams::P_13];
       SC->parameters[CellParams::P_23_DT2] = SC->parameters[CellParams::P_23];
+      SC->parameters[CellParams::P_13_DT2] = SC->parameters[CellParams::P_13];
+      SC->parameters[CellParams::P_12_DT2] = SC->parameters[CellParams::P_12];
+      SC->parameters[CellParams::T_DT2] = P::timeclassDt[P::currentMaxTimeclass]/2.0;
    } // for-loop over spatial cells
 }

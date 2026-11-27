@@ -33,8 +33,8 @@ namespace DRO {
    
    template <typename T> class DataReductionOperatorPopulations: public DataReductionOperator {
    public:
-      DataReductionOperatorPopulations(const std::string& name,const uint popID, const unsigned int byteOffset,const unsigned int vectorSize) : 
-         DataReductionOperator(), _byteOffset {byteOffset}, _vectorSize {vectorSize}, _popID {popID}, _name {name} {}
+      DataReductionOperatorPopulations(const std::string& name,const uint popID, const unsigned int byteOffset,const unsigned int vectorSize, const int timeclass = -1) : 
+         DataReductionOperator(), _byteOffset {byteOffset}, _vectorSize {vectorSize}, _popID {popID}, _name {name}, _timeclass {timeclass} {}
       virtual ~DataReductionOperatorPopulations() {};
       
       virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
@@ -45,7 +45,7 @@ namespace DRO {
 
       virtual bool reduceData(const spatial_cell::SpatialCell* cell,char* buffer) {
          // First, get a byte-sized pointer to this populations' struct within this cell.
-         const char* population_struct = reinterpret_cast<const char*>(&cell->get_population(_popID));
+         const char* population_struct = reinterpret_cast<const char*>(&cell->get_population(_popID, _timeclass));
 
          // Find the actual data at the specified offset
          const char* ptr = population_struct + _byteOffset;
@@ -63,7 +63,7 @@ namespace DRO {
          }
 
          // First, get a byte-sized pointer to this populations' struct within this cell.
-         const char* population_struct = reinterpret_cast<const char*>(&cell->get_population(_popID));
+         const char* population_struct = reinterpret_cast<const char*>(&cell->get_population(_popID, _timeclass));
 
          // Find the actual data at the specified offset
          const char* ptr = population_struct + _byteOffset;
@@ -75,7 +75,7 @@ namespace DRO {
       virtual bool setSpatialCell(const spatial_cell::SpatialCell* cell) {
 
          // First, get a byte-sized pointer to this populations' struct within this cell.
-         const char* population_struct = reinterpret_cast<const char*>(&cell->get_population(_popID));
+         const char* population_struct = reinterpret_cast<const char*>(&cell->get_population(_popID, _timeclass));
 
          // Find the actual data at the specified offset
          const T* ptr = reinterpret_cast<const T*>(population_struct + _byteOffset);
@@ -95,6 +95,7 @@ namespace DRO {
       uint _vectorSize;
       uint _popID;
       std::string _name;
+      int _timeclass;
    };
    
 
@@ -121,4 +122,3 @@ namespace DRO {
 } // namespace DRO
 
 #endif	/* DRO_POPULATIONS_H */
-

@@ -503,7 +503,6 @@ namespace projects {
 
       const std::vector<CellID> cells {getLocalCells()};
       Real r_max2 {pow(P::refineRadius, 2)};
-
       #pragma omp parallel for
       for (uint cid = 0; cid < cells.size(); ++cid) {
          CellID id = cells[cid];
@@ -656,6 +655,8 @@ Project* createProject() {
         _Magnetosphere->addParameters();
         _Flowthrough->addParameters();
         _test_fp->addParameters();
+        _Alfven->addParameters();
+        _AlfvenCascade->addParameters();
         _Distributions->addParameters();
         _Harris->addParameters();
         _Riemann1->addParameters();

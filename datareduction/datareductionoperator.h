@@ -201,6 +201,23 @@ namespace DRO {
       const Real *data;
    };
 
+   class DataReductionOperatorCellMomentVector: public DataReductionOperator {
+   public:
+      DataReductionOperatorCellMomentVector(const std::string& name,const unsigned int vectorSize);
+      virtual ~DataReductionOperatorCellMomentVector();
+
+      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual std::string getName() const;
+      virtual bool reduceData(const SpatialCell* cell,char* buffer);
+      virtual bool reduceDiagnostic(const SpatialCell* cell,Real * result);
+      virtual bool setSpatialCell(const SpatialCell* cell);
+
+   protected:
+      uint vectorSize;
+      std::string dataName;
+      const Real *data;
+   };
+
    class DataReductionOperatorDerivatives: public DataReductionOperatorCellParams {
    public:
       DataReductionOperatorDerivatives(const std::string& name,const unsigned int parameterIndex,const unsigned int vectorSize);
@@ -291,8 +308,26 @@ namespace DRO {
 
    class Blocks: public DataReductionOperator {
    public:
-      Blocks(cuint popID);
+      Blocks(cuint popID, const int timeclass = -1);
       virtual ~Blocks();
+
+      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual std::string getName() const;
+      virtual bool reduceData(const SpatialCell* cell,char* buffer);
+      virtual bool reduceDiagnostic(const SpatialCell* cell,Real* buffer);
+      virtual bool setSpatialCell(const SpatialCell* cell);
+
+   protected:
+      uint nBlocks;
+      uint popID;
+      int timeclass;
+      std::string popName;
+   };
+
+   class BlocksTC: public DataReductionOperator {
+   public:
+      BlocksTC(cuint popID);
+      virtual ~BlocksTC();
 
       virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
       virtual std::string getName() const;
@@ -733,4 +768,3 @@ namespace DRO {
 } // namespace DRO
 
 #endif
-

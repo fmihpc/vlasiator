@@ -103,7 +103,7 @@ protected:
    /*! Array of template spatial cells replicated over the corresponding
     * simulation volume face. Only the template for an active face is actually
     * being touched at all by the code. */
-   spatial_cell::SpatialCell templateCells[6];
+   std::vector<spatial_cell::SpatialCell> templateCells;
    Real templateB[6][3];
    /*! Time interval for applying the dynamic BC. */
    Real tInterval;

@@ -20,6 +20,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#include <cstddef>
 #include <cstdlib>
 #include <mpi.h>
 #include <iostream>
@@ -66,7 +67,7 @@ namespace DRO {
     * @return If true, DataReductionOperator reduced data successfully.
     */
    bool DataReductionOperator::reduceDiagnostic(const SpatialCell* cell,Real* result) {
-      cerr << "ERROR: DataReductionOperator::reduceData called instead of derived class function! (variable " <<
+      cerr << "ERROR: DataReductionOperator::reduceDiagnostic called instead of derived class function! (variable " <<
               getName() << ")" << endl;
       cerr << "       Did you use a bulk reducer for writing diagnostic data?" << endl;
       return false;
@@ -106,6 +107,87 @@ namespace DRO {
          }
       }
       data  = &(cell->parameters[_parameterIndex]);
+      return true;
+   }
+
+   DataReductionOperatorCellMomentVector::DataReductionOperatorCellMomentVector(const std::string& name,const unsigned int _vectorSize) :
+      DataReductionOperator(), vectorSize {_vectorSize}, dataName {name} {}
+   DataReductionOperatorCellMomentVector::~DataReductionOperatorCellMomentVector() { }
+
+   bool DataReductionOperatorCellMomentVector::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& _vectorSize) const {
+      dataType = "float";
+      dataSize =  sizeof(Real);
+      _vectorSize = vectorSize;
+      return true;
+   }
+
+   std::string DataReductionOperatorCellMomentVector::getName() const {return dataName;}
+
+   bool DataReductionOperatorCellMomentVector::reduceData(const SpatialCell* cell,char* buffer) {
+      const char* ptr = reinterpret_cast<const char*>(data);
+      for (uint i = 0; i < vectorSize*sizeof(Real); ++i){
+         buffer[i] = ptr[i];
+      }
+      return true;
+   }
+
+   bool DataReductionOperatorCellMomentVector::reduceDiagnostic(const SpatialCell* cell,Real* buffer){
+      //If vectorSize is >1 it still works, we just give the first value and no other ones..
+      *buffer=data[0];
+      return true;
+   }
+
+   bool DataReductionOperatorCellMomentVector::setSpatialCell(const SpatialCell* cell) {
+
+      if (dataName == "true_rhom_vector") {
+         for (uint i=0; i<vectorSize; i++) {
+            if(!std::isfinite(cell->trueRhom[i])) {
+               string message = "The DataReductionOperator " + this->getName() + " returned a nan or an inf in its " + std::to_string(i) + "-component.";
+               bailout(true, message, __FILE__, __LINE__);
+            }
+         }
+         data = cell->trueRhom.data();
+      } else if (dataName == "true_rhoq_vector") {
+         for (uint i=0; i<vectorSize; i++) {
+            if(!std::isfinite(cell->trueRhoq[i])) {
+               string message = "The DataReductionOperator " + this->getName() + " returned a nan or an inf in its " + std::to_string(i) + "-component.";
+               bailout(true, message, __FILE__, __LINE__);
+            }
+         }
+         data = cell->trueRhoq.data();
+      } else if (dataName == "true_V_vector") {
+         for (uint i=0; i<vectorSize/3; i++) { // this vectorsize is all the members of the vector
+            for (uint j=0; j<3; j++) {
+               if(!std::isfinite(cell->trueV[i][j])) {
+                  string message = "The DataReductionOperator " + this->getName() + " returned a nan or an inf in its " + std::to_string(i) + "-component.";
+                  bailout(true, message, __FILE__, __LINE__);
+               }
+            }
+         }
+         data = cell->trueV[0].data();
+      } else if (dataName == "true_P_vector") {
+         for (uint i=0; i<vectorSize/6; i++) {
+            for (uint j=0; j<6; j++) {
+               if(!std::isfinite(cell->trueP[i][j])) {
+                  string message = "The DataReductionOperator " + this->getName() + " returned a nan or an inf in its " + std::to_string(i) + "-component.";
+                  bailout(true, message, __FILE__, __LINE__);
+               }
+            }
+         }
+         data = cell->trueP[0].data();
+      } else if (dataName == "timestamp_vector") {
+         for (uint i=0; i<vectorSize; i++) {
+            if(!std::isfinite(cell->timestamps[i])) {
+               string message = "The DataReductionOperator " + this->getName() + " returned a nan or an inf in its " + std::to_string(i) + "-component.";
+               bailout(true, message, __FILE__, __LINE__);
+            }
+         }
+         data = cell->timestamps.data();
+      } else {
+         string message = "The DataReductionOperator " + this->getName() + " is not a valid input!.";
+         bailout(true, message, __FILE__, __LINE__);
+      }
+
       return true;
    }
 
@@ -571,7 +653,7 @@ namespace DRO {
    }
 
    // Blocks
-   Blocks::Blocks(cuint _popID): DataReductionOperator(),popID(_popID) {
+   Blocks::Blocks(cuint _popID, const int _timeclass): DataReductionOperator(),popID(_popID),timeclass(_timeclass) {
       popName=getObjectWrapper().particleSpecies[popID].name;
    }
    Blocks::~Blocks() { }
@@ -583,7 +665,13 @@ namespace DRO {
       return true;
    }
 
-   std::string Blocks::getName() const {return popName + "/vg_blocks";}
+   std::string Blocks::getName() const {
+      if(timeclass == -1){
+        return popName + "/vg_blocks";
+      }else{
+        return popName +"_"+to_string(timeclass)+ "/vg_blocks";
+      }
+   }
 
    bool Blocks::reduceData(const SpatialCell* cell,char* buffer) {
       const char* ptr = reinterpret_cast<const char*>(&nBlocks);
@@ -597,7 +685,38 @@ namespace DRO {
    }
 
    bool Blocks::setSpatialCell(const SpatialCell* cell) {
-      nBlocks = cell->get_number_of_velocity_blocks(popID);
+      nBlocks = cell->get_number_of_velocity_blocks(popID,timeclass);
+      return true;
+   }
+
+   // Blocks of timeclass ghosts
+   BlocksTC::BlocksTC(cuint _popID): DataReductionOperator(),popID(_popID) {
+      popName=getObjectWrapper().particleSpecies[popID].name;
+   }
+   BlocksTC::~BlocksTC() { }
+
+   bool BlocksTC::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "uint";
+      dataSize = sizeof(int);
+      vectorSize = 1;
+      return true;
+   }
+
+   std::string BlocksTC::getName() const {return popName + "/vg_blocks_tc";}
+
+   bool BlocksTC::reduceData(const SpatialCell* cell,char* buffer) {
+      const char* ptr = reinterpret_cast<const char*>(&nBlocks);
+      for (uint i = 0; i < sizeof(int); ++i) buffer[i] = ptr[i];
+      return true;
+   }
+
+   bool BlocksTC::reduceDiagnostic(const SpatialCell* cell,Real* buffer) {
+      *buffer = 1.0 * nBlocks;
+      return true;
+   }
+
+   bool BlocksTC::setSpatialCell(const SpatialCell* cell) {
+      nBlocks = cell->get_number_of_velocity_blocks_ghost(popID);
       return true;
    }
 
@@ -2284,9 +2403,11 @@ namespace DRO {
 
       // get rho and bulk speed
       rho = cell->get_population(popID).RHO_V;
-      V0[0] = cell->get_population(popID).V_V[0];
-      V0[1] = cell->get_population(popID).V_V[1];
-      V0[2] = cell->get_population(popID).V_V[2];
+
+      for (uint i = 0; i<3; i++) {
+         V0[i] = cell->get_population(popID).V_V[i];
+      }
+
 
       // calculate temperature from the pressure tensor
       Real PTensor[3] = {};
