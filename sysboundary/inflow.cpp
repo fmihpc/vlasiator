@@ -33,6 +33,7 @@
 #include "../vlasovsolver/vlasovmover.h"
 #include "../grid.h"
 #include "inflow.h"
+#include <limits>
 
 #ifdef DEBUG_VLASIATOR
 #define DEBUG_INFLOW
@@ -42,7 +43,14 @@
 #endif
 
 namespace SBC {
-   Inflow::Inflow() : OuterBoundaryCondition() {}
+   Inflow::Inflow() : OuterBoundaryCondition() {
+      templateCells.reserve(6);
+      for (int i = 0; i < 6; ++i){
+         templateCells.emplace_back(spatial_cell::SpatialCell());
+         templateB[i][0] = templateB[i][1] = templateB[i][2] = std::numeric_limits<Real>::signaling_NaN();
+      }
+   }
+
    Inflow::~Inflow() {}
 
    void Inflow::initSysBoundary(creal& t, Project& project) {
