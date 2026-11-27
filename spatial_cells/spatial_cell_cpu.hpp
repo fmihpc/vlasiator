@@ -288,7 +288,13 @@ namespace spatial_cell {
 
       Population& operator=(const Population&& other) = delete; // Move assignment not implemented
 
-      void addNewValuesToTrueMoments(const Real& rho, const std::array<Real, 3>& v, const std::array<Real, 6>& p, const Real& timestamp) {
+      void addNewValuesToTrueMoments(const Real& rho, const std::array<Real, 3>& v, const std::array<Real, 6>& p, const Real& timestamp,bool overWrite=false) {
+         if(overWrite == false && abs(this->popTimestamp.back()- timestamp) < 1e-6*P::dt){
+            #ifdef DEBUG_TIMECLASSES
+            std::cerr << __FILE__ << ":" << __LINE__ << ": same timestamps, not overwriting trueMom vectors" <<std::endl;
+            #endif
+            return;
+         }
          std::rotate(this->popTrueRho.begin(), this->popTrueRho.begin() + 1, this->popTrueRho.end());
          std::rotate(this->popTrueV.begin(), this->popTrueV.begin() + 1, this->popTrueV.end());
          std::rotate(this->popTrueP.begin(), this->popTrueP.begin() + 1, this->popTrueP.end());
@@ -512,7 +518,7 @@ namespace spatial_cell {
       bool cellIsTimeclassRelevant();
       void assignCellTimeclass();
 
-      void addNewValuesToTrueMoments(const Real& rhom, const Real& rhoq, const std::array<Real, 3>& v, const std::array<Real, 6>& p, const Real& timestamp);
+      void addNewValuesToTrueMoments(const Real& rhom, const Real& rhoq, const std::array<Real, 3>& v, const std::array<Real, 6>& p, const Real& timestamp,bool overWrite=false);
 
       uint64_t get_cell_memory_capacity();
       uint64_t get_cell_memory_size();

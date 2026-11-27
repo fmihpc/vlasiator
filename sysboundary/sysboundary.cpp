@@ -733,15 +733,15 @@ void SysBoundary::applySysBoundaryVlasovConditions(dccrg::Dccrg<SpatialCell, dcc
             const CellID cellID = localCells[c];
             SpatialCell* SC = mpiGrid[cellID];
 
-            if (SC->get_timeclass_turn_v() == true) {
+            if (SC->get_timeclass_turn_r() == true) {
                timeclassCells.push_back(cellID);
             }
          }
          #pragma omp parallel for
-         for (uint i = 0; i < localCells.size(); i++) {
-            cuint sysBoundaryType = mpiGrid[localCells[i]]->sysBoundaryFlag;
+         for (uint i = 0; i < timeclassCells.size(); i++) {
+            cuint sysBoundaryType = mpiGrid[timeclassCells[i]]->sysBoundaryFlag;
             this->getSysBoundary(sysBoundaryType)
-               ->vlasovBoundaryCondition(mpiGrid, localCells[i], popID, calculate_V_moments);
+               ->vlasovBoundaryCondition(mpiGrid, timeclassCells[i], popID, calculate_V_moments);
          }
          if (popID == getObjectWrapper().particleSpecies.size() - 1) {
             // Only calculate moments when handling last population
@@ -768,15 +768,15 @@ void SysBoundary::applySysBoundaryVlasovConditions(dccrg::Dccrg<SpatialCell, dcc
             const CellID cellID = boundaryCells[c];
             SpatialCell* SC = mpiGrid[cellID];
 
-            if (SC->get_timeclass_turn_v() == true) {
+            if (SC->get_timeclass_turn_r() == true) {
                timeclassBoundaryCells.push_back(cellID);
             }
          }
 
          #pragma omp parallel for
-         for (uint i = 0; i < boundaryCells.size(); i++) {
-            cuint sysBoundaryType = mpiGrid[boundaryCells[i]]->sysBoundaryFlag;
-            this->getSysBoundary(sysBoundaryType)->vlasovBoundaryCondition(mpiGrid, boundaryCells[i], popID, calculate_V_moments);
+         for (uint i = 0; i < timeclassBoundaryCells.size(); i++) {
+            cuint sysBoundaryType = mpiGrid[timeclassBoundaryCells[i]]->sysBoundaryFlag;
+            this->getSysBoundary(sysBoundaryType)->vlasovBoundaryCondition(mpiGrid, timeclassBoundaryCells[i], popID, calculate_V_moments);
          }
          if (popID==getObjectWrapper().particleSpecies.size()-1) {
             // Only calculate moments when handling last population

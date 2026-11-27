@@ -378,7 +378,8 @@ namespace SBC {
             SpatialCell* to,
             const bool copyMomentsOnly,
             const uint popID,
-            const bool copy_V_moments
+            const bool copy_V_moments,
+            const int timeclass /* default = -1 */
    ) {
       if (popID == 0) {
          if (copy_V_moments) {
@@ -409,7 +410,11 @@ namespace SBC {
             to->parameters[CellParams::T_R] = from->parameters[CellParams::T_R];
          }
       }
-      
+      to->trueRhom = from->trueRhom;
+      to->trueRhoq = from->trueRhoq;
+      to->trueV = from->trueV;
+      to->trueP = from->trueP;
+      to->timestamps = from->timestamps;
 
       if(copyMomentsOnly) {
          to->get_population(popID).RHO = from->get_population(popID).RHO;       

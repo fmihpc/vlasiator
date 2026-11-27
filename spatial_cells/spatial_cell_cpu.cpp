@@ -132,6 +132,12 @@ namespace spatial_cell {
       for (unsigned int i=0; i<CellParams::N_SPATIAL_CELL_PARAMS; ++i) {
          parameters[i] = other.parameters[i];
       }
+      // initialize true moment vectors to 0
+      this->trueRhom.resize(P::tcInterpolationPoints);
+      this->trueRhoq.resize(P::tcInterpolationPoints);
+      this->trueV.resize(P::tcInterpolationPoints);
+      this->trueP.resize(P::tcInterpolationPoints);
+      this->timestamps.resize(P::tcInterpolationPoints);
       for (unsigned int i=0; i<(uint)P::tcInterpolationPoints; ++i) {
          trueRhom[i] = other.trueRhom[i];
          trueRhoq[i] = other.trueRhoq[i];
@@ -176,6 +182,12 @@ namespace spatial_cell {
       for (unsigned int i=0; i<CellParams::N_SPATIAL_CELL_PARAMS; ++i) {
          parameters[i] = other.parameters[i];
       }
+      // initialize true moment vectors to 0
+      this->trueRhom.resize(P::tcInterpolationPoints);
+      this->trueRhoq.resize(P::tcInterpolationPoints);
+      this->trueV.resize(P::tcInterpolationPoints);
+      this->trueP.resize(P::tcInterpolationPoints);
+      this->timestamps.resize(P::tcInterpolationPoints);
       for (unsigned int i=0; i<(uint)P::tcInterpolationPoints; ++i) {
          trueRhom[i] = other.trueRhom[i];
          trueRhoq[i] = other.trueRhoq[i];
@@ -356,7 +368,14 @@ namespace spatial_cell {
       adjust_velocity_blocks(neighbor_ptrs,popID,doDeleteEmpty,timeclass);
    }
 
-   void SpatialCell::addNewValuesToTrueMoments(const Real& rhom, const Real& rhoq, const std::array<Real, 3>& v, const std::array<Real, 6>& p, const Real& timestamp) {
+   void SpatialCell::addNewValuesToTrueMoments(const Real& rhom, const Real& rhoq, const std::array<Real, 3>& v, const std::array<Real, 6>& p, const Real& timestamp, bool overWrite) {
+
+      if(overWrite == false && abs(this->timestamps.back()- timestamp) < 1e-6*P::dt){
+         #ifdef DEBUG_TIMECLASSES
+         std::cerr << __FILE__ << ":" << __LINE__ << ": same timestamps, not overwriting trueMom vectors" <<std::endl;
+         #endif
+         return;
+      }
       std::rotate(this->trueRhom.begin(), this->trueRhom.begin() + 1, this->trueRhom.end());
       std::rotate(this->trueRhoq.begin(), this->trueRhoq.begin() + 1, this->trueRhoq.end());
       std::rotate(this->trueV.begin(), this->trueV.begin() + 1, this->trueV.end());
