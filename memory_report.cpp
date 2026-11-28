@@ -226,12 +226,12 @@ void report_memory_consumption(
             logFile << reportstring;
          }
       }
-      /*
+#ifndef NESMIK_BACKEND // maybe not the best way?
       if(rank == MASTER_RANK) {
          bailout(max_mem_papi[0]/GiB > P::bailout_max_memory, "Memory high water mark per node exceeds bailout threshold", __FILE__, __LINE__);
          bailout(max_mem_papi[1]/GiB > P::bailout_max_memory, "Estimated resident per node exceeds bailout threshold", __FILE__, __LINE__);
       }
-      */
+#endif
    }
 #endif
 
