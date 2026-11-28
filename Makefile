@@ -258,7 +258,7 @@ data:
 c: clean
 clean: data
 	@echo "[CLEAN]"
-	$(SILENT)rm -rf *.o *.d *~ */*~ */*/*~ ${EXE} particle_post_pusher check_projects_compil_logs/ check_projects_cfg_logs/ particles/*.o
+	$(SILENT)rm -rf *.o *.d *~ */*~ */*/*~ ${EXE} ${EXE}-nesmik particle_post_pusher check_projects_compil_logs/ check_projects_cfg_logs/ particles/*.o
 cleantools:
 	rm -rf vlsv2silo_${FP_PRECISION} vlsvextract_${FP_PRECISION}  vlsvdiff_${FP_PRECISION}
 
@@ -367,6 +367,9 @@ vlasiator: $(OBJS) $(OBJS_FSOLVER)
 	@echo "[LINK] ${EXE}"
 	$(SILENT)$(LNK) ${LDFLAGS} -o ${EXE} $(OBJS) $(LIBS) $(OBJS_FSOLVER)
 
+vlasiator-nesmik: $(OBJS) $(OBJS_FSOLVER)
+	@echo "[LINK] $@"
+	$(SILENT)$(LNK) ${LDFLAGS} -o ${EXE}-nesmik $(OBJS) $(subst -lphiprof, -lnesmikprof, $(LIBS)) $(OBJS_FSOLVER)
 
 #/// TOOLS section/////
 
